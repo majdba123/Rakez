@@ -38,32 +38,16 @@ Route::post('/forget-password', [ForgetPasswordController::class, 'forgetPasswor
 Route::post('/reset-password', [ForgetPasswordController::class, 'resetPasswordByVerifyOtp']);
 Route::post('/resend-otp', [RegisterController::class, 'resendOtp'])->middleware('auth:sanctum');
 
-Route::post('/register', [RegisterController::class, 'register']);
+//Route::post('/register', [RegisterController::class, 'register']);
 Route::post('/login', [LoginController::class, 'login']);
-
-
 Route::post('/logout', [LoginController::class, 'logout'])->middleware('auth:sanctum');
-Route::post('/verify_otp', [RegisterController::class, 'verfication_otp'])->middleware('auth:sanctum');
-
-
-
-Route::group(['middleware' => ['web']], function () {
-    Route::get('auth/google/redirect', [GoogleAuthController::class, 'redirect']);
-    Route::get('auth/google/callback', [GoogleAuthController::class, 'callback']);
-});
-
-
-
-Route::group(['middleware' => ['web']], function () {
-    Route::get('auth/facebook/redirect', [FacebookController::class, 'redirect']);
-    Route::get('auth/facebook/callback', [FacebookController::class, 'callback']);
-});
+//Route::post('/verify_otp', [RegisterController::class, 'verfication_otp'])->middleware('auth:sanctum');
 
 
 
 
 
-Route::middleware(['auth:sanctum'])->group(function () {
+/*Route::middleware(['auth:sanctum'])->group(function () {
 
     Route::post('/SendTo/{recive_id}', [ChatController::class, 'sendMessage']);
     Route::get('/unread-messages', [ChatController::class, 'getUnreadMessages']);
@@ -96,7 +80,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
 
 
 
-
+    */
 
 
 Route::get('/storage/{path}', function ($path) {
