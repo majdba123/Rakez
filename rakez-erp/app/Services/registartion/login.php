@@ -15,25 +15,18 @@ class login
      * @param array $data
      * @return User
      */
-    public function login(array $data)
+    public function attemptLogin(array $data): array
     {
-        if (isset($data['email']) && !isset($data['phone'])) {
-            $user = User::where('email', $data['email'])->first();
-        } elseif (!isset($data['email']) && isset($data['phone'])) {
-            $user = User::where('phone', $data['phone'])->first();
-        } else {
-            throw new \Exception('يجب أن تحتوي البيانات إما على البريد الإلكتروني أو رقم الهاتف.');
-        }
+        $user = User::where('email', $data['email'])->first();
 
         if (!$user || !Hash::check($data['password'], $user->password)) {
             return [
                 'status' => 401,
-                'response' => response()->json(['message' => 'Invalid Credentials'], 401)
+                'message' => 'Invalid Credentials'
             ];
         }
 
         $token = $user->createToken($user->id . '-AuthToken')->plainTextToken;
-        $user->load('profile');
 
         return [
             'status' => 200,
@@ -41,6 +34,5 @@ class login
             'user' => $user
         ];
     }
-
 
 }

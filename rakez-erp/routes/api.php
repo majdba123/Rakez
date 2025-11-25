@@ -27,68 +27,47 @@ use Illuminate\Support\Facades\File;  // أضف هذا السطر في الأع�
 | be assigned to the "api" middleware group. Make something great!
 |
 */
-
-Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
-    return $request->user();
+Route::middleware('auth:sanctum')->group(function () {
+    Route::get('/user', function (Request $request) {
+        return $request->user();
+    });
+    // Add your other protected routes here
 });
 
 
-
-Route::post('/forget-password', [ForgetPasswordController::class, 'forgetPassword']);
-Route::post('/reset-password', [ForgetPasswordController::class, 'resetPasswordByVerifyOtp']);
-Route::post('/resend-otp', [RegisterController::class, 'resendOtp'])->middleware('auth:sanctum');
-
-//Route::post('/register', [RegisterController::class, 'register']);
-Route::post('/login', [LoginController::class, 'login']);
-Route::post('/logout', [LoginController::class, 'logout'])->middleware('auth:sanctum');
-//Route::post('/verify_otp', [RegisterController::class, 'verfication_otp'])->middleware('auth:sanctum');
-
-
-
-
-
-/*Route::middleware(['auth:sanctum'])->group(function () {
-
-    Route::post('/SendTo/{recive_id}', [ChatController::class, 'sendMessage']);
-    Route::get('/unread-messages', [ChatController::class, 'getUnreadMessages']);
-    Route::post('/mark-messages-as-read/{sender_id}', [ChatController::class, 'markMessagesAsRead']);
-    Route::get('/getInteractedUsers', [ChatController::class, 'getInteractedUsers']);
-    Route::get('/getConversation/{reciver_id}', [ChatController::class, 'getConversation']);
-    Route::post('/upload', [FileUploadController::class, 'upload']);
-
-
-    Route::post('/coupons/check-status', [CouponController::class, 'checkStatus']);
-    Route::get('/user_info/{user_id}', [ProfileController::class, 'user_info']);
-
-
-
-    Route::get('/my_notification', [UserNotificationController::class, 'index'])->middleware('auth:sanctum');
-    Route::post('/read_notification', [UserNotificationController::class, 'read']);
-    Route::get('/readable_massege', [UserNotificationController::class, 'readable_massege']);
-
-
-
-});
-
-
-
-    Route::get('/food-types/provider/{id}', [FoodTypeProductProviderController::class, 'getFoodTypesByProvider']);
-    Route::get('/food-types/getProvidersByFoodType/{id}', [FoodTypeProductProviderController::class, 'getProvidersByFoodType']);
-
-    Route::get('/food-types/index/', [FoodTypeController::class, 'index']);
-
-
-
-
+    /*Route::post('/forget-password', [ForgetPasswordController::class, 'forgetPassword']);
+    Route::post('/reset-password', [ForgetPasswordController::class, 'resetPasswordByVerifyOtp']);
+    Route::post('/resend-otp', [RegisterController::class, 'resendOtp'])->middleware('auth:sanctum');
     */
 
+    Route::post('/login', [LoginController::class, 'login']);
+    Route::post('/logout', [LoginController::class, 'logout'])->middleware('auth:sanctum');
 
-Route::get('/storage/{path}', function ($path) {
-    $filePath = storage_path('app/public/' . $path);
 
-    if (!File::exists($filePath)) {
-        abort(404);
-    }
 
-    return response()->file($filePath);
-})->where('path', '.*');
+
+            // Create an admin prefix group with admin middleware
+        Route::prefix('admin')->middleware(['auth:sanctum', 'admin'])->group(function () {
+
+            Route::prefix('employees')->group(function () {
+                Route::post('/add_employee', [RegisterController::class, 'add_employee']);
+                    Route::get('/list_employees', [RegisterController::class, 'list_employees']);
+                    Route::get('/show_employee/{id}', [RegisterController::class, 'show_employee']);
+                    Route::put('/update_employee/{id}', [RegisterController::class, 'update_employee']);
+                    Route::delete('/delete_employee/{id}', [RegisterController::class, 'delete_employee']);
+                    Route::patch('/restore/{id}', [RegisterController::class, 'restore_employee']);
+            });
+        });
+
+
+
+
+    Route::get('/storage/{path}', function ($path) {
+        $filePath = storage_path('app/public/' . $path);
+
+        if (!File::exists($filePath)) {
+            abort(404);
+        }
+
+        return response()->file($filePath);
+    })->where('path', '.*');

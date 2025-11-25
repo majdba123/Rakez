@@ -3,13 +3,7 @@
 namespace App\Services\registartion;
 
 use App\Models\User;
-use App\Models\Driver;
-use App\Models\Provider_Product; // Import your ProviderProduct model
-use App\Models\Provider_Service; // Import your ProviderService model
-use App\Models\FoodType_ProductProvider; // Import your ProviderService model
-
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\Cache; // Import Cache facade
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
@@ -22,146 +16,252 @@ class register
      * @param array $data
      * @return User
      */
-public function register(array $data): User
-{
-    DB::beginTransaction();
+    public function register(array $data): User
+    {
+        DB::beginTransaction();
 
-    try {
-        // تحقق من وجود البريد الإلكتروني أو رقم الهاتف
-        if (isset($data['email'])) {
-            $userData = [
-                'name' => $data['name'],
-                'email' => $data['email'],
-                'password' => Hash::make($data['password']),
-            ];
-
-            if (isset($data['phone'])) {
-                $userData['phone'] = $data['phone'];
+        try {
+            if (isset($data['email'])) {
+                $userData = [
+                    'email' => $data['email'],
+                    'name' => $data['name'],
+                    'phone' => $data['phone'],
+                    'password' => Hash::make($data['password']),
+                ];
+            } else {
+                throw new \Exception('يجب أن تحتوي البيانات إما على البريد الإلكتروني أو رقم الهاتف.');
             }
-        } elseif (isset($data['phone'])) {
-            $userData = [
-                'name' => $data['name'],
-                'phone' => $data['phone'],
-                'password' => Hash::make($data['password']),
+
+            // Add user type
+            $typeNames = [
+                0 => 'marketing',
+                1 => 'admin',
+                2 => 'project_acquisition',
+                3 => 'project_management',
+                4 => 'editor',
+                5 => 'sales',
+                6 => 'accounting',
+                7 => 'credit',
             ];
-        } else {
-            throw new \Exception('يجب أن تحتوي البيانات إما على البريد الإلكتروني أو رقم الهاتف.');
+
+            if (!isset($data['type']) || !array_key_exists($data['type'], $typeNames)) {
+                throw new \InvalidArgumentException('نوع المستخدم غير صالح');
+            }
+
+            $userData['type'] = $typeNames[$data['type']];
+
+            $user = User::create($userData);
+
+            DB::commit();
+            return $user;
+        } catch (\Exception $e) {
+            DB::rollBack();
+            throw $e;
+        }
+    }
+
+    /**
+     * List employees with filtering and pagination
+     *
+     * @param array $filters
+     * @return mixed
+     */
+    public function listEmployees(array $filters = [])
+    {
+        $query = User::query();
+
+        // Filter by type
+        if (isset($filters['type'])) {
+            $query->where('type', $filters['type']);
         }
 
-        // إضافة lat و lang إذا كانت موجودة في البيانات
-        if (isset($data['lat'])) {
-            $userData['lat'] = $data['lat'];
+        // Filter by name (search)
+        if (isset($filters['search'])) {
+            $query->where(function ($q) use ($filters) {
+                $q->where('name', 'like', '%' . $filters['search'] . '%')
+                  ->orWhere('email', 'like', '%' . $filters['search'] . '%')
+                  ->orWhere('phone', 'like', '%' . $filters['search'] . '%');
+            });
         }
 
-        if (isset($data['lang'])) {
-            $userData['lang'] = $data['lang'];
+        // Filter by status
+        if (isset($filters['status'])) {
+            if ($filters['status'] === 'active') {
+                $query->whereNull('deleted_at');
+            } elseif ($filters['status'] === 'deleted') {
+                $query->onlyTrashed();
+            }
         }
 
-        // إضافة الرقم الوطني إذا كان النوع 1 أو 2 أو 3 أو 4
-        if (in_array($data['type'], [1, 2, 3, 4])) {
-            $userData['national_id'] = $data['national_id'];
+        // Date range filter
+        if (isset($filters['start_date']) && isset($filters['end_date'])) {
+            $query->whereBetween('created_at', [
+                $filters['start_date'],
+                $filters['end_date']
+            ]);
         }
 
-        // إضافة نوع المستخدم كنص بدلاً من رقم
-        $typeNames = [
-            0 => 'user',
-            1 => 'product_provider',
-            2 => 'service_provider',
-            3 => 'driver',
-            4 => 'food_provider'
-        ];
+        // Sorting
+        $sortField = $filters['sort_by'] ?? 'created_at';
+        $sortOrder = $filters['sort_order'] ?? 'desc';
+        $query->orderBy($sortField, $sortOrder);
 
-        if (!isset($data['type']) || !array_key_exists($data['type'], $typeNames)) {
-            throw new \InvalidArgumentException('نوع المستخدم غير صالح');
+        // Pagination
+        $perPage = $filters['per_page'] ?? 15;
+        return $query->paginate($perPage);
+    }
+
+    /**
+     * Show specific employee details
+     *
+     * @param int $id
+     * @return User
+     */
+    public function showEmployee($id): User
+    {
+        $user = User::find($id);
+
+        if (!$user) {
+            throw new \Exception('Employee not found');
         }
-
-        $userData['type'] = $typeNames[$data['type']];
-
-        // تخزين الصورة إذا كانت موجودة للنوع 1 أو 2 أو 3 أو 4
-        if (in_array($data['type'], [1, 2, 3, 4]) && isset($data['image'])) {
-            $imageName = Str::random(32) . '.' . $data['image']->getClientOriginalExtension();
-            $imagePath = 'users/' . $imageName;
-            Storage::disk('public')->put($imagePath, file_get_contents($data['image']));
-            $userData['image_path'] = $imagePath ? asset('api/storage/' . $imagePath) : null;
-        }
-
-        $user = User::create($userData);
-
-        // إنشاء السجلات الإضافية حسب النوع
-        switch ($data['type']) {
-            case 1:
-                Provider_Product::create(['user_id' => $user->id]);
-                break;
-            case 2:
-                Provider_Service::create(['user_id' => $user->id]);
-                break;
-            case 3:
-                Driver::create(['user_id' => $user->id]);
-                break;
-            case 4:
-                // إنشاء سجل مزود المنتجات (الطعام)
-                $providerProduct = Provider_Product::create(['user_id' => $user->id]);
-
-                // ربط أنواع الطعام المختارة بالمزود
-                if (isset($data['food_type_ids']) && is_array($data['food_type_ids'])) {
-                    foreach ($data['food_type_ids'] as $foodTypeId) {
-                        FoodType_ProductProvider::create([
-                            'food_type_id' => $foodTypeId,
-                            'provider__product_id' => $providerProduct->id
-                        ]);
-                    }
-                }
-                break;
-        }
-
-        DB::commit();
 
         return $user;
-
-    } catch (\Exception $e) {
-        DB::rollBack();
-        throw $e;
     }
-}
 
-    public function verifyOtp(string $otp, User $user): bool
+    /**
+     * Update employee information
+     *
+     * @param int $id
+     * @param array $data
+     * @return User
+     */
+    public function updateEmployee($id, array $data): User
     {
-        // Retrieve the OTP data from the cache using the authenticated user's ID
-        $otpData = Cache::get('otp_' . $user->id);
+        DB::beginTransaction();
 
-        // Check if the OTP data exists in the cache
-        if (!$otpData) {
-            throw new \Exception('No OTP data found in cache.');
+        try {
+            $user = User::find($id);
+
+            if (!$user) {
+                throw new \Exception('Employee not found');
+            }
+
+            // Prepare update data
+            $updateData = [];
+            if (isset($data['name'])) $updateData['name'] = $data['name'];
+            if (isset($data['email'])) $updateData['email'] = $data['email'];
+            if (isset($data['phone'])) $updateData['phone'] = $data['phone'];
+
+            // Update password if provided
+            if (isset($data['password'])) {
+                $updateData['password'] = Hash::make($data['password']);
+            }
+
+            // Update type if provided
+            if (isset($data['type'])) {
+                $typeNames = [
+                    0 => 'marketing',
+                    1 => 'admin',
+                    2 => 'project_acquisition',
+                    3 => 'project_management',
+                    4 => 'editor',
+                    5 => 'sales',
+                    6 => 'accounting',
+                    7 => 'credit',
+                ];
+
+                if (!array_key_exists($data['type'], $typeNames)) {
+                    throw new \InvalidArgumentException('نوع المستخدم غير صالح');
+                }
+
+                $updateData['type'] = $typeNames[$data['type']];
+            }
+
+            $user->update($updateData);
+
+            DB::commit();
+            return $user;
+        } catch (\Exception $e) {
+            DB::rollBack();
+            throw $e;
         }
-
-        // Retrieve the OTP from the cache data
-        $sessionOtp = $otpData['otp'];
-
-        // Check if the OTP matches
-        if ($otp !== $sessionOtp) {
-            throw new \Exception('Invalid OTP.');
-        }
-
-        // If OTP is valid, update the user's otp_verified column
-        $user->otp = 1; // Assuming the column name is otp_verified
-        $user->save(); // Save the changes to the database
-
-        // Clear the OTP data from the cache after successful verification
-        Cache::forget('otp_' . $user->id);
-
-        return true; // Return true if OTP verification is successful
     }
 
+    /**
+     * Delete employee (soft delete)
+     *
+     * @param int $id
+     * @return bool
+     */
+    public function deleteEmployee($id): bool
+    {
+        $user = User::find($id);
 
+        if (!$user) {
+            throw new \Exception('Employee not found');
+        }
 
-    public function generateRandomPassword($length = 10)
+        return $user->delete();
+    }
+
+    /**
+     * Restore soft deleted employee
+     *
+     * @param int $id
+     * @return bool
+     */
+    public function restoreEmployee($id): bool
+    {
+        $user = User::onlyTrashed()->find($id);
+
+        if (!$user) {
+            throw new \Exception('Deleted employee not found');
+        }
+
+        return $user->restore();
+    }
+
+    /**
+     * Get employee statistics
+     *
+     * @return array
+     */
+    public function getEmployeeStats(): array
+    {
+        $totalEmployees = User::count();
+        $activeEmployees = User::whereNull('deleted_at')->count();
+        $deletedEmployees = User::onlyTrashed()->count();
+
+        $employeesByType = User::select('type', DB::raw('count(*) as count'))
+            ->groupBy('type')
+            ->get()
+            ->pluck('count', 'type')
+            ->toArray();
+
+        return [
+            'total_employees' => $totalEmployees,
+            'active_employees' => $activeEmployees,
+            'deleted_employees' => $deletedEmployees,
+            'employees_by_type' => $employeesByType,
+        ];
+    }
+
+    /**
+     * Generate random password
+     *
+     * @param int $length
+     * @return string
+     */
+    public function generateRandomPassword($length = 10): string
     {
         $characters = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
         $charactersLength = strlen($characters);
         $randomPassword = '';
+
         for ($i = 0; $i < $length; $i++) {
             $randomPassword .= $characters[rand(0, $charactersLength - 1)];
         }
+
         return $randomPassword;
     }
 }

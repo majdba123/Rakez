@@ -16,15 +16,11 @@ class LoginRequest extends FormRequest
         return true; // Allow all users to make this request
     }
 
-    /**
-     * Get the validation rules that apply to the request.
-     *
-     * @return array<string, \Illuminate\Contracts\Validation\ValidationRule|array<mixed>|string>
-     */
+
     public function rules(): array
     {
         return [
-            'email' => 'nullable|string|email|max:255', // Make email nullable
+            'email' => 'required|string|email|max:255', // Make email nullable
             'phone' => 'nullable|string|max:20', // Add phone field
             'password' => 'required|string|min:8',
         ];
@@ -47,12 +43,4 @@ class LoginRequest extends FormRequest
         ], 422));
     }
 
-    public function withValidator(Validator $validator)
-    {
-        $validator->after(function ($validator) {
-            if (!$this->has('email') && !$this->has('phone')) {
-                $validator->errors()->add('email_or_phone', 'You must provide either an email address or a phone number.');
-            }
-        });
-    }
 }
