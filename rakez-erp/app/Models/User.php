@@ -45,5 +45,11 @@ class User extends Authenticatable
         'password' => 'hashed',
     ];
 
-
+    /**
+     * Get the contracts for the user.
+     */
+    public function contracts()
+    {
+        return $this->hasMany(Contract::class);
+    }
 }

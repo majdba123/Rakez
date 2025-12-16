@@ -14,6 +14,7 @@ use App\Http\Controllers\FoodTypeProductProviderController;
 use App\Http\Controllers\FoodTypeController;
 use App\Http\Controllers\UserNotificationController;
 use App\Http\Controllers\ForgetPasswordController;
+use App\Http\Controllers\ContractController;
 
 use Illuminate\Support\Facades\File;  // أضف هذا السطر في الأعلى
 
@@ -43,6 +44,15 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/login', [LoginController::class, 'login']);
     Route::post('/logout', [LoginController::class, 'logout'])->middleware('auth:sanctum');
 
+    // Contract Routes - Protected routes (user contracts)
+    Route::middleware('auth:sanctum')->group(function () {
+        Route::get('/contracts/index', [ContractController::class, 'index']);
+        Route::post('/contracts/store', [ContractController::class, 'store']);
+        Route::get('/contracts/show/{id}', [ContractController::class, 'show']);
+        Route::put('/contracts/update/{id}', [ContractController::class, 'update']);
+        Route::delete('/contracts/{id}', [ContractController::class, 'destroy']);
+    });
+
 
 
 
@@ -56,6 +66,11 @@ Route::middleware('auth:sanctum')->group(function () {
                     Route::put('/update_employee/{id}', [RegisterController::class, 'update_employee']);
                     Route::delete('/delete_employee/{id}', [RegisterController::class, 'delete_employee']);
                     Route::patch('/restore/{id}', [RegisterController::class, 'restore_employee']);
+            });
+
+            Route::prefix('contracts')->group(function () {
+                Route::get('/adminIndex', [ContractController::class, 'adminIndex']);
+                Route::patch('adminUpdateStatus/{id}', [ContractController::class, 'adminUpdateStatus']);
             });
         });
 
