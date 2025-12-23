@@ -21,7 +21,6 @@ return new class extends Migration
             $table->string('district')->nullable();
             $table->enum('status', ['pending', 'approved', 'rejected', 'completed'])->default('pending');
             $table->text('notes')->nullable();
-            $table->text('notes')->nullable();
 
             $table->string( 'project_image_url')->nullable();
 
