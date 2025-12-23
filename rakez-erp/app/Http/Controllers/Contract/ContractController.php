@@ -1,10 +1,13 @@
 <?php
 
-namespace App\Http\Controllers;
+namespace App\Http\Controllers\Contract;
 
-use App\Http\Requests\StoreContractRequest;
-use App\Http\Requests\UpdateContractRequest;
-use App\Http\Requests\UpdateContractStatusRequest;
+use App\Http\Controllers\Controller;
+use App\Http\Requests\Contract\StoreContractRequest;
+use App\Http\Requests\Contract\UpdateContractRequest;
+use App\Http\Requests\Contract\UpdateContractStatusRequest;
+use App\Http\Resources\Contract\ContractResource;
+use App\Http\Resources\Contract\ContractIndexResource;
 use App\Models\Contract;
 use App\Services\Contract\ContractService;
 use Illuminate\Http\JsonResponse;
@@ -20,10 +23,7 @@ class ContractController extends Controller
         $this->contractService = $contractService;
     }
 
-    /**
-     * Get all contracts with filters (for authenticated users - their own contracts)
-     * GET /api/contracts
-     */
+
     public function index(Request $request): JsonResponse
     {
         try {
@@ -33,10 +33,6 @@ class ContractController extends Controller
                 'city' => $request->query('city'),
                 'district' => $request->query('district'),
                 'project_name' => $request->query('project_name'),
-                'units_count' => $request->query('units_count'),
-                'unit_type' => $request->query('unit_type'),
-                'total_units_value' => $request->query('total_units_value'),
-                'average_unit_price' => $request->query('average_unit_price'),
 
             ];
 
@@ -47,7 +43,7 @@ class ContractController extends Controller
             return response()->json([
                 'success' => true,
                 'message' => 'تم جلب العقود بنجاح',
-                'data' => $contracts->items(),
+                'data' => ContractIndexResource::collection($contracts->items()),
                 'meta' => [
                     'total' => $contracts->total(),
                     'count' => $contracts->count(),
@@ -64,10 +60,6 @@ class ContractController extends Controller
         }
     }
 
-    /**
-     * Store a new contract
-     * POST /api/contracts
-     */
     public function store(StoreContractRequest $request): JsonResponse
     {
         try {
@@ -78,7 +70,7 @@ class ContractController extends Controller
             return response()->json([
                 'success' => true,
                 'message' => 'تم إنشاء العقد بنجاح وحالته قيد الانتظار',
-                'data' => $contract->load('user')
+                'data' => new ContractResource($contract->load('user', 'info'))
             ], 201);
         } catch (Exception $e) {
             return response()->json([
@@ -88,10 +80,7 @@ class ContractController extends Controller
         }
     }
 
-    /**
-     * Get a single contract by ID (authorized users only)
-     * GET /api/contracts/{id}
-     */
+
     public function show(int $id): JsonResponse
     {
         try {
@@ -100,7 +89,7 @@ class ContractController extends Controller
             return response()->json([
                 'success' => true,
                 'message' => 'تم جلب العقد بنجاح',
-                'data' => $contract->load('user')
+                'data' => new ContractResource($contract)
             ], 200);
         } catch (Exception $e) {
             $statusCode = str_contains($e->getMessage(), 'Unauthorized') ? 403 : 404;
@@ -111,10 +100,8 @@ class ContractController extends Controller
         }
     }
 
-    /**
-     * Update a contract (only when status is pending and user owns it)
-     * PUT /api/contracts/{id}
-     */
+
+
     public function update(UpdateContractRequest $request, int $id): JsonResponse
     {
         try {
@@ -125,7 +112,7 @@ class ContractController extends Controller
             return response()->json([
                 'success' => true,
                 'message' => 'تم تحديث العقد بنجاح',
-                'data' => $contract->load('user')
+                'data' => new ContractResource($contract->load('user', 'info'))
             ], 200);
         } catch (Exception $e) {
             if (str_contains($e->getMessage(), 'Unauthorized')) {
@@ -141,10 +128,7 @@ class ContractController extends Controller
         }
     }
 
-    /**
-     * Delete a contract (only when status is pending and user owns it)
-     * DELETE /api/contracts/{id}
-     */
+
     public function destroy(int $id): JsonResponse
     {
         try {
@@ -168,10 +152,6 @@ class ContractController extends Controller
         }
     }
 
-    /**
-     * Get all contracts for admin with filters
-     * GET /api/admin/contracts
-     */
     public function adminIndex(Request $request): JsonResponse
     {
         try {
@@ -181,10 +161,6 @@ class ContractController extends Controller
                 'city' => $request->query('city'),
                 'district' => $request->query('district'),
                 'project_name' => $request->query('project_name'),
-                'units_count' => $request->query('units_count'),
-                'unit_type' => $request->query('unit_type'),
-                'total_units_value' => $request->query('total_units_value'),
-                'average_unit_price' => $request->query('average_unit_price'),
             ];
 
             $perPage = $request->query('per_page', 15);
@@ -194,7 +170,7 @@ class ContractController extends Controller
             return response()->json([
                 'success' => true,
                 'message' => 'تم جلب العقود بنجاح',
-                'data' => $contracts->items(),
+                'data' => ContractIndexResource::collection($contracts->items()),
                 'meta' => [
                     'total' => $contracts->total(),
                     'count' => $contracts->count(),
@@ -211,10 +187,7 @@ class ContractController extends Controller
         }
     }
 
-    /**
-     * Update contract status (admin only)
-     * PATCH /api/admin/contracts/{id}/status
-     */
+
     public function adminUpdateStatus(UpdateContractStatusRequest $request, int $id): JsonResponse
     {
         try {
@@ -225,7 +198,7 @@ class ContractController extends Controller
             return response()->json([
                 'success' => true,
                 'message' => 'تم تحديث حالة العقد بنجاح',
-                'data' => $contract->load('user')
+                'data' => new ContractResource($contract->load('user', 'info'))
             ], 200);
         } catch (Exception $e) {
             return response()->json([

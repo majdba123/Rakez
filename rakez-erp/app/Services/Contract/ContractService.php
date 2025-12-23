@@ -3,17 +3,17 @@
 namespace App\Services\Contract;
 
 use App\Models\Contract;
+use App\Models\ContractInfo;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Pagination\Paginator;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;
 use Exception;
-use Illuminate\Container\Attributes\Auth;
 
 class ContractService
 {
     /**
-     * Get all contracts with filters
+     * Get all contracts with filters for users
      */
     public function getContracts(array $filters = [], int $perPage = 15): LengthAwarePaginator
     {
@@ -32,7 +32,7 @@ class ContractService
 
             // Filter by city
             if (isset($filters['city']) && !empty($filters['city'])) {
-                $query->where('city', $filters['city']);
+                $query->inCity($filters['city']);
             }
 
             // Filter by district
@@ -42,8 +42,15 @@ class ContractService
 
             // Filter by project name (search)
             if (isset($filters['project_name']) && !empty($filters['project_name'])) {
-                $query->where('project_name', 'like', '%' . $filters['project_name'] . '%');
+                $query->where('project_name', 'like', '%' . addslashes($filters['project_name']) . '%');
             }
+
+            // Filter by developer name
+            if (isset($filters['developer_name']) && !empty($filters['developer_name'])) {
+                $query->byDeveloper($filters['developer_name']);
+            }
+
+
 
             // Sort by latest
             $query->orderBy('created_at', 'desc');
@@ -55,7 +62,7 @@ class ContractService
     }
 
     /**
-     * Store a new contract
+     * Store a new contract with units
      */
     public function storeContract(array $data): Contract
     {
@@ -64,12 +71,16 @@ class ContractService
             // Set status to pending by default
             $data['status'] = 'pending';
             $data['user_id'] = auth()->user()->id;
-            // Calculate total units value if not provided
-            if (isset($data['units_count']) && isset($data['average_unit_price'])) {
-                $data['total_units_value'] = $data['units_count'] * $data['average_unit_price'];
-            }
 
+            // Create contract
             $contract = Contract::create($data);
+
+            // Calculate and update units totals
+            $contract->calculateUnitTotals();
+            $contract->save();
+
+            // Reload with relations
+            $contract->load(['user', 'info']);
 
             DB::commit();
             return $contract;
@@ -80,16 +91,17 @@ class ContractService
     }
 
     /**
-     * Get a single contract by ID (with user authorization)
+     * Get contract by ID with authorization check
      */
     public function getContractById(int $id, int $userId = null): Contract
     {
         try {
-            $contract = Contract::findOrFail($id);
+            // Eager-load related data to prevent N+1 queries
+            $contract = Contract::with(['user', 'info'])->findOrFail($id);
 
-            // Check if user owns the contract
-            if ($userId && $contract->user_id !== $userId) {
-                throw new Exception('Unauthorized to view this contract.');
+            // Authorization check
+            if ($userId) {
+                $this->authorizeContractAccess($contract, $userId);
             }
 
             return $contract;
@@ -99,20 +111,33 @@ class ContractService
     }
 
     /**
-     * Update a contract (only when status is pending and user owns it)
+     * Verify user has access to contract (owner or admin)
+     */
+    private function authorizeContractAccess(Contract $contract, int $userId): void
+    {
+        $authUser = auth()->user();
+        $isAdmin = $authUser && isset($authUser->type) && $authUser->type === 'admin';
+
+        if (!$contract->isOwnedBy($userId) && !$isAdmin) {
+            throw new Exception('Unauthorized to access this contract.');
+        }
+    }
+
+    /**
+     * Update existing contract (pending only)
      */
     public function updateContract(int $id, array $data, int $userId = null): Contract
     {
         DB::beginTransaction();
         try {
-            $contract = Contract::findOrFail($id);
+            $contract = Contract::with(['user', 'info'])->findOrFail($id);
 
-            // Check if user owns the contract
-            if ($userId && $contract->user_id !== $userId) {
-                throw new Exception('Unauthorized to update this contract.');
+            // Authorization check
+            if ($userId) {
+                $this->authorizeContractAccess($contract, $userId);
             }
 
-            // Check if contract is pending
+            // Can only update pending contracts
             if (!$contract->isPending()) {
                 throw new Exception('Contract can only be updated when status is pending.');
             }
@@ -120,17 +145,16 @@ class ContractService
             // Prevent status update during update operation
             unset($data['status']);
 
-            // Recalculate total units value if units or price changed
-            if (isset($data['units_count']) || isset($data['average_unit_price'])) {
-                $unitsCount = $data['units_count'] ?? $contract->units_count;
-                $averagePrice = $data['average_unit_price'] ?? $contract->average_unit_price;
-                $data['total_units_value'] = $unitsCount * $averagePrice;
-            }
-
             $contract->update($data);
 
+            // Recalculate units totals if units array changed
+            if (isset($data['units']) && is_array($data['units'])) {
+                $contract->calculateUnitTotals();
+                $contract->save();
+            }
+
             DB::commit();
-            return $contract;
+            return $contract->fresh(['user', 'info']);
         } catch (Exception $e) {
             DB::rollBack();
             throw new Exception('Failed to update contract: ' . $e->getMessage());
@@ -138,7 +162,7 @@ class ContractService
     }
 
     /**
-     * Delete a contract (only when status is pending and user owns it)
+     * Delete a contract (pending only)
      */
     public function deleteContract(int $id, int $userId = null): bool
     {
@@ -146,9 +170,9 @@ class ContractService
         try {
             $contract = Contract::findOrFail($id);
 
-            // Check if user owns the contract
-            if ($userId && $contract->user_id !== $userId) {
-                throw new Exception('Unauthorized to delete this contract.');
+            // Authorization check
+            if ($userId) {
+                $this->authorizeContractAccess($contract, $userId);
             }
 
             // Check if contract is pending before deletion
@@ -167,7 +191,7 @@ class ContractService
     }
 
     /**
-     * Get all contracts for admin with filters
+     * Get all contracts for admin (with all filters)
      */
     public function getContractsForAdmin(array $filters = [], int $perPage = 15): LengthAwarePaginator
     {
@@ -186,7 +210,7 @@ class ContractService
 
             // Filter by city
             if (isset($filters['city']) && !empty($filters['city'])) {
-                $query->where('city', $filters['city']);
+                $query->inCity($filters['city']);
             }
 
             // Filter by district
@@ -196,7 +220,12 @@ class ContractService
 
             // Filter by project name (search)
             if (isset($filters['project_name']) && !empty($filters['project_name'])) {
-                $query->where('project_name', 'like', '%' . $filters['project_name'] . '%');
+                $query->where('project_name', 'like', '%' . addslashes($filters['project_name']) . '%');
+            }
+
+            // Filter by developer name
+            if (isset($filters['developer_name']) && !empty($filters['developer_name'])) {
+                $query->byDeveloper($filters['developer_name']);
             }
 
             // Sort by latest
@@ -208,22 +237,108 @@ class ContractService
         }
     }
 
+
+    public function storeContractInfo(int $contractId, array $data, ?Contract $contract = null): ContractInfo
+    {
+        DB::beginTransaction();
+        try {
+            // Use provided contract to avoid extra query
+            if (!$contract) {
+                $contract = Contract::with(['user', 'info'])->findOrFail($contractId);
+            }
+
+            // Contract must be approved
+            if (!$contract->isApproved()) {
+                throw new Exception('Contract must be approved before storing info.');
+            }
+
+            // Authorization: owner or admin only
+            $this->authorizeContractAccess($contract, auth()->id());
+
+            // Set contract id
+            $data['contract_id'] = $contract->id;
+
+            // First party details are fixed by company (cannot be overridden)
+            $fixed = [
+                'contract_number' => 'ER-' . $contract->id . '-' . time(),
+                'first_party_name' => 'شركة راكز العقارية',
+                'first_party_cr_number' => '1010650301',
+                'first_party_signatory' => 'عبد العزيز خالد عبد العزيز الجلعود',
+                'first_party_phone' => '0935027218',
+                'first_party_email' => 'info@rakez.sa',
+            ];
+
+            // Remove any incoming first-party fields (cannot be overridden)
+            foreach (array_keys($fixed) as $field) {
+                unset($data[$field]);
+            }
+
+            // Merge fixed values with user data
+            $data = array_merge($data, $fixed);
+
+            $info = $contract->info()->create($data);
+
+            DB::commit();
+            return $info;
+        } catch (Exception $e) {
+            DB::rollBack();
+            throw new Exception('Failed to store contract info: ' . $e->getMessage());
+        }
+    }
+
     /**
-     * Update contract status (admin only)
+     * Update contract info
+     */
+    public function updateContractInfo(int $contractId, array $data, int $userId = null): ContractInfo
+    {
+        DB::beginTransaction();
+        try {
+            $contract = Contract::with(['user', 'info'])->findOrFail($contractId);
+
+            // Authorization check
+            if ($userId) {
+                $this->authorizeContractAccess($contract, $userId);
+            }
+
+            $info = $contract->info;
+            if (!$info) {
+                // If no info exists, create it instead
+                $data['contract_id'] = $contract->id;
+                $info = $contract->info()->create($data);
+            } else {
+                // Remove first-party fields to prevent override
+                $protectedFields = ['contract_number', 'first_party_name', 'first_party_cr_number',
+                                   'first_party_signatory', 'first_party_phone', 'first_party_email'];
+                foreach ($protectedFields as $field) {
+                    unset($data[$field]);
+                }
+                $info->update($data);
+            }
+
+            DB::commit();
+            return $info->fresh();
+        } catch (Exception $e) {
+            DB::rollBack();
+            throw new Exception('Failed to update contract info: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Update contract status (admin only, pending to other statuses)
      */
     public function updateContractStatus(int $id, string $status): Contract
     {
         DB::beginTransaction();
         try {
-            $contract = Contract::findOrFail($id);
+            $contract = Contract::with(['user', 'info'])->findOrFail($id);
 
-            // Check if status is valid
+            // Validate status
             $validStatuses = ['pending', 'approved', 'rejected', 'completed'];
             if (!in_array($status, $validStatuses)) {
                 throw new Exception('Invalid status. Must be one of: ' . implode(', ', $validStatuses));
             }
 
-            // Check if contract is pending before changing status
+            // Can only update status from pending
             if (!$contract->isPending()) {
                 throw new Exception('Only pending contracts can have their status changed.');
             }
@@ -231,7 +346,7 @@ class ContractService
             $contract->update(['status' => $status]);
 
             DB::commit();
-            return $contract;
+            return $contract->fresh(['user', 'info']);
         } catch (Exception $e) {
             DB::rollBack();
             throw new Exception('Failed to update contract status: ' . $e->getMessage());

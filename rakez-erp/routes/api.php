@@ -14,7 +14,9 @@ use App\Http\Controllers\FoodTypeProductProviderController;
 use App\Http\Controllers\FoodTypeController;
 use App\Http\Controllers\UserNotificationController;
 use App\Http\Controllers\ForgetPasswordController;
-use App\Http\Controllers\ContractController;
+use App\Http\Controllers\Contract\ContractController;
+use App\Http\Controllers\Contract\ContractInfoController;
+
 
 use Illuminate\Support\Facades\File;  // أضف هذا السطر في الأعلى
 
@@ -51,6 +53,9 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/contracts/show/{id}', [ContractController::class, 'show']);
         Route::put('/contracts/update/{id}', [ContractController::class, 'update']);
         Route::delete('/contracts/{id}', [ContractController::class, 'destroy']);
+
+        Route::post('/contracts/store/info/{id}', [ContractInfoController::class, 'store']);
+
     });
 
 

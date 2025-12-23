@@ -16,14 +16,15 @@ return new class extends Migration
             $table->foreignId('user_id')->constrained()->onDelete('cascade');
             $table->string('project_name');
             $table->string('developer_number');
+             $table->string('developer_name');
             $table->string('city')->nullable();
             $table->string('district')->nullable();
-            $table->integer('units_count')->default(0);
-            $table->string('unit_type')->nullable();
-            $table->decimal('average_unit_price', 12, 2)->default(0);
-            $table->decimal('total_units_value', 12, 2)->default(0);
             $table->enum('status', ['pending', 'approved', 'rejected', 'completed'])->default('pending');
             $table->text('notes')->nullable();
+            $table->text('notes')->nullable();
+
+            $table->string( 'project_image_url')->nullable();
+
             $table->softDeletes();
             $table->timestamps();
         });
