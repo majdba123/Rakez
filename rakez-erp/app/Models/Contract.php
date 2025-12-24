@@ -37,9 +37,6 @@ class Contract extends Model
      */
     protected $casts = [
         'units' => 'array',
-        'units_count' => 'integer',
-        'average_unit_price' => 'decimal:2',
-        'total_units_value' => 'decimal:2',
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
         'deleted_at' => 'datetime',
@@ -126,7 +123,7 @@ class Contract extends Model
 
     /**
      * Calculate totals from units array
-     * Calculates units_count, total_units_value, and average_unit_price
+     * Adds calculated values (subtotal, percentage) for each unit
      */
     public function calculateUnitTotals(): void
     {
@@ -137,7 +134,7 @@ class Contract extends Model
         $unitsCount = 0;
         $totalValue = 0;
 
-        // Calculate from units array
+        // First pass: calculate total values
         if (is_array($this->units) && count($this->units) > 0) {
             foreach ($this->units as $unit) {
                 $count = (int) ($unit['count'] ?? 0);
@@ -148,10 +145,27 @@ class Contract extends Model
             }
         }
 
-        // Set calculated values
-        $this->units_count = $unitsCount;
-        $this->total_units_value = $totalValue;
-        $this->average_unit_price = $unitsCount > 0 ? round($totalValue / $unitsCount, 2) : 0;
+        // Second pass: add calculated values to each unit
+        $calculatedUnits = [];
+        if (is_array($this->units) && count($this->units) > 0) {
+            foreach ($this->units as $unit) {
+                $count = (int) ($unit['count'] ?? 0);
+                $price = (float) ($unit['price'] ?? 0);
+                $subtotal = $count * $price;
+
+                // Add calculated values to unit
+                $unit['subtotal'] = $subtotal;
+                $unit['percentage'] = $totalValue > 0
+                    ? round(($subtotal / $totalValue) * 100, 2)
+                    : 0;
+                $unit['unit_average'] = round($price, 2);
+
+                $calculatedUnits[] = $unit;
+            }
+        }
+
+        // Assign the modified array back
+        $this->units = $calculatedUnits;
     }
 
     /**

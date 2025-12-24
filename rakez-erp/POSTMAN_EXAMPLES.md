@@ -149,9 +149,6 @@ Accept: application/json
         "price": 1800000
       }
     ],
-    "units_count": 8,
-    "total_units_value": 7150000,
-    "average_unit_price": 893750,
     "status": "pending",
     "notes": null,
     "developer_requiment": "متطلبات المشروع الخاصة",

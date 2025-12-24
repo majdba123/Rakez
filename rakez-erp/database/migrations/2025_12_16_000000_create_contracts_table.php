@@ -17,10 +17,12 @@ return new class extends Migration
             $table->string('project_name');
             $table->string('developer_number');
              $table->string('developer_name');
+
             $table->string('city')->nullable();
             $table->string('district')->nullable();
             $table->enum('status', ['pending', 'approved', 'rejected', 'completed'])->default('pending');
             $table->text('notes')->nullable();
+            $table->text('developer_requiment')->nullable();
 
             $table->string( 'project_image_url')->nullable();
 

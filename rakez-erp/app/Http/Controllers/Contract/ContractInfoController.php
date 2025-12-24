@@ -30,6 +30,14 @@ class ContractInfoController extends Controller
             // Check permission and eager-load relations to avoid extra queries
             $contract = $this->contractService->getContractById($contractId, auth()->id());
 
+            // Prevent creating a new ContractInfo if one already exists
+            if ($contract->info) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'بيانات العقد موجودة بالفعل ولا يمكن إنشاؤها مرة أخرى',
+                ], 422);
+            }
+
             // Only allow storing info if contract status is approved
             if ($contract->status !== 'approved') {
                 return response()->json([

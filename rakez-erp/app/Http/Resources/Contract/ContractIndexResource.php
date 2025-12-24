@@ -15,6 +15,8 @@ class ContractIndexResource extends JsonResource
     {
         return [
             'id' => $this->id,
+            'user_id' => $this->user_id,
+
             'project_name' => $this->project_name,
             'developer_name' => $this->developer_name,
             'developer_number' => $this->developer_number,
