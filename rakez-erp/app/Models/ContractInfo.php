@@ -20,6 +20,7 @@ class ContractInfo extends Model
         'first_party_signatory',
         'first_party_phone',
         'first_party_email',
+
         'gregorian_date',
         'hijri_date',
         'contract_city',
@@ -30,6 +31,7 @@ class ContractInfo extends Model
         'agency_date',
         'avg_property_value',
         'release_date',
+
         'second_party_name',
         'second_party_address',
         'second_party_cr_number',
