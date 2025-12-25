@@ -32,6 +32,8 @@ return new class extends Migration
             $table->string('second_party_cr_number')->nullable();
             $table->string('second_party_signatory')->nullable();
             $table->string('second_party_id_number')->nullable();
+                        $table->string('second_party_email')->nullable();
+
             $table->string('second_party_role')->nullable();
             $table->string('second_party_phone')->nullable();
 
