@@ -75,9 +75,7 @@ class StoreContractRequest extends FormRequest
         ];
     }
 
-    /**
-     * Get custom messages for validation errors.
-     */
+
     public function messages(): array
     {
         return [
