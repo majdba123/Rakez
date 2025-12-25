@@ -61,9 +61,7 @@ class ContractService
         }
     }
 
-    /**
-     * Store a new contract with units
-     */
+
     public function storeContract(array $data): Contract
     {
         DB::beginTransaction();
@@ -90,9 +88,7 @@ class ContractService
         }
     }
 
-    /**
-     * Get contract by ID with authorization check
-     */
+
     public function getContractById(int $id, int $userId = null): Contract
     {
         try {
@@ -110,9 +106,7 @@ class ContractService
         }
     }
 
-    /**
-     * Verify user has access to contract (owner or admin)
-     */
+
     private function authorizeContractAccess(Contract $contract, int $userId): void
     {
         $authUser = auth()->user();
@@ -123,9 +117,7 @@ class ContractService
         }
     }
 
-    /**
-     * Update existing contract (pending only)
-     */
+
     public function updateContract(int $id, array $data, int $userId = null): Contract
     {
         DB::beginTransaction();
@@ -161,9 +153,7 @@ class ContractService
         }
     }
 
-    /**
-     * Delete a contract (pending only)
-     */
+
     public function deleteContract(int $id, int $userId = null): bool
     {
         DB::beginTransaction();

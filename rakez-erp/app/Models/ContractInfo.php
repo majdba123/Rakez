@@ -30,7 +30,6 @@ class ContractInfo extends Model
         'agency_date',
         'avg_property_value',
         'release_date',
-        'second_party_developer_id',
         'second_party_name',
         'second_party_address',
         'second_party_cr_number',
@@ -38,6 +37,7 @@ class ContractInfo extends Model
         'second_party_id_number',
         'second_party_role',
         'second_party_phone',
+        'second_party_email'
     ];
 
     protected $casts = [

@@ -14,7 +14,7 @@ return new class extends Migration
         Schema::table('users', function (Blueprint $table) {
             $table->string('team')->nullable()->after('type');
             $table->string('identity_number')->nullable()->unique()->after('team');
-            $table->date('birthday')->nullable()->after('identity_date');
+            $table->date('birthday')->nullable();
             $table->date('date_of_works')->nullable()->after('birthday');
             $table->string('contract_type')->nullable()->after('date_of_works');
             $table->string('iban')->nullable()->after('contract_type');

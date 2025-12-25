@@ -26,7 +26,7 @@ class ContractInfoResource extends JsonResource
             'second_party_name' => $this->second_party_name,
             'second_party_address' => $this->second_party_address,
             'second_party_cr_number' => $this->second_party_cr_number,
-            'second_party_id' => $this->second_party_id,
+            'second_party_id' => $this->second_party_id_number,
             'second_party_phone' => $this->second_party_phone,
             'second_party_email' => $this->second_party_email,
             // Contract details
