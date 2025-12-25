@@ -23,6 +23,15 @@ class User extends Authenticatable
         'phone',
         'email',
         'password',
+        // Profile fields
+        'team',
+        'identity_number',
+        'birthday',
+        'date_of_works',
+        'contract_type',
+        'iban',
+        'salary',
+        'marital_status',
     ];
 
     /**
@@ -43,6 +52,10 @@ class User extends Authenticatable
     protected $casts = [
         'email_verified_at' => 'datetime',
         'password' => 'hashed',
+        'identity_date' => 'date',
+        'birthday' => 'date',
+        'date_of_works' => 'date',
+        'salary' => 'decimal:2',
     ];
 
     /**

@@ -9,6 +9,7 @@ use App\Http\Requests\registartion\UpdateUser;
 use App\Services\registartion\register;
 use Illuminate\Http\JsonResponse;
 use App\Models\User;
+use App\Http\Resources\UserResource;
 
 class RegisterController extends Controller
 {
@@ -30,42 +31,38 @@ class RegisterController extends Controller
         $validatedData = $request->validated();
         $user = $this->userService->register($validatedData);
 
-        return response()->json([
-            'message' => 'User registered successfully',
-            'user' => $user,
-        ], 201);
+        return (new UserResource($user))
+            ->additional(['message' => 'User registered successfully'])
+            ->response()
+            ->setStatusCode(201);
     }
 
     /**
      * List all employees with filtering and pagination
      *
      * @param Request $request
-     * @return JsonResponse
+     * @return mixed
      */
-    public function list_employees(Request $request): JsonResponse
+    public function list_employees(Request $request): mixed
     {
         $users = $this->userService->listEmployees($request->all());
 
-        return response()->json([
-            'message' => 'Employees retrieved successfully',
-            'data' => $users,
-        ]);
+        return UserResource::collection($users)
+            ->additional(['message' => 'Employees retrieved successfully']);
     }
 
     /**
      * Show specific employee details
      *
      * @param int $id
-     * @return JsonResponse
+     * @return mixed
      */
-    public function show_employee($id): JsonResponse
+    public function show_employee($id): mixed
     {
         $user = $this->userService->showEmployee($id);
 
-        return response()->json([
-            'message' => 'Employee retrieved successfully',
-            'user' => $user,
-        ]);
+        return (new UserResource($user))
+            ->additional(['message' => 'Employee retrieved successfully']);
     }
 
     /**
@@ -73,17 +70,15 @@ class RegisterController extends Controller
      *
      * @param UpdateUser $request
      * @param int $id
-     * @return JsonResponse
+     * @return mixed
      */
-    public function update_employee(UpdateUser $request, $id): JsonResponse
+    public function update_employee(UpdateUser $request, $id): mixed
     {
         $validatedData = $request->validated();
         $user = $this->userService->updateEmployee($id, $validatedData);
 
-        return response()->json([
-            'message' => 'Employee updated successfully',
-            'user' => $user,
-        ]);
+        return (new UserResource($user))
+            ->additional(['message' => 'Employee updated successfully']);
     }
 
     /**

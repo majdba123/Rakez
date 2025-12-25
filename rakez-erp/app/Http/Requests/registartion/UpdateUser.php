@@ -27,6 +27,15 @@ class UpdateUser extends FormRequest
             'phone' => 'sometimes|string|max:20',
             'password' => 'sometimes|string|min:6',
             'type' => 'sometimes|integer|between:0,7',
+            // Profile fields
+            'team' => 'sometimes|string|max:255',
+            'identity_number' => 'sometimes|string|max:100|unique:users,identity_number,' . $this->route('id'),
+            'birthday' => 'sometimes|date',
+            'date_of_works' => 'sometimes|date',
+            'contract_type' => 'sometimes|string|max:100',
+            'iban' => 'sometimes|string|max:34',
+            'salary' => 'sometimes|numeric|min:0',
+            'marital_status' => 'sometimes|string|in:single,married,divorced,widowed',
         ];
     }
 

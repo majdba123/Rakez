@@ -7,6 +7,8 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 
 class register
 {
@@ -30,6 +32,24 @@ class register
                 ];
             } else {
                 throw new \Exception('يجب أن تحتوي البيانات إما على البريد الإلكتروني أو رقم الهاتف.');
+            }
+
+            // Optional profile fields
+            $optional = [
+                'team',
+                'identity_number',
+                'birthday',
+                'date_of_works',
+                'contract_type',
+                'iban',
+                'salary',
+                'marital_status',
+            ];
+
+            foreach ($optional as $key) {
+                if (isset($data[$key])) {
+                    $userData[$key] = $data[$key];
+                }
             }
 
             // Add user type
@@ -70,9 +90,32 @@ class register
     {
         $query = User::query();
 
+        // Select only the columns used by the API resource to reduce payload
+        $select = [
+            'id', 'name', 'email', 'phone', 'type', 'team', 'identity_number',
+            'identity_date', 'birthday', 'date_of_works', 'contract_type',
+            'iban', 'salary', 'marital_status', 'created_at', 'updated_at'
+        ];
+        $query->select($select);
+
+        // Map numeric type filter to stored type name to be tolerant of both forms
+        $typeNames = [
+            0 => 'marketing',
+            1 => 'admin',
+            2 => 'project_acquisition',
+            3 => 'project_management',
+            4 => 'editor',
+            5 => 'sales',
+            6 => 'accounting',
+            7 => 'credit',
+        ];
         // Filter by type
         if (isset($filters['type'])) {
-            $query->where('type', $filters['type']);
+            $typeFilter = $filters['type'];
+            if (is_numeric($typeFilter) && array_key_exists((int)$typeFilter, $typeNames)) {
+                $typeFilter = $typeNames[(int)$typeFilter];
+            }
+            $query->where('type', $typeFilter);
         }
 
         // Filter by name (search)
@@ -106,8 +149,8 @@ class register
         $sortOrder = $filters['sort_order'] ?? 'desc';
         $query->orderBy($sortField, $sortOrder);
 
-        // Pagination
-        $perPage = $filters['per_page'] ?? 15;
+        // Pagination (ensure reasonable maximum)
+        $perPage = isset($filters['per_page']) ? (int) min(100, max(1, $filters['per_page'])) : 15;
         return $query->paginate($perPage);
     }
 
@@ -119,13 +162,11 @@ class register
      */
     public function showEmployee($id): User
     {
-        $user = User::find($id);
-
-        if (!$user) {
+        try {
+            return User::findOrFail($id);
+        } catch (ModelNotFoundException $e) {
             throw new \Exception('Employee not found');
         }
-
-        return $user;
     }
 
     /**
@@ -151,6 +192,24 @@ class register
             if (isset($data['name'])) $updateData['name'] = $data['name'];
             if (isset($data['email'])) $updateData['email'] = $data['email'];
             if (isset($data['phone'])) $updateData['phone'] = $data['phone'];
+
+            // Update optional profile fields
+            $profileFields = [
+                'team',
+                'identity_number',
+                'birthday',
+                'date_of_works',
+                'contract_type',
+                'iban',
+                'salary',
+                'marital_status',
+            ];
+
+            foreach ($profileFields as $pf) {
+                if (array_key_exists($pf, $data)) {
+                    $updateData[$pf] = $data[$pf];
+                }
+            }
 
             // Update password if provided
             if (isset($data['password'])) {
@@ -228,22 +287,25 @@ class register
      */
     public function getEmployeeStats(): array
     {
-        $totalEmployees = User::count();
-        $activeEmployees = User::whereNull('deleted_at')->count();
-        $deletedEmployees = User::onlyTrashed()->count();
+        // Cache stats briefly to reduce DB load on frequent calls
+        return Cache::remember('employee_stats_v1', 30, function () {
+            $totalEmployees = User::count();
+            $activeEmployees = User::whereNull('deleted_at')->count();
+            $deletedEmployees = User::onlyTrashed()->count();
 
-        $employeesByType = User::select('type', DB::raw('count(*) as count'))
-            ->groupBy('type')
-            ->get()
-            ->pluck('count', 'type')
-            ->toArray();
+            $employeesByType = User::select('type', DB::raw('count(*) as count'))
+                ->groupBy('type')
+                ->get()
+                ->pluck('count', 'type')
+                ->toArray();
 
-        return [
-            'total_employees' => $totalEmployees,
-            'active_employees' => $activeEmployees,
-            'deleted_employees' => $deletedEmployees,
-            'employees_by_type' => $employeesByType,
-        ];
+            return [
+                'total_employees' => $totalEmployees,
+                'active_employees' => $activeEmployees,
+                'deleted_employees' => $deletedEmployees,
+                'employees_by_type' => $employeesByType,
+            ];
+        });
     }
 
     /**
