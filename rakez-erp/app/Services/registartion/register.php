@@ -93,7 +93,7 @@ class register
         // Select only the columns used by the API resource to reduce payload
         $select = [
             'id', 'name', 'email', 'phone', 'type', 'team', 'identity_number',
-            'identity_date', 'birthday', 'date_of_works', 'contract_type',
+             'birthday', 'date_of_works', 'contract_type',
             'iban', 'salary', 'marital_status', 'created_at', 'updated_at'
         ];
         $query->select($select);
