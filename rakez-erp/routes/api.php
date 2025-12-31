@@ -16,6 +16,8 @@ use App\Http\Controllers\UserNotificationController;
 use App\Http\Controllers\ForgetPasswordController;
 use App\Http\Controllers\Contract\ContractController;
 use App\Http\Controllers\Contract\ContractInfoController;
+use App\Http\Controllers\Contract\SecondPartyDataController;
+use App\Http\Controllers\Contract\ContractUnitController;
 
 
 use Illuminate\Support\Facades\File;  // أضف هذا السطر في الأعلى
@@ -55,6 +57,36 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::delete('/contracts/{id}', [ContractController::class, 'destroy']);
 
         Route::post('/contracts/store/info/{id}', [ContractInfoController::class, 'store']);
+
+    });
+
+    // Project Management Routes - إدارة المشاريع
+    // Only project_management and admin users can access these routes
+    Route::middleware(['auth:sanctum', 'project_management'])->group(function () {
+
+        // Second Party Data Routes - بيانات الطرف الثاني
+        Route::prefix('contracts/{contractId}/second-party-data')->group(function () {
+            Route::get('/', [SecondPartyDataController::class, 'show']);
+            Route::post('/', [SecondPartyDataController::class, 'store']);
+            Route::put('/', [SecondPartyDataController::class, 'update']);
+        });
+
+        // Contract Units Routes - وحدات العقد
+        // Get units by contract ID
+        Route::get('/contracts/{contractId}/units', [ContractUnitController::class, 'indexByContract']);
+
+        // Units by SecondPartyData ID
+        Route::prefix('second-party-data/{secondPartyDataId}/units')->group(function () {
+            Route::get('/', [ContractUnitController::class, 'index']);
+            Route::post('/upload-csv', [ContractUnitController::class, 'uploadCsv']);
+            Route::get('/stats', [ContractUnitController::class, 'stats']);
+        });
+
+        // Single unit operations
+        Route::prefix('units')->group(function () {
+            Route::get('/{unitId}', [ContractUnitController::class, 'show']);
+            Route::put('/{unitId}', [ContractUnitController::class, 'update']);
+        });
 
     });
 

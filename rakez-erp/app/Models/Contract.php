@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use App\Models\ContractInfo;
+use App\Models\SecondPartyData;
 
 class Contract extends Model
 {
@@ -56,6 +57,15 @@ class Contract extends Model
     public function info()
     {
         return $this->hasOne(ContractInfo::class);
+    }
+
+    /**
+     * Get the second party data (one-to-one).
+     * بيانات الطرف الثاني
+     */
+    public function secondPartyData()
+    {
+        return $this->hasOne(SecondPartyData::class);
     }
 
     /**

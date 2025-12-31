@@ -1,0 +1,53 @@
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
+
+class ContractUnit extends Model
+{
+    use HasFactory, SoftDeletes;
+
+    protected $table = 'contract_units';
+
+    protected $fillable = [
+        'second_party_data_id',
+        'unit_type',
+        'unit_number',
+        'count',
+        'status',
+        'total_price',
+        'price',
+        'area',
+        'description',
+    ];
+
+    protected $casts = [
+        'count' => 'integer',
+        'price' => 'decimal:2',
+        'total_price' => 'decimal:2',
+        'area' => 'decimal:2',
+        'created_at' => 'datetime',
+        'updated_at' => 'datetime',
+        'deleted_at' => 'datetime',
+    ];
+
+    /**
+     * Get the second party data that owns this unit.
+     */
+    public function secondPartyData()
+    {
+        return $this->belongsTo(SecondPartyData::class);
+    }
+
+    /**
+     * Calculate subtotal for this unit.
+     */
+    public function getSubtotalAttribute(): float
+    {
+        return $this->count * $this->price;
+    }
+}
+
