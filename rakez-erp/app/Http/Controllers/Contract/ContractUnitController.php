@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Contract;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Contract\StoreContractUnitRequest;
 use App\Http\Requests\Contract\UpdateContractUnitRequest;
 use App\Http\Requests\Contract\UploadContractUnitsRequest;
 use App\Http\Resources\Contract\ContractUnitResource;
@@ -20,17 +21,12 @@ class ContractUnitController extends Controller
         $this->contractUnitService = $contractUnitService;
     }
 
-    /**
-     * Upload CSV file to create contract units
-     * Only one CSV upload is allowed per SecondPartyData
-     *
-     * POST /api/second-party-data/{secondPartyDataId}/units/upload-csv
-     */
-    public function uploadCsv(UploadContractUnitsRequest $request, int $secondPartyDataId): JsonResponse
+    // رفع ملف CSV
+    public function uploadCsvByContract(UploadContractUnitsRequest $request, int $contractId): JsonResponse
     {
         try {
-            $result = $this->contractUnitService->uploadCsv(
-                $secondPartyDataId,
+            $result = $this->contractUnitService->uploadCsvByContractId(
+                $contractId,
                 $request->file('csv_file')
             );
 
@@ -39,52 +35,17 @@ class ContractUnitController extends Controller
                 'message' => $result['message'],
                 'data' => [
                     'status' => $result['status'],
+                    'contract_id' => $result['contract_id'],
                     'second_party_data_id' => $result['second_party_data_id'],
+                    'units_created' => $result['units_created'],
                 ],
-            ], 202); // 202 Accepted - processing in background
+            ], 201);
         } catch (Exception $e) {
-            $statusCode = str_contains($e->getMessage(), 'مسبقاً') ? 422 : 500;
-            $statusCode = str_contains($e->getMessage(), 'غير موجود') ? 404 : $statusCode;
-
-            return response()->json([
-                'success' => false,
-                'message' => $e->getMessage(),
-            ], $statusCode);
+            return $this->errorResponse($e);
         }
     }
 
-    /**
-     * Get all units for a SecondPartyData
-     *
-     * GET /api/second-party-data/{secondPartyDataId}/units
-     */
-    public function index(Request $request, int $secondPartyDataId): JsonResponse
-    {
-        try {
-            $perPage = $request->query('per_page', 15);
-            $units = $this->contractUnitService->getUnitsBySecondPartyDataId($secondPartyDataId, $perPage);
-
-            return response()->json([
-                'success' => true,
-                'data' => ContractUnitResource::collection($units),
-                'meta' => [
-                    'current_page' => $units->currentPage(),
-                    'last_page' => $units->lastPage(),
-                    'per_page' => $units->perPage(),
-                    'total' => $units->total(),
-                ],
-            ], 200);
-        } catch (Exception $e) {
-            $statusCode = str_contains($e->getMessage(), 'غير موجود') ? 404 : 500;
-
-            return response()->json([
-                'success' => false,
-                'message' => $e->getMessage(),
-            ], $statusCode);
-        }
-    }
-
-
+    // عرض الوحدات
     public function indexByContract(Request $request, int $contractId): JsonResponse
     {
         try {
@@ -102,42 +63,28 @@ class ContractUnitController extends Controller
                 ],
             ], 200);
         } catch (Exception $e) {
-            $statusCode = str_contains($e->getMessage(), 'غير موجود') ? 404 : 500;
-
-            return response()->json([
-                'success' => false,
-                'message' => $e->getMessage(),
-            ], $statusCode);
+            return $this->errorResponse($e);
         }
     }
 
-    /**
-     * Get a single unit by ID
-     *
-     * GET /api/units/{unitId}
-     */
-    public function show(int $unitId): JsonResponse
+    // إضافة وحدة
+    public function store(StoreContractUnitRequest $request, int $contractId): JsonResponse
     {
         try {
-            $unit = $this->contractUnitService->getUnitById($unitId);
+            $data = $request->validated();
+            $unit = $this->contractUnitService->addUnit($contractId, $data);
 
             return response()->json([
                 'success' => true,
+                'message' => 'تم إضافة الوحدة بنجاح',
                 'data' => new ContractUnitResource($unit),
-            ], 200);
+            ], 201);
         } catch (Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'الوحدة غير موجودة',
-            ], 404);
+            return $this->errorResponse($e);
         }
     }
 
-    /**
-     * Update a unit by ID
-     *
-     * PUT /api/units/{unitId}
-     */
+    // تعديل وحدة
     public function update(UpdateContractUnitRequest $request, int $unitId): JsonResponse
     {
         try {
@@ -146,39 +93,41 @@ class ContractUnitController extends Controller
 
             return response()->json([
                 'success' => true,
-                'message' => 'تم تحديث الوحدة بنجاح',
+                'message' => 'تم تعديل الوحدة بنجاح',
                 'data' => new ContractUnitResource($unit),
             ], 200);
         } catch (Exception $e) {
-            $statusCode = str_contains($e->getMessage(), 'غير موجود') ? 404 : 500;
-
-            return response()->json([
-                'success' => false,
-                'message' => $e->getMessage(),
-            ], $statusCode);
+            return $this->errorResponse($e);
         }
     }
 
-    /**
-     * Get units statistics for a SecondPartyData
-     *
-     * GET /api/second-party-data/{secondPartyDataId}/units/stats
-     */
-    public function stats(int $secondPartyDataId): JsonResponse
+    // حذف وحدة
+    public function destroy(int $unitId): JsonResponse
     {
         try {
-            $stats = $this->contractUnitService->getUnitsStats($secondPartyDataId);
+            $this->contractUnitService->deleteUnit($unitId);
 
             return response()->json([
                 'success' => true,
-                'data' => $stats,
+                'message' => 'تم حذف الوحدة بنجاح',
             ], 200);
         } catch (Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => $e->getMessage(),
-            ], 500);
+            return $this->errorResponse($e);
         }
+    }
+
+    // معالجة الأخطاء
+    private function errorResponse(Exception $e): JsonResponse
+    {
+        $statusCode = 500;
+        if (str_contains($e->getMessage(), 'غير موجود')) $statusCode = 404;
+        if (str_contains($e->getMessage(), 'غير مصرح')) $statusCode = 403;
+        if (str_contains($e->getMessage(), 'يجب')) $statusCode = 422;
+
+        return response()->json([
+            'success' => false,
+            'message' => $e->getMessage(),
+        ], $statusCode);
     }
 }
 

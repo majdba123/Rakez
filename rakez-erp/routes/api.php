@@ -64,29 +64,25 @@ Route::middleware('auth:sanctum')->group(function () {
     // Only project_management and admin users can access these routes
     Route::middleware(['auth:sanctum', 'project_management'])->group(function () {
 
-        // Second Party Data Routes - بيانات الطرف الثاني
-        Route::prefix('contracts/{contractId}/second-party-data')->group(function () {
-            Route::get('/', [SecondPartyDataController::class, 'show']);
-            Route::post('/', [SecondPartyDataController::class, 'store']);
-            Route::put('/', [SecondPartyDataController::class, 'update']);
+        Route::get('/contracts/index', [ContractController::class, 'adminIndex']);
+        Route::patch('contracts/update-status/{id}', [ContractController::class, 'projectManagementUpdateStatus']);
+
+
+        Route::prefix('second-party-data')->group(function () {
+            Route::get('show/{id}', [SecondPartyDataController::class, 'show']);
+            Route::post('store/{id}', [SecondPartyDataController::class, 'store']);
+            Route::put('update/{id}', [SecondPartyDataController::class, 'update']);
         });
 
-        // Contract Units Routes - وحدات العقد
-        // Get units by contract ID
-        Route::get('/contracts/{contractId}/units', [ContractUnitController::class, 'indexByContract']);
-
-        // Units by SecondPartyData ID
-        Route::prefix('second-party-data/{secondPartyDataId}/units')->group(function () {
-            Route::get('/', [ContractUnitController::class, 'index']);
-            Route::post('/upload-csv', [ContractUnitController::class, 'uploadCsv']);
-            Route::get('/stats', [ContractUnitController::class, 'stats']);
+        Route::prefix('contracts/units')->group(function () {
+            Route::get('show/{contractId}', [ContractUnitController::class, 'indexByContract']);
+            Route::post('upload-csv/{contractId}', [ContractUnitController::class, 'uploadCsvByContract']);
+            Route::post('store/{contractId}', [ContractUnitController::class, 'store']);
+            Route::put('update/{unitId}', [ContractUnitController::class, 'update']);
+            Route::delete('delete/{unitId}', [ContractUnitController::class, 'destroy']);
         });
 
-        // Single unit operations
-        Route::prefix('units')->group(function () {
-            Route::get('/{unitId}', [ContractUnitController::class, 'show']);
-            Route::put('/{unitId}', [ContractUnitController::class, 'update']);
-        });
+        // تحديث حالة العقد - إدارة المشاريع
 
     });
 

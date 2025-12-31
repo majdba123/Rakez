@@ -207,4 +207,36 @@ class ContractController extends Controller
             ], $e->getMessage() === 'Contract not found' ? 404 : 422);
         }
     }
+
+    /**
+     * Update contract status by Project Management
+     * Can set status to 'ready' or 'rejected'
+     */
+    public function projectManagementUpdateStatus(Request $request, int $id): JsonResponse
+    {
+        try {
+            $request->validate([
+                'status' => 'required|string|in:ready,rejected',
+            ], [
+                'status.required' => 'الحالة مطلوبة',
+                'status.in' => 'الحالة يجب أن تكون: ready أو rejected',
+            ]);
+
+            $contract = $this->contractService->updateContractStatusByProjectManagement($id, $request->status);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'تم تحديث حالة العقد بنجاح',
+                'data' => new ContractResource($contract->load('user', 'info', 'secondPartyData'))
+            ], 200);
+        } catch (Exception $e) {
+            $statusCode = 422;
+            if (str_contains($e->getMessage(), 'غير موجود')) $statusCode = 404;
+
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage(),
+            ], $statusCode);
+        }
+    }
 }

@@ -19,12 +19,7 @@ class SecondPartyDataController extends Controller
         $this->secondPartyDataService = $secondPartyDataService;
     }
 
-    /**
-     * Store second party data for a contract
-     * Only one record per contract is allowed
-     *
-     * POST /api/contracts/{contractId}/second-party-data
-     */
+
     public function store(StoreSecondPartyDataRequest $request, int $contractId): JsonResponse
     {
         try {

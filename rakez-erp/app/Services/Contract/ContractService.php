@@ -93,7 +93,7 @@ class ContractService
     {
         try {
             // Eager-load related data to prevent N+1 queries
-            $contract = Contract::with(['user', 'info'])->findOrFail($id);
+            $contract = Contract::with(['user', 'info', 'secondPartyData.contractUnits'])->findOrFail($id);
 
             // Authorization check
             if ($userId) {
@@ -111,8 +111,8 @@ class ContractService
     {
         $authUser = auth()->user();
         $isAdmin = $authUser && isset($authUser->type) && $authUser->type === 'admin';
-
-        if (!$contract->isOwnedBy($userId) && !$isAdmin) {
+        $is_project_mangment = $authUser && isset($authUser->type) && $authUser->type === 'project_management';
+        if (!$contract->isOwnedBy($userId) && !$isAdmin && !$is_project_mangment) {
             throw new Exception('Unauthorized to access this contract.');
         }
     }
@@ -323,7 +323,7 @@ class ContractService
             $contract = Contract::with(['user', 'info'])->findOrFail($id);
 
             // Validate status
-            $validStatuses = ['pending', 'approved', 'rejected', 'completed'];
+            $validStatuses = ['pending', 'approved', 'rejected', 'completed', 'ready'];
             if (!in_array($status, $validStatuses)) {
                 throw new Exception('Invalid status. Must be one of: ' . implode(', ', $validStatuses));
             }
@@ -340,6 +340,49 @@ class ContractService
         } catch (Exception $e) {
             DB::rollBack();
             throw new Exception('Failed to update contract status: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Update contract status by Project Management
+     * Can update approved contracts to 'ready' or 'rejected'
+     * For 'ready' status: must have SecondPartyData and CSV units
+     */
+    public function updateContractStatusByProjectManagement(int $id, string $status): Contract
+    {
+        DB::beginTransaction();
+        try {
+            $contract = Contract::with(['user', 'info', 'secondPartyData.contractUnits'])->findOrFail($id);
+
+            // Project Management can only set to 'ready' or 'rejected'
+            $allowedStatuses = ['ready', 'rejected'];
+            if (!in_array($status, $allowedStatuses)) {
+                throw new Exception('الحالة يجب أن تكون: ready أو rejected');
+            }
+
+            // Can only update approved contracts
+            if (!$contract->isApproved()) {
+                throw new Exception('يمكن فقط تحديث العقود الموافق عليها');
+            }
+
+            // For 'ready' status, must have SecondPartyData and units
+            if ($status === 'ready') {
+                if (!$contract->secondPartyData) {
+                    throw new Exception('يجب إضافة بيانات الطرف الثاني قبل تحويل العقد إلى جاهز');
+                }
+
+                if (!$contract->secondPartyData->contractUnits()->exists()) {
+                    throw new Exception('يجب رفع ملف الوحدات (CSV) قبل تحويل العقد إلى جاهز');
+                }
+            }
+
+            $contract->update(['status' => $status]);
+
+            DB::commit();
+            return $contract->fresh(['user', 'info', 'secondPartyData.contractUnits']);
+        } catch (Exception $e) {
+            DB::rollBack();
+            throw $e;
         }
     }
 }

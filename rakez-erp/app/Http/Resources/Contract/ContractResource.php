@@ -6,6 +6,7 @@ use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 use App\Http\Resources\Shared\UserResource;
 use App\Http\Resources\Contract\ContractInfoResource;
+use App\Http\Resources\Contract\SecondPartyDataResource;
 
 class ContractResource extends JsonResource
 {
@@ -35,6 +36,7 @@ class ContractResource extends JsonResource
             // Relations
             'user' => new UserResource($this->whenLoaded('user')),
             'info' => new ContractInfoResource($this->whenLoaded('info')),
+            'second_party_data' => new SecondPartyDataResource($this->whenLoaded('secondPartyData')),
         ];
     }
 }

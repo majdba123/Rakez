@@ -2,46 +2,57 @@
 
 namespace App\Services\Contract;
 
-use App\Jobs\ProcessContractUnitsCsv;
 use App\Models\Contract;
 use App\Models\ContractUnit;
 use App\Models\SecondPartyData;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Storage;
 use Exception;
 
 class ContractUnitService
 {
-    /**
-     * Upload CSV file and dispatch job to process it
-     * Only one CSV upload is allowed per SecondPartyData
-     */
-    public function uploadCsv(int $secondPartyDataId, UploadedFile $file): array
+
+    public function uploadCsvByContractId(int $contractId, UploadedFile $file): array
     {
         DB::beginTransaction();
         try {
-            $secondPartyData = SecondPartyData::with('contractUnits')->findOrFail($secondPartyDataId);
+            $contract = Contract::with(['secondPartyData.contractUnits', 'info'])->findOrFail($contractId);
 
-            // Check if units already exist (only one CSV upload allowed)
-            if ($secondPartyData->contractUnits()->exists()) {
-                throw new Exception('تم رفع ملف CSV مسبقاً لهذا العقد. لا يمكن رفع ملف آخر');
+            // Contract must have info before adding units
+            if (!$contract->info) {
+                throw new Exception('يجب أن يكون العقد لديه معلومات قبل إضافة الوحدات');
             }
 
-            // Store file temporarily
-            $fileName = 'csv_uploads/' . uniqid('units_') . '_' . time() . '.csv';
-            Storage::disk('local')->put($fileName, file_get_contents($file->getRealPath()));
+            // Contract must have SecondPartyData
+            $secondPartyData = $contract->secondPartyData;
+            if (!$secondPartyData) {
+                throw new Exception('يجب إضافة بيانات الطرف الثاني قبل رفع ملف الوحدات');
+            }
 
-            // Dispatch job to queue
-            ProcessContractUnitsCsv::dispatch($secondPartyDataId, $fileName);
+            // Delete old units if exist (replace with new)
+            if ($secondPartyData->contractUnits()->exists()) {
+                $secondPartyData->contractUnits()->forceDelete();
+            }
+
+            // Update processed_by info
+            $secondPartyData->update([
+                'processed_by' => Auth::id(),
+                'processed_at' => now(),
+            ]);
+
+            // Process CSV directly
+            $unitsCreated = $this->processCsvFile($file, $secondPartyData->id);
 
             DB::commit();
 
             return [
-                'message' => 'تم استلام الملف وسيتم معالجته في الخلفية',
-                'status' => 'processing',
-                'second_party_data_id' => $secondPartyDataId,
+                'message' => 'تم رفع ومعالجة الملف بنجاح',
+                'status' => 'completed',
+                'contract_id' => $contractId,
+                'second_party_data_id' => $secondPartyData->id,
+                'units_created' => $unitsCreated,
             ];
         } catch (Exception $e) {
             DB::rollBack();
@@ -50,20 +61,98 @@ class ContractUnitService
     }
 
     /**
-     * Get all units for a SecondPartyData with pagination
+     * Process CSV file directly (no queue)
      */
-    public function getUnitsBySecondPartyDataId(int $secondPartyDataId, int $perPage = 15): LengthAwarePaginator
+    private function processCsvFile(UploadedFile $file, int $secondPartyDataId): int
     {
-        $secondPartyData = SecondPartyData::findOrFail($secondPartyDataId);
+        $handle = fopen($file->getRealPath(), 'r');
 
-        return ContractUnit::where('second_party_data_id', $secondPartyDataId)
-            ->orderBy('created_at', 'desc')
-            ->paginate($perPage);
+        if ($handle === false) {
+            throw new Exception('فشل في فتح ملف CSV');
+        }
+
+        // Read header row
+        $header = fgetcsv($handle);
+
+        if ($header === false) {
+            fclose($handle);
+            throw new Exception('ملف CSV فارغ أو تالف');
+        }
+
+        // Normalize header (trim and lowercase)
+        $header = array_map(function ($col) {
+            return strtolower(trim($col));
+        }, $header);
+
+        // Map CSV columns to database fields
+        $columnMap = [
+            'unit_type' => ['unit_type', 'type', 'نوع_الوحدة', 'نوع'],
+            'unit_number' => ['unit_number', 'number', 'رقم_الوحدة', 'رقم'],
+            'count' => ['count', 'quantity', 'العدد', 'الكمية'],
+            'status' => ['status', 'الحالة'],
+            'price' => ['price', 'unit_price', 'السعر', 'سعر_الوحدة'],
+            'total_price' => ['total_price', 'total', 'السعر_الإجمالي', 'الإجمالي'],
+            'area' => ['area', 'size', 'المساحة'],
+            'description' => ['description', 'desc', 'الوصف', 'ملاحظات'],
+        ];
+
+        // Find column indices
+        $columnIndices = [];
+        foreach ($columnMap as $field => $possibleNames) {
+            foreach ($possibleNames as $name) {
+                $index = array_search($name, $header);
+                if ($index !== false) {
+                    $columnIndices[$field] = $index;
+                    break;
+                }
+            }
+        }
+
+        $unitsCreated = 0;
+
+        // Process each row
+        while (($row = fgetcsv($handle)) !== false) {
+            // Skip empty rows
+            if (empty(array_filter($row))) {
+                continue;
+            }
+
+            $unitData = [
+                'second_party_data_id' => $secondPartyDataId,
+                'status' => 'pending',
+            ];
+
+            // Map CSV data to unit fields
+            foreach ($columnIndices as $field => $index) {
+                if (isset($row[$index]) && $row[$index] !== '') {
+                    $value = trim($row[$index]);
+
+                    // Type casting
+                    switch ($field) {
+                        case 'count':
+                            $unitData[$field] = (int) $value;
+                            break;
+                        case 'price':
+                        case 'total_price':
+                            $unitData[$field] = (float) $value;
+                            break;
+                        default:
+                            $unitData[$field] = $value;
+                    }
+                }
+            }
+
+            // Create unit
+            ContractUnit::create($unitData);
+            $unitsCreated++;
+        }
+
+        fclose($handle);
+
+        return $unitsCreated;
     }
 
-    /**
-     * Get all units for a contract by contract ID
-     */
+
     public function getUnitsByContractId(int $contractId, int $perPage = 15): LengthAwarePaginator
     {
         $contract = Contract::with('secondPartyData')->findOrFail($contractId);
@@ -78,23 +167,77 @@ class ContractUnitService
     }
 
     /**
-     * Get single unit by ID
+     * Check if current user is authorized to modify units
+     * Only the employee who processed the contract can add/update units
      */
-    public function getUnitById(int $unitId): ContractUnit
+    private function authorizeUnitModification(SecondPartyData $secondPartyData): void
     {
-        return ContractUnit::with('secondPartyData.contract')->findOrFail($unitId);
+        $currentUserId = Auth::id();
+
+        // Allow if user is the one who processed this contract
+        if ($secondPartyData->processed_by !== $currentUserId) {
+            throw new Exception('غير مصرح لك بتعديل وحدات هذا العقد. فقط الموظف الذي قام بمعالجة العقد يمكنه التعديل');
+        }
+    }
+
+    /**
+     * Add a single unit to a contract
+     * Only the employee who processed the contract can add
+     */
+    public function addUnit(int $contractId, array $data): ContractUnit
+    {
+        DB::beginTransaction();
+        try {
+            $contract = Contract::with(['secondPartyData', 'info'])->findOrFail($contractId);
+
+            // Contract must have info
+            if (!$contract->info) {
+                throw new Exception('يجب أن يكون العقد لديه معلومات قبل إضافة الوحدات');
+            }
+
+            // Contract must have SecondPartyData
+            $secondPartyData = $contract->secondPartyData;
+            if (!$secondPartyData) {
+                throw new Exception('يجب إضافة بيانات الطرف الثاني قبل إضافة الوحدات');
+            }
+
+            // Check authorization - only the employee who processed can add
+            $this->authorizeUnitModification($secondPartyData);
+
+            // Set second_party_data_id
+            $data['second_party_data_id'] = $secondPartyData->id;
+
+            // Set default status if not provided
+            if (!isset($data['status'])) {
+                $data['status'] = 'pending';
+            }
+
+            // Create unit
+            $unit = ContractUnit::create($data);
+
+            DB::commit();
+
+            return $unit;
+        } catch (Exception $e) {
+            DB::rollBack();
+            throw $e;
+        }
     }
 
     /**
      * Update a unit by ID
+     * Only the employee who processed the contract can update
      */
     public function updateUnit(int $unitId, array $data): ContractUnit
     {
         DB::beginTransaction();
         try {
-            $unit = ContractUnit::findOrFail($unitId);
+            $unit = ContractUnit::with('secondPartyData')->findOrFail($unitId);
 
-            // Filter only fillable fields
+            // Check authorization - only the employee who processed can update
+            $this->authorizeUnitModification($unit->secondPartyData);
+
+            // Filter only allowed fields
             $allowedFields = [
                 'unit_type',
                 'unit_number',
@@ -112,32 +255,35 @@ class ContractUnitService
 
             DB::commit();
 
-            return $unit->fresh()->load('secondPartyData');
+            return $unit->fresh();
         } catch (Exception $e) {
             DB::rollBack();
             throw $e;
         }
     }
 
-
     /**
-     * Get units statistics for a SecondPartyData
+     * Delete a unit by ID
+     * Only the employee who processed the contract can delete
      */
-    public function getUnitsStats(int $secondPartyDataId): array
+    public function deleteUnit(int $unitId): bool
     {
-        $units = ContractUnit::where('second_party_data_id', $secondPartyDataId);
+        DB::beginTransaction();
+        try {
+            $unit = ContractUnit::with('secondPartyData')->findOrFail($unitId);
 
-        return [
-            'total_count' => $units->count(),
-            'total_units' => (int) $units->sum('count'),
-            'total_value' => (float) $units->sum('total_price'),
-            'total_area' => (float) $units->sum('area'),
-            'by_status' => ContractUnit::where('second_party_data_id', $secondPartyDataId)
-                ->selectRaw('status, COUNT(*) as count')
-                ->groupBy('status')
-                ->pluck('count', 'status')
-                ->toArray(),
-        ];
+            // Check authorization
+            $this->authorizeUnitModification($unit->secondPartyData);
+
+            $unit->forceDelete();
+
+            DB::commit();
+
+            return true;
+        } catch (Exception $e) {
+            DB::rollBack();
+            throw $e;
+        }
     }
 }
 

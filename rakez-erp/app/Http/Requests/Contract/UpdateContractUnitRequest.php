@@ -20,7 +20,7 @@ class UpdateContractUnitRequest extends FormRequest
             'status' => 'nullable|string|in:pending,sold,reserved,available',
             'price' => 'nullable|numeric|min:0',
             'total_price' => 'nullable|numeric|min:0',
-            'area' => 'nullable|numeric|min:0',
+            'area' => 'nullable|string|max:255',
             'description' => 'nullable|string|max:1000',
         ];
     }
@@ -35,7 +35,7 @@ class UpdateContractUnitRequest extends FormRequest
             'price.numeric' => 'السعر يجب أن يكون رقم',
             'price.min' => 'السعر يجب أن يكون 0 أو أكثر',
             'total_price.numeric' => 'السعر الإجمالي يجب أن يكون رقم',
-            'area.numeric' => 'المساحة يجب أن تكون رقم',
+            'area.string' => 'المساحة يجب أن تكون نص',
         ];
     }
 }
