@@ -10,11 +10,24 @@ use App\Http\Resources\Contract\SecondPartyDataResource;
 
 class ContractResource extends JsonResource
 {
-    /**
-     * Transform the resource into an array (for show/detail views)
-     */
+
+
+
     public function toArray(Request $request): array
     {
+        // Calculate from units JSON array
+        $unitCount = 0;
+        $totalPrice = 0;
+
+        if (is_array($this->units) && count($this->units) > 0) {
+            foreach ($this->units as $unit) {
+                $count = (int) ($unit['count'] ?? 0);
+                $price = (float) ($unit['price'] ?? 0);
+                $unitCount += $count;
+                $totalPrice += ($count * $price);
+            }
+        }
+
         return [
             'id' => $this->id,
             'user_id' => $this->user_id,
@@ -29,6 +42,9 @@ class ContractResource extends JsonResource
             'notes' => $this->notes,
             // Units information
             'units' => $this->units ?? [],
+
+            'unit_count' => $unitCount,
+            'total_price' => (float) $totalPrice,
 
             // Timestamps
             'created_at' => $this->created_at?->toIso8601String(),

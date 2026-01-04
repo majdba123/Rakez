@@ -88,10 +88,8 @@ class ContractUnitService
         $columnMap = [
             'unit_type' => ['unit_type', 'type', 'نوع_الوحدة', 'نوع'],
             'unit_number' => ['unit_number', 'number', 'رقم_الوحدة', 'رقم'],
-            'count' => ['count', 'quantity', 'العدد', 'الكمية'],
             'status' => ['status', 'الحالة'],
             'price' => ['price', 'unit_price', 'السعر', 'سعر_الوحدة'],
-            'total_price' => ['total_price', 'total', 'السعر_الإجمالي', 'الإجمالي'],
             'area' => ['area', 'size', 'المساحة'],
             'description' => ['description', 'desc', 'الوصف', 'ملاحظات'],
         ];
@@ -129,11 +127,7 @@ class ContractUnitService
 
                     // Type casting
                     switch ($field) {
-                        case 'count':
-                            $unitData[$field] = (int) $value;
-                            break;
                         case 'price':
-                        case 'total_price':
                             $unitData[$field] = (float) $value;
                             break;
                         default:
@@ -241,10 +235,8 @@ class ContractUnitService
             $allowedFields = [
                 'unit_type',
                 'unit_number',
-                'count',
                 'status',
                 'price',
-                'total_price',
                 'area',
                 'description',
             ];

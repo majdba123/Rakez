@@ -5,8 +5,12 @@ namespace App\Http\Controllers\Contract;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Contract\StoreContractInfoRequest;
 use App\Http\Requests\Contract\UpdateContractInfoRequest;
+use App\Http\Resources\Contract\ContractResource;
+use App\Models\ContractInfo;
+use App\Models\Contract;
 use App\Services\Contract\ContractService;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Exception;
 
@@ -78,6 +82,53 @@ class ContractInfoController extends Controller
                 'success' => true,
                 'message' => 'تم تحديث بيانات العقد',
                 'data' => $info->load('contract.user')
+            ], 200);
+        } catch (Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
+     * Get all unique second parties (no duplicates by email)
+     * جلب جميع الأطراف الثانية بدون تكرار حسب الإيميل
+     */
+    public function getAllSecondParties(Request $request): JsonResponse
+    {
+        try {
+            $perPage = $request->input('per_page', 15);
+
+            // Get unique second parties by email (take latest info for each email)
+            $secondParties = ContractInfo::whereNotNull('second_party_email')
+                ->where('second_party_email', '!=', '')
+                ->selectRaw('
+                    second_party_email,
+                    MAX(second_party_name) as second_party_name,
+                    MAX(second_party_phone) as second_party_phone,
+                    MAX(second_party_address) as second_party_address,
+                    MAX(second_party_cr_number) as second_party_cr_number,
+                    MAX(second_party_signatory) as second_party_signatory,
+                    MAX(second_party_id_number) as second_party_id_number,
+                    MAX(second_party_role) as second_party_role,
+                    COUNT(*) as contracts_count
+                ')
+                ->groupBy('second_party_email')
+                ->orderBy('second_party_name')
+                ->paginate($perPage);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'تم جلب الأطراف الثانية بنجاح',
+                'data' => $secondParties->items(),
+                'meta' => [
+                    'total' => $secondParties->total(),
+                    'count' => $secondParties->count(),
+                    'per_page' => $secondParties->perPage(),
+                    'current_page' => $secondParties->currentPage(),
+                    'last_page' => $secondParties->lastPage(),
+                ]
             ], 200);
         } catch (Exception $e) {
             return response()->json([

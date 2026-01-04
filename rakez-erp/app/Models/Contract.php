@@ -132,50 +132,11 @@ class Contract extends Model
     }
 
     /**
-     * Calculate totals from units array
-     * Adds calculated values (subtotal, percentage) for each unit
+     * Process units array (normalize only)
      */
     public function calculateUnitTotals(): void
     {
-        // Normalize units first
         $this->normalizeUnits();
-
-        // Initialize totals
-        $unitsCount = 0;
-        $totalValue = 0;
-
-        // First pass: calculate total values
-        if (is_array($this->units) && count($this->units) > 0) {
-            foreach ($this->units as $unit) {
-                $count = (int) ($unit['count'] ?? 0);
-                $price = (float) ($unit['price'] ?? 0);
-
-                $unitsCount += $count;
-                $totalValue += ($count * $price);
-            }
-        }
-
-        // Second pass: add calculated values to each unit
-        $calculatedUnits = [];
-        if (is_array($this->units) && count($this->units) > 0) {
-            foreach ($this->units as $unit) {
-                $count = (int) ($unit['count'] ?? 0);
-                $price = (float) ($unit['price'] ?? 0);
-                $subtotal = $count * $price;
-
-                // Add calculated values to unit
-                $unit['subtotal'] = $subtotal;
-                $unit['percentage'] = $totalValue > 0
-                    ? round(($subtotal / $totalValue) * 100, 2)
-                    : 0;
-                $unit['unit_average'] = round($price, 2);
-
-                $calculatedUnits[] = $unit;
-            }
-        }
-
-        // Assign the modified array back
-        $this->units = $calculatedUnits;
     }
 
     /**

@@ -16,18 +16,14 @@ class ContractUnit extends Model
         'second_party_data_id',
         'unit_type',
         'unit_number',
-        'count',
         'status',
-        'total_price',
         'price',
         'area',
         'description',
     ];
 
     protected $casts = [
-        'count' => 'integer',
         'price' => 'decimal:2',
-        'total_price' => 'decimal:2',
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
         'deleted_at' => 'datetime',
@@ -39,14 +35,6 @@ class ContractUnit extends Model
     public function secondPartyData()
     {
         return $this->belongsTo(SecondPartyData::class);
-    }
-
-    /**
-     * Calculate subtotal for this unit.
-     */
-    public function getSubtotalAttribute(): float
-    {
-        return $this->count * $this->price;
     }
 }
 

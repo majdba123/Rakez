@@ -72,6 +72,9 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::get('show/{id}', [SecondPartyDataController::class, 'show']);
             Route::post('store/{id}', [SecondPartyDataController::class, 'store']);
             Route::put('update/{id}', [SecondPartyDataController::class, 'update']);
+
+            Route::get('/second-parties', [ContractInfoController::class, 'getAllSecondParties']);
+
         });
 
         Route::prefix('contracts/units')->group(function () {
