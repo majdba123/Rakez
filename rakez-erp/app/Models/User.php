@@ -51,22 +51,29 @@ class User extends Authenticatable
     }
 
 
+    // User notifications (private + can access public)
     public function userNotifications()
     {
         return $this->hasMany(UserNotification::class);
     }
 
-
-    public function unreadUserNotificationsCount()
+    // Admin notifications (only for admin users)
+    public function adminNotifications()
     {
-        return $this->userNotifications()->unread()->count();
+        return $this->hasMany(AdminNotification::class);
     }
 
-    public function adminNotificationReads()
+    // Pending user notifications count
+    public function pendingUserNotificationsCount()
     {
-        return $this->hasMany(AdminNotificationRead::class);
+        return $this->userNotifications()->pending()->count();
     }
 
+    // Pending admin notifications count
+    public function pendingAdminNotificationsCount()
+    {
+        return $this->adminNotifications()->pending()->count();
+    }
 
     public function isAdmin()
     {

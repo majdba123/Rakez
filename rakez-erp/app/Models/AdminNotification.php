@@ -10,80 +10,67 @@ class AdminNotification extends Model
     use HasFactory;
 
     protected $fillable = [
+        'user_id',
         'title',
         'message',
-        'type',
+        'status',
         'data',
-        'created_by',
     ];
 
     protected $casts = [
         'data' => 'array',
     ];
 
-    /**
-     * Get the user who created this notification.
-     */
-    public function creator()
+    // Get the admin user
+    public function user()
     {
-        return $this->belongsTo(User::class, 'created_by');
+        return $this->belongsTo(User::class);
     }
 
-    /**
-     * Get the read records for this notification.
-     */
-    public function reads()
+    // Scope: pending notifications
+    public function scopePending($query)
     {
-        return $this->hasMany(AdminNotificationRead::class);
+        return $query->where('status', 'pending');
     }
 
-    /**
-     * Get admins who have read this notification.
-     */
-    public function readByUsers()
+    // Scope: read notifications
+    public function scopeRead($query)
     {
-        return $this->belongsToMany(User::class, 'admin_notification_reads')
-                    ->withPivot('read_at');
+        return $query->where('status', 'read');
     }
 
-    /**
-     * Check if a specific admin has read this notification.
-     */
-    public function isReadBy(User $user)
+    // Mark as read
+    public function markAsRead()
     {
-        return $this->reads()->where('user_id', $user->id)->exists();
+        $this->update(['status' => 'read']);
     }
 
-    /**
-     * Mark as read by a specific admin.
-     */
-    public function markAsReadBy(User $user)
+    // Check if read
+    public function isRead()
     {
-        if (!$this->isReadBy($user)) {
-            $this->reads()->create([
-                'user_id' => $user->id,
-                'read_at' => now(),
+        return $this->status === 'read';
+    }
+
+    // Send notification to ALL admins when employee is added
+    public static function notifyAllAdmins($message, $title = null, $data = null)
+    {
+        $admins = User::where('type', 'admin')->get();
+
+        foreach ($admins as $admin) {
+            self::create([
+                'user_id' => $admin->id,
+                'title' => $title,
+                'message' => $message,
+                'data' => $data,
             ]);
         }
     }
 
-    /**
-     * Create notification for new employee.
-     */
-    public static function createForNewEmployee(User $employee, ?User $createdBy = null)
+    // Create for new employee - notify all admins (simple message with ID)
+    public static function createForNewEmployee(User $employee)
     {
-        return self::create([
-            'title' => 'موظف جديد',
-            'message' => 'تم إضافة موظف جديد: ' . $employee->name,
-            'type' => 'employee_added',
-            'data' => [
-                'employee_id' => $employee->id,
-                'employee_name' => $employee->name,
-                'employee_email' => $employee->email,
-                'employee_type' => $employee->type,
-            ],
-            'created_by' => $createdBy?->id,
-        ]);
+        self::notifyAllAdmins(
+            message: 'New employee added with ID: ' . $employee->id
+        );
     }
 }
-
