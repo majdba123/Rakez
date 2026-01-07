@@ -8,30 +8,23 @@ return new class extends Migration
 {
     public function up(): void
     {
-        // Admin Notifications - إشعارات المدراء
-        // user_id = ID of admin who receives the notification
+        // Admin Notifications
         Schema::create('admin_notifications', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('user_id')->constrained()->onDelete('cascade'); // Admin user
-            $table->string('title')->nullable();
+            $table->foreignId('user_id')->constrained()->onDelete('cascade');
             $table->text('message');
             $table->enum('status', ['pending', 'read'])->default('pending');
-            $table->json('data')->nullable();
             $table->timestamps();
 
             $table->index(['user_id', 'status']);
         });
 
-        // User Notifications - إشعارات المستخدمين
-        // user_id = NULL means PUBLIC notification (for everyone)
-        // user_id = specific user ID means private notification
+        // User Notifications (user_id = NULL means public)
         Schema::create('user_notifications', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('user_id')->nullable()->constrained()->onDelete('cascade'); // NULL = public
-            $table->string('title')->nullable();
+            $table->foreignId('user_id')->nullable()->constrained()->onDelete('cascade');
             $table->text('message');
             $table->enum('status', ['pending', 'read'])->default('pending');
-            $table->json('data')->nullable();
             $table->timestamps();
 
             $table->index(['user_id', 'status']);
@@ -44,4 +37,3 @@ return new class extends Migration
         Schema::dropIfExists('admin_notifications');
     }
 };
-

@@ -42,35 +42,7 @@ Route::middleware('auth:sanctum')->group(function () {
         return $request->user();
     });
 
-    // ==========================================
-    // USER NOTIFICATIONS - إشعارات المستخدم (خاص + عام)
-    // ==========================================
-    Route::prefix('notifications/user')->group(function () {
-        Route::get('/', [NotificationController::class, 'userIndex']);
-        Route::get('/pending', [NotificationController::class, 'userPending']);
-        Route::get('/pending-count', [NotificationController::class, 'userPendingCount']);
-        Route::patch('/{id}/read', [NotificationController::class, 'userMarkAsRead']);
-        Route::patch('/mark-all-read', [NotificationController::class, 'userMarkAllAsRead']);
-        Route::delete('/{id}', [NotificationController::class, 'userDestroy']);
-    });
 
-    // ==========================================
-    // PUBLIC NOTIFICATIONS - الإشعارات العامة (للجميع)
-    // ==========================================
-    Route::get('/notifications/public', [NotificationController::class, 'publicIndex']);
-
-    // ==========================================
-    // SEND TO SPECIFIC USER - إرسال لمستخدم محدد (admin only)
-    // ==========================================
-    Route::post('/notifications/send-to-user', [NotificationController::class, 'sendToUser'])
-        ->middleware('admin');
-});
-
-
-    /*Route::post('/forget-password', [ForgetPasswordController::class, 'forgetPassword']);
-    Route::post('/reset-password', [ForgetPasswordController::class, 'resetPasswordByVerifyOtp']);
-    Route::post('/resend-otp', [RegisterController::class, 'resendOtp'])->middleware('auth:sanctum');
-    */
 
     Route::post('/login', [LoginController::class, 'login']);
     Route::post('/logout', [LoginController::class, 'logout'])->middleware('auth:sanctum');
@@ -85,10 +57,16 @@ Route::middleware('auth:sanctum')->group(function () {
 
         Route::post('/contracts/store/info/{id}', [ContractInfoController::class, 'store']);
 
+
+        Route::prefix('user/notifications')->group(function () {
+            Route::get('/private', [NotificationController::class, 'getUserPrivateNotifications']);
+            Route::get('/public', [NotificationController::class, 'getPublicNotifications']);
+            Route::patch('/mark-all-read', [NotificationController::class, 'userMarkAllAsRead']);
+            Route::patch('/{id}/read', [NotificationController::class, 'userMarkAsRead']);
+        });
     });
 
-    // Project Management Routes - إدارة المشاريع
-    // Only project_management and admin users can access these routes
+
     Route::middleware(['auth:sanctum', 'project_management'])->group(function () {
 
         Route::get('/contracts/index', [ContractController::class, 'adminIndex']);
@@ -101,7 +79,7 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::put('update/{id}', [SecondPartyDataController::class, 'update']);
 
             Route::get('/second-parties', [ContractInfoController::class, 'getAllSecondParties']);
-
+            Route::get('/contracts-by-email', [ContractInfoController::class, 'getContractsBySecondPartyEmail']);
         });
 
         Route::prefix('contracts/units')->group(function () {
@@ -137,24 +115,17 @@ Route::middleware('auth:sanctum')->group(function () {
             });
 
             // ==========================================
-            // ADMIN NOTIFICATIONS - إشعارات المدراء
+            // ADMIN NOTIFICATIONS API
             // ==========================================
             Route::prefix('notifications')->group(function () {
-                Route::get('/', [NotificationController::class, 'adminIndex']);
-                Route::get('/pending', [NotificationController::class, 'adminPending']);
-                Route::get('/pending-count', [NotificationController::class, 'adminPendingCount']);
-                Route::patch('/{id}/read', [NotificationController::class, 'adminMarkAsRead']);
-                Route::patch('/mark-all-read', [NotificationController::class, 'adminMarkAllAsRead']);
-                Route::delete('/{id}', [NotificationController::class, 'adminDestroy']);
-            });
-
-            // ==========================================
-            // PUBLIC NOTIFICATIONS MANAGEMENT - إدارة الإشعارات العامة
-            // ==========================================
-            Route::prefix('public-notifications')->group(function () {
-                Route::get('/', [NotificationController::class, 'publicIndex']);
-                Route::post('/', [NotificationController::class, 'publicStore']);
-                Route::delete('/{id}', [NotificationController::class, 'publicDestroy']);
+                // Get admin's own notifications
+                Route::get('/', [NotificationController::class, 'getAdminNotifications']);
+                Route::post('/send-to-user', [NotificationController::class, 'sendToUser']);
+                Route::post('/send-public', [NotificationController::class, 'sendPublic']);
+                // Get all notifications of specific user
+                Route::get('/user/{userId}', [NotificationController::class, 'getUserNotificationsByAdmin']);
+                // Get all public notifications
+                Route::get('/public', [NotificationController::class, 'getAllPublicNotifications']);
             });
         });
 
@@ -170,3 +141,4 @@ Route::middleware('auth:sanctum')->group(function () {
 
         return response()->file($filePath);
     })->where('path', '.*');
+});

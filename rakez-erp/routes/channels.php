@@ -14,11 +14,14 @@ use Illuminate\Support\Facades\Broadcast;
 |
 */
 
-// Private channel for admin notifications - only admin users can listen
-Broadcast::channel('admin-notifications', function ($user) {
-    // Check if user is admin
-    if ($user && $user->type === 'admin') {
-        return ['id' => $user->id, 'name' => $user->name];
-    }
-    return false;
+// Private channel for ADMIN notifications - only admin users
+Broadcast::channel('admin-notifications', function (User $user) {
+    return $user->type === 'admin';
 });
+
+// Private channel for USER notifications - only the specific user
+Broadcast::channel('user-notifications.{userId}', function (User $user, $userId) {
+    return (int) $user->id === (int) $userId;
+});
+
+// Public channel - no authorization needed (handled automatically)

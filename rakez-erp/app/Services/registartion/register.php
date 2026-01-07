@@ -4,7 +4,7 @@ namespace App\Services\registartion;
 
 use App\Models\User;
 use App\Models\AdminNotification;
-use App\Events\EmployeeCreated;
+use App\Events\AdminNotificationEvent;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
@@ -79,8 +79,8 @@ class register
 
             DB::commit();
 
-            // Broadcast to admin channel for real-time notifications (after commit)
-            event(new EmployeeCreated($user));
+            // Broadcast to admin channel (real-time)
+            event(new AdminNotificationEvent('New employee added with ID: ' . $user->id));
 
             return $user;
         } catch (\Exception $e) {

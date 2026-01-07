@@ -4,157 +4,141 @@ namespace App\Http\Controllers;
 
 use App\Models\UserNotification;
 use App\Models\AdminNotification;
-use App\Events\PublicNotificationCreated;
+use App\Events\UserNotificationEvent;
+use App\Events\PublicNotificationEvent;
+use App\Http\Resources\AdminNotificationResource;
+use App\Http\Resources\UserNotificationResource;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 
 class NotificationController extends Controller
 {
     // ==========================================
-    // ADMIN NOTIFICATIONS - إشعارات المدراء
+    // ADMIN APIs
     // ==========================================
 
     /**
      * Get admin's notifications
      */
-    public function adminIndex(Request $request): JsonResponse
+    public function getAdminNotifications(Request $request): JsonResponse
     {
         $notifications = AdminNotification::where('user_id', $request->user()->id)
-            ->orderBy('created_at', 'desc')
-            ->paginate($request->get('per_page', 15));
-
-        return response()->json([
-            'message' => 'تم جلب إشعارات المدير',
-            'data' => $notifications,
-        ]);
-    }
-
-    /**
-     * Get admin's pending (unread) notifications
-     */
-    public function adminPending(Request $request): JsonResponse
-    {
-        $notifications = AdminNotification::where('user_id', $request->user()->id)
-            ->pending()
             ->orderBy('created_at', 'desc')
             ->get();
 
         return response()->json([
-            'message' => 'الإشعارات غير المقروءة',
-            'data' => $notifications,
+            'data' => AdminNotificationResource::collection($notifications),
             'count' => $notifications->count(),
         ]);
     }
 
     /**
-     * Get admin's pending count
+     * Send notification to specific user
      */
-    public function adminPendingCount(Request $request): JsonResponse
+    public function sendToUser(Request $request): JsonResponse
     {
-        $count = AdminNotification::where('user_id', $request->user()->id)
-            ->pending()
-            ->count();
+        $request->validate([
+            'user_id' => 'required|exists:users,id',
+            'message' => 'required|string',
+        ]);
 
-        return response()->json(['count' => $count]);
-    }
+        $notification = UserNotification::create([
+            'user_id' => $request->user_id,
+            'message' => $request->message,
+        ]);
 
-    /**
-     * Mark admin notification as read
-     */
-    public function adminMarkAsRead(Request $request, $id): JsonResponse
-    {
-        $notification = AdminNotification::where('user_id', $request->user()->id)
-            ->findOrFail($id);
-
-        $notification->markAsRead();
-
-        return response()->json(['message' => 'تم تحديد كمقروء']);
-    }
-
-    /**
-     * Mark all admin notifications as read
-     */
-    public function adminMarkAllAsRead(Request $request): JsonResponse
-    {
-        AdminNotification::where('user_id', $request->user()->id)
-            ->pending()
-            ->update(['status' => 'read']);
-
-        return response()->json(['message' => 'تم تحديد الكل كمقروء']);
-    }
-
-    /**
-     * Delete admin notification
-     */
-    public function adminDestroy(Request $request, $id): JsonResponse
-    {
-        $notification = AdminNotification::where('user_id', $request->user()->id)
-            ->findOrFail($id);
-
-        $notification->delete();
-
-        return response()->json(['message' => 'تم الحذف']);
-    }
-
-    // ==========================================
-    // USER NOTIFICATIONS - إشعارات المستخدمين
-    // ==========================================
-
-    /**
-     * Get user's notifications (private + public)
-     */
-    public function userIndex(Request $request): JsonResponse
-    {
-        $notifications = UserNotification::forUser($request->user()->id)
-            ->orderBy('created_at', 'desc')
-            ->paginate($request->get('per_page', 15));
+        event(new UserNotificationEvent($request->user_id, $request->message));
 
         return response()->json([
-            'message' => 'تم جلب الإشعارات',
-            'data' => $notifications,
-        ]);
+            'message' => 'Notification sent to user',
+            'data' => new UserNotificationResource($notification),
+        ], 201);
     }
 
     /**
-     * Get user's pending notifications
+     * Send public notification
      */
-    public function userPending(Request $request): JsonResponse
+    public function sendPublic(Request $request): JsonResponse
     {
-        $notifications = UserNotification::forUser($request->user()->id)
-            ->pending()
+        $request->validate([
+            'message' => 'required|string',
+        ]);
+
+        $notification = UserNotification::create([
+            'user_id' => null,
+            'message' => $request->message,
+        ]);
+
+        event(new PublicNotificationEvent($request->message));
+
+        return response()->json([
+            'message' => 'Public notification sent',
+            'data' => new UserNotificationResource($notification),
+        ], 201);
+    }
+
+    /**
+     * Get all notifications of specific user (admin view)
+     */
+    public function getUserNotificationsByAdmin($userId): JsonResponse
+    {
+        $notifications = UserNotification::where('user_id', $userId)
             ->orderBy('created_at', 'desc')
             ->get();
 
         return response()->json([
-            'message' => 'الإشعارات غير المقروءة',
-            'data' => $notifications,
+            'data' => UserNotificationResource::collection($notifications),
             'count' => $notifications->count(),
         ]);
     }
 
     /**
-     * Get user's pending count
+     * Get all public notifications (admin view)
      */
-    public function userPendingCount(Request $request): JsonResponse
+    public function getAllPublicNotifications(): JsonResponse
     {
-        $count = UserNotification::forUser($request->user()->id)
-            ->pending()
-            ->count();
+        $notifications = UserNotification::whereNull('user_id')
+            ->orderBy('created_at', 'desc')
+            ->get();
 
-        return response()->json(['count' => $count]);
+        return response()->json([
+            'data' => UserNotificationResource::collection($notifications),
+            'count' => $notifications->count(),
+        ]);
+    }
+
+    // ==========================================
+    // USER APIs
+    // ==========================================
+
+    /**
+     * Get user's private notifications only
+     */
+    public function getUserPrivateNotifications(Request $request): JsonResponse
+    {
+        $notifications = UserNotification::where('user_id', $request->user()->id)
+            ->orderBy('created_at', 'desc')
+            ->get();
+
+        return response()->json([
+            'data' => UserNotificationResource::collection($notifications),
+            'count' => $notifications->count(),
+        ]);
     }
 
     /**
-     * Mark user notification as read
+     * Get public notifications
      */
-    public function userMarkAsRead(Request $request, $id): JsonResponse
+    public function getPublicNotifications(): JsonResponse
     {
-        $notification = UserNotification::forUser($request->user()->id)
-            ->findOrFail($id);
+        $notifications = UserNotification::whereNull('user_id')
+            ->orderBy('created_at', 'desc')
+            ->get();
 
-        $notification->markAsRead();
-
-        return response()->json(['message' => 'تم تحديد كمقروء']);
+        return response()->json([
+            'data' => UserNotificationResource::collection($notifications),
+            'count' => $notifications->count(),
+        ]);
     }
 
     /**
@@ -162,109 +146,23 @@ class NotificationController extends Controller
      */
     public function userMarkAllAsRead(Request $request): JsonResponse
     {
-        UserNotification::forUser($request->user()->id)
-            ->pending()
+        UserNotification::where('user_id', $request->user()->id)
+            ->where('status', 'pending')
             ->update(['status' => 'read']);
 
-        return response()->json(['message' => 'تم تحديد الكل كمقروء']);
+        return response()->json(['message' => 'All notifications marked as read']);
     }
 
     /**
-     * Delete user notification (only private ones)
+     * Mark specific notification as read
      */
-    public function userDestroy(Request $request, $id): JsonResponse
+    public function userMarkAsRead(Request $request, $id): JsonResponse
     {
         $notification = UserNotification::where('user_id', $request->user()->id)
             ->findOrFail($id);
 
-        $notification->delete();
+        $notification->update(['status' => 'read']);
 
-        return response()->json(['message' => 'تم الحذف']);
-    }
-
-    // ==========================================
-    // PUBLIC NOTIFICATIONS - إشعارات عامة
-    // ==========================================
-
-    /**
-     * Get public notifications (for everyone - no auth needed)
-     */
-    public function publicIndex(): JsonResponse
-    {
-        $notifications = UserNotification::public()
-            ->orderBy('created_at', 'desc')
-            ->limit(20)
-            ->get();
-
-        return response()->json([
-            'message' => 'الإشعارات العامة',
-            'data' => $notifications,
-        ]);
-    }
-
-    /**
-     * Create public notification (admin only) + broadcast
-     */
-    public function publicStore(Request $request): JsonResponse
-    {
-        $request->validate([
-            'title' => 'nullable|string|max:255',
-            'message' => 'required|string',
-            'data' => 'nullable|array',
-        ]);
-
-        $notification = UserNotification::createPublic(
-            message: $request->message,
-            title: $request->title,
-            data: $request->data
-        );
-
-        // Broadcast to public channel
-        event(new PublicNotificationCreated($notification));
-
-        return response()->json([
-            'message' => 'تم إنشاء الإشعار العام وبثه',
-            'data' => $notification,
-        ], 201);
-    }
-
-    /**
-     * Delete public notification (admin only)
-     */
-    public function publicDestroy($id): JsonResponse
-    {
-        $notification = UserNotification::public()->findOrFail($id);
-        $notification->delete();
-
-        return response()->json(['message' => 'تم الحذف']);
-    }
-
-    // ==========================================
-    // SEND TO SPECIFIC USER - إرسال لمستخدم محدد
-    // ==========================================
-
-    /**
-     * Send notification to specific user (admin only)
-     */
-    public function sendToUser(Request $request): JsonResponse
-    {
-        $request->validate([
-            'user_id' => 'required|exists:users,id',
-            'title' => 'nullable|string|max:255',
-            'message' => 'required|string',
-            'data' => 'nullable|array',
-        ]);
-
-        $notification = UserNotification::createForUser(
-            userId: $request->user_id,
-            message: $request->message,
-            title: $request->title,
-            data: $request->data
-        );
-
-        return response()->json([
-            'message' => 'تم إرسال الإشعار للمستخدم',
-            'data' => $notification,
-        ], 201);
+        return response()->json(['message' => 'Notification marked as read']);
     }
 }

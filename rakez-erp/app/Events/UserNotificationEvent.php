@@ -2,33 +2,35 @@
 
 namespace App\Events;
 
-use App\Models\User;
 use Illuminate\Broadcasting\InteractsWithSockets;
 use Illuminate\Broadcasting\PrivateChannel;
 use Illuminate\Contracts\Broadcasting\ShouldBroadcastNow;
 use Illuminate\Foundation\Events\Dispatchable;
 
-class EmployeeCreated implements ShouldBroadcastNow
+class UserNotificationEvent implements ShouldBroadcastNow
 {
     use Dispatchable, InteractsWithSockets;
 
-    public $message;
+    public int $userId;
+    public string $message;
 
-    public function __construct(User $employee)
+    public function __construct(int $userId, string $message)
     {
-        $this->message = 'New employee added with ID: ' . $employee->id;
+        $this->userId = $userId;
+        $this->message = $message;
     }
 
+    // Private channel - only specific user can listen
     public function broadcastOn(): array
     {
         return [
-            new PrivateChannel('admin-notifications'),
+            new PrivateChannel('user-notifications.' . $this->userId),
         ];
     }
 
     public function broadcastAs(): string
     {
-        return 'employee.created';
+        return 'user.notification';
     }
 
     public function broadcastWith(): array
@@ -38,3 +40,4 @@ class EmployeeCreated implements ShouldBroadcastNow
         ];
     }
 }
+

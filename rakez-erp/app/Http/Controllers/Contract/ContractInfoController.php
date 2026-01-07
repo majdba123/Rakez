@@ -137,4 +137,45 @@ class ContractInfoController extends Controller
             ], 500);
         }
     }
+
+    /**
+     * Get all contracts by second party email
+     * جلب جميع العقود حسب إيميل الطرف الثاني
+     */
+    public function getContractsBySecondPartyEmail(Request $request): JsonResponse
+    {
+        try {
+            $request->validate([
+                'email' => 'required|email',
+            ]);
+
+            $email = $request->input('email');
+            $perPage = $request->input('per_page', 15);
+
+            $contracts = Contract::whereHas('info', function ($query) use ($email) {
+                $query->where('second_party_email', $email);
+            })
+            ->with(['user', 'info'])
+            ->orderBy('created_at', 'desc')
+            ->paginate($perPage);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'تم جلب العقود بنجاح',
+                'data' => ContractResource::collection($contracts),
+                'meta' => [
+                    'total' => $contracts->total(),
+                    'count' => $contracts->count(),
+                    'per_page' => $contracts->perPage(),
+                    'current_page' => $contracts->currentPage(),
+                    'last_page' => $contracts->lastPage(),
+                ]
+            ], 200);
+        } catch (Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage(),
+            ], 500);
+        }
+    }
 }
