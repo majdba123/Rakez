@@ -2,6 +2,7 @@
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\Broadcast;
 use App\Http\Controllers\Registration\RegisterController;
 use App\Http\Controllers\Registration\LoginController;
 use App\Http\Controllers\Registration\GoogleAuthController;
@@ -18,9 +19,13 @@ use App\Http\Controllers\Contract\ContractController;
 use App\Http\Controllers\Contract\ContractInfoController;
 use App\Http\Controllers\Contract\SecondPartyDataController;
 use App\Http\Controllers\Contract\ContractUnitController;
+use App\Http\Controllers\NotificationController;
 
 
 use Illuminate\Support\Facades\File;  // أضف هذا السطر في الأعلى
+
+// Broadcasting authentication route for API tokens
+Broadcast::routes(['middleware' => ['auth:sanctum']]);
 
 /*
 |--------------------------------------------------------------------------
@@ -36,7 +41,28 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/user', function (Request $request) {
         return $request->user();
     });
-    // Add your other protected routes here
+
+    // ==========================================
+    // USER NOTIFICATIONS - إشعارات المستخدم الشخصية
+    // ==========================================
+    Route::prefix('notifications/user')->group(function () {
+        Route::get('/', [NotificationController::class, 'userIndex']);
+        Route::get('/unread', [NotificationController::class, 'userUnread']);
+        Route::get('/unread-count', [NotificationController::class, 'userUnreadCount']);
+        Route::patch('/{id}/read', [NotificationController::class, 'userMarkAsRead']);
+        Route::patch('/mark-all-read', [NotificationController::class, 'userMarkAllAsRead']);
+        Route::delete('/{id}', [NotificationController::class, 'userDestroy']);
+    });
+
+    // ==========================================
+    // PUBLIC NOTIFICATIONS - الإشعارات العامة (للجميع)
+    // ==========================================
+    Route::get('/notifications/public', [NotificationController::class, 'publicIndex']);
+
+    // ==========================================
+    // ALL NOTIFICATIONS - جميع الإشعارات للمستخدم
+    // ==========================================
+    Route::get('/notifications/all', [NotificationController::class, 'getAllForUser']);
 });
 
 
@@ -107,6 +133,29 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::prefix('contracts')->group(function () {
                 Route::get('/adminIndex', [ContractController::class, 'adminIndex']);
                 Route::patch('adminUpdateStatus/{id}', [ContractController::class, 'adminUpdateStatus']);
+            });
+
+            // ==========================================
+            // ADMIN NOTIFICATIONS - إشعارات المدراء
+            // ==========================================
+            Route::prefix('notifications')->group(function () {
+                Route::get('/', [NotificationController::class, 'adminIndex']);
+                Route::get('/unread-count', [NotificationController::class, 'adminUnreadCount']);
+                Route::get('/all', [NotificationController::class, 'getAllForAdmin']);
+                Route::post('/', [NotificationController::class, 'adminStore']);
+                Route::patch('/{id}/read', [NotificationController::class, 'adminMarkAsRead']);
+                Route::patch('/mark-all-read', [NotificationController::class, 'adminMarkAllAsRead']);
+                Route::delete('/{id}', [NotificationController::class, 'adminDestroy']);
+            });
+
+            // ==========================================
+            // PUBLIC NOTIFICATIONS MANAGEMENT - إدارة الإشعارات العامة
+            // ==========================================
+            Route::prefix('public-notifications')->group(function () {
+                Route::get('/', [NotificationController::class, 'publicAdminIndex']);
+                Route::post('/', [NotificationController::class, 'publicStore']);
+                Route::put('/{id}', [NotificationController::class, 'publicUpdate']);
+                Route::delete('/{id}', [NotificationController::class, 'publicDestroy']);
             });
         });
 

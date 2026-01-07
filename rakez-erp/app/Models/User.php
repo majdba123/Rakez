@@ -12,18 +12,13 @@ class User extends Authenticatable
 {
     use HasApiTokens, HasFactory, Notifiable;
 
-    /**
-     * The attributes that are mass assignable.
-     *
-     * @var array<int, string>
-     */
+
     protected $fillable = [
         'name',
         'type',
         'phone',
         'email',
         'password',
-        // Profile fields
         'team',
         'identity_number',
         'birthday',
@@ -34,21 +29,13 @@ class User extends Authenticatable
         'marital_status',
     ];
 
-    /**
-     * The attributes that should be hidden for serialization.
-     *
-     * @var array<int, string>
-     */
+
     protected $hidden = [
         'password',
         'remember_token',
     ];
 
-    /**
-     * The attributes that should be cast.
-     *
-     * @var array<string, string>
-     */
+
     protected $casts = [
         'email_verified_at' => 'datetime',
         'password' => 'hashed',
@@ -58,11 +45,31 @@ class User extends Authenticatable
         'salary' => 'decimal:2',
     ];
 
-    /**
-     * Get the contracts for the user.
-     */
     public function contracts()
     {
         return $this->hasMany(Contract::class);
+    }
+
+
+    public function userNotifications()
+    {
+        return $this->hasMany(UserNotification::class);
+    }
+
+
+    public function unreadUserNotificationsCount()
+    {
+        return $this->userNotifications()->unread()->count();
+    }
+
+    public function adminNotificationReads()
+    {
+        return $this->hasMany(AdminNotificationRead::class);
+    }
+
+
+    public function isAdmin()
+    {
+        return $this->type === 'admin';
     }
 }

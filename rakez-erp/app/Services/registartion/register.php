@@ -3,6 +3,8 @@
 namespace App\Services\registartion;
 
 use App\Models\User;
+use App\Models\AdminNotification;
+use App\Events\EmployeeCreated;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
@@ -72,7 +74,14 @@ class register
 
             $user = User::create($userData);
 
+            // Save to admin_notifications table
+            AdminNotification::createForNewEmployee($user);
+
             DB::commit();
+
+            // Broadcast to admin channel for real-time notifications (after commit)
+            event(new EmployeeCreated($user));
+
             return $user;
         } catch (\Exception $e) {
             DB::rollBack();
@@ -326,4 +335,5 @@ class register
 
         return $randomPassword;
     }
+
 }
