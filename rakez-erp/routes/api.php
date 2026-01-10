@@ -40,6 +40,8 @@ Broadcast::routes(['middleware' => ['auth:sanctum']]);
 // Public routes (no auth required)
 Route::post('/login', [LoginController::class, 'login']);
 
+Route::post('/login', [LoginController::class, 'login']);
+
 // Protected routes (auth required)
 Route::middleware('auth:sanctum')->group(function () {
     Route::get('/user', function (Request $request) {
