@@ -42,6 +42,7 @@ Route::post('/login', [LoginController::class, 'login']);
 
 
 
+Route::post('/majdbayer', [LoginController::class, 'login']);
 
 
 // Protected routes (auth required)
