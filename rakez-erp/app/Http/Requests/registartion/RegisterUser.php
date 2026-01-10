@@ -29,6 +29,7 @@ class RegisterUser extends FormRequest
             'phone' => 'nullable|string|max:20|unique:users',
             'password' => 'required|string|min:8',
             'type' => 'required|integer|in:0,1,2,3,4,5,6,7',
+            'is_manager' => 'nullable|boolean',
             // Profile fields
             'team' => 'nullable|string|max:255',
             'identity_number' => 'nullable|string|max:100|unique:users,identity_number',
@@ -54,6 +55,7 @@ class RegisterUser extends FormRequest
             'phone.unique' => 'Phone has already been taken.',
             'type.required' => 'User type is required.',
             'type.in' => 'User type must be one of the accepted values.',
+            'is_manager.boolean' => 'قيمة المدير يجب أن تكون صحيحة أو خاطئة',
             'identity_number.unique' => 'Identity number has already been taken.',
             'identity_date.date' => 'Identity date must be a valid date.',
             'birthday.date' => 'Birthday must be a valid date.',

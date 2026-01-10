@@ -93,7 +93,13 @@ class ContractService
     {
         try {
             // Eager-load related data to prevent N+1 queries
-            $contract = Contract::with(['user', 'info', 'secondPartyData.contractUnits'])->findOrFail($id);
+            $contract = Contract::with([
+                'user',
+                'info',
+                'secondPartyData.contractUnits',
+                'photographyDepartment.processedByUser',
+                'boardsDepartment.processedByUser',
+            ])->findOrFail($id);
 
             // Authorization check
             if ($userId) {
@@ -352,7 +358,13 @@ class ContractService
     {
         DB::beginTransaction();
         try {
-            $contract = Contract::with(['user', 'info', 'secondPartyData.contractUnits'])->findOrFail($id);
+            $contract = Contract::with([
+                'user',
+                'info',
+                'secondPartyData.contractUnits',
+                'photographyDepartment.processedByUser',
+                'boardsDepartment.processedByUser',
+            ])->findOrFail($id);
 
             // Project Management can only set to 'ready' or 'rejected'
             $allowedStatuses = ['ready', 'rejected'];
@@ -379,7 +391,13 @@ class ContractService
             $contract->update(['status' => $status]);
 
             DB::commit();
-            return $contract->fresh(['user', 'info', 'secondPartyData.contractUnits']);
+            return $contract->fresh([
+                'user',
+                'info',
+                'secondPartyData.contractUnits',
+                'photographyDepartment.processedByUser',
+                'boardsDepartment.processedByUser',
+            ]);
         } catch (Exception $e) {
             DB::rollBack();
             throw $e;

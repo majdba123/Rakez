@@ -27,6 +27,7 @@ class UpdateUser extends FormRequest
             'phone' => 'sometimes|string|max:20',
             'password' => 'sometimes|string|min:6',
             'type' => 'sometimes|integer|between:0,7',
+            'is_manager' => 'nullable|boolean',
             // Profile fields
             'team' => 'sometimes|string|max:255',
             'identity_number' => 'sometimes|string|max:100|unique:users,identity_number,' . $this->route('id'),
@@ -56,6 +57,7 @@ class UpdateUser extends FormRequest
             'password.min' => 'كلمة المرور يجب أن تكون على الأقل 6 أحرف',
             'type.integer' => 'نوع المستخدم يجب أن يكون رقماً',
             'type.between' => 'نوع المستخدم يجب أن يكون بين 0 و 7',
+            'is_manager.boolean' => 'قيمة المدير يجب أن تكون صحيحة أو خاطئة',
         ];
     }
 }

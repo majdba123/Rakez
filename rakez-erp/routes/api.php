@@ -1,12 +1,6 @@
 <?php
 // CI/CD Auto Deploy Enabled
 
-
-// CI/CD Auto Deploy Enabled
-
-
-// CI/CD Auto Deploy Enabled
-
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Broadcast;
@@ -26,7 +20,10 @@ use App\Http\Controllers\Contract\ContractController;
 use App\Http\Controllers\Contract\ContractInfoController;
 use App\Http\Controllers\Contract\SecondPartyDataController;
 use App\Http\Controllers\Contract\ContractUnitController;
+use App\Http\Controllers\Contract\BoardsDepartmentController;
+use App\Http\Controllers\Contract\PhotographyDepartmentController;
 use App\Http\Controllers\NotificationController;
+use App\Http\Controllers\Dashboard\ProjectManagementDashboardController;
 
 
 use Illuminate\Support\Facades\File;  // أضف هذا السطر في الأعلى
@@ -49,7 +46,6 @@ Route::post('/login', [LoginController::class, 'login']);
 
 
 
-Route::post('/majdbayer', [LoginController::class, 'login']);
 
 
 // Protected routes (auth required)
@@ -103,7 +99,23 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::delete('delete/{unitId}', [ContractUnitController::class, 'destroy']);
         });
 
-        // تحديث حالة العقد - إدارة المشاريع
+        Route::prefix('boards-department')->group(function () {
+            Route::get('show/{contractId}', [BoardsDepartmentController::class, 'show']);
+            Route::post('store/{contractId}', [BoardsDepartmentController::class, 'store']);
+            Route::put('update/{contractId}', [BoardsDepartmentController::class, 'update']);
+        });
+
+        Route::prefix('photography-department')->group(function () {
+            Route::get('show/{contractId}', [PhotographyDepartmentController::class, 'show']);
+            Route::post('store/{contractId}', [PhotographyDepartmentController::class, 'store']);
+            Route::put('update/{contractId}', [PhotographyDepartmentController::class, 'update']);
+        });
+
+        // لوحة تحكم إدارة المشاريع - Project Management Dashboard
+        Route::prefix('project_management/dashboard')->group(function () {
+            Route::get('/', [ProjectManagementDashboardController::class, 'index']);
+            Route::get('/units-statistics', [ProjectManagementDashboardController::class, 'unitsStatistics']);
+        });
 
     });
 

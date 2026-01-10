@@ -20,6 +20,7 @@ class UserResource extends JsonResource
             'email' => $this->email,
             'phone' => $this->phone,
             'type' => $this->type,
+            'is_manager' => $this->is_manager ?? false,
             'team' => $this->team,
             'identity_number' => $this->identity_number,
             'birthday' => $this->birthday?->toDateString(),

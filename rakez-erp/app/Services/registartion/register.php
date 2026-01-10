@@ -46,6 +46,7 @@ class register
                 'iban',
                 'salary',
                 'marital_status',
+                'is_manager',
             ];
 
             foreach ($optional as $key) {
@@ -101,7 +102,7 @@ class register
 
         // Select only the columns used by the API resource to reduce payload
         $select = [
-            'id', 'name', 'email', 'phone', 'type', 'team', 'identity_number',
+            'id', 'name', 'email', 'phone', 'type', 'is_manager', 'team', 'identity_number',
              'birthday', 'date_of_works', 'contract_type',
             'iban', 'salary', 'marital_status', 'created_at', 'updated_at'
         ];
@@ -212,6 +213,7 @@ class register
                 'iban',
                 'salary',
                 'marital_status',
+                'is_manager',
             ];
 
             foreach ($profileFields as $pf) {

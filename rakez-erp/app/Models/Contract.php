@@ -7,6 +7,8 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use App\Models\ContractInfo;
 use App\Models\SecondPartyData;
+use App\Models\BoardsDepartment;
+use App\Models\PhotographyDepartment;
 
 class Contract extends Model
 {
@@ -66,6 +68,24 @@ class Contract extends Model
     public function secondPartyData()
     {
         return $this->hasOne(SecondPartyData::class);
+    }
+
+    /**
+     * Get the boards department data (one-to-one).
+     * قسم اللوحات
+     */
+    public function boardsDepartment()
+    {
+        return $this->hasOne(BoardsDepartment::class);
+    }
+
+    /**
+     * Get the photography department data (one-to-one).
+     * قسم التصوير
+     */
+    public function photographyDepartment()
+    {
+        return $this->hasOne(PhotographyDepartment::class);
     }
 
     /**

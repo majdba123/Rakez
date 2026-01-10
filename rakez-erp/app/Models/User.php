@@ -16,6 +16,7 @@ class User extends Authenticatable
     protected $fillable = [
         'name',
         'type',
+        'is_manager',
         'phone',
         'email',
         'password',
@@ -43,6 +44,7 @@ class User extends Authenticatable
         'birthday' => 'date',
         'date_of_works' => 'date',
         'salary' => 'decimal:2',
+        'is_manager' => 'boolean',
     ];
 
     public function contracts()
@@ -78,5 +80,14 @@ class User extends Authenticatable
     public function isAdmin()
     {
         return $this->type === 'admin';
+    }
+
+    /**
+     * Check if user is a manager
+     * هل المستخدم مدير
+     */
+    public function isManager(): bool
+    {
+        return $this->is_manager === true;
     }
 }
