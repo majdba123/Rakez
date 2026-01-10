@@ -23,9 +23,9 @@ class SecondPartyDataResource extends JsonResource
             'prices_units_url' => $this->prices_units_url,                       // رابط الاسعار والوحدات
             'marketing_license_url' => $this->marketing_license_url,             // رخصة التسويق
             'advertiser_section_url' => $this->advertiser_section_url,           // قسم معلن
-            // Contract Units - وحدات العقد
-            'contract_units' => ContractUnitResource::collection($this->whenLoaded('contractUnits')),
-            'contract_units_count' => $this->whenCounted('contractUnits'),
+            // Contract Units Summary - ملخص وحدات العقد
+            'contract_units_count_csv' => $this->whenLoaded('contractUnits', fn() => $this->contractUnits->count(), 0),
+            'total_units_price_csv' => $this->whenLoaded('contractUnits', fn() => (float) $this->contractUnits->sum('price'), 0),
             // Processed By - معالج بواسطة
             'processed_by' => $this->when($this->processedByUser, [
                 'id' => $this->processedByUser?->id,

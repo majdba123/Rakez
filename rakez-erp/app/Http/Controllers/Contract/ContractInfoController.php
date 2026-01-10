@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Contract\StoreContractInfoRequest;
 use App\Http\Requests\Contract\UpdateContractInfoRequest;
 use App\Http\Resources\Contract\ContractResource;
+use App\Http\Resources\Contract\ContractInfoResource;
 use App\Models\ContractInfo;
 use App\Models\Contract;
 use App\Services\Contract\ContractService;
@@ -52,10 +53,13 @@ class ContractInfoController extends Controller
 
             $info = $this->contractService->storeContractInfo($contractId, $data, $contract);
 
+            // Change contract status to complete
+            $contract->update(['status' => 'completed']);
+
             return response()->json([
                 'success' => true,
                 'message' => 'تم حفظ بيانات العقد',
-                'data' => $info->load('contract.user')
+                'data' => new ContractInfoResource($info->load('contract.user'))
             ], 201);
         } catch (Exception $e) {
             return response()->json([
@@ -81,7 +85,7 @@ class ContractInfoController extends Controller
             return response()->json([
                 'success' => true,
                 'message' => 'تم تحديث بيانات العقد',
-                'data' => $info->load('contract.user')
+                'data' => new ContractInfoResource($info->load('contract.user'))
             ], 200);
         } catch (Exception $e) {
             return response()->json([

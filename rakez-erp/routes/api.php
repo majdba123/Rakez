@@ -37,15 +37,16 @@ Broadcast::routes(['middleware' => ['auth:sanctum']]);
 | be assigned to the "api" middleware group. Make something great!
 |
 */
+// Public routes (no auth required)
+Route::post('/login', [LoginController::class, 'login']);
+
+// Protected routes (auth required)
 Route::middleware('auth:sanctum')->group(function () {
     Route::get('/user', function (Request $request) {
         return $request->user();
     });
 
-
-
-    Route::post('/login', [LoginController::class, 'login']);
-    Route::post('/logout', [LoginController::class, 'logout'])->middleware('auth:sanctum');
+    Route::post('/logout', [LoginController::class, 'logout']);
 
     // Contract Routes - Protected routes (user contracts)
     Route::middleware('auth:sanctum')->group(function () {

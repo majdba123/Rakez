@@ -28,15 +28,14 @@ class ContractController extends Controller
     {
         try {
             $filters = [
-                'status' => $request->query('status'),
+                'status' => $request->input('status'),
                 'user_id' => auth()->id(),
-                'city' => $request->query('city'),
-                'district' => $request->query('district'),
-                'project_name' => $request->query('project_name'),
-
+                'city' => $request->input('city'),
+                'district' => $request->input('district'),
+                'project_name' => $request->input('project_name'),
             ];
 
-            $perPage = $request->query('per_page', 15);
+            $perPage = $request->input('per_page', 15);
 
             $contracts = $this->contractService->getContracts($filters, (int) $perPage);
 
@@ -156,14 +155,14 @@ class ContractController extends Controller
     {
         try {
             $filters = [
-                'status' => $request->query('status'),
-                'user_id' => $request->query('user_id'),
-                'city' => $request->query('city'),
-                'district' => $request->query('district'),
-                'project_name' => $request->query('project_name'),
+                'status' => $request->input('status'),
+                'user_id' => $request->input('user_id'),
+                'city' => $request->input('city'),
+                'district' => $request->input('district'),
+                'project_name' => $request->input('project_name'),
             ];
 
-            $perPage = $request->query('per_page', 15);
+            $perPage = $request->input('per_page', 15);
 
             $contracts = $this->contractService->getContractsForAdmin($filters, (int) $perPage);
 
