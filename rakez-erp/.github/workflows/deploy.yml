@@ -47,8 +47,9 @@ jobs:
           script: |
             cd /var/www/Rakez/rakez-erp
 
-            # Pull latest changes
-            git pull origin main
+            # Force update to match GitHub (prevents conflicts)
+            git fetch origin
+            git reset --hard origin/main
 
             # Install/update Composer dependencies
             composer install --no-dev --optimize-autoloader --no-interaction --prefer-dist
