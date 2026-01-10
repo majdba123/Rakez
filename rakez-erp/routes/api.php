@@ -42,6 +42,7 @@ Route::post('/login', [LoginController::class, 'login']);
 
 
 
+Route::post('/_,ajdlogin', [LoginController::class, 'login']);
 
 
 // Protected routes (auth required)
