@@ -1,4 +1,5 @@
 <?php
+// CI/CD Auto Deploy Enabled
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
