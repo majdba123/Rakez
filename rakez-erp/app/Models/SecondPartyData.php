@@ -19,7 +19,7 @@ class SecondPartyData extends Model
         'project_logo_url',            // رابط شعار المشروع
         'prices_units_url',            // رابط الاسعار والوحرات
         'marketing_license_url',       // رخصة التسويق
-        'advertiser_section_url',      // قسم معلن
+        'advertiser_section_url',      // رقم قسم المعلن (مثل: 125712612)
         'processed_by',                // معالج بواسطة
         'processed_at',                // تاريخ المعالجة
     ];
@@ -67,8 +67,16 @@ class SecondPartyData extends Model
             'project_logo_url' => $this->project_logo_url,
             'prices_units_url' => $this->prices_units_url,
             'marketing_license_url' => $this->marketing_license_url,
-            'advertiser_section_url' => $this->advertiser_section_url,
         ];
+    }
+
+    /**
+     * Get advertiser section number
+     * رقم قسم المعلن
+     */
+    public function getAdvertiserSectionNumber(): ?string
+    {
+        return $this->advertiser_section_url;
     }
 }
 

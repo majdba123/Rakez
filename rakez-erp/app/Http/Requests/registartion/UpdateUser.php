@@ -26,7 +26,7 @@ class UpdateUser extends FormRequest
             'email' => 'sometimes|email|unique:users,email,' . $this->route('id'),
             'phone' => 'sometimes|string|max:20',
             'password' => 'sometimes|string|min:6',
-            'type' => 'sometimes|integer|between:0,7',
+            'type' => 'sometimes|integer|between:0,8',
             'is_manager' => 'nullable|boolean',
             // Profile fields
             'team' => 'sometimes|string|max:255',

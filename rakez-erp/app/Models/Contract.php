@@ -9,6 +9,7 @@ use App\Models\ContractInfo;
 use App\Models\SecondPartyData;
 use App\Models\BoardsDepartment;
 use App\Models\PhotographyDepartment;
+use App\Models\MontageDepartment;
 
 class Contract extends Model
 {
@@ -86,6 +87,15 @@ class Contract extends Model
     public function photographyDepartment()
     {
         return $this->hasOne(PhotographyDepartment::class);
+    }
+
+    /**
+     * Get the montage department data (one-to-one).
+     * قسم المونتاج
+     */
+    public function montageDepartment()
+    {
+        return $this->hasOne(MontageDepartment::class);
     }
 
     /**

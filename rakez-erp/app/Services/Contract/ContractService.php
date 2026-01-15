@@ -18,7 +18,7 @@ class ContractService
     public function getContracts(array $filters = [], int $perPage = 15): LengthAwarePaginator
     {
         try {
-            $query = Contract::query();
+            $query = Contract::with(['photographyDepartment', 'montageDepartment']);
 
             // Filter by status
             if (isset($filters['status']) && !empty($filters['status'])) {
@@ -99,6 +99,7 @@ class ContractService
                 'secondPartyData.contractUnits',
                 'photographyDepartment.processedByUser',
                 'boardsDepartment.processedByUser',
+                'montageDepartment.processedByUser',
             ])->findOrFail($id);
 
             // Authorization check
@@ -117,8 +118,10 @@ class ContractService
     {
         $authUser = auth()->user();
         $isAdmin = $authUser && isset($authUser->type) && $authUser->type === 'admin';
-        $is_project_mangment = $authUser && isset($authUser->type) && $authUser->type === 'project_management';
-        if (!$contract->isOwnedBy($userId) && !$isAdmin && !$is_project_mangment) {
+        $isProjectManagement = $authUser && isset($authUser->type) && $authUser->type === 'project_management';
+        $isEditor = $authUser && isset($authUser->type) && $authUser->type === 'editor';
+
+        if (!$contract->isOwnedBy($userId) && !$isAdmin && !$isProjectManagement && !$isEditor) {
             throw new Exception('Unauthorized to access this contract.');
         }
     }
@@ -186,13 +189,11 @@ class ContractService
         }
     }
 
-    /**
-     * Get all contracts for admin (with all filters)
-     */
+
     public function getContractsForAdmin(array $filters = [], int $perPage = 15): LengthAwarePaginator
     {
         try {
-            $query = Contract::query();
+            $query = Contract::with(['photographyDepartment', 'montageDepartment']);
 
             // Filter by status
             if (isset($filters['status']) && !empty($filters['status'])) {
@@ -222,6 +223,24 @@ class ContractService
             // Filter by developer name
             if (isset($filters['developer_name']) && !empty($filters['developer_name'])) {
                 $query->byDeveloper($filters['developer_name']);
+            }
+
+            // Filter by has photography department
+            if (isset($filters['has_photography'])) {
+                if ($filters['has_photography'] == 1) {
+                    $query->whereHas('photographyDepartment');
+                } else {
+                    $query->whereDoesntHave('photographyDepartment');
+                }
+            }
+
+            // Filter by has montage department
+            if (isset($filters['has_montage'])) {
+                if ($filters['has_montage'] == 1) {
+                    $query->whereHas('montageDepartment');
+                } else {
+                    $query->whereDoesntHave('montageDepartment');
+                }
             }
 
             // Sort by latest
@@ -364,6 +383,7 @@ class ContractService
                 'secondPartyData.contractUnits',
                 'photographyDepartment.processedByUser',
                 'boardsDepartment.processedByUser',
+                'montageDepartment.processedByUser',
             ])->findOrFail($id);
 
             // Project Management can only set to 'ready' or 'rejected'
@@ -397,6 +417,7 @@ class ContractService
                 'secondPartyData.contractUnits',
                 'photographyDepartment.processedByUser',
                 'boardsDepartment.processedByUser',
+                'montageDepartment.processedByUser',
             ]);
         } catch (Exception $e) {
             DB::rollBack();

@@ -22,6 +22,7 @@ use App\Http\Controllers\Contract\SecondPartyDataController;
 use App\Http\Controllers\Contract\ContractUnitController;
 use App\Http\Controllers\Contract\BoardsDepartmentController;
 use App\Http\Controllers\Contract\PhotographyDepartmentController;
+use App\Http\Controllers\Contract\MontageDepartmentController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\Dashboard\ProjectManagementDashboardController;
 
@@ -119,7 +120,25 @@ Route::middleware('auth:sanctum')->group(function () {
 
     });
 
+    // ==========================================
+    // EDITOR ROUTES - صلاحيات المحرر
+    // ==========================================
+    Route::prefix('editor')->middleware(['auth:sanctum', 'editor'])->group(function () {
 
+        // Contract routes for editor
+        Route::prefix('contracts')->group(function () {
+            Route::get('/index', [ContractController::class, 'adminIndex']);
+            Route::get('/show/{id}', [ContractController::class, 'show']);
+        });
+
+        // Montage Department - قسم المونتاج
+        Route::prefix('montage-department')->group(function () {
+            Route::get('show/{contractId}', [MontageDepartmentController::class, 'show']);
+            Route::post('store/{contractId}', [MontageDepartmentController::class, 'store']);
+            Route::put('update/{contractId}', [MontageDepartmentController::class, 'update']);
+        });
+
+    });
 
 
             // Create an admin prefix group with admin middleware

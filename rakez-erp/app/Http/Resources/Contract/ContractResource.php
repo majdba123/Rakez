@@ -47,6 +47,7 @@ class ContractResource extends JsonResource
             'second_party_data' => new SecondPartyDataResource($this->whenLoaded('secondPartyData')),
             'photography_department' => new PhotographyDepartmentResource($this->whenLoaded('photographyDepartment')),
             'boards_department' => new BoardsDepartmentResource($this->whenLoaded('boardsDepartment')),
+            'montage_department' => new MontageDepartmentResource($this->whenLoaded('montageDepartment')),
         ];
     }
 }

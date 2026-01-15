@@ -8,9 +8,9 @@ use App\Http\Resources\Shared\UserResource;
 
 class ContractIndexResource extends JsonResource
 {
-    /**
-     * Transform the resource into an array (for list/index views)
-     */
+
+
+
     public function toArray(Request $request): array
     {
         $unitCount = 0;
@@ -40,6 +40,8 @@ class ContractIndexResource extends JsonResource
 
             'status' => $this->status,
             'developer_requiment' => $this->developer_requiment,
+            'has_photography_data' => $this->photographyDepartment ? 1 : 0,
+            'has_montage_data' => $this->montageDepartment ? 1 : 0,
             'created_at' => $this->created_at?->toIso8601String(),
             'updated_at' => $this->updated_at?->toIso8601String(),
             'user' => new UserResource($this->whenLoaded('user')),

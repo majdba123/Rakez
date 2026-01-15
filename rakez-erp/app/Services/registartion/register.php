@@ -118,6 +118,7 @@ class register
             5 => 'sales',
             6 => 'accounting',
             7 => 'credit',
+            8 => 'HR',
         ];
         // Filter by type
         if (isset($filters['type'])) {

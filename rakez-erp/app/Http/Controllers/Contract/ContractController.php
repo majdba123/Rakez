@@ -160,6 +160,8 @@ class ContractController extends Controller
                 'city' => $request->input('city'),
                 'district' => $request->input('district'),
                 'project_name' => $request->input('project_name'),
+                'has_photography' => $request->input('has_photography'),
+                'has_montage' => $request->input('has_montage'),
             ];
 
             $perPage = $request->input('per_page', 15);

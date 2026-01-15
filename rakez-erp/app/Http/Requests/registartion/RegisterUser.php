@@ -28,7 +28,7 @@ class RegisterUser extends FormRequest
             'email' => 'required|string|email|max:255|unique:users',
             'phone' => 'nullable|string|max:20|unique:users',
             'password' => 'required|string|min:8',
-            'type' => 'required|integer|in:0,1,2,3,4,5,6,7',
+            'type' => 'required|integer|in:0,1,2,3,4,5,6,7,8',
             'is_manager' => 'nullable|boolean',
             // Profile fields
             'team' => 'nullable|string|max:255',
