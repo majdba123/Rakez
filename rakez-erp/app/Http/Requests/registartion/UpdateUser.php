@@ -29,7 +29,8 @@ class UpdateUser extends FormRequest
             'type' => 'sometimes|integer|between:0,8',
             'is_manager' => 'nullable|boolean',
             // Profile fields
-            'team' => 'sometimes|string|max:255',
+            // Team should be a valid teams.id
+            'team' => 'sometimes|integer|exists:teams,id',
             'identity_number' => 'sometimes|string|max:100|unique:users,identity_number,' . $this->route('id'),
             'birthday' => 'sometimes|date',
             'date_of_works' => 'sometimes|date',

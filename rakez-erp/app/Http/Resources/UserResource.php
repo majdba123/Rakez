@@ -21,7 +21,8 @@ class UserResource extends JsonResource
             'phone' => $this->phone,
             'type' => $this->type,
             'is_manager' => $this->is_manager ?? false,
-            'team' => $this->team,
+            // `team` is now the teams.id
+            'team' => $this->team_id,
             'identity_number' => $this->identity_number,
             'birthday' => $this->birthday?->toDateString(),
             'date_of_works' => $this->date_of_works?->toDateString(),

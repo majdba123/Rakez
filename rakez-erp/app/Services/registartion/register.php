@@ -38,6 +38,7 @@ class register
 
             // Optional profile fields
             $optional = [
+                // `team` input is team id (teams.id) -> store as users.team_id
                 'team',
                 'identity_number',
                 'birthday',
@@ -51,7 +52,11 @@ class register
 
             foreach ($optional as $key) {
                 if (isset($data[$key])) {
-                    $userData[$key] = $data[$key];
+                    if ($key === 'team') {
+                        $userData['team_id'] = $data[$key];
+                    } else {
+                        $userData[$key] = $data[$key];
+                    }
                 }
             }
 
@@ -102,7 +107,7 @@ class register
 
         // Select only the columns used by the API resource to reduce payload
         $select = [
-            'id', 'name', 'email', 'phone', 'type', 'is_manager', 'team', 'identity_number',
+            'id', 'name', 'email', 'phone', 'type', 'is_manager', 'team_id', 'identity_number',
              'birthday', 'date_of_works', 'contract_type',
             'iban', 'salary', 'marital_status', 'created_at', 'updated_at'
         ];
@@ -219,7 +224,11 @@ class register
 
             foreach ($profileFields as $pf) {
                 if (array_key_exists($pf, $data)) {
-                    $updateData[$pf] = $data[$pf];
+                    if ($pf === 'team') {
+                        $updateData['team_id'] = $data[$pf];
+                    } else {
+                        $updateData[$pf] = $data[$pf];
+                    }
                 }
             }
 

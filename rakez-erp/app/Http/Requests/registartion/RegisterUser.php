@@ -31,7 +31,8 @@ class RegisterUser extends FormRequest
             'type' => 'required|integer|in:0,1,2,3,4,5,6,7,8',
             'is_manager' => 'nullable|boolean',
             // Profile fields
-            'team' => 'nullable|string|max:255',
+            // Team should be a valid teams.id
+            'team' => 'nullable|integer|exists:teams,id',
             'identity_number' => 'nullable|string|max:100|unique:users,identity_number',
             'birthday' => 'nullable|date',
             'date_of_works' => 'nullable|date',

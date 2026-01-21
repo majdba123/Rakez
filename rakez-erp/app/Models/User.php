@@ -20,7 +20,7 @@ class User extends Authenticatable
         'phone',
         'email',
         'password',
-        'team',
+        'team_id',
         'identity_number',
         'birthday',
         'date_of_works',
@@ -50,6 +50,11 @@ class User extends Authenticatable
     public function contracts()
     {
         return $this->hasMany(Contract::class);
+    }
+
+    public function team()
+    {
+        return $this->belongsTo(Team::class, 'team_id');
     }
 
 
