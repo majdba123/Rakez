@@ -68,6 +68,7 @@ class Kernel extends HttpKernel
         'admin' => \App\Http\Middleware\AdminMiddleware::class,
         'project_management' => \App\Http\Middleware\ProjectManagementMiddleware::class,
         'editor' => \App\Http\Middleware\EditorMiddleware::class,
+        'sales' => \App\Http\Middleware\SalesMiddleware::class,
 
         'pand' => \App\Http\Middleware\CheckUserStatus::class,
         'otp' => \App\Http\Middleware\CheckUserOtp::class,

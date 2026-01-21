@@ -25,6 +25,7 @@ use App\Http\Controllers\Contract\PhotographyDepartmentController;
 use App\Http\Controllers\Contract\MontageDepartmentController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\Dashboard\ProjectManagementDashboardController;
+use App\Http\Controllers\TeamController;
 
 
 use Illuminate\Support\Facades\File;  // أضف هذا السطر في الأعلى
@@ -118,6 +119,13 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::get('/units-statistics', [ProjectManagementDashboardController::class, 'unitsStatistics']);
         });
 
+        Route::prefix('teams')->middleware(['auth:sanctum', 'project_management'])->group(function () {
+            Route::post('/store', [TeamController::class, 'store']);
+            Route::put('/update/{id}', [TeamController::class, 'update']);
+            Route::delete('/delete/{id}', [TeamController::class, 'destroy']);
+        });
+
+
     });
 
     // ==========================================
@@ -138,6 +146,16 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::put('update/{contractId}', [MontageDepartmentController::class, 'update']);
         });
 
+    });
+
+    // ==========================================
+    // TEAMS ROUTES
+    // - All authenticated users: index + show
+    // - project_management (and admin): store/update/delete
+    // ==========================================
+    Route::prefix('teams')->middleware(['auth:sanctum'])->group(function () {
+        Route::get('/index', [TeamController::class, 'index']);
+        Route::get('/show/{id}', [TeamController::class, 'show']);
     });
 
 
