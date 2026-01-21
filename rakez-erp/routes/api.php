@@ -211,6 +211,8 @@ Route::post('/login', [LoginController::class, 'login']);
         Route::get('/show/{id}', [TeamController::class, 'show']);
     });
 
+});
+
 // Public file access from storage/app/public (used for cv/contract URLs)
 Route::get('/storage/{path}', function ($path) {
     $filePath = storage_path('app/public/' . $path);
