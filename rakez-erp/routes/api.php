@@ -119,7 +119,9 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::get('/units-statistics', [ProjectManagementDashboardController::class, 'unitsStatistics']);
         });
 
-        Route::prefix('teams')->middleware(['auth:sanctum', 'project_management'])->group(function () {
+        Route::prefix('project_management/teams')->middleware(['auth:sanctum', 'project_management'])->group(function () {
+            Route::get('/index', [TeamController::class, 'index']);
+            Route::get('/show/{id}', [TeamController::class, 'show']);
             Route::post('/store', [TeamController::class, 'store']);
             Route::put('/update/{id}', [TeamController::class, 'update']);
             Route::delete('/delete/{id}', [TeamController::class, 'destroy']);
@@ -153,14 +155,10 @@ Route::middleware('auth:sanctum')->group(function () {
     // - All authenticated users: index + show
     // - project_management (and admin): store/update/delete
     // ==========================================
-    Route::prefix('teams')->middleware(['auth:sanctum'])->group(function () {
-        Route::get('/index', [TeamController::class, 'index']);
-        Route::get('/show/{id}', [TeamController::class, 'show']);
-    });
 
 
             // Create an admin prefix group with admin middleware
-        Route::prefix('admin')->middleware(['auth:sanctum', 'admin'])->group(function () {
+    Route::prefix('admin')->middleware(['auth:sanctum', 'admin'])->group(function () {
 
             Route::prefix('employees')->group(function () {
                 Route::post('/add_employee', [RegisterController::class, 'add_employee']);
@@ -176,9 +174,6 @@ Route::middleware('auth:sanctum')->group(function () {
                 Route::patch('adminUpdateStatus/{id}', [ContractController::class, 'adminUpdateStatus']);
             });
 
-            // ==========================================
-            // ADMIN NOTIFICATIONS API
-            // ==========================================
             Route::prefix('notifications')->group(function () {
                 // Get admin's own notifications
                 Route::get('/', [NotificationController::class, 'getAdminNotifications']);
@@ -194,6 +189,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
 
 
+
     Route::get('/storage/{path}', function ($path) {
         $filePath = storage_path('app/public/' . $path);
 
@@ -202,7 +198,11 @@ Route::middleware('auth:sanctum')->group(function () {
         }
 
         return response()->file($filePath);
-    })->where('path', '.*');
-});
+      })->where('path', '.*');
+    });
 
-/**sa*/
+    Route::prefix('teams')->middleware(['auth:sanctum'])->group(function () {
+        Route::get('/index', [TeamController::class, 'index']);
+        Route::get('/show/{id}', [TeamController::class, 'show']);
+    });
+
