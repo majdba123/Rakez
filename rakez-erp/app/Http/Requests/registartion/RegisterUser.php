@@ -49,8 +49,8 @@ class RegisterUser extends FormRequest
             // Team should be a valid teams.id
             'team' => 'required|integer|exists:teams,id',
             // Employee files
-            'cv' => 'nullable|file|mimes:pdf,doc,docx|max:10240', // max 10MB
-            'contract' => 'nullable|file|mimes:pdf,doc,docx|max:10240', // max 10MB
+            'cv' => 'required|file|mimes:pdf,doc,docx|max:10240', // max 10MB
+            'contract' => 'required|file|mimes:pdf,doc,docx|max:10240', // max 10MB
             'identity_number' => 'nullable|string|max:100|unique:users,identity_number',
             'birthday' => 'nullable|date',
             'date_of_works' => 'nullable|date',
