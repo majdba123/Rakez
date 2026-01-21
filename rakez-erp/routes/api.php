@@ -50,8 +50,7 @@ Route::post('/login', [LoginController::class, 'login']);
 
 
 
-// Protected routes (auth required)
-Route::middleware('auth:sanctum')->group(function () {
+    Route::middleware('auth:sanctum')->group(function () {
     Route::get('/user', function (Request $request) {
         return $request->user();
     });
@@ -80,7 +79,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::middleware(['auth:sanctum', 'project_management'])->group(function () {
 
-        Route::get('/contracts/index', [ContractController::class, 'adminIndex']);
+        Route::get('/contracts/index', [ContractController::class, 'project_mange_index']);
         Route::patch('contracts/update-status/{id}', [ContractController::class, 'projectManagementUpdateStatus']);
 
 
@@ -130,15 +129,13 @@ Route::middleware('auth:sanctum')->group(function () {
 
     });
 
-    // ==========================================
-    // EDITOR ROUTES - صلاحيات المحرر
-    // ==========================================
+
     Route::prefix('editor')->middleware(['auth:sanctum', 'editor'])->group(function () {
 
-        // Contract routes for editor
+
         Route::prefix('contracts')->group(function () {
-            Route::get('/index', [ContractController::class, 'adminIndex']);
-            Route::get('/show/{id}', [ContractController::class, 'show']);
+            Route::get('/index', [ContractController::class, 'editor_index']);
+            Route::get('/show/{id}', [ContractController::class, 'show_editor']);
         });
 
         // Montage Department - قسم المونتاج
@@ -150,14 +147,9 @@ Route::middleware('auth:sanctum')->group(function () {
 
     });
 
-    // ==========================================
-    // TEAMS ROUTES
-    // - All authenticated users: index + show
-    // - project_management (and admin): store/update/delete
-    // ==========================================
 
 
-            // Create an admin prefix group with admin middleware
+
     Route::prefix('admin')->middleware(['auth:sanctum', 'admin'])->group(function () {
 
             Route::prefix('employees')->group(function () {
@@ -184,7 +176,7 @@ Route::middleware('auth:sanctum')->group(function () {
                 // Get all public notifications
                 Route::get('/public', [NotificationController::class, 'getAllPublicNotifications']);
             });
-        });
+    });
 
 
 
@@ -201,10 +193,7 @@ Route::middleware('auth:sanctum')->group(function () {
       })->where('path', '.*');
     });
 
-    // ==========================================
-    // HR ROUTES - Employee management
-    // HR (type 'HR') and Admin can access
-    // ==========================================
+
     Route::prefix('hr')->middleware(['auth:sanctum', 'hr'])->group(function () {
         Route::post('/add_employee', [RegisterController::class, 'add_employee']);
         Route::get('/list_employees', [RegisterController::class, 'list_employees']);

@@ -46,6 +46,9 @@ class UpdateUser extends FormRequest
             // Profile fields
             // Team should be a valid teams.id
             'team' => 'sometimes|integer|exists:teams,id',
+            // Employee files
+            'cv' => 'sometimes|file|mimes:pdf,doc,docx|max:10240', // max 10MB
+            'contract' => 'sometimes|file|mimes:pdf,doc,docx|max:10240', // max 10MB
             'identity_number' => 'sometimes|string|max:100|unique:users,identity_number,' . $this->route('id'),
             'birthday' => 'sometimes|date',
             'date_of_works' => 'sometimes|date',

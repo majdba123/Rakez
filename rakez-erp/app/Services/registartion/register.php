@@ -11,6 +11,7 @@ use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
+use Illuminate\Http\UploadedFile;
 
 class register
 {
@@ -80,6 +81,19 @@ class register
             $userData['type'] = $typeNames[$data['type']];
 
             $user = User::create($userData);
+
+            // Store employee files (optional)
+            if (isset($data['cv']) && $data['cv'] instanceof UploadedFile) {
+                $path = $data['cv']->store('employees/cv', 'public');
+                $user->cv_path = $path;
+            }
+            if (isset($data['contract']) && $data['contract'] instanceof UploadedFile) {
+                $path = $data['contract']->store('employees/contracts', 'public');
+                $user->contract_path = $path;
+            }
+            if ($user->isDirty(['cv_path', 'contract_path'])) {
+                $user->save();
+            }
 
             // Save to admin_notifications table
             AdminNotification::createForNewEmployee($user);
@@ -231,6 +245,14 @@ class register
                         $updateData[$pf] = $data[$pf];
                     }
                 }
+            }
+
+            // Update employee files if provided
+            if (isset($data['cv']) && $data['cv'] instanceof UploadedFile) {
+                $updateData['cv_path'] = $data['cv']->store('employees/cv', 'public');
+            }
+            if (isset($data['contract']) && $data['contract'] instanceof UploadedFile) {
+                $updateData['contract_path'] = $data['contract']->store('employees/contracts', 'public');
             }
 
             // Update password if provided

@@ -100,6 +100,25 @@ class ContractController extends Controller
     }
 
 
+    public function show_editor(int $id): JsonResponse
+    {
+        try {
+            $contract = $this->contractService->getContractById($id, auth()->id());
+
+            return response()->json([
+                'success' => true,
+                'message' => 'تم جلب العقد بنجاح',
+                'data' => new ContractResource($contract)
+            ], 200);
+        } catch (Exception $e) {
+            $statusCode = str_contains($e->getMessage(), 'Unauthorized') ? 403 : 404;
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage(),
+            ], $statusCode);
+        }
+    }
+
 
     public function update(UpdateContractRequest $request, int $id): JsonResponse
     {
@@ -188,6 +207,84 @@ class ContractController extends Controller
         }
     }
 
+
+
+    public function project_mange_index(Request $request): JsonResponse
+    {
+        try {
+            $filters = [
+                'status' => $request->input('status'),
+                'user_id' => $request->input('user_id'),
+                'city' => $request->input('city'),
+                'district' => $request->input('district'),
+                'project_name' => $request->input('project_name'),
+                'has_photography' => $request->input('has_photography'),
+                'has_montage' => $request->input('has_montage'),
+            ];
+
+            $perPage = $request->input('per_page', 15);
+
+            $contracts = $this->contractService->getContractsForAdmin($filters, (int) $perPage);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'تم جلب العقود بنجاح',
+                'data' => ContractIndexResource::collection($contracts->items()),
+                'meta' => [
+                    'total' => $contracts->total(),
+                    'count' => $contracts->count(),
+                    'per_page' => $contracts->perPage(),
+                    'current_page' => $contracts->currentPage(),
+                    'last_page' => $contracts->lastPage(),
+                ]
+            ], 200);
+        } catch (Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage(),
+            ], 500);
+        }
+    }
+
+
+
+
+    public function editor_index(Request $request): JsonResponse
+    {
+        try {
+            $filters = [
+                'status' => $request->input('status'),
+                'user_id' => $request->input('user_id'),
+                'city' => $request->input('city'),
+                'district' => $request->input('district'),
+                'project_name' => $request->input('project_name'),
+                'has_photography' => $request->input('has_photography'),
+                'has_montage' => $request->input('has_montage'),
+            ];
+
+            $perPage = $request->input('per_page', 15);
+
+            $contracts = $this->contractService->getContractsForAdmin($filters, (int) $perPage);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'تم جلب العقود بنجاح',
+                'data' => ContractIndexResource::collection($contracts->items()),
+                'meta' => [
+                    'total' => $contracts->total(),
+                    'count' => $contracts->count(),
+                    'per_page' => $contracts->perPage(),
+                    'current_page' => $contracts->currentPage(),
+                    'last_page' => $contracts->lastPage(),
+                ]
+            ], 200);
+        } catch (Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage(),
+            ], 500);
+        }
+    }
 
     public function adminUpdateStatus(UpdateContractStatusRequest $request, int $id): JsonResponse
     {

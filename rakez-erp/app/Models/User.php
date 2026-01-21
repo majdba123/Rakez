@@ -21,6 +21,8 @@ class User extends Authenticatable
         'email',
         'password',
         'team_id',
+        'cv_path',
+        'contract_path',
         'identity_number',
         'birthday',
         'date_of_works',
