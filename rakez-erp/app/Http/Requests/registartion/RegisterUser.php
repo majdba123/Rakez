@@ -5,6 +5,8 @@ namespace App\Http\Requests\registartion;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Contracts\Validation\Validator;
 use Illuminate\Http\Exceptions\HttpResponseException;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Validation\Rule;
 
 class RegisterUser extends FormRequest
 {
@@ -28,7 +30,20 @@ class RegisterUser extends FormRequest
             'email' => 'required|string|email|max:255|unique:users',
             'phone' => 'nullable|string|max:20|unique:users',
             'password' => 'required|string|min:8',
-            'type' => 'required|integer|in:0,1,2,3,4,5,6,7,8',
+            'type' => [
+                'required',
+                'integer',
+                Rule::in([0,1,2,3,4,5,6,7,8]),
+                function (string $attribute, mixed $value, \Closure $fail) {
+                    // Only admin can create an employee with type=admin (1)
+                    if ((int) $value === 1) {
+                        $user = Auth::user();
+                        if (!$user || $user->type !== 'admin') {
+                            $fail('Only admin can create an employee with admin type.');
+                        }
+                    }
+                },
+            ],
             'is_manager' => 'nullable|boolean',
             // Profile fields
             // Team should be a valid teams.id

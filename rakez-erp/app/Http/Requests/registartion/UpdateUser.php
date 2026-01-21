@@ -3,6 +3,8 @@
 namespace App\Http\Requests\registartion;
 
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Validation\Rule;
 
 class UpdateUser extends FormRequest
 {
@@ -26,7 +28,20 @@ class UpdateUser extends FormRequest
             'email' => 'sometimes|email|unique:users,email,' . $this->route('id'),
             'phone' => 'sometimes|string|max:20',
             'password' => 'sometimes|string|min:6',
-            'type' => 'sometimes|integer|between:0,8',
+            'type' => [
+                'sometimes',
+                'integer',
+                Rule::in([0,1,2,3,4,5,6,7,8]),
+                function (string $attribute, mixed $value, \Closure $fail) {
+                    // Only admin can set employee type=admin (1)
+                    if ((int) $value === 1) {
+                        $user = Auth::user();
+                        if (!$user || $user->type !== 'admin') {
+                            $fail('Only admin can set employee type to admin.');
+                        }
+                    }
+                },
+            ],
             'is_manager' => 'nullable|boolean',
             // Profile fields
             // Team should be a valid teams.id
