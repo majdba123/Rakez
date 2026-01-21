@@ -416,4 +416,28 @@ class ContractController extends Controller
             ], $statusCode);
         }
     }
+
+
+    public function getTeamsForContract_HR(int $contractId): JsonResponse
+    {
+        try {
+            $teams = $this->contractService->getContractTeams($contractId);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'تم جلب فرق العقد بنجاح',
+                'data' => $teams->map(fn ($t) => [
+                    'id' => $t->id,
+                    'name' => $t->name,
+                    'description' => $t->description,
+                ]),
+            ], 200);
+        } catch (Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage(),
+            ], 404);
+        }
+    }
+
 }

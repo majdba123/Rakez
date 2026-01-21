@@ -207,6 +207,14 @@ Route::post('/login', [LoginController::class, 'login']);
         Route::get('/show_employee/{id}', [RegisterController::class, 'show_employee']);
         Route::put('/update_employee/{id}', [RegisterController::class, 'update_employee']);
         Route::delete('/delete_employee/{id}', [RegisterController::class, 'delete_employee']);
+
+
+
+                // Contract Teams (project management)
+        Route::prefix('teams')->group(function () {
+            Route::get('/index/{contractId}', [ContractController::class, 'getTeamsForContract_HR']);
+
+        });
     });
 
 
