@@ -83,7 +83,7 @@ Route::post('/login', [LoginController::class, 'login']);
         Route::patch('contracts/update-status/{id}', [ContractController::class, 'projectManagementUpdateStatus']);
 
         // Contract Teams (project management)
-        Route::prefix('project_management')->group(function () {
+        Route::prefix('project_teams')->group(function () {
             Route::get('/teams/{contractId}', [ContractController::class, 'getTeamsForContract']);
             Route::post('/teams/add/{contractId}', [ContractController::class, 'addTeamsToContract']);
             Route::post('/teams/remove/{contractId}', [ContractController::class, 'removeTeamsFromContract']);
