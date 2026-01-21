@@ -185,20 +185,7 @@ Route::post('/login', [LoginController::class, 'login']);
             });
     });
 
-
-
-
-
-    Route::get('/storage/{path}', function ($path) {
-        $filePath = storage_path('app/public/' . $path);
-
-        if (!File::exists($filePath)) {
-            abort(404);
-        }
-
-        return response()->file($filePath);
-      })->where('path', '.*');
-    });
+    // (moved /storage route outside auth:sanctum group)
 
 
     Route::prefix('hr')->middleware(['auth:sanctum', 'hr'])->group(function () {
@@ -223,4 +210,15 @@ Route::post('/login', [LoginController::class, 'login']);
         Route::get('/index', [TeamController::class, 'index']);
         Route::get('/show/{id}', [TeamController::class, 'show']);
     });
+
+// Public file access from storage/app/public (used for cv/contract URLs)
+Route::get('/storage/{path}', function ($path) {
+    $filePath = storage_path('app/public/' . $path);
+
+    if (!File::exists($filePath)) {
+        abort(404);
+    }
+
+    return response()->file($filePath);
+})->where('path', '.*');
 

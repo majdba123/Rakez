@@ -23,9 +23,7 @@ class UserResource extends JsonResource
             // `team` is now the teams.id
             'team' => $this->team_id,
             'team_name' => $this->team?->name,
-            'cv_path' => $this->cv_path,
             'cv_url' => $cvUrl,
-            'contract_path' => $this->contract_path,
             'contract_url' => $contractUrl,
             'identity_number' => $this->identity_number,
             'birthday' => $this->birthday?->toDateString(),
