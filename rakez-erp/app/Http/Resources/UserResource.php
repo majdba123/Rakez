@@ -10,6 +10,9 @@ class UserResource extends JsonResource
 
     public function toArray($request): array
     {
+        $cvUrl = $this->cv_path ? url('/api/storage/' . ltrim($this->cv_path, '/')) : null;
+        $contractUrl = $this->contract_path ? url('/api/storage/' . ltrim($this->contract_path, '/')) : null;
+
         return [
             'id' => $this->id,
             'name' => $this->name,
@@ -21,7 +24,9 @@ class UserResource extends JsonResource
             'team' => $this->team_id,
             'team_name' => $this->team?->name,
             'cv_path' => $this->cv_path,
+            'cv_url' => $cvUrl,
             'contract_path' => $this->contract_path,
+            'contract_url' => $contractUrl,
             'identity_number' => $this->identity_number,
             'birthday' => $this->birthday?->toDateString(),
             'date_of_works' => $this->date_of_works?->toDateString(),
