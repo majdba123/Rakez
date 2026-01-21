@@ -201,6 +201,18 @@ Route::middleware('auth:sanctum')->group(function () {
       })->where('path', '.*');
     });
 
+    // ==========================================
+    // HR ROUTES - Employee management
+    // HR (type 'HR') and Admin can access
+    // ==========================================
+    Route::prefix('hr')->middleware(['auth:sanctum', 'hr'])->group(function () {
+        Route::post('/add_employee', [RegisterController::class, 'add_employee']);
+        Route::get('/list_employees', [RegisterController::class, 'list_employees']);
+        Route::get('/show_employee/{id}', [RegisterController::class, 'show_employee']);
+        Route::put('/update_employee/{id}', [RegisterController::class, 'update_employee']);
+        Route::delete('/delete_employee/{id}', [RegisterController::class, 'delete_employee']);
+    });
+
     Route::prefix('teams')->middleware(['auth:sanctum'])->group(function () {
         Route::get('/index', [TeamController::class, 'index']);
         Route::get('/show/{id}', [TeamController::class, 'show']);
