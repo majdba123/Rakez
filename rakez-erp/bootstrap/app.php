@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Middleware\AdminMiddleware;
+use App\Http\Middleware\HrMiddleware;
 use App\Http\Middleware\ProjectManagementMiddleware;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
@@ -18,6 +19,7 @@ return Application::configure(basePath: dirname(__DIR__))
         // Register your middleware aliases here
         $middleware->alias([
             'admin' => AdminMiddleware::class,
+            'hr' => HrMiddleware::class,
             'project_management' => ProjectManagementMiddleware::class,
             'auth' => \App\Http\Middleware\Authenticate::class,
             // ... other middlewares
