@@ -10,6 +10,7 @@ use App\Models\SecondPartyData;
 use App\Models\BoardsDepartment;
 use App\Models\PhotographyDepartment;
 use App\Models\MontageDepartment;
+use App\Models\Team;
 
 class Contract extends Model
 {
@@ -96,6 +97,15 @@ class Contract extends Model
     public function montageDepartment()
     {
         return $this->hasOne(MontageDepartment::class);
+    }
+
+    /**
+     * Teams assigned to this contract (many-to-many)
+     */
+    public function teams()
+    {
+        return $this->belongsToMany(Team::class, 'contract_team')
+            ->withTimestamps();
     }
 
     /**

@@ -82,6 +82,13 @@ Route::post('/login', [LoginController::class, 'login']);
         Route::get('/contracts/index', [ContractController::class, 'project_mange_index']);
         Route::patch('contracts/update-status/{id}', [ContractController::class, 'projectManagementUpdateStatus']);
 
+        // Contract Teams (project management)
+        Route::prefix('project_management')->group(function () {
+            Route::get('/teams/{contractId}', [ContractController::class, 'getTeamsForContract']);
+            Route::post('/teams/add/{contractId}', [ContractController::class, 'addTeamsToContract']);
+            Route::post('/teams/remove/{contractId}', [ContractController::class, 'removeTeamsFromContract']);
+        });
+
 
         Route::prefix('second-party-data')->group(function () {
             Route::get('show/{id}', [SecondPartyDataController::class, 'show']);
@@ -201,6 +208,8 @@ Route::post('/login', [LoginController::class, 'login']);
         Route::put('/update_employee/{id}', [RegisterController::class, 'update_employee']);
         Route::delete('/delete_employee/{id}', [RegisterController::class, 'delete_employee']);
     });
+
+
 
     Route::prefix('teams')->middleware(['auth:sanctum'])->group(function () {
         Route::get('/index', [TeamController::class, 'index']);

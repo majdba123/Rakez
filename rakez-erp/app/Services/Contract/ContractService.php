@@ -4,9 +4,11 @@ namespace App\Services\Contract;
 
 use App\Models\Contract;
 use App\Models\ContractInfo;
+use App\Models\Team;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Pagination\Paginator;
 use Illuminate\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Exception;
 
@@ -68,7 +70,7 @@ class ContractService
         try {
             // Set status to pending by default
             $data['status'] = 'pending';
-            $data['user_id'] = auth()->user()->id;
+            $data['user_id'] = Auth::id();
 
             // Create contract
             $contract = Contract::create($data);
@@ -85,6 +87,58 @@ class ContractService
         } catch (Exception $e) {
             DB::rollBack();
             throw new Exception('Failed to create contract: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Attach one or more teams to a contract (project_management/admin).
+     */
+    public function attachTeamsToContract(int $contractId, array $teamIds): Contract
+    {
+        DB::beginTransaction();
+        try {
+            $contract = Contract::findOrFail($contractId);
+
+            // Ensure teams exist
+            $existingTeamIds = Team::whereIn('id', $teamIds)->pluck('id')->toArray();
+            $contract->teams()->syncWithoutDetaching($existingTeamIds);
+
+            DB::commit();
+            return $contract->load('teams');
+        } catch (Exception $e) {
+            DB::rollBack();
+            throw new Exception('Failed to attach teams: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Detach one or more teams from a contract (project_management/admin).
+     */
+    public function detachTeamsFromContract(int $contractId, array $teamIds): Contract
+    {
+        DB::beginTransaction();
+        try {
+            $contract = Contract::findOrFail($contractId);
+            $contract->teams()->detach($teamIds);
+
+            DB::commit();
+            return $contract->load('teams');
+        } catch (Exception $e) {
+            DB::rollBack();
+            throw new Exception('Failed to detach teams: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Get all teams assigned to a contract.
+     */
+    public function getContractTeams(int $contractId)
+    {
+        try {
+            $contract = Contract::with('teams')->findOrFail($contractId);
+            return $contract->teams;
+        } catch (Exception $e) {
+            throw new Exception('Failed to fetch contract teams: ' . $e->getMessage());
         }
     }
 
@@ -116,7 +170,7 @@ class ContractService
 
     private function authorizeContractAccess(Contract $contract, int $userId): void
     {
-        $authUser = auth()->user();
+        $authUser = Auth::user();
         $isAdmin = $authUser && isset($authUser->type) && $authUser->type === 'admin';
         $isProjectManagement = $authUser && isset($authUser->type) && $authUser->type === 'project_management';
         $isEditor = $authUser && isset($authUser->type) && $authUser->type === 'editor';
@@ -268,7 +322,7 @@ class ContractService
             }
 
             // Authorization: owner or admin only
-            $this->authorizeContractAccess($contract, auth()->id());
+            $this->authorizeContractAccess($contract, Auth::id());
 
             // Set contract id
             $data['contract_id'] = $contract->id;

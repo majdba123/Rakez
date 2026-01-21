@@ -12,6 +12,7 @@ use App\Models\Contract;
 use App\Services\Contract\ContractService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Exception;
 
 class ContractController extends Controller
@@ -29,7 +30,7 @@ class ContractController extends Controller
         try {
             $filters = [
                 'status' => $request->input('status'),
-                'user_id' => auth()->id(),
+                'user_id' => Auth::id(),
                 'city' => $request->input('city'),
                 'district' => $request->input('district'),
                 'project_name' => $request->input('project_name'),
@@ -83,7 +84,7 @@ class ContractController extends Controller
     public function show(int $id): JsonResponse
     {
         try {
-            $contract = $this->contractService->getContractById($id, auth()->id());
+            $contract = $this->contractService->getContractById($id, Auth::id());
 
             return response()->json([
                 'success' => true,
@@ -103,7 +104,7 @@ class ContractController extends Controller
     public function show_editor(int $id): JsonResponse
     {
         try {
-            $contract = $this->contractService->getContractById($id, auth()->id());
+            $contract = $this->contractService->getContractById($id, Auth::id());
 
             return response()->json([
                 'success' => true,
@@ -125,7 +126,7 @@ class ContractController extends Controller
         try {
             $validated = $request->validated();
 
-            $contract = $this->contractService->updateContract($id, $validated, auth()->id());
+            $contract = $this->contractService->updateContract($id, $validated, Auth::id());
 
             return response()->json([
                 'success' => true,
@@ -150,7 +151,7 @@ class ContractController extends Controller
     public function destroy(int $id): JsonResponse
     {
         try {
-            $this->contractService->deleteContract($id, auth()->id());
+            $this->contractService->deleteContract($id, Auth::id());
 
             return response()->json([
                 'success' => true,
@@ -283,6 +284,84 @@ class ContractController extends Controller
                 'success' => false,
                 'message' => $e->getMessage(),
             ], 500);
+        }
+    }
+
+    // ==========================================
+    // PROJECT MANAGEMENT - Contract Teams APIs
+    // ==========================================
+
+    public function addTeamsToContract(Request $request, int $contractId): JsonResponse
+    {
+        try {
+            $validated = $request->validate([
+                'team_ids' => 'required|array|min:1',
+                'team_ids.*' => 'integer|exists:teams,id',
+            ]);
+
+            $contract = $this->contractService->attachTeamsToContract($contractId, $validated['team_ids']);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'تم إضافة الفرق للعقد بنجاح',
+                'data' => [
+                    'contract_id' => $contract->id,
+                    'teams' => $contract->teams->map(fn ($t) => ['id' => $t->id, 'name' => $t->name]),
+                ],
+            ], 200);
+        } catch (Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage(),
+            ], 422);
+        }
+    }
+
+    public function removeTeamsFromContract(Request $request, int $contractId): JsonResponse
+    {
+        try {
+            $validated = $request->validate([
+                'team_ids' => 'required|array|min:1',
+                'team_ids.*' => 'integer|exists:teams,id',
+            ]);
+
+            $contract = $this->contractService->detachTeamsFromContract($contractId, $validated['team_ids']);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'تم إزالة الفرق من العقد بنجاح',
+                'data' => [
+                    'contract_id' => $contract->id,
+                    'teams' => $contract->teams->map(fn ($t) => ['id' => $t->id, 'name' => $t->name]),
+                ],
+            ], 200);
+        } catch (Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage(),
+            ], 422);
+        }
+    }
+
+    public function getTeamsForContract(int $contractId): JsonResponse
+    {
+        try {
+            $teams = $this->contractService->getContractTeams($contractId);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'تم جلب فرق العقد بنجاح',
+                'data' => $teams->map(fn ($t) => [
+                    'id' => $t->id,
+                    'name' => $t->name,
+                    'description' => $t->description,
+                ]),
+            ], 200);
+        } catch (Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage(),
+            ], 404);
         }
     }
 

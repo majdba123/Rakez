@@ -20,6 +20,12 @@ class Team extends Model
     {
         return $this->belongsTo(User::class, 'created_by');
     }
+
+    public function contracts()
+    {
+        return $this->belongsToMany(Contract::class, 'contract_team')
+            ->withTimestamps();
+    }
 }
 
 
