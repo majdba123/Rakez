@@ -204,6 +204,8 @@ Route::post('/login', [LoginController::class, 'login']);
         Route::prefix('teams')->group(function () {
             Route::get('/index/{contractId}', [ContractController::class, 'getTeamsForContract_HR']);
             Route::get('/contracts/{teamId}', [TeamController::class, 'contracts'])->whereNumber('teamId');
+            Route::get('/getTeamsForContract/{contractId}', [ContractController::class, 'getTeamsForContract']);
+
 
         });
     });
