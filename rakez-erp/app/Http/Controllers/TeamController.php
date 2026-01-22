@@ -3,7 +3,6 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\Team\TeamContractsRequest;
-use App\Http\Requests\Team\TeamContractLocationsRequest;
 use App\Http\Requests\Team\StoreTeamRequest;
 use App\Http\Requests\Team\UpdateTeamRequest;
 use App\Http\Resources\Contract\ContractIndexResource;
@@ -144,7 +143,7 @@ class TeamController extends Controller
     }
 
 
-    public function contractLocations(TeamContractLocationsRequest $request, int $teamId): JsonResponse
+    public function contractLocations(TeamContractsRequest $request, int $teamId): JsonResponse
     {
         try {
             $team = Team::findOrFail($teamId);
