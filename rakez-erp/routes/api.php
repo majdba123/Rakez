@@ -117,6 +117,7 @@ Route::post('/login', [LoginController::class, 'login']);
             Route::get('show/{contractId}', [PhotographyDepartmentController::class, 'show']);
             Route::post('store/{contractId}', [PhotographyDepartmentController::class, 'store']);
             Route::put('update/{contractId}', [PhotographyDepartmentController::class, 'update']);
+            Route::patch('approve/{contractId}', [PhotographyDepartmentController::class, 'approve']);
         });
 
         // لوحة تحكم إدارة المشاريع - Project Management Dashboard

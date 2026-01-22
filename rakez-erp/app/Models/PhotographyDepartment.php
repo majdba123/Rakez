@@ -21,6 +21,7 @@ class PhotographyDepartment extends Model
         'image_url',           // رابط الصورة
         'video_url',           // رابط الفيديو
         'description',         // الوصف
+        'status',              // الحالة (pending/approved)
         'processed_by',        // معالج بواسطة
         'processed_at',        // تاريخ المعالجة
     ];
@@ -31,6 +32,16 @@ class PhotographyDepartment extends Model
         'updated_at' => 'datetime',
         'deleted_at' => 'datetime',
     ];
+
+    protected static function booted(): void
+    {
+        // Any content update should revert status to pending
+        static::updating(function (PhotographyDepartment $model) {
+            if ($model->isDirty(['image_url', 'video_url', 'description'])) {
+                $model->status = 'pending';
+            }
+        });
+    }
 
     /**
      * Get the contract that owns this photography department data.

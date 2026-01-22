@@ -53,6 +53,7 @@ class PhotographyDepartmentService
             // Track who processed this record
             $data['processed_by'] = Auth::id();
             $data['processed_at'] = now();
+            $data['status'] = 'pending';
 
             // Create photography department data
             $photographyDepartment = PhotographyDepartment::create($data);
@@ -88,6 +89,8 @@ class PhotographyDepartmentService
             // Track who processed this update
             $data['processed_by'] = Auth::id();
             $data['processed_at'] = now();
+            // Any update should revert status to pending
+            $data['status'] = 'pending';
 
             // Update only provided fields
             $contract->photographyDepartment->update($data);
@@ -113,6 +116,42 @@ class PhotographyDepartmentService
         $contract = $this->getAuthorizedContract($contractId);
 
         return $contract->photographyDepartment?->load('processedByUser');
+    }
+
+    /**
+     * Approve photography department (project_management manager only, admin allowed)
+     */
+    public function approveByContractId(int $contractId): PhotographyDepartment
+    {
+        DB::beginTransaction();
+        try {
+            $contract = $this->getAuthorizedContract($contractId);
+            $record = $contract->photographyDepartment;
+
+            if (!$record) {
+                throw new Exception('بيانات قسم التصوير غير موجودة لهذا العقد');
+            }
+
+            $user = Auth::user();
+            $isAdmin = $user && $user->type === 'admin';
+            $isPmManager = $user && $user->type === 'project_management' && ($user->is_manager ?? false);
+
+            if (!$isAdmin && !$isPmManager) {
+                throw new Exception('غير مصرح - هذه الصلاحية متاحة فقط لمدير إدارة المشاريع');
+            }
+
+            $record->update([
+                'status' => 'approved',
+                'processed_by' => Auth::id(),
+                'processed_at' => now(),
+            ]);
+
+            DB::commit();
+            return $record->fresh()->load('processedByUser');
+        } catch (Exception $e) {
+            DB::rollBack();
+            throw $e;
+        }
     }
 }
 

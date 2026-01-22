@@ -106,5 +106,29 @@ class PhotographyDepartmentController extends Controller
             ], $statusCode);
         }
     }
+
+    /**
+     * Approve photography department (project_management manager only)
+     */
+    public function approve(int $contractId): JsonResponse
+    {
+        try {
+            $photographyDepartment = $this->photographyDepartmentService->approveByContractId($contractId);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'تم اعتماد بيانات قسم التصوير بنجاح',
+                'data' => new PhotographyDepartmentResource($photographyDepartment),
+            ], 200);
+        } catch (Exception $e) {
+            $statusCode = str_contains($e->getMessage(), 'غير موجودة') ? 404 : 500;
+            $statusCode = str_contains($e->getMessage(), 'غير مصرح') ? 403 : $statusCode;
+
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage(),
+            ], $statusCode);
+        }
+    }
 }
 
