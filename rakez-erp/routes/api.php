@@ -163,7 +163,7 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::put('/update/{id}', [TeamController::class, 'update']);
             Route::delete('/delete/{id}', [TeamController::class, 'destroy']);
             Route::get('/contracts/{teamId}', [TeamController::class, 'contracts'])->whereNumber('teamId');
-            Route::get('/contracts/locations{teamId}', [TeamController::class, 'contractLocations'])->whereNumber('teamId');
+            Route::get('/contracts/locations/{teamId}', [TeamController::class, 'contractLocations'])->whereNumber('teamId');
 
         });
 
