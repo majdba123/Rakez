@@ -113,6 +113,38 @@ class ContractService
         ];
     }
 
+    /**
+     * High-performance: get only contract locations (lat/lng) for a team.
+     * Uses joins to avoid heavy eager-loading and large payloads.
+     */
+    public function getContractLocationsByTeam(int $teamId, ?string $status = null, int $perPage = 200): LengthAwarePaginator
+    {
+        try {
+            $query = Contract::query()
+                ->join('contract_team', 'contract_team.contract_id', '=', 'contracts.id')
+                ->leftJoin('contract_infos', 'contract_infos.contract_id', '=', 'contracts.id')
+                ->where('contract_team.team_id', $teamId)
+                ->select([
+                    'contracts.id as contract_id',
+                    'contracts.project_name',
+                    'contracts.status',
+                    'contract_infos.lat',
+                    'contract_infos.lng',
+                    'contracts.created_at',
+                ]);
+
+            if ($status) {
+                $query->where('contracts.status', $status);
+            }
+
+            $query->orderBy('contracts.created_at', 'desc');
+
+            return $query->paginate($perPage);
+        } catch (Exception $e) {
+            throw new Exception('Failed to fetch team contract locations: ' . $e->getMessage());
+        }
+    }
+
 
     public function storeContract(array $data): Contract
     {

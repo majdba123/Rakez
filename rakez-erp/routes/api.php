@@ -50,7 +50,7 @@ Route::post('/login', [LoginController::class, 'login']);
 
 
 
-    Route::middleware('auth:sanctum')->group(function () {
+Route::middleware('auth:sanctum')->group(function () {
     Route::get('/user', function (Request $request) {
         return $request->user();
     });
@@ -75,6 +75,36 @@ Route::post('/login', [LoginController::class, 'login']);
             Route::patch('/{id}/read', [NotificationController::class, 'userMarkAsRead']);
         });
     });
+
+
+    Route::prefix('admin')->middleware(['auth:sanctum', 'admin'])->group(function () {
+
+        Route::prefix('employees')->group(function () {
+            Route::post('/add_employee', [RegisterController::class, 'add_employee']);
+                Route::get('/list_employees', [RegisterController::class, 'list_employees']);
+                Route::get('/show_employee/{id}', [RegisterController::class, 'show_employee']);
+                Route::put('/update_employee/{id}', [RegisterController::class, 'update_employee']);
+                Route::delete('/delete_employee/{id}', [RegisterController::class, 'delete_employee']);
+                Route::patch('/restore/{id}', [RegisterController::class, 'restore_employee']);
+        });
+
+        Route::prefix('contracts')->group(function () {
+            Route::get('/adminIndex', [ContractController::class, 'adminIndex']);
+            Route::patch('adminUpdateStatus/{id}', [ContractController::class, 'adminUpdateStatus']);
+        });
+
+        Route::prefix('notifications')->group(function () {
+            // Get admin's own notifications
+            Route::get('/', [NotificationController::class, 'getAdminNotifications']);
+            Route::post('/send-to-user', [NotificationController::class, 'sendToUser']);
+            Route::post('/send-public', [NotificationController::class, 'sendPublic']);
+            // Get all notifications of specific user
+            Route::get('/user/{userId}', [NotificationController::class, 'getUserNotificationsByAdmin']);
+            // Get all public notifications
+            Route::get('/public', [NotificationController::class, 'getAllPublicNotifications']);
+        });
+});
+
 
 
     Route::middleware(['auth:sanctum', 'project_management'])->group(function () {
@@ -133,6 +163,7 @@ Route::post('/login', [LoginController::class, 'login']);
             Route::put('/update/{id}', [TeamController::class, 'update']);
             Route::delete('/delete/{id}', [TeamController::class, 'destroy']);
             Route::get('/contracts/{teamId}', [TeamController::class, 'contracts'])->whereNumber('teamId');
+            Route::get('/contracts/locations{teamId}', [TeamController::class, 'contractLocations'])->whereNumber('teamId');
 
         });
 
@@ -160,37 +191,6 @@ Route::post('/login', [LoginController::class, 'login']);
 
 
 
-    Route::prefix('admin')->middleware(['auth:sanctum', 'admin'])->group(function () {
-
-            Route::prefix('employees')->group(function () {
-                Route::post('/add_employee', [RegisterController::class, 'add_employee']);
-                    Route::get('/list_employees', [RegisterController::class, 'list_employees']);
-                    Route::get('/show_employee/{id}', [RegisterController::class, 'show_employee']);
-                    Route::put('/update_employee/{id}', [RegisterController::class, 'update_employee']);
-                    Route::delete('/delete_employee/{id}', [RegisterController::class, 'delete_employee']);
-                    Route::patch('/restore/{id}', [RegisterController::class, 'restore_employee']);
-            });
-
-            Route::prefix('contracts')->group(function () {
-                Route::get('/adminIndex', [ContractController::class, 'adminIndex']);
-                Route::patch('adminUpdateStatus/{id}', [ContractController::class, 'adminUpdateStatus']);
-            });
-
-            Route::prefix('notifications')->group(function () {
-                // Get admin's own notifications
-                Route::get('/', [NotificationController::class, 'getAdminNotifications']);
-                Route::post('/send-to-user', [NotificationController::class, 'sendToUser']);
-                Route::post('/send-public', [NotificationController::class, 'sendPublic']);
-                // Get all notifications of specific user
-                Route::get('/user/{userId}', [NotificationController::class, 'getUserNotificationsByAdmin']);
-                // Get all public notifications
-                Route::get('/public', [NotificationController::class, 'getAllPublicNotifications']);
-            });
-    });
-
-    // (moved /storage route outside auth:sanctum group)
-
-
     Route::prefix('hr')->middleware(['auth:sanctum', 'hr'])->group(function () {
         Route::post('/add_employee', [RegisterController::class, 'add_employee']);
         Route::get('/list_employees', [RegisterController::class, 'list_employees']);
@@ -205,6 +205,7 @@ Route::post('/login', [LoginController::class, 'login']);
             Route::get('/index/{contractId}', [ContractController::class, 'getTeamsForContract_HR']);
             Route::get('/contracts/{teamId}', [TeamController::class, 'contracts'])->whereNumber('teamId');
             Route::get('/getTeamsForContract/{contractId}', [ContractController::class, 'getTeamsForContract']);
+            Route::get('/contracts/locations/{teamId}', [TeamController::class, 'contractLocations'])->whereNumber('teamId');
 
 
         });

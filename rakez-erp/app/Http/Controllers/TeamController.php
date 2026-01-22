@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\Team\TeamContractsRequest;
+use App\Http\Requests\Team\TeamContractLocationsRequest;
 use App\Http\Requests\Team\StoreTeamRequest;
 use App\Http\Requests\Team\UpdateTeamRequest;
 use App\Http\Resources\Contract\ContractIndexResource;
@@ -99,12 +100,7 @@ class TeamController extends Controller
         }
     }
 
-    /**
-     * Get contracts for a team with pagination + meta and optional status filter.
-     * Query params: status, city, district, project_name, per_page
-     */
-    // Clean + secure:
-    // GET /api/teams/{teamId}/contracts?status=pending&per_page=15
+
     public function contracts(TeamContractsRequest $request, int $teamId): JsonResponse
     {
         try {
@@ -136,6 +132,51 @@ class TeamController extends Controller
                     'current_page' => $contracts->currentPage(),
                     'last_page' => $contracts->lastPage(),
                     'team_contracts' => $teamMeta,
+                ],
+            ], 200);
+        } catch (Exception $e) {
+            $statusCode = str_contains($e->getMessage(), 'No query results') ? 404 : 500;
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage(),
+            ], $statusCode);
+        }
+    }
+
+
+    public function contractLocations(TeamContractLocationsRequest $request, int $teamId): JsonResponse
+    {
+        try {
+            $team = Team::findOrFail($teamId);
+            $validated = $request->validated();
+
+            $perPage = (int) ($validated['per_page'] ?? 200);
+            $status = $validated['status'] ?? null;
+
+            $rows = $this->contractService->getContractLocationsByTeam($teamId, $status, $perPage);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'تم جلب مواقع عقود الفريق بنجاح',
+                'team' => [
+                    'id' => $team->id,
+                    'name' => $team->name,
+                ],
+                'data' => collect($rows->items())->map(function ($row) {
+                    return [
+                        'contract_id' => (int) $row->contract_id,
+                        'project_name' => $row->project_name,
+                        'status' => $row->status,
+                        'lat' => $row->lat !== null ? (float) $row->lat : null,
+                        'lng' => $row->lng !== null ? (float) $row->lng : null,
+                    ];
+                }),
+                'meta' => [
+                    'total' => $rows->total(),
+                    'count' => $rows->count(),
+                    'per_page' => $rows->perPage(),
+                    'current_page' => $rows->currentPage(),
+                    'last_page' => $rows->lastPage(),
                 ],
             ], 200);
         } catch (Exception $e) {
