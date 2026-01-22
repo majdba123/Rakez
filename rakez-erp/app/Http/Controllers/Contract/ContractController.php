@@ -385,10 +385,7 @@ class ContractController extends Controller
         }
     }
 
-    /**
-     * Update contract status by Project Management
-     * Can set status to 'ready' or 'rejected'
-     */
+
     public function projectManagementUpdateStatus(Request $request, int $id): JsonResponse
     {
         try {

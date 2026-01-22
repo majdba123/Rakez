@@ -17,6 +17,8 @@ class UpdateContractInfoRequest extends FormRequest
             'gregorian_date' => 'nullable|date',
             'hijri_date' => 'nullable|string|max:50',
             'contract_city' => 'nullable|string|max:255',
+            'lat' => 'nullable|numeric|between:-90,90',
+            'lng' => 'nullable|numeric|between:-180,180',
             'agreement_duration_days' => 'nullable|integer|min:0',
             'commission_percent' => 'nullable|numeric|min:0',
             'commission_from' => 'nullable|string|max:255',
