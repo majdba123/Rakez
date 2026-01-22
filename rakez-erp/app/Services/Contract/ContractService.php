@@ -63,6 +63,56 @@ class ContractService
         }
     }
 
+    /**
+     * Get contracts that belong to a specific team (via contract_team pivot),
+     * with filters and pagination.
+     */
+    public function getContractsByTeam(int $teamId, array $filters = [], int $perPage = 15): LengthAwarePaginator
+    {
+        try {
+            $query = Contract::with(['photographyDepartment', 'montageDepartment'])
+                ->whereHas('teams', function ($q) use ($teamId) {
+                    $q->where('teams.id', $teamId);
+                });
+
+            // Filter by status
+            if (isset($filters['status']) && !empty($filters['status'])) {
+                $query->byStatus($filters['status']);
+            }
+
+            $query->orderBy('created_at', 'desc');
+
+            return $query->paginate($perPage);
+        } catch (Exception $e) {
+            throw new Exception('Failed to fetch team contracts: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Meta stats for team contracts (based on the same filters, without pagination).
+     */
+    public function getTeamContractsMeta(int $teamId, array $filters = []): array
+    {
+        $base = Contract::query()
+            ->whereHas('teams', function ($q) use ($teamId) {
+                $q->where('teams.id', $teamId);
+            });
+
+        // Meta is always for ALL contracts of this team (no status filter)
+
+        $total = (clone $base)->count();
+        $byStatus = (clone $base)
+            ->select('status', DB::raw('count(*) as count'))
+            ->groupBy('status')
+            ->pluck('count', 'status')
+            ->toArray();
+
+        return [
+            'total_contracts' => $total,
+            'contracts_by_status' => $byStatus,
+        ];
+    }
+
 
     public function storeContract(array $data): Contract
     {

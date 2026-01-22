@@ -132,6 +132,8 @@ Route::post('/login', [LoginController::class, 'login']);
             Route::post('/store', [TeamController::class, 'store']);
             Route::put('/update/{id}', [TeamController::class, 'update']);
             Route::delete('/delete/{id}', [TeamController::class, 'destroy']);
+            Route::get('/contracts/{teamId}', [TeamController::class, 'contracts'])->whereNumber('teamId');
+
         });
 
 
@@ -201,6 +203,7 @@ Route::post('/login', [LoginController::class, 'login']);
                 // Contract Teams (project management)
         Route::prefix('teams')->group(function () {
             Route::get('/index/{contractId}', [ContractController::class, 'getTeamsForContract_HR']);
+            Route::get('/contracts/{teamId}', [TeamController::class, 'contracts'])->whereNumber('teamId');
 
         });
     });
@@ -210,6 +213,7 @@ Route::post('/login', [LoginController::class, 'login']);
     Route::prefix('teams')->middleware(['auth:sanctum'])->group(function () {
         Route::get('/index', [TeamController::class, 'index']);
         Route::get('/show/{id}', [TeamController::class, 'show']);
+        // Clean + secure: status is query param, teamId is route param
     });
 
 });
