@@ -34,6 +34,14 @@ class MontageDepartmentService
                 throw new Exception('يجب أن يكون العقد لديه معلومات عليه قبل إضافة بيانات قسم المونتاج');
             }
 
+            // Must have photography department approved before montage can be stored
+            if (!$contract->photographyDepartment) {
+                throw new Exception('يجب إضافة بيانات قسم التصوير أولاً قبل إضافة بيانات قسم المونتاج');
+            }
+            if (($contract->photographyDepartment->status ?? 'pending') !== 'approved') {
+                throw new Exception('يجب اعتماد (Approved) بيانات قسم التصوير قبل إضافة بيانات قسم المونتاج');
+            }
+
             $data['contract_id'] = $contractId;
             $data['processed_by'] = Auth::id();
             $data['processed_at'] = now();
