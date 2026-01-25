@@ -20,16 +20,11 @@ class DashboardService
     {
         return [
             'employees' => $this->getEmployeeStats(),
-            'salary' => [
-                'average_employee_payment' => $this->getAverageEmployeePayment(),
-            ],
             'units' => $this->getUnitsStats(),
         ];
     }
 
-    /**
-     * Employee statistics (cached)
-     */
+
     protected function getEmployeeStats(): array
     {
         return Cache::remember('hr_dashboard_employee_stats_v1', 30, function () {
@@ -41,36 +36,26 @@ class DashboardService
         });
     }
 
-    /**
-     * Average employee salary (payment).
-     * Uses active employees only, excludes NULL salary.
-     */
-    protected function getAverageEmployeePayment(): float
-    {
-        return (float) Cache::remember('hr_dashboard_avg_salary_v1', 30, function () {
-            return (float) User::whereNull('deleted_at')
-                ->whereNotNull('salary')
-                ->avg('salary');
-        });
-    }
 
-    /**
-     * Contract units stats (sold/total) + sold per employee.
-     */
+
     protected function getUnitsStats(): array
     {
         return Cache::remember('hr_dashboard_units_stats_v1', 30, function () {
-            $totalUnits = ContractUnit::whereNull('deleted_at')->count();
-            $soldUnits = ContractUnit::whereNull('deleted_at')->where('status', 'sold')->count();
+            $totalUnits = ContractUnit::count();
+            $soldUnits = ContractUnit::where('status', 'sold')->count();
 
-            // Use active employees for ratio (avoid divide-by-zero)
-            $activeEmployees = User::whereNull('deleted_at')->count();
-            $soldUnitsPerEmployee = $activeEmployees > 0 ? ($soldUnits / $activeEmployees) : 0.0;
+            // Ratios (avoid divide-by-zero)
+            $allEmployees = User::count();
+            $salesEmployees = User::where('type', 'sales')->count(); // "sell" in UI == "sales" in DB
+
+            $soldUnitsPerEmployeeAll = $allEmployees > 0 ? ($soldUnits / $allEmployees) : 0.0;
+            $soldUnitsPerSalesEmployee = $salesEmployees > 0 ? ($soldUnits / $salesEmployees) : 0.0;
 
             return [
                 'total_all_units' => $totalUnits,
                 'sold_units' => $soldUnits,
-                'sold_units_per_employee' => $soldUnitsPerEmployee,
+                'sold_units_per_employee_all' => $soldUnitsPerEmployeeAll,
+                'sold_units_per_sales_employee' => $soldUnitsPerSalesEmployee,
             ];
         });
     }
