@@ -25,6 +25,7 @@ use App\Http\Controllers\Contract\PhotographyDepartmentController;
 use App\Http\Controllers\Contract\MontageDepartmentController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\Dashboard\ProjectManagementDashboardController;
+use App\Http\Controllers\Dashboard\DashboardController;
 use App\Http\Controllers\TeamController;
 
 
@@ -197,6 +198,9 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/show_employee/{id}', [RegisterController::class, 'show_employee']);
         Route::put('/update_employee/{id}', [RegisterController::class, 'update_employee']);
         Route::delete('/delete_employee/{id}', [RegisterController::class, 'delete_employee']);
+
+        // HR Dashboard
+        Route::get('/dashboard', [DashboardController::class, 'hr']);
 
 
 
