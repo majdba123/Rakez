@@ -188,6 +188,28 @@ class TeamController extends Controller
     }
 
     /**
+     * HR: average sales by team (sold units / sales employees in team)
+     */
+    public function salesAverage(Request $request, int $teamId): JsonResponse
+    {
+        try {
+            $data = $this->teamService->getSalesAverageByTeam($teamId);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'تم جلب متوسط المبيعات للفريق بنجاح',
+                'data' => $data,
+            ], 200);
+        } catch (Exception $e) {
+            $statusCode = str_contains($e->getMessage(), 'No query results') ? 404 : 500;
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage(),
+            ], $statusCode);
+        }
+    }
+
+    /**
      * project_management only (via route middleware)
      */
     public function update(UpdateTeamRequest $request, int $id): JsonResponse

@@ -48,13 +48,12 @@ class DashboardService
             $allEmployees = User::count();
             $salesEmployees = User::where('type', 'sales')->count(); // "sell" in UI == "sales" in DB
 
-            $soldUnitsPerEmployeeAll = $allEmployees > 0 ? ($soldUnits / $allEmployees) : 0.0;
             $soldUnitsPerSalesEmployee = $salesEmployees > 0 ? ($soldUnits / $salesEmployees) : 0.0;
 
             return [
                 'total_all_units' => $totalUnits,
+                'sales_employees_count' => $salesEmployees,
                 'sold_units' => $soldUnits,
-                'sold_units_per_employee_all' => $soldUnitsPerEmployeeAll,
                 'sold_units_per_sales_employee' => $soldUnitsPerSalesEmployee,
             ];
         });

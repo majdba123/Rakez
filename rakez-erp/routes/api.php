@@ -210,6 +210,7 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::get('/contracts/{teamId}', [TeamController::class, 'contracts'])->whereNumber('teamId');
             Route::get('/getTeamsForContract/{contractId}', [ContractController::class, 'getTeamsForContract']);
             Route::get('/contracts/locations/{teamId}', [TeamController::class, 'contractLocations'])->whereNumber('teamId');
+            Route::get('/sales-average/{teamId}', [TeamController::class, 'salesAverage'])->whereNumber('teamId');
 
 
         });

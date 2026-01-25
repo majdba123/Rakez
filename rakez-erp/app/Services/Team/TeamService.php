@@ -120,6 +120,51 @@ class TeamService
             throw new Exception('Failed to delete team: ' . $e->getMessage());
         }
     }
+
+    /**
+     * HR analytics: "average sales by team"
+     * Defined as: sold_units_for_team / sales_employees_in_team
+     */
+    public function getSalesAverageByTeam(int $teamId): array
+    {
+        $team = Team::findOrFail($teamId);
+
+        // Employees in this team (type = sales)
+        $salesEmployeesCount = DB::table('users')
+            ->where('team_id', $teamId)
+            ->where('type', 'sales')
+            ->count();
+
+
+        // Units for this team (via contracts -> second_party_data -> contract_units)
+        $baseUnitsQuery = DB::table('contract_units')
+            ->join('second_party_data', 'second_party_data.id', '=', 'contract_units.second_party_data_id')
+            ->join('contracts', 'contracts.id', '=', 'second_party_data.contract_id')
+            ->join('contract_team', 'contract_team.contract_id', '=', 'contracts.id')
+            ->where('contract_team.team_id', $teamId);
+
+        $totalUnits = (clone $baseUnitsQuery)->count();
+        $soldUnits = (clone $baseUnitsQuery)->where('contract_units.status', 'sold')->count();
+
+        $soldUnitsPerSalesEmployee = $salesEmployeesCount > 0 ? ($soldUnits / $salesEmployeesCount) : 0.0;
+
+        return [
+            'team' => [
+                'id' => $team->id,
+                'name' => $team->name,
+            ],
+            'employees' => [
+                'sales_employees_count' => $salesEmployeesCount,
+            ],
+            'units' => [
+                'total_units' => $totalUnits,
+                'sold_units' => $soldUnits,
+            ],
+            'average_sales' => [
+                'sold_units_per_sales_employee' => $soldUnitsPerSalesEmployee,
+            ],
+        ];
+    }
 }
 
 
