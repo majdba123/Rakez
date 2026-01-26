@@ -25,6 +25,13 @@ use App\Http\Controllers\Contract\PhotographyDepartmentController;
 use App\Http\Controllers\Contract\MontageDepartmentController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\Dashboard\ProjectManagementDashboardController;
+use App\Http\Controllers\AI\AIAssistantController;
+use App\Http\Controllers\Sales\SalesDashboardController;
+use App\Http\Controllers\Sales\SalesProjectController;
+use App\Http\Controllers\Sales\SalesReservationController;
+use App\Http\Controllers\Sales\SalesTargetController;
+use App\Http\Controllers\Sales\SalesAttendanceController;
+use App\Http\Controllers\Sales\MarketingTaskController;
 
 
 use Illuminate\Support\Facades\File;  // أضف هذا السطر في الأعلى
@@ -57,6 +64,14 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::post('/logout', [LoginController::class, 'logout']);
 
+    Route::prefix('ai')->middleware('throttle:ai-assistant')->group(function () {
+        Route::post('/ask', [AIAssistantController::class, 'ask']);
+        Route::post('/chat', [AIAssistantController::class, 'chat']);
+        Route::get('/conversations', [AIAssistantController::class, 'conversations']);
+        Route::delete('/conversations/{sessionId}', [AIAssistantController::class, 'deleteSession']);
+        Route::get('/sections', [AIAssistantController::class, 'sections']);
+    });
+
     // Contract Routes - Protected routes (user contracts)
     Route::middleware('auth:sanctum')->group(function () {
         Route::get('/contracts/index', [ContractController::class, 'index']);
@@ -77,45 +92,45 @@ Route::middleware('auth:sanctum')->group(function () {
     });
 
 
-    Route::middleware(['auth:sanctum', 'project_management'])->group(function () {
+    Route::middleware(['auth:sanctum', 'role:project_management|admin'])->group(function () {
 
-        Route::get('/contracts/index', [ContractController::class, 'adminIndex']);
-        Route::patch('contracts/update-status/{id}', [ContractController::class, 'projectManagementUpdateStatus']);
+        Route::get('/contracts/admin-index', [ContractController::class, 'adminIndex'])->middleware('permission:contracts.view_all');
+        Route::patch('contracts/update-status/{id}', [ContractController::class, 'projectManagementUpdateStatus'])->middleware('permission:contracts.approve');
 
 
         Route::prefix('second-party-data')->group(function () {
-            Route::get('show/{id}', [SecondPartyDataController::class, 'show']);
-            Route::post('store/{id}', [SecondPartyDataController::class, 'store']);
-            Route::put('update/{id}', [SecondPartyDataController::class, 'update']);
+            Route::get('show/{id}', [SecondPartyDataController::class, 'show'])->middleware('permission:second_party.view');
+            Route::post('store/{id}', [SecondPartyDataController::class, 'store'])->middleware('permission:second_party.edit');
+            Route::put('update/{id}', [SecondPartyDataController::class, 'update'])->middleware('permission:second_party.edit');
 
-            Route::get('/second-parties', [ContractInfoController::class, 'getAllSecondParties']);
-            Route::get('/contracts-by-email', [ContractInfoController::class, 'getContractsBySecondPartyEmail']);
+            Route::get('/second-parties', [ContractInfoController::class, 'getAllSecondParties'])->middleware('permission:second_party.view');
+            Route::get('/contracts-by-email', [ContractInfoController::class, 'getContractsBySecondPartyEmail'])->middleware('permission:second_party.view');
         });
 
         Route::prefix('contracts/units')->group(function () {
-            Route::get('show/{contractId}', [ContractUnitController::class, 'indexByContract']);
-            Route::post('upload-csv/{contractId}', [ContractUnitController::class, 'uploadCsvByContract']);
-            Route::post('store/{contractId}', [ContractUnitController::class, 'store']);
-            Route::put('update/{unitId}', [ContractUnitController::class, 'update']);
-            Route::delete('delete/{unitId}', [ContractUnitController::class, 'destroy']);
+            Route::get('show/{contractId}', [ContractUnitController::class, 'indexByContract'])->middleware('permission:units.view');
+            Route::post('upload-csv/{contractId}', [ContractUnitController::class, 'uploadCsvByContract'])->middleware('permission:units.csv_upload');
+            Route::post('store/{contractId}', [ContractUnitController::class, 'store'])->middleware('permission:units.edit');
+            Route::put('update/{unitId}', [ContractUnitController::class, 'update'])->middleware('permission:units.edit');
+            Route::delete('delete/{unitId}', [ContractUnitController::class, 'destroy'])->middleware('permission:units.edit');
         });
 
         Route::prefix('boards-department')->group(function () {
-            Route::get('show/{contractId}', [BoardsDepartmentController::class, 'show']);
-            Route::post('store/{contractId}', [BoardsDepartmentController::class, 'store']);
-            Route::put('update/{contractId}', [BoardsDepartmentController::class, 'update']);
+            Route::get('show/{contractId}', [BoardsDepartmentController::class, 'show'])->middleware('permission:departments.boards.view');
+            Route::post('store/{contractId}', [BoardsDepartmentController::class, 'store'])->middleware('permission:departments.boards.edit');
+            Route::put('update/{contractId}', [BoardsDepartmentController::class, 'update'])->middleware('permission:departments.boards.edit');
         });
 
         Route::prefix('photography-department')->group(function () {
-            Route::get('show/{contractId}', [PhotographyDepartmentController::class, 'show']);
-            Route::post('store/{contractId}', [PhotographyDepartmentController::class, 'store']);
-            Route::put('update/{contractId}', [PhotographyDepartmentController::class, 'update']);
+            Route::get('show/{contractId}', [PhotographyDepartmentController::class, 'show'])->middleware('permission:departments.photography.view');
+            Route::post('store/{contractId}', [PhotographyDepartmentController::class, 'store'])->middleware('permission:departments.photography.edit');
+            Route::put('update/{contractId}', [PhotographyDepartmentController::class, 'update'])->middleware('permission:departments.photography.edit');
         });
 
         // لوحة تحكم إدارة المشاريع - Project Management Dashboard
         Route::prefix('project_management/dashboard')->group(function () {
-            Route::get('/', [ProjectManagementDashboardController::class, 'index']);
-            Route::get('/units-statistics', [ProjectManagementDashboardController::class, 'unitsStatistics']);
+            Route::get('/', [ProjectManagementDashboardController::class, 'index'])->middleware('permission:dashboard.analytics.view');
+            Route::get('/units-statistics', [ProjectManagementDashboardController::class, 'unitsStatistics'])->middleware('permission:dashboard.analytics.view');
         });
 
     });
@@ -123,39 +138,88 @@ Route::middleware('auth:sanctum')->group(function () {
     // ==========================================
     // EDITOR ROUTES - صلاحيات المحرر
     // ==========================================
-    Route::prefix('editor')->middleware(['auth:sanctum', 'editor'])->group(function () {
+    Route::prefix('editor')->middleware(['auth:sanctum', 'role:editor|admin'])->group(function () {
 
         // Contract routes for editor
         Route::prefix('contracts')->group(function () {
-            Route::get('/index', [ContractController::class, 'adminIndex']);
-            Route::get('/show/{id}', [ContractController::class, 'show']);
+            Route::get('/index', [ContractController::class, 'adminIndex'])->middleware('permission:contracts.view_all');
+            Route::get('/show/{id}', [ContractController::class, 'show'])->middleware('permission:contracts.view');
         });
 
         // Montage Department - قسم المونتاج
         Route::prefix('montage-department')->group(function () {
-            Route::get('show/{contractId}', [MontageDepartmentController::class, 'show']);
-            Route::post('store/{contractId}', [MontageDepartmentController::class, 'store']);
-            Route::put('update/{contractId}', [MontageDepartmentController::class, 'update']);
+            Route::get('show/{contractId}', [MontageDepartmentController::class, 'show'])->middleware('permission:departments.montage.view');
+            Route::post('store/{contractId}', [MontageDepartmentController::class, 'store'])->middleware('permission:departments.montage.edit');
+            Route::put('update/{contractId}', [MontageDepartmentController::class, 'update'])->middleware('permission:departments.montage.edit');
         });
 
     });
 
+    // ==========================================
+    // SALES DEPARTMENT ROUTES
+    // ==========================================
+    Route::prefix('sales')->middleware(['auth:sanctum', 'role:sales|sales_leader|admin'])->group(function () {
+        
+        // Dashboard
+        Route::get('dashboard', [SalesDashboardController::class, 'index'])->middleware('permission:sales.dashboard.view');
+        
+        // Projects
+        Route::get('projects', [SalesProjectController::class, 'index'])->middleware('permission:sales.projects.view');
+        Route::get('projects/{contractId}', [SalesProjectController::class, 'show'])->middleware('permission:sales.projects.view');
+        Route::get('projects/{contractId}/units', [SalesProjectController::class, 'units'])->middleware('permission:sales.projects.view');
+        
+        // Reservation context
+        Route::get('units/{unitId}/reservation-context', [SalesReservationController::class, 'context'])->middleware('permission:sales.reservations.create');
+        
+        // Reservations
+        Route::post('reservations', [SalesReservationController::class, 'store'])->middleware('permission:sales.reservations.create');
+        Route::get('reservations', [SalesReservationController::class, 'index'])->middleware('permission:sales.reservations.view');
+        Route::post('reservations/{id}/confirm', [SalesReservationController::class, 'confirm'])->middleware('permission:sales.reservations.confirm');
+        Route::post('reservations/{id}/cancel', [SalesReservationController::class, 'cancel'])->middleware('permission:sales.reservations.cancel');
+        Route::post('reservations/{id}/actions', [SalesReservationController::class, 'storeAction'])->middleware('permission:sales.reservations.view');
+        Route::get('reservations/{id}/voucher', [SalesReservationController::class, 'downloadVoucher'])->middleware('permission:sales.reservations.view');
+        
+        // My targets
+        Route::get('targets/my', [SalesTargetController::class, 'my'])->middleware('permission:sales.targets.view');
+        Route::patch('targets/{id}', [SalesTargetController::class, 'update'])->middleware('permission:sales.targets.update');
+        
+        // My attendance
+        Route::get('attendance/my', [SalesAttendanceController::class, 'my'])->middleware('permission:sales.attendance.view');
+        
+        // Team management (leader only)
+        Route::middleware('permission:sales.team.manage')->group(function () {
+            Route::get('team/projects', [SalesProjectController::class, 'teamProjects']);
+            Route::get('team/members', [SalesProjectController::class, 'teamMembers']);
+            Route::patch('projects/{contractId}/emergency-contacts', [SalesProjectController::class, 'updateEmergencyContacts']);
+            
+            Route::post('targets', [SalesTargetController::class, 'store']);
+            
+            Route::get('attendance/team', [SalesAttendanceController::class, 'team']);
+            Route::post('attendance/schedules', [SalesAttendanceController::class, 'store']);
+            
+            Route::get('tasks/projects', [MarketingTaskController::class, 'projects']);
+            Route::get('tasks/projects/{contractId}', [MarketingTaskController::class, 'showProject']);
+            Route::post('marketing-tasks', [MarketingTaskController::class, 'store']);
+            Route::patch('marketing-tasks/{id}', [MarketingTaskController::class, 'update']);
+        });
+    });
+
 
             // Create an admin prefix group with admin middleware
-        Route::prefix('admin')->middleware(['auth:sanctum', 'admin'])->group(function () {
+        Route::prefix('admin')->middleware(['auth:sanctum', 'role:admin'])->group(function () {
 
             Route::prefix('employees')->group(function () {
-                Route::post('/add_employee', [RegisterController::class, 'add_employee']);
-                    Route::get('/list_employees', [RegisterController::class, 'list_employees']);
-                    Route::get('/show_employee/{id}', [RegisterController::class, 'show_employee']);
-                    Route::put('/update_employee/{id}', [RegisterController::class, 'update_employee']);
-                    Route::delete('/delete_employee/{id}', [RegisterController::class, 'delete_employee']);
-                    Route::patch('/restore/{id}', [RegisterController::class, 'restore_employee']);
+                Route::post('/add_employee', [RegisterController::class, 'add_employee'])->middleware('permission:employees.manage');
+                    Route::get('/list_employees', [RegisterController::class, 'list_employees'])->middleware('permission:employees.manage');
+                    Route::get('/show_employee/{id}', [RegisterController::class, 'show_employee'])->middleware('permission:employees.manage');
+                    Route::put('/update_employee/{id}', [RegisterController::class, 'update_employee'])->middleware('permission:employees.manage');
+                    Route::delete('/delete_employee/{id}', [RegisterController::class, 'delete_employee'])->middleware('permission:employees.manage');
+                    Route::patch('/restore/{id}', [RegisterController::class, 'restore_employee'])->middleware('permission:employees.manage');
             });
 
             Route::prefix('contracts')->group(function () {
-                Route::get('/adminIndex', [ContractController::class, 'adminIndex']);
-                Route::patch('adminUpdateStatus/{id}', [ContractController::class, 'adminUpdateStatus']);
+                Route::get('/adminIndex', [ContractController::class, 'adminIndex'])->middleware('permission:contracts.view_all');
+                Route::patch('adminUpdateStatus/{id}', [ContractController::class, 'adminUpdateStatus'])->middleware('permission:contracts.approve');
             });
 
             // ==========================================
@@ -163,13 +227,20 @@ Route::middleware('auth:sanctum')->group(function () {
             // ==========================================
             Route::prefix('notifications')->group(function () {
                 // Get admin's own notifications
-                Route::get('/', [NotificationController::class, 'getAdminNotifications']);
-                Route::post('/send-to-user', [NotificationController::class, 'sendToUser']);
-                Route::post('/send-public', [NotificationController::class, 'sendPublic']);
+                Route::get('/', [NotificationController::class, 'getAdminNotifications'])->middleware('permission:notifications.view');
+                Route::post('/send-to-user', [NotificationController::class, 'sendToUser'])->middleware('permission:notifications.manage');
+                Route::post('/send-public', [NotificationController::class, 'sendPublic'])->middleware('permission:notifications.manage');
                 // Get all notifications of specific user
-                Route::get('/user/{userId}', [NotificationController::class, 'getUserNotificationsByAdmin']);
+                Route::get('/user/{userId}', [NotificationController::class, 'getUserNotificationsByAdmin'])->middleware('permission:notifications.manage');
                 // Get all public notifications
-                Route::get('/public', [NotificationController::class, 'getAllPublicNotifications']);
+                Route::get('/public', [NotificationController::class, 'getAllPublicNotifications'])->middleware('permission:notifications.manage');
+            });
+
+            // ==========================================
+            // ADMIN SALES API - Project Assignments
+            // ==========================================
+            Route::prefix('sales')->group(function () {
+                Route::post('project-assignments', [SalesProjectController::class, 'assignProject'])->middleware('permission:sales.team.manage');
             });
         });
 

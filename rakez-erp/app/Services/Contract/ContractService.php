@@ -18,7 +18,7 @@ class ContractService
     public function getContracts(array $filters = [], int $perPage = 15): LengthAwarePaginator
     {
         try {
-            $query = Contract::with(['photographyDepartment', 'montageDepartment']);
+            $query = Contract::with(['photographyDepartment', 'montageDepartment', 'user']);
 
             // Filter by status
             if (isset($filters['status']) && !empty($filters['status'])) {
@@ -193,7 +193,7 @@ class ContractService
     public function getContractsForAdmin(array $filters = [], int $perPage = 15): LengthAwarePaginator
     {
         try {
-            $query = Contract::with(['photographyDepartment', 'montageDepartment']);
+            $query = Contract::with(['photographyDepartment', 'montageDepartment', 'user']);
 
             // Filter by status
             if (isset($filters['status']) && !empty($filters['status'])) {

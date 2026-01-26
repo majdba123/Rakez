@@ -32,6 +32,8 @@ class Contract extends Model
         'developer_requiment',
         'status',
         'notes',
+        'emergency_contact_number',
+        'security_guard_number',
     ];
 
     /**
@@ -207,5 +209,45 @@ class Contract extends Model
     public function scopeMinimumValue($query, $amount)
     {
         return $query->where('total_units_value', '>=', $amount);
+    }
+
+    /**
+     * Get the sales reservations for this contract.
+     */
+    public function salesReservations()
+    {
+        return $this->hasMany(\App\Models\SalesReservation::class);
+    }
+
+    /**
+     * Get the sales targets for this contract.
+     */
+    public function salesTargets()
+    {
+        return $this->hasMany(\App\Models\SalesTarget::class);
+    }
+
+    /**
+     * Get the attendance schedules for this contract.
+     */
+    public function attendanceSchedules()
+    {
+        return $this->hasMany(\App\Models\SalesAttendanceSchedule::class);
+    }
+
+    /**
+     * Get the marketing tasks for this contract.
+     */
+    public function marketingTasks()
+    {
+        return $this->hasMany(\App\Models\MarketingTask::class);
+    }
+
+    /**
+     * Get the sales project assignments for this contract.
+     */
+    public function salesProjectAssignments()
+    {
+        return $this->hasMany(\App\Models\SalesProjectAssignment::class);
     }
 }

@@ -532,3 +532,184 @@ When you store/update a contract, the system automatically calculates:
 5. **Approve Contract** (admin only)
 6. **Store Contract Info** after approval
 7. **Get Contract** to verify all data is saved correctly
+
+---
+
+## AI Assistant Endpoints
+
+### 1. Ask (Stateless)
+
+**Method:** `POST`
+
+**URL:** `http://localhost/api/ai/ask`
+
+**Headers:**
+```
+Authorization: Bearer YOUR_AUTH_TOKEN
+Content-Type: application/json
+Accept: application/json
+```
+
+**Body (JSON):**
+```json
+{
+  "question": "How do I create a contract?",
+  "section": "contracts",
+  "context": {
+    "contract_id": 123
+  }
+}
+```
+
+**Response (Success - 200):**
+```json
+{
+  "success": true,
+  "data": {
+    "message": "To create a contract, go to Contracts and click New...",
+    "session_id": "uuid-here",
+    "conversation_id": 321,
+    "suggestions": [
+      "How do I create a contract?",
+      "Why is a contract pending?",
+      "Explain contract statuses."
+    ],
+    "error_code": null
+  }
+}
+```
+
+**Response (Budget Exceeded - 429):**
+```json
+{
+  "success": false,
+  "error_code": "ai_budget_exceeded",
+  "message": "Daily token budget exceeded (12000/12000). Please try again later."
+}
+```
+
+### 2. Chat (Session-based)
+
+**Method:** `POST`
+
+**URL:** `http://localhost/api/ai/chat`
+
+**Headers:**
+```
+Authorization: Bearer YOUR_AUTH_TOKEN
+Content-Type: application/json
+Accept: application/json
+```
+
+**Body (JSON):**
+```json
+{
+  "message": "What contracts do I have?",
+  "session_id": "uuid-here",
+  "section": "contracts"
+}
+```
+
+**Response (Success - 200):**
+```json
+{
+  "success": true,
+  "data": {
+    "message": "You have 5 contracts. The latest updates are...",
+    "session_id": "uuid-here",
+    "conversation_id": 322,
+    "suggestions": [
+      "How do I create a contract?",
+      "Why is a contract pending?",
+      "Explain contract statuses."
+    ]
+  }
+}
+```
+
+### 3. List Sessions
+
+**Method:** `GET`
+
+**URL:** `http://localhost/api/ai/conversations?per_page=20&section=contracts`
+
+**Headers:**
+```
+Authorization: Bearer YOUR_AUTH_TOKEN
+Accept: application/json
+```
+
+**Response (Success - 200):**
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "session_id": "uuid-here",
+      "section": "contracts",
+      "last_message": "You have 5 contracts...",
+      "last_message_at": "2026-01-22 12:30:00"
+    }
+  ],
+  "meta": {
+    "current_page": 1,
+    "last_page": 1,
+    "per_page": 20,
+    "total": 1
+  }
+}
+```
+
+### 4. Delete Session
+
+**Method:** `DELETE`
+
+**URL:** `http://localhost/api/ai/conversations/{sessionId}`
+
+**Headers:**
+```
+Authorization: Bearer YOUR_AUTH_TOKEN
+Accept: application/json
+```
+
+**Response (Success - 200):**
+```json
+{
+  "success": true,
+  "data": {
+    "deleted": 12
+  }
+}
+```
+
+### 5. List Sections
+
+**Method:** `GET`
+
+**URL:** `http://localhost/api/ai/sections`
+
+**Headers:**
+```
+Authorization: Bearer YOUR_AUTH_TOKEN
+Accept: application/json
+```
+
+**Response (Success - 200):**
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "key": "contracts",
+      "label": "Contracts",
+      "required_capabilities": ["contracts.view"],
+      "allowed_context_params": ["contract_id"],
+      "suggestions": [
+        "How do I create a contract?",
+        "Why is a contract pending?",
+        "Explain contract statuses."
+      ]
+    }
+  ]
+}
+```

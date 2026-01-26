@@ -1,0 +1,514 @@
+{
+	"info": {
+		"_postman_id": "ai-assistant-rakez-erp",
+		"name": "Rakez ERP - AI Assistant API",
+		"description": "AI-powered assistant for natural language queries about contracts, units, departments, and general system operations. Includes budget management, session-based conversations, and context-aware responses.",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"auth": {
+		"type": "bearer",
+		"bearer": [
+			{
+				"key": "token",
+				"value": "{{auth_token}}",
+				"type": "string"
+			}
+		]
+	},
+	"variable": [
+		{
+			"key": "base_url",
+			"value": "http://localhost/api",
+			"type": "string"
+		},
+		{
+			"key": "auth_token",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "session_id",
+			"value": "",
+			"type": "string"
+		}
+	],
+	"item": [
+		{
+			"name": "AI Assistant",
+			"item": [
+				{
+					"name": "Ask Question (Stateless)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 200) {",
+									"    const response = pm.response.json();",
+									"    if (response.data.session_id) {",
+									"        pm.collectionVariables.set('session_id', response.data.session_id);",
+									"    }",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"question\": \"How do I create a new contract?\",\n    \"section\": \"contracts\",\n    \"context\": {}\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/ai/ask",
+							"host": ["{{base_url}}"],
+							"path": ["ai", "ask"]
+						},
+						"description": "Ask a one-time question without maintaining conversation history. Returns immediate answer with AI-generated response. Creates a new session_id that can be used for follow-up questions via the chat endpoint."
+					},
+					"response": [
+						{
+							"name": "Success Response",
+							"originalRequest": {
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"question\": \"How do I create a new contract?\",\n    \"section\": \"contracts\"\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{base_url}}/ai/ask",
+									"host": ["{{base_url}}"],
+									"path": ["ai", "ask"]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [],
+							"cookie": [],
+							"body": "{\n    \"success\": true,\n    \"data\": {\n        \"message\": \"To create a new contract in Rakez ERP:\\n\\n1. Navigate to the Contracts section\\n2. Click on 'Create New Contract'\\n3. Fill in required fields:\\n   - Project Name\\n   - Developer Name and Contact\\n   - Location (City and District)\\n   - Units details\\n4. Submit for approval\\n\\nThe contract will be in 'pending' status until approved by an admin.\",\n        \"session_id\": \"550e8400-e29b-41d4-a716-446655440000\",\n        \"conversation_id\": 1523,\n        \"suggestions\": [\n            \"How do I create a new contract?\",\n            \"Why is my contract pending?\",\n            \"What are contract statuses?\",\n            \"How do I approve a contract?\"\n        ],\n        \"error_code\": null\n    }\n}"
+						},
+						{
+							"name": "Budget Exceeded",
+							"originalRequest": {
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"question\": \"Explain all features\",\n    \"section\": \"general\"\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{base_url}}/ai/ask",
+									"host": ["{{base_url}}"],
+									"path": ["ai", "ask"]
+								}
+							},
+							"status": "Too Many Requests",
+							"code": 429,
+							"_postman_previewlanguage": "json",
+							"header": [],
+							"cookie": [],
+							"body": "{\n    \"success\": false,\n    \"error_code\": \"ai_budget_exceeded\",\n    \"message\": \"Daily token budget exceeded (12000/12000). Please try again later.\"\n}"
+						}
+					]
+				},
+				{
+					"name": "Chat (Session-based)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"message\": \"What happens after I submit it?\",\n    \"session_id\": \"{{session_id}}\",\n    \"section\": \"contracts\",\n    \"context\": {}\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/ai/chat",
+							"host": ["{{base_url}}"],
+							"path": ["ai", "chat"]
+						},
+						"description": "Continue a conversation using session_id from previous ask/chat. Maintains context of conversation history for more natural follow-up questions."
+					},
+					"response": [
+						{
+							"name": "Success Response",
+							"originalRequest": {
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"message\": \"What happens after I submit it?\",\n    \"session_id\": \"550e8400-e29b-41d4-a716-446655440000\",\n    \"section\": \"contracts\"\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{base_url}}/ai/chat",
+									"host": ["{{base_url}}"],
+									"path": ["ai", "chat"]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [],
+							"cookie": [],
+							"body": "{\n    \"success\": true,\n    \"data\": {\n        \"message\": \"After you submit a new contract:\\n\\n1. The contract status will be set to 'pending'\\n2. An admin user will receive a notification\\n3. Admin reviews the contract details\\n4. Admin can either:\\n   - Approve it (status becomes 'approved')\\n   - Reject it with comments\\n5. Once approved, you can proceed to add:\\n   - Second party data\\n   - Units information\\n   - Department data (boards, photography, montage)\\n\\nYou'll receive notifications about the approval status.\",\n        \"session_id\": \"550e8400-e29b-41d4-a716-446655440000\",\n        \"conversation_id\": 1523,\n        \"suggestions\": [\n            \"How do I add units to a contract?\",\n            \"What is second party data?\",\n            \"Can I edit a pending contract?\"\n        ],\n        \"error_code\": null\n    }\n}"
+						}
+					]
+				},
+				{
+					"name": "List Conversations",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/ai/conversations?per_page=20",
+							"host": ["{{base_url}}"],
+							"path": ["ai", "conversations"],
+							"query": [
+								{
+									"key": "per_page",
+									"value": "20"
+								},
+								{
+									"key": "section",
+									"value": "",
+									"description": "Filter by section (contracts/units/departments/general)",
+									"disabled": true
+								}
+							]
+						},
+						"description": "List all conversation sessions for the authenticated user with pagination. Shows conversation history including first question, last message, and message count."
+					},
+					"response": [
+						{
+							"name": "Success Response",
+							"originalRequest": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{base_url}}/ai/conversations",
+									"host": ["{{base_url}}"],
+									"path": ["ai", "conversations"]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [],
+							"cookie": [],
+							"body": "{\n    \"success\": true,\n    \"data\": [\n        {\n            \"session_id\": \"550e8400-e29b-41d4-a716-446655440000\",\n            \"section\": \"contracts\",\n            \"first_question\": \"How do I create a new contract?\",\n            \"last_message\": \"What happens after I submit it?\",\n            \"messages_count\": 3,\n            \"created_at\": \"2026-01-26T10:00:00Z\",\n            \"updated_at\": \"2026-01-26T10:05:00Z\"\n        },\n        {\n            \"session_id\": \"660f9511-f3ac-52e5-b827-557766551111\",\n            \"section\": \"units\",\n            \"first_question\": \"How to upload units via CSV?\",\n            \"last_message\": \"What CSV format is required?\",\n            \"messages_count\": 2,\n            \"created_at\": \"2026-01-25T14:30:00Z\",\n            \"updated_at\": \"2026-01-25T14:32:00Z\"\n        }\n    ],\n    \"meta\": {\n        \"current_page\": 1,\n        \"last_page\": 3,\n        \"per_page\": 20,\n        \"total\": 45\n    }\n}"
+						}
+					]
+				},
+				{
+					"name": "Delete Conversation",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/ai/conversations/{{session_id}}",
+							"host": ["{{base_url}}"],
+							"path": ["ai", "conversations", "{{session_id}}"]
+						},
+						"description": "Delete a conversation session and all its messages. Cannot be undone."
+					},
+					"response": [
+						{
+							"name": "Success Response",
+							"originalRequest": {
+								"method": "DELETE",
+								"header": [],
+								"url": {
+									"raw": "{{base_url}}/ai/conversations/550e8400-e29b-41d4-a716-446655440000",
+									"host": ["{{base_url}}"],
+									"path": ["ai", "conversations", "550e8400-e29b-41d4-a716-446655440000"]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [],
+							"cookie": [],
+							"body": "{\n    \"success\": true,\n    \"data\": {\n        \"deleted\": true\n    }\n}"
+						}
+					]
+				},
+				{
+					"name": "Get Available Sections",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/ai/sections",
+							"host": ["{{base_url}}"],
+							"path": ["ai", "sections"]
+						},
+						"description": "Get list of available AI assistant sections based on user permissions. Only sections the user has access to will be returned."
+					},
+					"response": [
+						{
+							"name": "Success Response",
+							"originalRequest": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{base_url}}/ai/sections",
+									"host": ["{{base_url}}"],
+									"path": ["ai", "sections"]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [],
+							"cookie": [],
+							"body": "{\n    \"success\": true,\n    \"data\": [\n        {\n            \"key\": \"contracts\",\n            \"title\": \"Contracts\",\n            \"description\": \"Ask about contract creation, approval, and management\",\n            \"icon\": \"document-text\"\n        },\n        {\n            \"key\": \"units\",\n            \"title\": \"Units\",\n            \"description\": \"Questions about unit management, pricing, and CSV uploads\",\n            \"icon\": \"home\"\n        },\n        {\n            \"key\": \"departments\",\n            \"title\": \"Departments\",\n            \"description\": \"Information about Boards, Photography, and Montage departments\",\n            \"icon\": \"briefcase\"\n        },\n        {\n            \"key\": \"general\",\n            \"title\": \"General\",\n            \"description\": \"General system questions and workflows\",\n            \"icon\": \"information-circle\"\n        }\n    ]\n}"
+						}
+					]
+				}
+			],
+			"description": "AI Assistant endpoints for intelligent question answering"
+		},
+		{
+			"name": "Examples by Section",
+			"item": [
+				{
+					"name": "Contracts Section",
+					"item": [
+						{
+							"name": "Ask about contract creation",
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									},
+									{
+										"key": "Accept",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"question\": \"What information do I need to create a contract?\",\n    \"section\": \"contracts\"\n}"
+								},
+								"url": {
+									"raw": "{{base_url}}/ai/ask",
+									"host": ["{{base_url}}"],
+									"path": ["ai", "ask"]
+								},
+								"description": "Example question about contract creation requirements"
+							},
+							"response": []
+						},
+						{
+							"name": "Ask with contract context",
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									},
+									{
+										"key": "Accept",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"question\": \"What is the status of this contract?\",\n    \"section\": \"contracts\",\n    \"context\": {\n        \"contract_id\": 1\n    }\n}"
+								},
+								"url": {
+									"raw": "{{base_url}}/ai/ask",
+									"host": ["{{base_url}}"],
+									"path": ["ai", "ask"]
+								},
+								"description": "Example with context - AI will load contract data and provide specific answer"
+							},
+							"response": []
+						}
+					],
+					"description": "Example queries for Contracts section"
+				},
+				{
+					"name": "Units Section",
+					"item": [
+						{
+							"name": "Ask about CSV upload",
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									},
+									{
+										"key": "Accept",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"question\": \"How do I upload units using a CSV file?\",\n    \"section\": \"units\"\n}"
+								},
+								"url": {
+									"raw": "{{base_url}}/ai/ask",
+									"host": ["{{base_url}}"],
+									"path": ["ai", "ask"]
+								},
+								"description": "Example question about CSV unit upload process"
+							},
+							"response": []
+						},
+						{
+							"name": "Ask about unit pricing",
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									},
+									{
+										"key": "Accept",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"question\": \"How are unit prices calculated?\",\n    \"section\": \"units\"\n}"
+								},
+								"url": {
+									"raw": "{{base_url}}/ai/ask",
+									"host": ["{{base_url}}"],
+									"path": ["ai", "ask"]
+								},
+								"description": "Example about unit pricing logic"
+							},
+							"response": []
+						}
+					],
+					"description": "Example queries for Units section"
+				},
+				{
+					"name": "Departments Section",
+					"item": [
+						{
+							"name": "Ask about montage department",
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									},
+									{
+										"key": "Accept",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"question\": \"What is the montage department responsible for?\",\n    \"section\": \"departments\"\n}"
+								},
+								"url": {
+									"raw": "{{base_url}}/ai/ask",
+									"host": ["{{base_url}}"],
+									"path": ["ai", "ask"]
+								},
+								"description": "Example question about department responsibilities"
+							},
+							"response": []
+						}
+					],
+					"description": "Example queries for Departments section"
+				},
+				{
+					"name": "General Section",
+					"item": [
+						{
+							"name": "Ask about notifications",
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									},
+									{
+										"key": "Accept",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"question\": \"How do notifications work in the system?\",\n    \"section\": \"general\"\n}"
+								},
+								"url": {
+									"raw": "{{base_url}}/ai/ask",
+									"host": ["{{base_url}}"],
+									"path": ["ai", "ask"]
+								},
+								"description": "General system question about notifications"
+							},
+							"response": []
+						}
+					],
+					"description": "Example queries for General section"
+				}
+			],
+			"description": "Example questions for each section with various context scenarios"
+		}
+	]
+}

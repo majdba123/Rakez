@@ -27,13 +27,28 @@ class ContractController extends Controller
     public function index(Request $request): JsonResponse
     {
         try {
+            $user = auth()->user();
             $filters = [
                 'status' => $request->input('status'),
-                'user_id' => auth()->id(),
                 'city' => $request->input('city'),
                 'district' => $request->input('district'),
                 'project_name' => $request->input('project_name'),
             ];
+
+            // Apply access control filters
+            if ($user->can('contracts.view_all')) {
+                // Can view all, no user filter enforced
+            } elseif ($user->isManager() && $user->team) {
+                // Manager sees team contracts
+                // Note: Service needs to support team filtering. 
+                // For now, we'll filter by the manager's ID to avoid breaking, 
+                // but ideally this should pass the team or list of user IDs.
+                // Assuming for now we default to own contracts if service doesn't support team yet.
+                $filters['user_id'] = $user->id; 
+            } else {
+                // Regular user sees only their own
+                $filters['user_id'] = $user->id;
+            }
 
             $perPage = $request->input('per_page', 15);
 
@@ -61,6 +76,8 @@ class ContractController extends Controller
 
     public function store(StoreContractRequest $request): JsonResponse
     {
+        $this->authorize('create', Contract::class);
+
         try {
             $validated = $request->validated();
 
@@ -83,7 +100,11 @@ class ContractController extends Controller
     public function show(int $id): JsonResponse
     {
         try {
-            $contract = $this->contractService->getContractById($id, auth()->id());
+            // Fetch contract without service-level auth check
+            $contract = $this->contractService->getContractById($id, null);
+            
+            // Enforce Policy
+            $this->authorize('view', $contract);
 
             return response()->json([
                 'success' => true,
@@ -91,7 +112,11 @@ class ContractController extends Controller
                 'data' => new ContractResource($contract)
             ], 200);
         } catch (Exception $e) {
-            $statusCode = str_contains($e->getMessage(), 'Unauthorized') ? 403 : 404;
+            $statusCode = 404;
+            if ($e instanceof \Illuminate\Auth\Access\AuthorizationException) {
+                $statusCode = 403;
+            }
+            
             return response()->json([
                 'success' => false,
                 'message' => $e->getMessage(),
@@ -104,9 +129,15 @@ class ContractController extends Controller
     public function update(UpdateContractRequest $request, int $id): JsonResponse
     {
         try {
+            // Fetch contract to authorize
+            $contract = $this->contractService->getContractById($id, null);
+            
+            $this->authorize('update', $contract);
+
             $validated = $request->validated();
 
-            $contract = $this->contractService->updateContract($id, $validated, auth()->id());
+            // Pass null for userId to skip service auth check since we already authorized
+            $contract = $this->contractService->updateContract($id, $validated, null);
 
             return response()->json([
                 'success' => true,
@@ -114,16 +145,17 @@ class ContractController extends Controller
                 'data' => new ContractResource($contract->load('user', 'info'))
             ], 200);
         } catch (Exception $e) {
-            if (str_contains($e->getMessage(), 'Unauthorized')) {
-                return response()->json([
-                    'success' => false,
-                    'message' => $e->getMessage(),
-                ], 403);
+            $statusCode = 422;
+            if ($e instanceof \Illuminate\Auth\Access\AuthorizationException) {
+                $statusCode = 403;
+            } elseif ($e->getMessage() === 'Contract not found') {
+                $statusCode = 404;
             }
+
             return response()->json([
                 'success' => false,
                 'message' => $e->getMessage(),
-            ], $e->getMessage() === 'Contract not found' ? 404 : 422);
+            ], $statusCode);
         }
     }
 
@@ -131,23 +163,28 @@ class ContractController extends Controller
     public function destroy(int $id): JsonResponse
     {
         try {
-            $this->contractService->deleteContract($id, auth()->id());
+            $contract = $this->contractService->getContractById($id, null);
+            
+            $this->authorize('delete', $contract);
+
+            $this->contractService->deleteContract($id, null);
 
             return response()->json([
                 'success' => true,
                 'message' => 'تم حذف العقد بنجاح'
             ], 200);
         } catch (Exception $e) {
-            if (str_contains($e->getMessage(), 'Unauthorized')) {
-                return response()->json([
-                    'success' => false,
-                    'message' => $e->getMessage(),
-                ], 403);
+            $statusCode = 422;
+            if ($e instanceof \Illuminate\Auth\Access\AuthorizationException) {
+                $statusCode = 403;
+            } elseif ($e->getMessage() === 'Contract not found') {
+                $statusCode = 404;
             }
+
             return response()->json([
                 'success' => false,
                 'message' => $e->getMessage(),
-            ], $e->getMessage() === 'Contract not found' ? 404 : 422);
+            ], $statusCode);
         }
     }
 

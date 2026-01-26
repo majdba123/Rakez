@@ -75,6 +75,9 @@ class register
 
             $user = User::create($userData);
 
+            // Sync Spatie roles
+            $user->syncRolesFromType();
+
             // Save to admin_notifications table
             AdminNotification::createForNewEmployee($user);
 
@@ -249,6 +252,11 @@ class register
             }
 
             $user->update($updateData);
+
+            // Sync Spatie roles if type or is_manager changed
+            if (isset($data['type']) || isset($data['is_manager'])) {
+                $user->syncRolesFromType();
+            }
 
             DB::commit();
             return $user;
