@@ -50,17 +50,8 @@ use Illuminate\Support\Facades\File;  // أضف هذا السطر في الأع�
 // Broadcasting authentication route for API tokens
 Broadcast::routes(['middleware' => ['auth:sanctum']]);
 
-/*
-|--------------------------------------------------------------------------
-| API Routes
-|--------------------------------------------------------------------------
-|
-| Here is where you can register API routes for your application. These
-| routes are loaded by the RouteServiceProvider and all of them will
-| be assigned to the "api" middleware group. Make something great!
-|
-*/
-// Public routes (no auth required)
+
+
 Route::post('/login', [LoginController::class, 'login']);
 
 
