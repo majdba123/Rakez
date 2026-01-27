@@ -8,6 +8,9 @@ use App\Services\AI\ContextBuilder;
 use App\Services\AI\ContextValidator;
 use App\Services\AI\SectionRegistry;
 use App\Services\Dashboard\ProjectManagementDashboardService;
+use App\Services\Marketing\MarketingDashboardService;
+use App\Services\Marketing\MarketingProjectService;
+use App\Services\Marketing\MarketingTaskService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -22,6 +25,9 @@ class ContextBuilderTest extends TestCase
         parent::setUp();
         $this->builder = new ContextBuilder(
             new ProjectManagementDashboardService(),
+            new MarketingDashboardService(),
+            new MarketingProjectService(),
+            new MarketingTaskService(),
             new ContextValidator(new SectionRegistry()),
             new SectionRegistry()
         );

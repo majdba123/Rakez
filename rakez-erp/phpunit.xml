@@ -31,5 +31,8 @@
         <env name="PULSE_ENABLED" value="false"/>
         <env name="TELESCOPE_ENABLED" value="false"/>
         <env name="NIGHTWATCH_ENABLED" value="false"/>
+        <!-- AI Assistant Configuration -->
+        <env name="OPENAI_API_KEY" value="test-fake-key-not-used"/>
+        <env name="AI_ENABLED" value="true"/>
     </php>
 </phpunit>

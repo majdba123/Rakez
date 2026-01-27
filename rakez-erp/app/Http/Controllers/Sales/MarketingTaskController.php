@@ -43,7 +43,7 @@ class MarketingTaskController extends Controller
     public function showProject(int $contractId): JsonResponse
     {
         try {
-            $project = Contract::with(['montageDepartment'])->findOrFail($contractId);
+            $project = Contract::with(['montageDepartment', 'photographyDepartment', 'boardsDepartment'])->findOrFail($contractId);
 
             $data = [
                 'contract_id' => $project->id,
@@ -53,6 +53,15 @@ class MarketingTaskController extends Controller
                     'image_url' => $project->montageDepartment->image_url ?? null,
                     'video_url' => $project->montageDepartment->video_url ?? null,
                     'description' => $project->montageDepartment->description ?? null,
+                ],
+                'photography' => [
+                    'image_url' => $project->photographyDepartment->image_url ?? null,
+                    'video_url' => $project->photographyDepartment->video_url ?? null,
+                    'description' => $project->photographyDepartment->description ?? null,
+                ],
+                'boards' => [
+                    'image_url' => $project->boardsDepartment->image_url ?? null,
+                    'description' => $project->boardsDepartment->description ?? null,
                 ],
             ];
 

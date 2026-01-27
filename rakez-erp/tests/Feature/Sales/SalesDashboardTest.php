@@ -84,8 +84,14 @@ class SalesDashboardTest extends TestCase
                     'confirmed_reservations',
                     'negotiation_reservations',
                     'percent_confirmed',
+                    'total_reservations',
+                    'negotiation_ratio',
                 ],
             ]);
+            
+        $data = $response->json('data');
+        $this->assertEquals(1, $data['total_reservations']);
+        $this->assertEquals(0, $data['negotiation_ratio']);
     }
 
     public function test_dashboard_scope_me_filters_by_employee()

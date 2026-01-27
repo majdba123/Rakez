@@ -11,6 +11,7 @@ class MarketingTask extends Model
 
     protected $fillable = [
         'contract_id',
+        'marketing_project_id',
         'task_name',
         'marketer_id',
         'participating_marketers_count',
@@ -18,14 +19,24 @@ class MarketingTask extends Model
         'design_number',
         'design_description',
         'status',
+        'due_date',
         'created_by',
     ];
 
     protected $casts = [
         'participating_marketers_count' => 'integer',
+        'due_date' => 'date',
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
     ];
+
+    /**
+     * Get the marketing project for this task.
+     */
+    public function marketingProject()
+    {
+        return $this->belongsTo(MarketingProject::class);
+    }
 
     /**
      * Get the contract (project) for this task.

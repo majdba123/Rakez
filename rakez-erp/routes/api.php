@@ -34,6 +34,17 @@ use App\Http\Controllers\Sales\SalesAttendanceController;
 use App\Http\Controllers\Sales\MarketingTaskController;
 
 
+use App\Http\Controllers\Marketing\MarketingDashboardController;
+use App\Http\Controllers\Marketing\MarketingProjectController;
+use App\Http\Controllers\Marketing\DeveloperMarketingPlanController;
+use App\Http\Controllers\Marketing\EmployeeMarketingPlanController;
+use App\Http\Controllers\Marketing\ExpectedSalesController;
+use App\Http\Controllers\Marketing\MarketingTaskController as MarketingModuleTaskController;
+use App\Http\Controllers\Marketing\TeamManagementController;
+use App\Http\Controllers\Marketing\LeadController;
+use App\Http\Controllers\Marketing\MarketingReportController;
+use App\Http\Controllers\Marketing\MarketingSettingsController;
+
 use Illuminate\Support\Facades\File;  // أضف هذا السطر في الأعلى
 
 // Broadcasting authentication route for API tokens
@@ -244,8 +255,60 @@ Route::middleware('auth:sanctum')->group(function () {
             });
         });
 
-
-
+    // ==========================================
+    // MARKETING DEPARTMENT ROUTES
+    // ==========================================
+    Route::prefix('marketing')->middleware(['auth:sanctum', 'marketing'])->group(function () {
+        
+        // Dashboard
+        Route::get('dashboard', [MarketingDashboardController::class, 'index']);
+        
+        // Projects
+        Route::get('projects', [MarketingProjectController::class, 'index']);
+        Route::get('projects/{contractId}', [MarketingProjectController::class, 'show']);
+        Route::post('projects/calculate-budget', [MarketingProjectController::class, 'calculateBudget']);
+        
+        // Developer Plans
+        Route::get('developer-plans/{contractId}', [DeveloperMarketingPlanController::class, 'show']);
+        Route::post('developer-plans', [DeveloperMarketingPlanController::class, 'store']);
+        
+        // Employee Plans
+        Route::get('employee-plans/project/{projectId}', [EmployeeMarketingPlanController::class, 'index']);
+        Route::get('employee-plans/{planId}', [EmployeeMarketingPlanController::class, 'show']);
+        Route::post('employee-plans', [EmployeeMarketingPlanController::class, 'store']);
+        Route::post('employee-plans/auto-generate', [EmployeeMarketingPlanController::class, 'autoGenerate']);
+        
+        // Expected Sales
+        Route::get('expected-sales/{projectId}', [ExpectedSalesController::class, 'calculate']);
+        Route::put('settings/conversion-rate', [ExpectedSalesController::class, 'updateConversionRate']);
+        
+        // Tasks
+        Route::get('tasks', [MarketingModuleTaskController::class, 'index']);
+        Route::post('tasks', [MarketingModuleTaskController::class, 'store']);
+        Route::put('tasks/{taskId}', [MarketingModuleTaskController::class, 'update']);
+        Route::patch('tasks/{taskId}/status', [MarketingModuleTaskController::class, 'updateStatus']);
+        
+        // Team Management
+        Route::post('projects/{projectId}/team', [TeamManagementController::class, 'assignTeam']);
+        Route::get('projects/{projectId}/team', [TeamManagementController::class, 'getTeam']);
+        Route::get('projects/{projectId}/recommend-employee', [TeamManagementController::class, 'recommendEmployee']);
+        
+        // Leads
+        Route::get('leads', [LeadController::class, 'index']);
+        Route::post('leads', [LeadController::class, 'store']);
+        Route::put('leads/{leadId}', [LeadController::class, 'update']);
+        
+        // Reports
+        Route::get('reports/project/{projectId}', [MarketingReportController::class, 'projectPerformance']);
+        Route::get('reports/budget', [MarketingReportController::class, 'budgetReport']);
+        Route::get('reports/expected-bookings', [MarketingReportController::class, 'expectedBookingsReport']);
+        Route::get('reports/employee/{userId}', [MarketingReportController::class, 'employeePerformance']);
+        Route::get('reports/export/{planId}', [MarketingReportController::class, 'exportPlan']);
+        
+        // Settings
+        Route::get('settings', [MarketingSettingsController::class, 'index']);
+        Route::put('settings/{key}', [MarketingSettingsController::class, 'update']);
+    });
 
     Route::get('/storage/{path}', function ($path) {
         $filePath = storage_path('app/public/' . $path);

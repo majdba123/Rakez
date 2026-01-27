@@ -4,6 +4,7 @@ namespace App\Services\AI;
 
 use App\Services\AI\Exceptions\AiAssistantDisabledException;
 use App\Services\AI\Exceptions\AiBudgetExceededException;
+use App\Services\AI\Exceptions\AiUnauthorizedSectionException;
 use App\Models\AIConversation;
 use App\Models\User;
 use Carbon\Carbon;
@@ -27,8 +28,15 @@ class AIAssistantService
     public function ask(string $question, User $user, ?string $sectionKey = null, array $context = []): array
     {
         $this->ensureEnabled();
-        $this->ensureWithinBudget($user);
+        
         $capabilities = $this->capabilityResolver->resolve($user);
+
+        if ($sectionKey && ! $this->isSectionAvailable($sectionKey, $capabilities)) {
+            throw new AiUnauthorizedSectionException($sectionKey);
+        }
+
+        $this->ensureWithinBudget($user);
+
         $section = $this->sectionRegistry->find($sectionKey);
         $context = $this->filterContext($sectionKey, $context);
         $contextSummary = $this->contextBuilder->build($user, $sectionKey, $capabilities, $context);
@@ -45,7 +53,7 @@ class AIAssistantService
             'user_id' => $user->id,
         ]);
 
-        $answer = $response->outputText ?? '';
+        $answer = $this->extractAssistantReply($response);
         $errorCode = null;
         if ($answer === '') {
             $answer = 'I could not generate a response. Please try again.';
@@ -73,8 +81,15 @@ class AIAssistantService
     public function chat(string $message, User $user, ?string $sessionId, ?string $sectionKey = null, array $context = []): array
     {
         $this->ensureEnabled();
-        $this->ensureWithinBudget($user);
+        
         $capabilities = $this->capabilityResolver->resolve($user);
+
+        if ($sectionKey && ! $this->isSectionAvailable($sectionKey, $capabilities)) {
+            throw new AiUnauthorizedSectionException($sectionKey);
+        }
+
+        $this->ensureWithinBudget($user);
+
         $section = $this->sectionRegistry->find($sectionKey);
         $context = $this->filterContext($sectionKey, $context);
         $contextSummary = $this->contextBuilder->build($user, $sectionKey, $capabilities, $context);
@@ -117,7 +132,7 @@ class AIAssistantService
             'user_id' => $user->id,
         ]);
 
-        $answer = $response->outputText ?? '';
+        $answer = $this->extractAssistantReply($response);
         $errorCode = null;
         if ($answer === '') {
             $answer = 'I could not generate a response. Please try again.';
@@ -162,10 +177,51 @@ class AIAssistantService
     public function deleteSession(User $user, string $sessionId): int
     {
         $this->ensureEnabled();
+        
+        $exists = AIConversation::query()
+            ->where('session_id', $sessionId)
+            ->exists();
+            
+        if (!$exists) {
+            return 0;
+        }
+
+        $owned = AIConversation::query()
+            ->where('user_id', $user->id)
+            ->where('session_id', $sessionId)
+            ->exists();
+
+        if (!$owned) {
+            throw new \App\Services\AI\Exceptions\AiAssistantException(
+                'You do not have permission to delete this conversation.',
+                'UNAUTHORIZED_SESSION_ACCESS',
+                403
+            );
+        }
+
         return AIConversation::query()
             ->where('user_id', $user->id)
             ->where('session_id', $sessionId)
             ->delete();
+    }
+
+    private function extractAssistantReply($response): string
+    {
+        if (isset($response->output) && is_array($response->output)) {
+            foreach ($response->output as $output) {
+                if (($output->type ?? '') === 'message' && ($output->role ?? '') === 'assistant') {
+                    if (isset($output->content) && is_array($output->content)) {
+                        foreach ($output->content as $content) {
+                            if (($content->type ?? '') === 'output_text') {
+                                return $content->text ?? '';
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        return $response->outputText ?? '';
     }
 
     public function availableSections(User $user): array
@@ -179,6 +235,21 @@ class AIAssistantService
     public function suggestions(?string $sectionKey): array
     {
         return $this->sectionRegistry->suggestions($sectionKey);
+    }
+
+    private function isSectionAvailable(string $sectionKey, array $capabilities): bool
+    {
+        $section = $this->sectionRegistry->find($sectionKey);
+        if (! $section) {
+            return false;
+        }
+
+        $required = $section['required_capabilities'] ?? [];
+        if (empty($required)) {
+            return true;
+        }
+
+        return empty(array_diff($required, $capabilities));
     }
 
     private function storeMessage(User $user, string $sessionId, string $role, string $message, ?string $section, array $metadata): AIConversation

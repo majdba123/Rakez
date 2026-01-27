@@ -149,6 +149,38 @@ class User extends Authenticatable
     }
 
     /**
+     * Get the marketing project teams this user belongs to.
+     */
+    public function marketingProjectTeams()
+    {
+        return $this->hasMany(MarketingProjectTeam::class);
+    }
+
+    /**
+     * Get the marketing projects this user leads.
+     */
+    public function ledMarketingProjects()
+    {
+        return $this->hasMany(MarketingProject::class, 'assigned_team_leader');
+    }
+
+    /**
+     * Get the employee marketing plans for this user.
+     */
+    public function employeeMarketingPlans()
+    {
+        return $this->hasMany(EmployeeMarketingPlan::class);
+    }
+
+    /**
+     * Get the leads assigned to this user.
+     */
+    public function assignedLeads()
+    {
+        return $this->hasMany(Lead::class, 'assigned_to');
+    }
+
+    /**
      * Check if user is a sales team leader.
      */
     public function isSalesLeader(): bool

@@ -215,6 +215,13 @@ class SalesAttendanceTest extends TestCase
 
     public function test_leader_can_update_project_emergency_contacts()
     {
+        // Assign leader to project
+        \App\Models\SalesProjectAssignment::create([
+            'leader_id' => $this->leader->id,
+            'contract_id' => $this->contract->id,
+            'assigned_by' => $this->leader->id,
+        ]);
+
         $data = [
             'emergency_contact_number' => '0509999999',
             'security_guard_number' => '0508888888',

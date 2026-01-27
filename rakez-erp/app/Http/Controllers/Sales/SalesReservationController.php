@@ -213,14 +213,15 @@ class SalesReservationController extends Controller
                 ], 404);
             }
 
-            $filePath = Storage::disk('public')->path($reservation->voucher_pdf_path);
-
-            if (!file_exists($filePath)) {
+            // Check if disk exists and file exists
+            if (!Storage::disk('public')->exists($reservation->voucher_pdf_path)) {
                 return response()->json([
                     'success' => false,
                     'message' => 'Voucher file not found',
                 ], 404);
             }
+
+            $filePath = Storage::disk('public')->path($reservation->voucher_pdf_path);
 
             return response()->download(
                 $filePath,

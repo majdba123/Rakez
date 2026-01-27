@@ -266,6 +266,13 @@ class AIAssistantServiceTest extends TestCase
         ]);
 
         $user = User::factory()->create();
+        
+        // Grant required permissions for sections
+        \Spatie\Permission\Models\Permission::firstOrCreate(['name' => 'contracts.view', 'guard_name' => 'web']);
+        \Spatie\Permission\Models\Permission::firstOrCreate(['name' => 'units.view', 'guard_name' => 'web']);
+        $user->givePermissionTo('contracts.view');
+        $user->givePermissionTo('units.view');
+        
         $this->service->ask('Question 1', $user, 'contracts');
         $this->service->ask('Question 2', $user, 'units');
 

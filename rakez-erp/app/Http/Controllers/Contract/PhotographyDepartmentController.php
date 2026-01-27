@@ -7,6 +7,7 @@ use App\Http\Requests\Contract\StorePhotographyDepartmentRequest;
 use App\Http\Requests\Contract\UpdatePhotographyDepartmentRequest;
 use App\Http\Resources\Contract\PhotographyDepartmentResource;
 use App\Services\Contract\PhotographyDepartmentService;
+use App\Events\Marketing\ImageUploadedEvent;
 use Illuminate\Http\JsonResponse;
 use Exception;
 
@@ -32,6 +33,10 @@ class PhotographyDepartmentController extends Controller
             $data = $request->validated();
 
             $photographyDepartment = $this->photographyDepartmentService->store($contractId, $data);
+
+            if (isset($data['image_url'])) {
+                event(new ImageUploadedEvent($contractId, $data['image_url'], 'photography'));
+            }
 
             return response()->json([
                 'success' => true,

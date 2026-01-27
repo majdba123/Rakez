@@ -1,0 +1,1422 @@
+{
+	"info": {
+		"_postman_id": "frontend-combined-collection",
+		"name": "Rakez ERP - Frontend API (Sales, Marketing, AI)",
+		"description": "Combined API documentation for Sales, Marketing, and AI Assistant modules in Rakez ERP.",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "Sales Module",
+			"item": [
+				{
+					"name": "Authentication",
+					"item": [
+						{
+							"name": "Login",
+							"request": {
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"email\": \"sales@rakez.com\",\n    \"password\": \"password\"\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{base_url}}/api/login",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"api",
+										"login"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Logout",
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{token}}",
+										"type": "text"
+									}
+								],
+								"url": {
+									"raw": "{{base_url}}/api/logout",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"api",
+										"logout"
+									]
+								}
+							},
+							"response": []
+						}
+					]
+				},
+				{
+					"name": "Dashboard",
+					"item": [
+						{
+							"name": "Get Dashboard KPIs",
+							"request": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{token}}",
+										"type": "text"
+									}
+								],
+								"url": {
+									"raw": "{{base_url}}/api/sales/dashboard?scope=me&from=2026-01-01&to=2026-01-31",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"api",
+										"sales",
+										"dashboard"
+									],
+									"query": [
+										{
+											"key": "scope",
+											"value": "me"
+										},
+										{
+											"key": "from",
+											"value": "2026-01-01"
+										},
+										{
+											"key": "to",
+											"value": "2026-01-31"
+										}
+									]
+								}
+							},
+							"response": []
+						}
+					]
+				},
+				{
+					"name": "Projects",
+					"item": [
+						{
+							"name": "List Projects",
+							"request": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{token}}",
+										"type": "text"
+									}
+								],
+								"url": {
+									"raw": "{{base_url}}/api/sales/projects",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"api",
+										"sales",
+										"projects"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "View Project Details",
+							"request": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{token}}",
+										"type": "text"
+									}
+								],
+								"url": {
+									"raw": "{{base_url}}/api/sales/projects/1",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"api",
+										"sales",
+										"projects",
+										"1"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Get Project Units",
+							"request": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{token}}",
+										"type": "text"
+									}
+								],
+								"url": {
+									"raw": "{{base_url}}/api/sales/projects/1/units",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"api",
+										"sales",
+										"projects",
+										"1",
+										"units"
+									]
+								}
+							},
+							"response": []
+						}
+					]
+				},
+				{
+					"name": "Reservations",
+					"item": [
+						{
+							"name": "Get Reservation Context",
+							"request": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{token}}",
+										"type": "text"
+									}
+								],
+								"url": {
+									"raw": "{{base_url}}/api/sales/units/1/reservation-context",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"api",
+										"sales",
+										"units",
+										"1",
+										"reservation-context"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Create Reservation",
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{token}}",
+										"type": "text"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"contract_id\": 1,\n    \"contract_unit_id\": 1,\n    \"reservation_type\": \"negotiation\",\n    \"contract_date\": \"2026-01-26\",\n    \"client_name\": \"John Doe\",\n    \"client_mobile\": \"0500000000\",\n    \"client_nationality\": \"Saudi\",\n    \"client_iban\": \"SA0000000000000000000000\",\n    \"payment_method\": \"bank_transfer\",\n    \"down_payment_amount\": 5000,\n    \"down_payment_status\": \"paid\",\n    \"purchase_mechanism\": \"cash\",\n    \"negotiation_notes\": \"Client interested in floor 2\"\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{base_url}}/api/sales/reservations",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"api",
+										"sales",
+										"reservations"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "List Reservations",
+							"request": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{token}}",
+										"type": "text"
+									}
+								],
+								"url": {
+									"raw": "{{base_url}}/api/sales/reservations",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"api",
+										"sales",
+										"reservations"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Confirm Reservation",
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{token}}",
+										"type": "text"
+									}
+								],
+								"url": {
+									"raw": "{{base_url}}/api/sales/reservations/1/confirm",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"api",
+										"sales",
+										"reservations",
+										"1",
+										"confirm"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Cancel Reservation",
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{token}}",
+										"type": "text"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"reason\": \"Client changed their mind\"\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{base_url}}/api/sales/reservations/1/cancel",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"api",
+										"sales",
+										"reservations",
+										"1",
+										"cancel"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Log Action",
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{token}}",
+										"type": "text"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"action_type\": \"call\",\n    \"notes\": \"Followed up with client\"\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{base_url}}/api/sales/reservations/1/actions",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"api",
+										"sales",
+										"reservations",
+										"1",
+										"actions"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Download Voucher",
+							"request": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{token}}",
+										"type": "text"
+									}
+								],
+								"url": {
+									"raw": "{{base_url}}/api/sales/reservations/1/voucher",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"api",
+										"sales",
+										"reservations",
+										"1",
+										"voucher"
+									]
+								}
+							},
+							"response": []
+						}
+					]
+				},
+				{
+					"name": "Targets",
+					"item": [
+						{
+							"name": "View My Targets",
+							"request": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{token}}",
+										"type": "text"
+									}
+								],
+								"url": {
+									"raw": "{{base_url}}/api/sales/targets/my",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"api",
+										"sales",
+										"targets",
+										"my"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Update Target",
+							"request": {
+								"method": "PATCH",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{token}}",
+										"type": "text"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"current_value\": 10000,\n    \"notes\": \"Updated progress\"\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{base_url}}/api/sales/targets/1",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"api",
+										"sales",
+										"targets",
+										"1"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Create Target (Leader)",
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{token}}",
+										"type": "text"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"marketer_id\": 2,\n    \"contract_id\": 1,\n    \"target_value\": 50000,\n    \"deadline\": \"2026-02-28\"\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{base_url}}/api/sales/targets",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"api",
+										"sales",
+										"targets"
+									]
+								}
+							},
+							"response": []
+						}
+					]
+				},
+				{
+					"name": "Attendance",
+					"item": [
+						{
+							"name": "View My Attendance",
+							"request": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{token}}",
+										"type": "text"
+									}
+								],
+								"url": {
+									"raw": "{{base_url}}/api/sales/attendance/my",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"api",
+										"sales",
+										"attendance",
+										"my"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "View Team Attendance (Leader)",
+							"request": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{token}}",
+										"type": "text"
+									}
+								],
+								"url": {
+									"raw": "{{base_url}}/api/sales/attendance/team",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"api",
+										"sales",
+										"attendance",
+										"team"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Create Schedule (Leader)",
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{token}}",
+										"type": "text"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"user_id\": 2,\n    \"contract_id\": 1,\n    \"date\": \"2026-01-27\",\n    \"shift\": \"morning\"\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{base_url}}/api/sales/attendance/schedules",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"api",
+										"sales",
+										"attendance",
+										"schedules"
+									]
+								}
+							},
+							"response": []
+						}
+					]
+				},
+				{
+					"name": "Marketing Tasks",
+					"item": [
+						{
+							"name": "List Task Projects",
+							"request": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{token}}",
+										"type": "text"
+									}
+								],
+								"url": {
+									"raw": "{{base_url}}/api/sales/tasks/projects",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"api",
+										"sales",
+										"tasks",
+										"projects"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "View Project Tasks",
+							"request": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{token}}",
+										"type": "text"
+									}
+								],
+								"url": {
+									"raw": "{{base_url}}/api/sales/tasks/projects/1",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"api",
+										"sales",
+										"tasks",
+										"projects",
+										"1"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Create Marketing Task",
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{token}}",
+										"type": "text"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"contract_id\": 1,\n    \"task_name\": \"Social Media Campaign\",\n    \"marketer_id\": 2,\n    \"participating_marketers_count\": 4\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{base_url}}/api/sales/marketing-tasks",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"api",
+										"sales",
+										"marketing-tasks"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Update Task Status",
+							"request": {
+								"method": "PATCH",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{token}}",
+										"type": "text"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"status\": \"completed\"\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{base_url}}/api/sales/marketing-tasks/1",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"api",
+										"sales",
+										"marketing-tasks",
+										"1"
+									]
+								}
+							},
+							"response": []
+						}
+					]
+				},
+				{
+					"name": "Team Management",
+					"item": [
+						{
+							"name": "Get Team Projects",
+							"request": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{token}}",
+										"type": "text"
+									}
+								],
+								"url": {
+									"raw": "{{base_url}}/api/sales/team/projects",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"api",
+										"sales",
+										"team",
+										"projects"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Get Team Members",
+							"request": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{token}}",
+										"type": "text"
+									}
+								],
+								"url": {
+									"raw": "{{base_url}}/api/sales/team/members",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"api",
+										"sales",
+										"team",
+										"members"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Update Emergency Contacts",
+							"request": {
+								"method": "PATCH",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{token}}",
+										"type": "text"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"emergency_contact_number\": \"0501234567\",\n    \"security_guard_number\": \"0507654321\"\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{base_url}}/api/sales/projects/1/emergency-contacts",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"api",
+										"sales",
+										"projects",
+										"1",
+										"emergency-contacts"
+									]
+								}
+							},
+							"response": []
+						}
+					]
+				},
+				{
+					"name": "Admin",
+					"item": [
+						{
+							"name": "Assign Project to Leader",
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{token}}",
+										"type": "text"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"contract_id\": 1,\n    \"leader_id\": 1\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{base_url}}/api/admin/sales/project-assignments",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"api",
+										"admin",
+										"sales",
+										"project-assignments"
+									]
+								}
+							},
+							"response": []
+						}
+					]
+				}
+			]
+		},
+		{
+			"name": "Marketing Module",
+			"item": [
+				{
+					"name": "Dashboard",
+					"item": [
+						{
+							"name": "Get Marketing Dashboard",
+							"request": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{token}}",
+										"type": "text"
+									}
+								],
+								"url": {
+									"raw": "{{base_url}}/api/marketing/dashboard",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"api",
+										"marketing",
+										"dashboard"
+									]
+								}
+							},
+							"response": []
+						}
+					]
+				},
+				{
+					"name": "Projects",
+					"item": [
+						{
+							"name": "List Marketing Projects",
+							"request": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{token}}",
+										"type": "text"
+									}
+								],
+								"url": {
+									"raw": "{{base_url}}/api/marketing/projects",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"api",
+										"marketing",
+										"projects"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "View Project Details",
+							"request": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{token}}",
+										"type": "text"
+									}
+								],
+								"url": {
+									"raw": "{{base_url}}/api/marketing/projects/1",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"api",
+										"marketing",
+										"projects",
+										"1"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Calculate Budget",
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{token}}",
+										"type": "text"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"contract_id\": 1,\n    \"unit_price\": 1000000\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{base_url}}/api/marketing/projects/calculate-budget",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"api",
+										"marketing",
+										"projects",
+										"calculate-budget"
+									]
+								}
+							},
+							"response": []
+						}
+					]
+				},
+				{
+					"name": "Plans",
+					"item": [
+						{
+							"name": "Get Developer Plan",
+							"request": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{token}}",
+										"type": "text"
+									}
+								],
+								"url": {
+									"raw": "{{base_url}}/api/marketing/developer-plans/1",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"api",
+										"marketing",
+										"developer-plans",
+										"1"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Store Developer Plan",
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{token}}",
+										"type": "text"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"contract_id\": 1,\n    \"marketing_value\": 35000,\n    \"average_cpm\": 25,\n    \"average_cpc\": 2.5\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{base_url}}/api/marketing/developer-plans",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"api",
+										"marketing",
+										"developer-plans"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "List Employee Plans",
+							"request": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{token}}",
+										"type": "text"
+									}
+								],
+								"url": {
+									"raw": "{{base_url}}/api/marketing/employee-plans/project/1",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"api",
+										"marketing",
+										"employee-plans",
+										"project",
+										"1"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Auto-Generate Employee Plan",
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{token}}",
+										"type": "text"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"marketing_project_id\": 1,\n    \"user_id\": 2\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{base_url}}/api/marketing/employee-plans/auto-generate",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"api",
+										"marketing",
+										"employee-plans",
+										"auto-generate"
+									]
+								}
+							},
+							"response": []
+						}
+					]
+				},
+				{
+					"name": "Tasks",
+					"item": [
+						{
+							"name": "List My Tasks",
+							"request": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{token}}",
+										"type": "text"
+									}
+								],
+								"url": {
+									"raw": "{{base_url}}/api/marketing/tasks",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"api",
+										"marketing",
+										"tasks"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Update Task Status",
+							"request": {
+								"method": "PATCH",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{token}}",
+										"type": "text"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"status\": \"completed\"\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{base_url}}/api/marketing/tasks/1/status",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"api",
+										"marketing",
+										"tasks",
+										"1",
+										"status"
+									]
+								}
+							},
+							"response": []
+						}
+					]
+				},
+				{
+					"name": "Leads",
+					"item": [
+						{
+							"name": "List Leads",
+							"request": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{token}}",
+										"type": "text"
+									}
+								],
+								"url": {
+									"raw": "{{base_url}}/api/marketing/leads",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"api",
+										"marketing",
+										"leads"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Store Lead",
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{token}}",
+										"type": "text"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"name\": \"Ahmed Lead\",\n    \"contact_info\": \"ahmed@example.com\",\n    \"source\": \"Snapchat\",\n    \"project_id\": 1\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{base_url}}/api/marketing/leads",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"api",
+										"marketing",
+										"leads"
+									]
+								}
+							},
+							"response": []
+						}
+					]
+				}
+			]
+		},
+		{
+			"name": "AI Assistant",
+			"item": [
+				{
+					"name": "Ask Question (Stateless)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\"question\":\"List available units in project 1\",\"section\":\"units\",\"context\":{\"project_id\":1}}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/api/ai/ask",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"ai",
+								"ask"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Chat (Session-based)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"message\": \"Tell me more about the payment plans.\",\n    \"session_id\": \"{{session_id}}\",\n    \"section\": \"contracts\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/api/ai/chat",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"ai",
+								"chat"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "List Conversations",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/ai/conversations?per_page=10",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"ai",
+								"conversations"
+							],
+							"query": [
+								{
+									"key": "per_page",
+									"value": "10"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Delete Conversation",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/ai/conversations/{{session_id}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"ai",
+								"conversations",
+								"{{session_id}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Available Sections",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/ai/sections",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"ai",
+								"sections"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		}
+	],
+	"variable": [
+		{
+			"key": "base_url",
+			"value": "http://localhost:8000",
+			"type": "string"
+		},
+		{
+			"key": "token",
+			"value": "your-auth-token-here",
+			"type": "string"
+		},
+		{
+			"key": "session_id",
+			"value": "uuid-session-id",
+			"type": "string"
+		}
+	]
+}

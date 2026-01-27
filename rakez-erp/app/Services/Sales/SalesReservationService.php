@@ -78,6 +78,18 @@ class SalesReservationService
                     'name' => $user->name,
                     'team' => $user->team,
                 ],
+                'client' => [
+                    'name' => $data['client_name'],
+                    'mobile' => $data['client_mobile'],
+                    'nationality' => $data['client_nationality'],
+                    'iban' => $data['client_iban'],
+                ],
+                'payment' => [
+                    'method' => $data['payment_method'],
+                    'amount' => $data['down_payment_amount'],
+                    'status' => $data['down_payment_status'],
+                    'mechanism' => $data['purchase_mechanism'],
+                ]
             ];
 
             // Create reservation
@@ -210,8 +222,8 @@ class SalesReservationService
         }
 
         // Include cancelled or not
-        if (empty($filters['include_cancelled'])) {
-            $query->whereIn('status', ['under_negotiation', 'confirmed']);
+        if (empty($filters['include_cancelled']) || $filters['include_cancelled'] === 'false' || $filters['include_cancelled'] === 0) {
+            $query->where('status', '!=', 'cancelled');
         }
 
         // Filter by contract
@@ -226,7 +238,14 @@ class SalesReservationService
 
         // Date range filter
         if (!empty($filters['from']) || !empty($filters['to'])) {
-            $query->dateRange($filters['from'] ?? null, $filters['to'] ?? null);
+            $query->where(function ($q) use ($filters) {
+                if (!empty($filters['from'])) {
+                    $q->whereDate('created_at', '>=', $filters['from']);
+                }
+                if (!empty($filters['to'])) {
+                    $q->whereDate('created_at', '<=', $filters['to']);
+                }
+            });
         }
 
         $perPage = $filters['per_page'] ?? 15;
@@ -241,7 +260,7 @@ class SalesReservationService
         $reservation = SalesReservation::findOrFail($reservationId);
 
         // Check if user owns this reservation or has permission
-        if ($reservation->marketing_employee_id !== $user->id && !$user->hasPermissionTo('sales.reservations.view')) {
+        if ($reservation->marketing_employee_id !== $user->id && !$user->hasPermissionTo('sales.reservations.view') && !$user->hasRole('admin')) {
             throw new Exception('Unauthorized to log actions for this reservation');
         }
 

@@ -11,11 +11,13 @@ class CapabilityResolver
 
     public function resolve(User $user): array
     {
-        if (isset($this->cache[$user->id])) {
-            return $this->cache[$user->id];
+        $cacheKey = spl_object_id($user);
+        if (isset($this->cache[$cacheKey])) {
+            return $this->cache[$cacheKey];
         }
 
         // 1. Prefer explicit attribute override (testing/dev override)
+        $caps = [];
         if ($user->getAttribute('capabilities') && is_array($user->getAttribute('capabilities'))) {
             $caps = $user->getAttribute('capabilities');
         }
@@ -33,11 +35,26 @@ class CapabilityResolver
 
         $caps = array_values(array_unique(array_filter($caps, fn ($c) => is_string($c) && $c !== '')));
 
-        return $this->cache[$user->id] = $caps;
+        return $this->cache[$cacheKey] = $caps;
     }
 
     public function has(User $user, string $capability): bool
     {
         return in_array($capability, $this->resolve($user), true);
+    }
+
+    /**
+     * Clear the cache for a specific user or all users
+     *
+     * @param User|null $user User to clear cache for, or null to clear all
+     * @return void
+     */
+    public function clearCache(?User $user = null): void
+    {
+        if ($user === null) {
+            $this->cache = [];
+        } else {
+            unset($this->cache[spl_object_id($user)]);
+        }
     }
 }

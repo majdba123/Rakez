@@ -61,6 +61,8 @@ class SalesDashboardService
             'confirmed_reservations' => $confirmedCount,
             'negotiation_reservations' => $negotiationCount,
             'percent_confirmed' => $percentConfirmed,
+            'total_reservations' => $total,
+            'negotiation_ratio' => $total > 0 ? round(($negotiationCount / $total) * 100, 2) : 0,
         ];
     }
 

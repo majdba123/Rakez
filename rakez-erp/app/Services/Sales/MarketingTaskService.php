@@ -16,7 +16,7 @@ class MarketingTaskService
     {
         return Contract::whereHas('salesProjectAssignments', function ($q) use ($leader) {
             $q->where('leader_id', $leader->id);
-        })->with('montageDepartment')->get();
+        })->with(['montageDepartment', 'photographyDepartment', 'boardsDepartment'])->get();
     }
 
     /**
@@ -24,7 +24,7 @@ class MarketingTaskService
      */
     public function getProjectForTask(int $contractId, User $leader): Contract
     {
-        $contract = Contract::with('montageDepartment')->findOrFail($contractId);
+        $contract = Contract::with(['montageDepartment', 'photographyDepartment', 'boardsDepartment'])->findOrFail($contractId);
 
         // Validate leader has access to this project
         if (!$this->leaderHasAccessToProject($leader, $contractId)) {

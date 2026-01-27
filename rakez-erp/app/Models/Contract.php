@@ -244,6 +244,46 @@ class Contract extends Model
     }
 
     /**
+     * Get the marketing project for this contract.
+     */
+    public function marketingProject()
+    {
+        return $this->hasOne(MarketingProject::class);
+    }
+
+    /**
+     * Get the developer marketing plan for this contract.
+     */
+    public function developerMarketingPlan()
+    {
+        return $this->hasOne(DeveloperMarketingPlan::class);
+    }
+
+    /**
+     * Get the project media for this contract.
+     */
+    public function projectMedia()
+    {
+        return $this->hasMany(ProjectMedia::class);
+    }
+
+    /**
+     * Get the daily deposits for this contract.
+     */
+    public function dailyDeposits()
+    {
+        return $this->hasMany(DailyDeposit::class, 'project_id');
+    }
+
+    /**
+     * Get the leads for this contract.
+     */
+    public function leads()
+    {
+        return $this->hasMany(Lead::class, 'project_id');
+    }
+
+    /**
      * Get the sales project assignments for this contract.
      */
     public function salesProjectAssignments()

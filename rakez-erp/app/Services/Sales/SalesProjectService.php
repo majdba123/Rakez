@@ -132,21 +132,18 @@ class SalesProjectService
         $contract = Contract::findOrFail($contractId);
         
         // Authorization: Check if user has permission to manage team (leader)
-        if (!$user->hasPermissionTo('sales.team.manage')) {
+        if (!$user->hasPermissionTo('sales.team.manage') && !$user->hasRole('admin')) {
             throw new \Exception('Unauthorized to update emergency contacts');
         }
 
         // Additional check: If not admin, must be assigned to this project
         if (!$user->hasRole('admin')) {
-            $isAssigned = \App\Models\SalesProjectAssignment::where('contract_id', $contractId)
+            $assignment = \App\Models\SalesProjectAssignment::where('contract_id', $contractId)
                 ->where('leader_id', $user->id)
-                ->exists();
-            if (!$isAssigned) {
-                // For tests, if not assigned, we'll allow it if they are the creator (fallback for existing tests)
-                // OR if they are a manager of the creator's team (simplified for existing tests)
-                if ($contract->user_id !== $user->id && !$user->is_manager) {
-                    throw new \Exception('Unauthorized: You are not assigned to this project');
-                }
+                ->first();
+                
+            if (!$assignment) {
+                throw new \Exception('Unauthorized: You are not assigned to this project');
             }
         }
         

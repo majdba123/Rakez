@@ -146,4 +146,43 @@ return [
             'How should I interpret trends?',
         ],
     ],
+    'marketing_dashboard' => [
+        'label' => 'Marketing Dashboard',
+        'required_capabilities' => ['marketing.dashboard.view'],
+        'allowed_context_params' => [],
+        'suggestions' => [
+            'What is the current lead count?',
+            'Show me the daily task achievement rate.',
+            'What is the average deposit cost?',
+        ],
+    ],
+    'marketing_projects' => [
+        'label' => 'Marketing Projects',
+        'required_capabilities' => ['marketing.projects.view'],
+        'allowed_context_params' => ['contract_id'],
+        'context_schema' => [
+            'contract_id' => 'int|min:1',
+        ],
+        'context_policy' => [
+            'contract_id' => 'view-contract',
+        ],
+        'suggestions' => [
+            'List all marketing projects.',
+            'Show me the marketing plan for project X.',
+            'What is the budget for this project?',
+        ],
+    ],
+    'marketing_tasks' => [
+        'label' => 'Marketing Tasks',
+        'required_capabilities' => ['marketing.tasks.view'],
+        'allowed_context_params' => ['contract_id'],
+        'context_schema' => [
+            'contract_id' => 'int|min:1',
+        ],
+        'suggestions' => [
+            'What are my tasks for today?',
+            'Show tasks for project Y.',
+            'What is the status of task Z?',
+        ],
+    ],
 ];

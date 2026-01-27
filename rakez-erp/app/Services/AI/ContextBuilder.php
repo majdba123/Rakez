@@ -8,12 +8,18 @@ use App\Models\ContractUnit;
 use App\Models\User;
 use App\Models\UserNotification;
 use App\Services\Dashboard\ProjectManagementDashboardService;
+use App\Services\Marketing\MarketingDashboardService;
+use App\Services\Marketing\MarketingProjectService;
+use App\Services\Marketing\MarketingTaskService;
 use Illuminate\Support\Str;
 
 class ContextBuilder
 {
     public function __construct(
         private readonly ProjectManagementDashboardService $dashboardService,
+        private readonly MarketingDashboardService $marketingDashboardService,
+        private readonly MarketingProjectService $marketingProjectService,
+        private readonly MarketingTaskService $marketingTaskService,
         private readonly ContextValidator $contextValidator,
         private readonly SectionRegistry $sectionRegistry
     ) {}
@@ -52,6 +58,22 @@ class ContextBuilder
 
         if ($sectionKey === 'dashboard' && in_array('dashboard.analytics.view', $capabilities, true)) {
             $data['dashboard'] = $this->dashboardService->getDashboardStatistics();
+        }
+
+        if ($sectionKey === 'marketing_dashboard' && in_array('marketing.dashboard.view', $capabilities, true)) {
+            $data['marketing_dashboard'] = $this->marketingDashboardService->getDashboardKPIs();
+        }
+
+        if ($sectionKey === 'marketing_projects' && in_array('marketing.projects.view', $capabilities, true)) {
+            if (isset($validatedContext['contract_id'])) {
+                $data['marketing_project'] = $this->marketingProjectService->getProjectDetails((int) $validatedContext['contract_id']);
+            } else {
+                $data['marketing_projects_list'] = $this->marketingProjectService->getProjectsWithCompletedContracts();
+            }
+        }
+
+        if ($sectionKey === 'marketing_tasks' && in_array('marketing.tasks.view', $capabilities, true)) {
+            $data['marketing_tasks'] = $this->marketingTaskService->getDailyTasks($user->id);
         }
 
         return $data;

@@ -38,6 +38,9 @@ return [
         'sales.attendance.view' => 'View attendance.',
         'sales.attendance.manage' => 'Manage team attendance.',
         'sales.tasks.manage' => 'Manage marketing tasks.',
+        'marketing.dashboard.view' => 'View marketing dashboard KPIs.',
+        'marketing.projects.view' => 'View marketing projects and plans.',
+        'marketing.tasks.view' => 'View marketing tasks and achievement rates.',
     ],
     // Bootstrap role map - ONLY for migration/seeding, NOT a runtime dependency
     // In production, use DB permissions (Spatie or custom) as the source of truth
@@ -62,6 +65,9 @@ return [
             'notifications.view',
             'notifications.manage',
             'employees.manage',
+            'marketing.dashboard.view',
+            'marketing.projects.view',
+            'marketing.tasks.view',
         ],
         'project_management' => [
             'contracts.view',
@@ -89,6 +95,12 @@ return [
         'developer' => [
             'contracts.view',
             'contracts.create',
+            'notifications.view',
+        ],
+        'marketing' => [
+            'marketing.dashboard.view',
+            'marketing.projects.view',
+            'marketing.tasks.view',
             'notifications.view',
         ],
         'sales' => [

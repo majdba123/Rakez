@@ -14,7 +14,7 @@ class StoreReservationActionRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'action_type' => 'required|in:lead_acquisition,persuasion,closing',
+            'action_type' => 'required|in:lead_acquisition,persuasion,closing,جلب,إقناع,إقفال',
             'notes' => 'nullable|string',
         ];
     }

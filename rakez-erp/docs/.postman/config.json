@@ -1,0 +1,15 @@
+{
+  "workspace": {
+    "id": "0c1896bf-e8c4-430a-8ae1-4ab436ec0999"
+  },
+  "entities": {
+    "collections": [
+      "..\\POSTMAN_AI_ASSISTANT_COLLECTION.json",
+      "..\\POSTMAN_SALES_COLLECTION.json"
+    ],
+    "environments": [],
+    "specs": [],
+    "flows": [],
+    "globals": []
+  }
+}

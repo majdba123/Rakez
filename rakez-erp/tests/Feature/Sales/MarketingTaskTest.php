@@ -152,6 +152,8 @@ class MarketingTaskTest extends TestCase
                     'project_name',
                     'project_description',
                     'montage_designs',
+                    'photography',
+                    'boards',
                 ],
             ]);
     }

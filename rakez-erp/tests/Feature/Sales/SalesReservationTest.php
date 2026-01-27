@@ -123,6 +123,40 @@ class SalesReservationTest extends TestCase
         $this->assertArrayHasKey('project', $reservation->snapshot);
         $this->assertArrayHasKey('unit', $reservation->snapshot);
         $this->assertArrayHasKey('employee', $reservation->snapshot);
+        $this->assertArrayHasKey('client', $reservation->snapshot);
+        $this->assertArrayHasKey('payment', $reservation->snapshot);
+        
+        $this->assertEquals('Saudi', $reservation->snapshot['client']['nationality']);
+        $this->assertEquals('SA0000000000000000000000', $reservation->snapshot['client']['iban']);
+        $this->assertEquals('non_refundable', $reservation->snapshot['payment']['status']);
+        $this->assertEquals('supported_bank', $reservation->snapshot['payment']['mechanism']);
+    }
+
+    public function test_log_action_with_arabic_types()
+    {
+        $reservation = SalesReservation::factory()->create([
+            'contract_id' => $this->contract->id,
+            'contract_unit_id' => $this->unit->id,
+            'marketing_employee_id' => $this->salesUser->id,
+            'status' => 'confirmed',
+        ]);
+
+        $arabicTypes = ['lead_acquisition', 'persuasion', 'closing'];
+
+        foreach ($arabicTypes as $type) {
+            $response = $this->actingAs($this->salesUser, 'sanctum')
+                ->postJson("/api/sales/reservations/{$reservation->id}/actions", [
+                    'action_type' => $type,
+                    'notes' => "Action of type $type",
+                ]);
+
+            $response->assertStatus(201);
+            
+            $this->assertDatabaseHas('sales_reservation_actions', [
+                'sales_reservation_id' => $reservation->id,
+                'action_type' => $type,
+            ]);
+        }
     }
 
     public function test_negotiation_reservation_creates_under_negotiation_status()

@@ -17,7 +17,14 @@ class SalesAttendanceService
             ->with('contract');
 
         if (!empty($filters['from']) || !empty($filters['to'])) {
-            $query->dateRange($filters['from'] ?? null, $filters['to'] ?? null);
+            $query->where(function ($q) use ($filters) {
+                if (!empty($filters['from'])) {
+                    $q->whereDate('schedule_date', '>=', $filters['from']);
+                }
+                if (!empty($filters['to'])) {
+                    $q->whereDate('schedule_date', '<=', $filters['to']);
+                }
+            });
         }
 
         return $query->orderBy('schedule_date', 'desc')->get();
@@ -35,7 +42,14 @@ class SalesAttendanceService
 
         // Apply filters
         if (!empty($filters['from']) || !empty($filters['to'])) {
-            $query->dateRange($filters['from'] ?? null, $filters['to'] ?? null);
+            $query->where(function ($q) use ($filters) {
+                if (!empty($filters['from'])) {
+                    $q->whereDate('schedule_date', '>=', $filters['from']);
+                }
+                if (!empty($filters['to'])) {
+                    $q->whereDate('schedule_date', '<=', $filters['to']);
+                }
+            });
         }
 
         if (!empty($filters['contract_id'])) {

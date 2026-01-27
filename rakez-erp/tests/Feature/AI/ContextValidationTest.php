@@ -72,6 +72,10 @@ class ContextValidationTest extends TestCase
         $user = User::factory()->create();
         Sanctum::actingAs($user);
 
+        // Grant required permission for units section
+        \Spatie\Permission\Models\Permission::firstOrCreate(['name' => 'units.view', 'guard_name' => 'web']);
+        $user->givePermissionTo('units.view');
+
         OpenAI::fake([
             $this->fakeResponse('Answer'),
         ]);
