@@ -20,7 +20,7 @@
                 "header": [],
                 "body": {
                   "mode": "raw",
-                  "raw": "{\n    \"email\": \"sales@rakez.com\",\n    \"password\": \"password\"\n}",
+                  "raw": "{\n    \"email\": \"ahmed@rakez.com\",\n    \"password\": \"password\"\n}",
                   "options": {
                     "raw": {
                       "language": "json"

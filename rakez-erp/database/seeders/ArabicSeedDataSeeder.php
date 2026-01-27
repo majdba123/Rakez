@@ -25,7 +25,6 @@ class ArabicSeedDataSeeder extends Seeder
             'password' => Hash::make('password'),
             'type' => 'sales_leader',
         ]);
-        $salesLeader->assignRole('sales_leader');
 
         $marketer = User::create([
             'name' => 'سارة الشمري',
@@ -33,7 +32,6 @@ class ArabicSeedDataSeeder extends Seeder
             'password' => Hash::make('password'),
             'type' => 'marketing',
         ]);
-        $marketer->assignRole('marketing');
 
         $aiUser = User::create([
             'name' => 'خالد العتيبي',

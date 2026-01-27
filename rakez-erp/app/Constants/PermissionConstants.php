@@ -38,18 +38,63 @@ class PermissionConstants
     // Employees
     const EMPLOYEES_MANAGE = 'employees.manage';
 
+    // Project Management
+    const PROJECTS_VIEW = 'projects.view';
+    const PROJECTS_CREATE = 'projects.create';
+    const PROJECTS_MEDIA_UPLOAD = 'projects.media.upload';
+    const PROJECTS_MEDIA_APPROVE = 'projects.media.approve';
+    const PROJECTS_TEAM_CREATE = 'projects.team.create';
+    const PROJECTS_TEAM_ASSIGN_LEADER = 'projects.team.assign_leader';
+    const PROJECTS_TEAM_ALLOCATE = 'projects.team.allocate';
+    const PROJECTS_APPROVE = 'projects.approve';
+    const PROJECTS_ARCHIVE = 'projects.archive';
+
     // Sales
     const SALES_DASHBOARD_VIEW = 'sales.dashboard.view';
     const SALES_PROJECTS_VIEW = 'sales.projects.view';
+    const SALES_UNITS_VIEW = 'sales.units.view';
+    const SALES_UNITS_BOOK = 'sales.units.book';
     const SALES_RESERVATIONS_CREATE = 'sales.reservations.create';
     const SALES_RESERVATIONS_VIEW = 'sales.reservations.view';
     const SALES_RESERVATIONS_CONFIRM = 'sales.reservations.confirm';
     const SALES_RESERVATIONS_CANCEL = 'sales.reservations.cancel';
+    const SALES_WAITING_LIST_CREATE = 'sales.waiting_list.create';
+    const SALES_WAITING_LIST_CONVERT = 'sales.waiting_list.convert';
+    const SALES_GOALS_VIEW = 'sales.goals.view';
+    const SALES_GOALS_CREATE = 'sales.goals.create';
+    const SALES_SCHEDULE_VIEW = 'sales.schedule.view';
     const SALES_TARGETS_VIEW = 'sales.targets.view';
     const SALES_TARGETS_UPDATE = 'sales.targets.update';
     const SALES_TEAM_MANAGE = 'sales.team.manage';
     const SALES_ATTENDANCE_VIEW = 'sales.attendance.view';
     const SALES_ATTENDANCE_MANAGE = 'sales.attendance.manage';
     const SALES_TASKS_MANAGE = 'sales.tasks.manage';
+    const SALES_TASKS_CREATE_FOR_MARKETING = 'sales.tasks.create_for_marketing';
+    const SALES_PROJECTS_ALLOCATE_SHIFTS = 'sales.projects.allocate_shifts';
     const SALES_PROJECTS_ASSIGN = 'sales.projects.assign';
+
+    // Editing
+    const EDITING_PROJECTS_VIEW = 'editing.projects.view';
+    const EDITING_MEDIA_UPLOAD = 'editing.media.upload';
+
+    // HR
+    const HR_EMPLOYEES_MANAGE = 'hr.employees.manage';
+    const HR_USERS_CREATE = 'hr.users.create';
+    const HR_PERFORMANCE_VIEW = 'hr.performance.view';
+    const HR_REPORTS_PRINT = 'hr.reports.print';
+
+    // Marketing
+    const MARKETING_DASHBOARD_VIEW = 'marketing.dashboard.view';
+    const MARKETING_PROJECTS_VIEW = 'marketing.projects.view';
+    const MARKETING_PLANS_CREATE = 'marketing.plans.create';
+    const MARKETING_BUDGETS_MANAGE = 'marketing.budgets.manage';
+    const MARKETING_TASKS_VIEW = 'marketing.tasks.view';
+    const MARKETING_TASKS_CONFIRM = 'marketing.tasks.confirm';
+    const MARKETING_REPORTS_VIEW = 'marketing.reports.view';
+
+    // Exclusive Projects
+    const EXCLUSIVE_PROJECTS_REQUEST = 'exclusive_projects.request';
+    const EXCLUSIVE_PROJECTS_APPROVE = 'exclusive_projects.approve';
+    const EXCLUSIVE_PROJECTS_CONTRACT_COMPLETE = 'exclusive_projects.contract.complete';
+    const EXCLUSIVE_PROJECTS_CONTRACT_EXPORT = 'exclusive_projects.contract.export';
 }

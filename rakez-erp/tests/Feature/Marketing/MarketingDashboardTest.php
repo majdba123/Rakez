@@ -20,6 +20,7 @@ class MarketingDashboardTest extends TestCase
     {
         parent::setUp();
         $this->marketingUser = User::factory()->create(['type' => 'marketing']);
+        $this->marketingUser->syncRolesFromType();
     }
 
     /** @test */
@@ -39,7 +40,7 @@ class MarketingDashboardTest extends TestCase
             'due_date' => now()->toDateString()
         ]);
 
-        $response = $this->actingAs($this->marketingUser)
+        $response = $this->actingAs($this->marketingUser, 'sanctum')
             ->getJson('/api/marketing/dashboard');
 
         $response->assertStatus(200)

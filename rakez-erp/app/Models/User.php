@@ -196,6 +196,43 @@ class User extends Authenticatable
     }
 
     /**
+     * Check if user is a project management manager.
+     */
+    public function isProjectManagementManager(): bool
+    {
+        return $this->type === 'project_management' && $this->is_manager === true;
+    }
+
+    /**
+     * Get effective permissions including dynamic manager permissions.
+     */
+    public function getEffectivePermissions(): array
+    {
+        $permissions = $this->getAllPermissions()->pluck('name')->toArray();
+        
+        // Add manager-specific permissions dynamically
+        if ($this->isProjectManagementManager()) {
+            $managerPermissions = [
+                'projects.approve',
+                'projects.media.approve',
+                'projects.archive',
+                'exclusive_projects.approve',
+            ];
+            $permissions = array_merge($permissions, $managerPermissions);
+        }
+        
+        return array_unique($permissions);
+    }
+
+    /**
+     * Check if user has a specific permission (including dynamic permissions).
+     */
+    public function hasEffectivePermission(string $permission): bool
+    {
+        return in_array($permission, $this->getEffectivePermissions(), true);
+    }
+
+    /**
      * Sync roles from the 'type' column.
      * Useful for migration or when 'type' is updated.
      */
@@ -209,5 +246,29 @@ class User extends Authenticatable
         if (\Spatie\Permission\Models\Role::where('name', $roleName)->exists()) {
             $this->syncRoles([$roleName]);
         }
+    }
+
+    /**
+     * Get exclusive project requests created by this user.
+     */
+    public function exclusiveProjectRequests()
+    {
+        return $this->hasMany(\App\Models\ExclusiveProjectRequest::class, 'requested_by');
+    }
+
+    /**
+     * Get exclusive project requests approved by this user.
+     */
+    public function approvedExclusiveProjects()
+    {
+        return $this->hasMany(\App\Models\ExclusiveProjectRequest::class, 'approved_by');
+    }
+
+    /**
+     * Get waiting list entries created by this user.
+     */
+    public function waitingListEntries()
+    {
+        return $this->hasMany(\App\Models\SalesWaitingList::class, 'sales_staff_id');
     }
 }

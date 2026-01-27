@@ -19,6 +19,7 @@ class MarketingProjectTest extends TestCase
     {
         parent::setUp();
         $this->marketingUser = User::factory()->create(['type' => 'marketing']);
+        $this->marketingUser->syncRolesFromType();
     }
 
     /** @test */
@@ -27,7 +28,7 @@ class MarketingProjectTest extends TestCase
         $project = Contract::factory()->create(['status' => 'approved']);
         MarketingProject::create(['contract_id' => $project->id]);
 
-        $response = $this->actingAs($this->marketingUser)
+        $response = $this->actingAs($this->marketingUser, 'sanctum')
             ->getJson('/api/marketing/projects');
 
         $response->assertStatus(200)
@@ -47,7 +48,7 @@ class MarketingProjectTest extends TestCase
         ]);
         MarketingProject::create(['contract_id' => $contract->id]);
 
-        $response = $this->actingAs($this->marketingUser)
+        $response = $this->actingAs($this->marketingUser, 'sanctum')
             ->getJson("/api/marketing/projects/{$contract->id}");
 
         $response->assertStatus(200)
@@ -72,7 +73,7 @@ class MarketingProjectTest extends TestCase
             'commission_percent' => 2.5
         ]);
 
-        $response = $this->actingAs($this->marketingUser)
+        $response = $this->actingAs($this->marketingUser, 'sanctum')
             ->postJson('/api/marketing/projects/calculate-budget', [
                 'contract_id' => $contract->id,
                 'unit_price' => 1000000

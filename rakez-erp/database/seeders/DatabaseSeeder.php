@@ -11,11 +11,11 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        // Call the admin user seeder
+        // Seed users before roles/permissions so role assignment can attach
         $this->call([
-            RolesAndPermissionsSeeder::class,
             AdminUserSeeder::class,
             ArabicSeedDataSeeder::class,
+            RolesAndPermissionsSeeder::class,
             // Add other seeders here
         ]);
     }

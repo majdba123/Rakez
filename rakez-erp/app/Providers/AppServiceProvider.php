@@ -35,7 +35,16 @@ class AppServiceProvider extends ServiceProvider
         // Implicitly grant "Super Admin" role all permissions
         // This works in the app by using gate-related functions like auth()->user->can() and @can()
         Gate::before(function ($user, $ability) {
-            return $user->hasRole('admin') ? true : null;
+            if ($user->hasRole('admin')) {
+                return true;
+            }
+
+            // Support dynamic permissions (ex: project_management managers via is_manager flag)
+            if (method_exists($user, 'hasEffectivePermission') && $user->hasEffectivePermission($ability)) {
+                return true;
+            }
+
+            return null;
         });
 
         $this->configureRateLimiting();

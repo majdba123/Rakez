@@ -21,6 +21,7 @@ class MarketingPlanTest extends TestCase
     {
         parent::setUp();
         $this->marketingUser = User::factory()->create(['type' => 'marketing']);
+        $this->marketingUser->syncRolesFromType();
     }
 
     /** @test */
@@ -28,7 +29,7 @@ class MarketingPlanTest extends TestCase
     {
         $contract = Contract::factory()->create();
 
-        $response = $this->actingAs($this->marketingUser)
+        $response = $this->actingAs($this->marketingUser, 'sanctum')
             ->postJson('/api/marketing/developer-plans', [
                 'contract_id' => $contract->id,
                 'marketing_value' => 35000,
@@ -54,7 +55,7 @@ class MarketingPlanTest extends TestCase
         ]);
         $project = MarketingProject::create(['contract_id' => $contract->id]);
 
-        $response = $this->actingAs($this->marketingUser)
+        $response = $this->actingAs($this->marketingUser, 'sanctum')
             ->postJson('/api/marketing/employee-plans/auto-generate', [
                 'marketing_project_id' => $project->id,
                 'user_id' => $this->marketingUser->id

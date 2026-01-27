@@ -159,7 +159,7 @@ class ContractApiTest extends TestCase
     public function test_project_management_can_update_status_to_ready()
     {
         $pm = User::factory()->create(['type' => 'project_management']);
-        $pm->assignRole('project_management');
+        $pm->syncRolesFromType();
         
         // Contract must be approved first, and have requirements for 'ready' status
         $contract = Contract::factory()->create(['status' => 'approved']);
