@@ -13,7 +13,9 @@ class DatabaseSeeder extends Seeder
     {
         // Call the admin user seeder
         $this->call([
+            RolesAndPermissionsSeeder::class,
             AdminUserSeeder::class,
+            ArabicSeedDataSeeder::class,
             // Add other seeders here
         ]);
     }

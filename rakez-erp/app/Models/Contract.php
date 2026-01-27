@@ -33,6 +33,8 @@ class Contract extends Model
         'developer_requiment',
         'status',
         'notes',
+        'emergency_contact_number',
+        'security_guard_number',
     ];
 
     /**
@@ -217,5 +219,85 @@ class Contract extends Model
     public function scopeMinimumValue($query, $amount)
     {
         return $query->where('total_units_value', '>=', $amount);
+    }
+
+    /**
+     * Get the sales reservations for this contract.
+     */
+    public function salesReservations()
+    {
+        return $this->hasMany(\App\Models\SalesReservation::class);
+    }
+
+    /**
+     * Get the sales targets for this contract.
+     */
+    public function salesTargets()
+    {
+        return $this->hasMany(\App\Models\SalesTarget::class);
+    }
+
+    /**
+     * Get the attendance schedules for this contract.
+     */
+    public function attendanceSchedules()
+    {
+        return $this->hasMany(\App\Models\SalesAttendanceSchedule::class);
+    }
+
+    /**
+     * Get the marketing tasks for this contract.
+     */
+    public function marketingTasks()
+    {
+        return $this->hasMany(\App\Models\MarketingTask::class);
+    }
+
+    /**
+     * Get the marketing project for this contract.
+     */
+    public function marketingProject()
+    {
+        return $this->hasOne(MarketingProject::class);
+    }
+
+    /**
+     * Get the developer marketing plan for this contract.
+     */
+    public function developerMarketingPlan()
+    {
+        return $this->hasOne(DeveloperMarketingPlan::class);
+    }
+
+    /**
+     * Get the project media for this contract.
+     */
+    public function projectMedia()
+    {
+        return $this->hasMany(ProjectMedia::class);
+    }
+
+    /**
+     * Get the daily deposits for this contract.
+     */
+    public function dailyDeposits()
+    {
+        return $this->hasMany(DailyDeposit::class, 'project_id');
+    }
+
+    /**
+     * Get the leads for this contract.
+     */
+    public function leads()
+    {
+        return $this->hasMany(Lead::class, 'project_id');
+    }
+
+    /**
+     * Get the sales project assignments for this contract.
+     */
+    public function salesProjectAssignments()
+    {
+        return $this->hasMany(\App\Models\SalesProjectAssignment::class);
     }
 }

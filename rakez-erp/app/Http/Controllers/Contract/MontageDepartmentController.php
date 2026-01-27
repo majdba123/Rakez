@@ -7,6 +7,7 @@ use App\Http\Requests\Contract\StoreMontageDepartmentRequest;
 use App\Http\Requests\Contract\UpdateMontageDepartmentRequest;
 use App\Http\Resources\Contract\MontageDepartmentResource;
 use App\Services\Contract\MontageDepartmentService;
+use App\Events\Marketing\ImageUploadedEvent;
 use Illuminate\Http\JsonResponse;
 use Exception;
 
@@ -28,6 +29,10 @@ class MontageDepartmentController extends Controller
             $data = $request->validated();
 
             $montageDepartment = $this->montageDepartmentService->store($contractId, $data);
+
+            if (isset($data['image_url'])) {
+                event(new ImageUploadedEvent($contractId, $data['image_url'], 'montage'));
+            }
 
             return response()->json([
                 'success' => true,

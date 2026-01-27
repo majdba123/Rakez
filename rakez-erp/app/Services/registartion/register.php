@@ -11,7 +11,6 @@ use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
-use Illuminate\Http\UploadedFile;
 
 class register
 {
@@ -39,7 +38,6 @@ class register
 
             // Optional profile fields
             $optional = [
-                // `team` input is team id (teams.id) -> store as users.team_id
                 'team',
                 'identity_number',
                 'birthday',
@@ -53,11 +51,7 @@ class register
 
             foreach ($optional as $key) {
                 if (isset($data[$key])) {
-                    if ($key === 'team') {
-                        $userData['team_id'] = $data[$key];
-                    } else {
-                        $userData[$key] = $data[$key];
-                    }
+                    $userData[$key] = $data[$key];
                 }
             }
 
@@ -71,7 +65,6 @@ class register
                 5 => 'sales',
                 6 => 'accounting',
                 7 => 'credit',
-                8 => 'HR',
             ];
 
             if (!isset($data['type']) || !array_key_exists($data['type'], $typeNames)) {
@@ -82,18 +75,8 @@ class register
 
             $user = User::create($userData);
 
-            // Store employee files (optional)
-            if (isset($data['cv']) && $data['cv'] instanceof UploadedFile) {
-                $path = $data['cv']->store('employees/cv', 'public');
-                $user->cv_path = $path;
-            }
-            if (isset($data['contract']) && $data['contract'] instanceof UploadedFile) {
-                $path = $data['contract']->store('employees/contracts', 'public');
-                $user->contract_path = $path;
-            }
-            if ($user->isDirty(['cv_path', 'contract_path'])) {
-                $user->save();
-            }
+            // Sync Spatie roles
+            $user->syncRolesFromType();
 
             // Save to admin_notifications table
             AdminNotification::createForNewEmployee($user);
@@ -122,7 +105,7 @@ class register
 
         // Select only the columns used by the API resource to reduce payload
         $select = [
-            'id', 'name', 'email', 'phone', 'type', 'is_manager', 'team_id', 'identity_number',
+            'id', 'name', 'email', 'phone', 'type', 'is_manager', 'team', 'identity_number',
              'birthday', 'date_of_works', 'contract_type',
             'iban', 'salary', 'marital_status', 'created_at', 'updated_at'
         ];
@@ -239,20 +222,8 @@ class register
 
             foreach ($profileFields as $pf) {
                 if (array_key_exists($pf, $data)) {
-                    if ($pf === 'team') {
-                        $updateData['team_id'] = $data[$pf];
-                    } else {
-                        $updateData[$pf] = $data[$pf];
-                    }
+                    $updateData[$pf] = $data[$pf];
                 }
-            }
-
-            // Update employee files if provided
-            if (isset($data['cv']) && $data['cv'] instanceof UploadedFile) {
-                $updateData['cv_path'] = $data['cv']->store('employees/cv', 'public');
-            }
-            if (isset($data['contract']) && $data['contract'] instanceof UploadedFile) {
-                $updateData['contract_path'] = $data['contract']->store('employees/contracts', 'public');
             }
 
             // Update password if provided
@@ -271,7 +242,6 @@ class register
                     5 => 'sales',
                     6 => 'accounting',
                     7 => 'credit',
-                    8 => 'HR',
                 ];
 
                 if (!array_key_exists($data['type'], $typeNames)) {
@@ -282,6 +252,11 @@ class register
             }
 
             $user->update($updateData);
+
+            // Sync Spatie roles if type or is_manager changed
+            if (isset($data['type']) || isset($data['is_manager'])) {
+                $user->syncRolesFromType();
+            }
 
             DB::commit();
             return $user;

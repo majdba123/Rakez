@@ -25,6 +25,9 @@ class ContractUnitController extends Controller
     public function uploadCsvByContract(UploadContractUnitsRequest $request, int $contractId): JsonResponse
     {
         try {
+            $contract = \App\Models\Contract::findOrFail($contractId);
+            $this->authorize('update', $contract);
+
             $result = $this->contractUnitService->uploadCsvByContractId(
                 $contractId,
                 $request->file('csv_file')
@@ -49,6 +52,9 @@ class ContractUnitController extends Controller
     public function indexByContract(Request $request, int $contractId): JsonResponse
     {
         try {
+            $contract = \App\Models\Contract::findOrFail($contractId);
+            $this->authorize('view', $contract);
+
             $perPage = $request->query('per_page', 15);
             $units = $this->contractUnitService->getUnitsByContractId($contractId, $perPage);
 
@@ -71,6 +77,9 @@ class ContractUnitController extends Controller
     public function store(StoreContractUnitRequest $request, int $contractId): JsonResponse
     {
         try {
+            $contract = \App\Models\Contract::findOrFail($contractId);
+            $this->authorize('update', $contract);
+
             $data = $request->validated();
             $unit = $this->contractUnitService->addUnit($contractId, $data);
 
@@ -88,6 +97,9 @@ class ContractUnitController extends Controller
     public function update(UpdateContractUnitRequest $request, int $unitId): JsonResponse
     {
         try {
+            $unit = \App\Models\ContractUnit::findOrFail($unitId);
+            $this->authorize('update', $unit);
+
             $data = $request->validated();
             $unit = $this->contractUnitService->updateUnit($unitId, $data);
 
@@ -105,6 +117,9 @@ class ContractUnitController extends Controller
     public function destroy(int $unitId): JsonResponse
     {
         try {
+            $unit = \App\Models\ContractUnit::findOrFail($unitId);
+            $this->authorize('delete', $unit);
+
             $this->contractUnitService->deleteUnit($unitId);
 
             return response()->json([
@@ -120,9 +135,11 @@ class ContractUnitController extends Controller
     private function errorResponse(Exception $e): JsonResponse
     {
         $statusCode = 500;
-        if (str_contains($e->getMessage(), 'غير موجود')) $statusCode = 404;
-        if (str_contains($e->getMessage(), 'غير مصرح')) $statusCode = 403;
-        if (str_contains($e->getMessage(), 'يجب')) $statusCode = 422;
+        if ($e instanceof \Illuminate\Auth\Access\AuthorizationException) $statusCode = 403;
+        elseif ($e instanceof \Illuminate\Database\Eloquent\ModelNotFoundException) $statusCode = 404;
+        elseif (str_contains($e->getMessage(), 'غير موجود')) $statusCode = 404;
+        elseif (str_contains($e->getMessage(), 'غير مصرح')) $statusCode = 403;
+        elseif (str_contains($e->getMessage(), 'يجب')) $statusCode = 422;
 
         return response()->json([
             'success' => false,

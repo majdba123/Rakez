@@ -5,9 +5,8 @@ namespace App\Http\Middleware;
 use Closure;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
-use Illuminate\Support\Facades\Auth;
-use App\Http\Models\User;
-class AdminMiddleware
+
+class MarketingMiddleware
 {
     /**
      * Handle an incoming request.
@@ -16,10 +15,13 @@ class AdminMiddleware
      */
     public function handle(Request $request, Closure $next): Response
     {
-        if (Auth::user() && Auth::user()->type == "admin") {
-
-            return $next($request);
+        if ($request->user() && ($request->user()->type === 'marketing' || $request->user()->type === 'admin')) {
+        return $next($request);
         }
-        return response()->json(['error' => 'you are not Admin'], 401);
+
+        return response()->json([
+            'success' => false,
+            'message' => 'Unauthorized. Marketing role required.'
+        ], 403);
     }
 }

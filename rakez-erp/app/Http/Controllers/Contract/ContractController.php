@@ -12,7 +12,6 @@ use App\Models\Contract;
 use App\Services\Contract\ContractService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
 use Exception;
 
 class ContractController extends Controller
@@ -28,13 +27,28 @@ class ContractController extends Controller
     public function index(Request $request): JsonResponse
     {
         try {
+            $user = auth()->user();
             $filters = [
                 'status' => $request->input('status'),
-                'user_id' => Auth::id(),
                 'city' => $request->input('city'),
                 'district' => $request->input('district'),
                 'project_name' => $request->input('project_name'),
             ];
+
+            // Apply access control filters
+            if ($user->can('contracts.view_all')) {
+                // Can view all, no user filter enforced
+            } elseif ($user->isManager() && $user->team) {
+                // Manager sees team contracts
+                // Note: Service needs to support team filtering. 
+                // For now, we'll filter by the manager's ID to avoid breaking, 
+                // but ideally this should pass the team or list of user IDs.
+                // Assuming for now we default to own contracts if service doesn't support team yet.
+                $filters['user_id'] = $user->id; 
+            } else {
+                // Regular user sees only their own
+                $filters['user_id'] = $user->id;
+            }
 
             $perPage = $request->input('per_page', 15);
 
@@ -62,6 +76,8 @@ class ContractController extends Controller
 
     public function store(StoreContractRequest $request): JsonResponse
     {
+        $this->authorize('create', Contract::class);
+
         try {
             $validated = $request->validated();
 
@@ -84,7 +100,11 @@ class ContractController extends Controller
     public function show(int $id): JsonResponse
     {
         try {
-            $contract = $this->contractService->getContractById($id, Auth::id());
+            // Fetch contract without service-level auth check
+            $contract = $this->contractService->getContractById($id, null);
+            
+            // Enforce Policy
+            $this->authorize('view', $contract);
 
             return response()->json([
                 'success' => true,
@@ -92,7 +112,11 @@ class ContractController extends Controller
                 'data' => new ContractResource($contract)
             ], 200);
         } catch (Exception $e) {
-            $statusCode = str_contains($e->getMessage(), 'Unauthorized') ? 403 : 404;
+            $statusCode = 404;
+            if ($e instanceof \Illuminate\Auth\Access\AuthorizationException) {
+                $statusCode = 403;
+            }
+            
             return response()->json([
                 'success' => false,
                 'message' => $e->getMessage(),
@@ -100,33 +124,20 @@ class ContractController extends Controller
         }
     }
 
-
-    public function show_editor(int $id): JsonResponse
-    {
-        try {
-            $contract = $this->contractService->getContractById($id, Auth::id());
-
-            return response()->json([
-                'success' => true,
-                'message' => 'تم جلب العقد بنجاح',
-                'data' => new ContractResource($contract)
-            ], 200);
-        } catch (Exception $e) {
-            $statusCode = str_contains($e->getMessage(), 'Unauthorized') ? 403 : 404;
-            return response()->json([
-                'success' => false,
-                'message' => $e->getMessage(),
-            ], $statusCode);
-        }
-    }
 
 
     public function update(UpdateContractRequest $request, int $id): JsonResponse
     {
         try {
+            // Fetch contract to authorize
+            $contract = $this->contractService->getContractById($id, null);
+            
+            $this->authorize('update', $contract);
+
             $validated = $request->validated();
 
-            $contract = $this->contractService->updateContract($id, $validated, Auth::id());
+            // Pass null for userId to skip service auth check since we already authorized
+            $contract = $this->contractService->updateContract($id, $validated, null);
 
             return response()->json([
                 'success' => true,
@@ -134,16 +145,17 @@ class ContractController extends Controller
                 'data' => new ContractResource($contract->load('user', 'info'))
             ], 200);
         } catch (Exception $e) {
-            if (str_contains($e->getMessage(), 'Unauthorized')) {
-                return response()->json([
-                    'success' => false,
-                    'message' => $e->getMessage(),
-                ], 403);
+            $statusCode = 422;
+            if ($e instanceof \Illuminate\Auth\Access\AuthorizationException) {
+                $statusCode = 403;
+            } elseif ($e->getMessage() === 'Contract not found') {
+                $statusCode = 404;
             }
+
             return response()->json([
                 'success' => false,
                 'message' => $e->getMessage(),
-            ], $e->getMessage() === 'Contract not found' ? 404 : 422);
+            ], $statusCode);
         }
     }
 
@@ -151,23 +163,28 @@ class ContractController extends Controller
     public function destroy(int $id): JsonResponse
     {
         try {
-            $this->contractService->deleteContract($id, Auth::id());
+            $contract = $this->contractService->getContractById($id, null);
+            
+            $this->authorize('delete', $contract);
+
+            $this->contractService->deleteContract($id, null);
 
             return response()->json([
                 'success' => true,
                 'message' => 'تم حذف العقد بنجاح'
             ], 200);
         } catch (Exception $e) {
-            if (str_contains($e->getMessage(), 'Unauthorized')) {
-                return response()->json([
-                    'success' => false,
-                    'message' => $e->getMessage(),
-                ], 403);
+            $statusCode = 422;
+            if ($e instanceof \Illuminate\Auth\Access\AuthorizationException) {
+                $statusCode = 403;
+            } elseif ($e->getMessage() === 'Contract not found') {
+                $statusCode = 404;
             }
+
             return response()->json([
                 'success' => false,
                 'message' => $e->getMessage(),
-            ], $e->getMessage() === 'Contract not found' ? 404 : 422);
+            ], $statusCode);
         }
     }
 
@@ -209,162 +226,6 @@ class ContractController extends Controller
     }
 
 
-
-    public function project_mange_index(Request $request): JsonResponse
-    {
-        try {
-            $filters = [
-                'status' => $request->input('status'),
-                'user_id' => $request->input('user_id'),
-                'city' => $request->input('city'),
-                'district' => $request->input('district'),
-                'project_name' => $request->input('project_name'),
-                'has_photography' => $request->input('has_photography'),
-                'has_montage' => $request->input('has_montage'),
-            ];
-
-            $perPage = $request->input('per_page', 15);
-
-            $contracts = $this->contractService->getContractsForAdmin($filters, (int) $perPage);
-
-            return response()->json([
-                'success' => true,
-                'message' => 'تم جلب العقود بنجاح',
-                'data' => ContractIndexResource::collection($contracts->items()),
-                'meta' => [
-                    'total' => $contracts->total(),
-                    'count' => $contracts->count(),
-                    'per_page' => $contracts->perPage(),
-                    'current_page' => $contracts->currentPage(),
-                    'last_page' => $contracts->lastPage(),
-                ]
-            ], 200);
-        } catch (Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => $e->getMessage(),
-            ], 500);
-        }
-    }
-
-
-
-
-    public function editor_index(Request $request): JsonResponse
-    {
-        try {
-            $filters = [
-                'status' => $request->input('status'),
-                'user_id' => $request->input('user_id'),
-                'city' => $request->input('city'),
-                'district' => $request->input('district'),
-                'project_name' => $request->input('project_name'),
-                'has_photography' => $request->input('has_photography'),
-                'has_montage' => $request->input('has_montage'),
-            ];
-
-            $perPage = $request->input('per_page', 15);
-
-            $contracts = $this->contractService->getContractsForAdmin($filters, (int) $perPage);
-
-            return response()->json([
-                'success' => true,
-                'message' => 'تم جلب العقود بنجاح',
-                'data' => ContractIndexResource::collection($contracts->items()),
-                'meta' => [
-                    'total' => $contracts->total(),
-                    'count' => $contracts->count(),
-                    'per_page' => $contracts->perPage(),
-                    'current_page' => $contracts->currentPage(),
-                    'last_page' => $contracts->lastPage(),
-                ]
-            ], 200);
-        } catch (Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => $e->getMessage(),
-            ], 500);
-        }
-    }
-
-    // ==========================================
-    // PROJECT MANAGEMENT - Contract Teams APIs
-    // ==========================================
-
-    public function addTeamsToContract(Request $request, int $contractId): JsonResponse
-    {
-        try {
-            $validated = $request->validate([
-                'team_ids' => 'required|array|min:1',
-                'team_ids.*' => 'integer|exists:teams,id',
-            ]);
-
-            $contract = $this->contractService->attachTeamsToContract($contractId, $validated['team_ids']);
-
-            return response()->json([
-                'success' => true,
-                'message' => 'تم إضافة الفرق للعقد بنجاح',
-                'data' => [
-                    'contract_id' => $contract->id,
-                    'teams' => $contract->teams->map(fn ($t) => ['id' => $t->id, 'name' => $t->name]),
-                ],
-            ], 200);
-        } catch (Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => $e->getMessage(),
-            ], 422);
-        }
-    }
-
-    public function removeTeamsFromContract(Request $request, int $contractId): JsonResponse
-    {
-        try {
-            $validated = $request->validate([
-                'team_ids' => 'required|array|min:1',
-                'team_ids.*' => 'integer|exists:teams,id',
-            ]);
-
-            $contract = $this->contractService->detachTeamsFromContract($contractId, $validated['team_ids']);
-
-            return response()->json([
-                'success' => true,
-                'message' => 'تم إزالة الفرق من العقد بنجاح',
-                'data' => [
-                    'contract_id' => $contract->id,
-                    'teams' => $contract->teams->map(fn ($t) => ['id' => $t->id, 'name' => $t->name]),
-                ],
-            ], 200);
-        } catch (Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => $e->getMessage(),
-            ], 422);
-        }
-    }
-
-    public function getTeamsForContract(int $contractId): JsonResponse
-    {
-        try {
-            $teams = $this->contractService->getContractTeams($contractId);
-
-            return response()->json([
-                'success' => true,
-                'message' => 'تم جلب فرق العقد بنجاح',
-                'data' => $teams->map(fn ($t) => [
-                    'id' => $t->id,
-                    'name' => $t->name,
-                    'description' => $t->description,
-                ]),
-            ], 200);
-        } catch (Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => $e->getMessage(),
-            ], 404);
-        }
-    }
-
     public function adminUpdateStatus(UpdateContractStatusRequest $request, int $id): JsonResponse
     {
         try {
@@ -385,7 +246,10 @@ class ContractController extends Controller
         }
     }
 
-
+    /**
+     * Update contract status by Project Management
+     * Can set status to 'ready' or 'rejected'
+     */
     public function projectManagementUpdateStatus(Request $request, int $id): JsonResponse
     {
         try {
@@ -413,28 +277,4 @@ class ContractController extends Controller
             ], $statusCode);
         }
     }
-
-
-    public function getTeamsForContract_HR(int $contractId): JsonResponse
-    {
-        try {
-            $teams = $this->contractService->getContractTeams($contractId);
-
-            return response()->json([
-                'success' => true,
-                'message' => 'تم جلب فرق العقد بنجاح',
-                'data' => $teams->map(fn ($t) => [
-                    'id' => $t->id,
-                    'name' => $t->name,
-                    'description' => $t->description,
-                ]),
-            ], 200);
-        } catch (Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => $e->getMessage(),
-            ], 404);
-        }
-    }
-
 }

@@ -36,5 +36,30 @@ class ContractUnit extends Model
     {
         return $this->belongsTo(SecondPartyData::class);
     }
+
+    /**
+     * Get the sales reservations for this unit.
+     */
+    public function salesReservations()
+    {
+        return $this->hasMany(\App\Models\SalesReservation::class);
+    }
+
+    /**
+     * Get active sales reservations for this unit.
+     */
+    public function activeSalesReservations()
+    {
+        return $this->hasMany(\App\Models\SalesReservation::class)
+            ->whereIn('status', ['under_negotiation', 'confirmed']);
+    }
+
+    /**
+     * Get the sales targets for this unit.
+     */
+    public function salesTargets()
+    {
+        return $this->hasMany(\App\Models\SalesTarget::class);
+    }
 }
 

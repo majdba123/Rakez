@@ -1,9 +1,7 @@
 <?php
 
 use App\Http\Middleware\AdminMiddleware;
-use App\Http\Middleware\HrMiddleware;
-use App\Http\Middleware\EditorMiddleware;
-
+use App\Http\Middleware\EnsureSalesLeader;
 use App\Http\Middleware\ProjectManagementMiddleware;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
@@ -21,12 +19,13 @@ return Application::configure(basePath: dirname(__DIR__))
         // Register your middleware aliases here
         $middleware->alias([
             'admin' => AdminMiddleware::class,
-            'hr' => HrMiddleware::class,
             'project_management' => ProjectManagementMiddleware::class,
-            'editor' => EditorMiddleware::class,
-
+            'sales_leader' => EnsureSalesLeader::class,
             'auth' => \App\Http\Middleware\Authenticate::class,
-            // ... other middlewares
+            'role' => \Spatie\Permission\Middleware\RoleMiddleware::class,
+            'permission' => \Spatie\Permission\Middleware\PermissionMiddleware::class,
+            'role_or_permission' => \Spatie\Permission\Middleware\RoleOrPermissionMiddleware::class,
+            'marketing' => \App\Http\Middleware\MarketingMiddleware::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {

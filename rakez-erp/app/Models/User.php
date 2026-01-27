@@ -7,10 +7,11 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
+use Spatie\Permission\Traits\HasRoles;
 
 class User extends Authenticatable
 {
-    use HasApiTokens, HasFactory, Notifiable;
+    use HasApiTokens, HasFactory, Notifiable, HasRoles;
 
 
     protected $fillable = [
@@ -96,5 +97,117 @@ class User extends Authenticatable
     public function isManager(): bool
     {
         return $this->is_manager === true;
+    }
+
+    /**
+     * Get sales reservations created by this user (as marketing employee).
+     */
+    public function salesReservations()
+    {
+        return $this->hasMany(\App\Models\SalesReservation::class, 'marketing_employee_id');
+    }
+
+    /**
+     * Get sales targets assigned to this user (as marketer).
+     */
+    public function salesTargetsAsMarketer()
+    {
+        return $this->hasMany(\App\Models\SalesTarget::class, 'marketer_id');
+    }
+
+    /**
+     * Get sales targets created by this user (as leader).
+     */
+    public function salesTargetsAsLeader()
+    {
+        return $this->hasMany(\App\Models\SalesTarget::class, 'leader_id');
+    }
+
+    /**
+     * Get attendance schedules for this user.
+     */
+    public function attendanceSchedules()
+    {
+        return $this->hasMany(\App\Models\SalesAttendanceSchedule::class, 'user_id');
+    }
+
+    /**
+     * Get marketing tasks assigned to this user.
+     */
+    public function marketingTasks()
+    {
+        return $this->hasMany(\App\Models\MarketingTask::class, 'marketer_id');
+    }
+
+    /**
+     * Get sales project assignments for this user (as leader).
+     */
+    public function salesProjectAssignments()
+    {
+        return $this->hasMany(\App\Models\SalesProjectAssignment::class, 'leader_id');
+    }
+
+    /**
+     * Get sales reservation actions performed by this user.
+     */
+    public function salesReservationActions()
+    {
+        return $this->hasMany(\App\Models\SalesReservationAction::class);
+    }
+
+    /**
+     * Get the marketing project teams this user belongs to.
+     */
+    public function marketingProjectTeams()
+    {
+        return $this->hasMany(MarketingProjectTeam::class);
+    }
+
+    /**
+     * Get the marketing projects this user leads.
+     */
+    public function ledMarketingProjects()
+    {
+        return $this->hasMany(MarketingProject::class, 'assigned_team_leader');
+    }
+
+    /**
+     * Get the employee marketing plans for this user.
+     */
+    public function employeeMarketingPlans()
+    {
+        return $this->hasMany(EmployeeMarketingPlan::class);
+    }
+
+    /**
+     * Get the leads assigned to this user.
+     */
+    public function assignedLeads()
+    {
+        return $this->hasMany(Lead::class, 'assigned_to');
+    }
+
+    /**
+     * Check if user is a sales team leader.
+     */
+    public function isSalesLeader(): bool
+    {
+        return $this->hasRole('sales_leader') || ($this->type === 'sales' && $this->is_manager === true);
+    }
+
+    /**
+     * Sync roles from the 'type' column.
+     * Useful for migration or when 'type' is updated.
+     */
+    public function syncRolesFromType(): void
+    {
+        $roleName = $this->type;
+        if ($this->type === 'sales' && $this->is_manager) {
+            $roleName = 'sales_leader';
+        }
+
+        if (\Spatie\Permission\Models\Role::where('name', $roleName)->exists()) {
+            $this->syncRoles([$roleName]);
+        }
     }
 }
