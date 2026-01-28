@@ -125,4 +125,19 @@ class RegisterController extends Controller
             'stats' => $stats,
         ]);
     }
+
+    /**
+     * List all available roles for dropdown
+     *
+     * @return JsonResponse
+     */
+    public function list_roles(): JsonResponse
+    {
+        $roles = \Spatie\Permission\Models\Role::all(['id', 'name']);
+
+        return response()->json([
+            'message' => 'Roles retrieved successfully',
+            'data' => $roles,
+        ]);
+    }
 }

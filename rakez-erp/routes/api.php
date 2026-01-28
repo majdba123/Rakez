@@ -223,6 +223,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::prefix('admin')->middleware(['auth:sanctum', 'role:admin'])->group(function () {
 
             Route::prefix('employees')->group(function () {
+                Route::get('/roles', [RegisterController::class, 'list_roles'])->middleware('permission:employees.manage');
                 Route::post('/add_employee', [RegisterController::class, 'add_employee'])->middleware('permission:employees.manage');
                     Route::get('/list_employees', [RegisterController::class, 'list_employees'])->middleware('permission:employees.manage');
                     Route::get('/show_employee/{id}', [RegisterController::class, 'show_employee'])->middleware('permission:employees.manage');

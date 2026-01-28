@@ -1,0 +1,714 @@
+{
+	"info": {
+		"_postman_id": "employee-role-management-collection",
+		"name": "Rakez ERP - Employee Role Management",
+		"description": "API documentation for Employee Role Management with Spatie Permissions in Rakez ERP. Allows administrators to manage employee roles via dropdown selection.",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "Authentication",
+			"item": [
+				{
+					"name": "Login as Admin",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"email\": \"admin@rakez.com\",\n    \"password\": \"password\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/api/login",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"login"
+							]
+						},
+						"description": "Login to get authentication token. Use admin credentials to access employee management endpoints."
+					},
+					"response": [
+						{
+							"name": "Success Response",
+							"originalRequest": {
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"email\": \"admin@rakez.com\",\n    \"password\": \"password\"\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{base_url}}/api/login",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"api",
+										"login"
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [],
+							"cookie": [],
+							"body": "{\n    \"token\": \"1|abc123xyz...\",\n    \"user\": {\n        \"id\": 1,\n        \"name\": \"Admin User\",\n        \"email\": \"admin@rakez.com\",\n        \"type\": \"admin\"\n    }\n}"
+						}
+					]
+				}
+			]
+		},
+		{
+			"name": "Roles Management",
+			"item": [
+				{
+					"name": "List All Roles",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}",
+								"type": "text"
+							},
+							{
+								"key": "Accept",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/admin/employees/roles",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"admin",
+								"employees",
+								"roles"
+							]
+						},
+						"description": "Get all available roles for dropdown selection. Requires `employees.manage` permission."
+					},
+					"response": [
+						{
+							"name": "Success Response",
+							"originalRequest": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{token}}",
+										"type": "text"
+									}
+								],
+								"url": {
+									"raw": "{{base_url}}/api/admin/employees/roles",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"api",
+										"admin",
+										"employees",
+										"roles"
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [],
+							"cookie": [],
+							"body": "{\n    \"message\": \"Roles retrieved successfully\",\n    \"data\": [\n        {\n            \"id\": 1,\n            \"name\": \"admin\"\n        },\n        {\n            \"id\": 2,\n            \"name\": \"sales\"\n        },\n        {\n            \"id\": 3,\n            \"name\": \"sales_leader\"\n        },\n        {\n            \"id\": 4,\n            \"name\": \"marketing\"\n        },\n        {\n            \"id\": 5,\n            \"name\": \"project_management\"\n        },\n        {\n            \"id\": 6,\n            \"name\": \"editor\"\n        },\n        {\n            \"id\": 7,\n            \"name\": \"hr\"\n        }\n    ]\n}"
+						}
+					]
+				}
+			]
+		},
+		{
+			"name": "Employee Management",
+			"item": [
+				{
+					"name": "Add Employee with Specific Role",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}",
+								"type": "text"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							},
+							{
+								"key": "Accept",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"name\": \"John Doe\",\n    \"email\": \"john.doe@rakez.com\",\n    \"phone\": \"1234567890\",\n    \"password\": \"password123\",\n    \"type\": 5,\n    \"role\": \"sales_leader\",\n    \"team\": 1,\n    \"is_manager\": true,\n    \"identity_number\": \"ID123456\",\n    \"birthday\": \"1990-01-15\",\n    \"date_of_works\": \"2024-01-01\",\n    \"contract_type\": \"full-time\",\n    \"iban\": \"SA1234567890123456789012\",\n    \"salary\": 5000,\n    \"marital_status\": \"single\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/api/admin/employees/add_employee",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"admin",
+								"employees",
+								"add_employee"
+							]
+						},
+						"description": "Create a new employee with a specific role. The `role` field allows you to assign any role from the available roles list, regardless of the `type` value.\n\n**Required Fields:**\n- name\n- email\n- password\n- type (0-8)\n- team (team ID)\n\n**Optional Fields:**\n- role (role name from roles list)\n- phone\n- is_manager\n- identity_number\n- birthday\n- date_of_works\n- contract_type\n- iban\n- salary\n- marital_status\n\n**Type Values:**\n- 0: marketing\n- 1: admin\n- 2: project_acquisition\n- 3: project_management\n- 4: editor\n- 5: sales\n- 6: accounting\n- 7: credit\n- 8: HR"
+					},
+					"response": [
+						{
+							"name": "Success Response",
+							"originalRequest": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{token}}",
+										"type": "text"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"name\": \"John Doe\",\n    \"email\": \"john.doe@rakez.com\",\n    \"phone\": \"1234567890\",\n    \"password\": \"password123\",\n    \"type\": 5,\n    \"role\": \"sales_leader\",\n    \"team\": 1\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{base_url}}/api/admin/employees/add_employee",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"api",
+										"admin",
+										"employees",
+										"add_employee"
+									]
+								}
+							},
+							"status": "Created",
+							"code": 201,
+							"_postman_previewlanguage": "json",
+							"header": [],
+							"cookie": [],
+							"body": "{\n    \"data\": {\n        \"id\": 10,\n        \"name\": \"John Doe\",\n        \"email\": \"john.doe@rakez.com\",\n        \"phone\": \"1234567890\",\n        \"type\": \"sales\",\n        \"team\": 1,\n        \"created_at\": \"2026-01-28T10:30:00.000000Z\",\n        \"updated_at\": \"2026-01-28T10:30:00.000000Z\"\n    },\n    \"message\": \"User registered successfully\"\n}"
+						},
+						{
+							"name": "Validation Error - Invalid Role",
+							"originalRequest": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{token}}",
+										"type": "text"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"name\": \"John Doe\",\n    \"email\": \"john.doe@rakez.com\",\n    \"password\": \"password123\",\n    \"type\": 5,\n    \"role\": \"invalid_role\",\n    \"team\": 1\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{base_url}}/api/admin/employees/add_employee",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"api",
+										"admin",
+										"employees",
+										"add_employee"
+									]
+								}
+							},
+							"status": "Unprocessable Entity",
+							"code": 422,
+							"_postman_previewlanguage": "json",
+							"header": [],
+							"cookie": [],
+							"body": "{\n    \"errors\": {\n        \"role\": [\n            \"The selected role does not exist.\"\n        ]\n    }\n}"
+						}
+					]
+				},
+				{
+					"name": "Add Employee without Role (Auto-sync)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}",
+								"type": "text"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							},
+							{
+								"key": "Accept",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"name\": \"Jane Smith\",\n    \"email\": \"jane.smith@rakez.com\",\n    \"phone\": \"0987654321\",\n    \"password\": \"password123\",\n    \"type\": 5,\n    \"team\": 1,\n    \"is_manager\": false\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/api/admin/employees/add_employee",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"admin",
+								"employees",
+								"add_employee"
+							]
+						},
+						"description": "Create a new employee without specifying a role. The system will automatically assign a role based on the `type` and `is_manager` fields. This maintains backward compatibility."
+					},
+					"response": [
+						{
+							"name": "Success Response",
+							"originalRequest": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{token}}",
+										"type": "text"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"name\": \"Jane Smith\",\n    \"email\": \"jane.smith@rakez.com\",\n    \"password\": \"password123\",\n    \"type\": 5,\n    \"team\": 1\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{base_url}}/api/admin/employees/add_employee",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"api",
+										"admin",
+										"employees",
+										"add_employee"
+									]
+								}
+							},
+							"status": "Created",
+							"code": 201,
+							"_postman_previewlanguage": "json",
+							"header": [],
+							"cookie": [],
+							"body": "{\n    \"data\": {\n        \"id\": 11,\n        \"name\": \"Jane Smith\",\n        \"email\": \"jane.smith@rakez.com\",\n        \"phone\": \"0987654321\",\n        \"type\": \"sales\",\n        \"team\": 1,\n        \"created_at\": \"2026-01-28T10:35:00.000000Z\",\n        \"updated_at\": \"2026-01-28T10:35:00.000000Z\"\n    },\n    \"message\": \"User registered successfully\"\n}"
+						}
+					]
+				},
+				{
+					"name": "Update Employee Role",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}",
+								"type": "text"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							},
+							{
+								"key": "Accept",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"role\": \"marketing\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/api/admin/employees/update_employee/:id",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"admin",
+								"employees",
+								"update_employee",
+								":id"
+							],
+							"variable": [
+								{
+									"key": "id",
+									"value": "10",
+									"description": "Employee ID"
+								}
+							]
+						},
+						"description": "Update an employee's role. You can change the role to any available role from the roles list."
+					},
+					"response": [
+						{
+							"name": "Success Response",
+							"originalRequest": {
+								"method": "PUT",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{token}}",
+										"type": "text"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"role\": \"marketing\"\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{base_url}}/api/admin/employees/update_employee/10",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"api",
+										"admin",
+										"employees",
+										"update_employee",
+										"10"
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [],
+							"cookie": [],
+							"body": "{\n    \"data\": {\n        \"id\": 10,\n        \"name\": \"John Doe\",\n        \"email\": \"john.doe@rakez.com\",\n        \"phone\": \"1234567890\",\n        \"type\": \"sales\",\n        \"team\": 1,\n        \"updated_at\": \"2026-01-28T11:00:00.000000Z\"\n    },\n    \"message\": \"Employee updated successfully\"\n}"
+						}
+					]
+				},
+				{
+					"name": "Update Employee (Full Update)",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}",
+								"type": "text"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							},
+							{
+								"key": "Accept",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"name\": \"John Doe Updated\",\n    \"email\": \"john.updated@rakez.com\",\n    \"phone\": \"1234567899\",\n    \"role\": \"sales_leader\",\n    \"is_manager\": true,\n    \"salary\": 6000,\n    \"marital_status\": \"married\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/api/admin/employees/update_employee/:id",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"admin",
+								"employees",
+								"update_employee",
+								":id"
+							],
+							"variable": [
+								{
+									"key": "id",
+									"value": "10",
+									"description": "Employee ID"
+								}
+							]
+						},
+						"description": "Update multiple employee fields including role. All fields are optional."
+					},
+					"response": []
+				},
+				{
+					"name": "List Employees",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}",
+								"type": "text"
+							},
+							{
+								"key": "Accept",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/admin/employees/list_employees?per_page=15&page=1",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"admin",
+								"employees",
+								"list_employees"
+							],
+							"query": [
+								{
+									"key": "per_page",
+									"value": "15",
+									"description": "Items per page"
+								},
+								{
+									"key": "page",
+									"value": "1",
+									"description": "Page number"
+								},
+								{
+									"key": "type",
+									"value": "5",
+									"description": "Filter by type (0-8)",
+									"disabled": true
+								},
+								{
+									"key": "search",
+									"value": "john",
+									"description": "Search by name, email, or phone",
+									"disabled": true
+								},
+								{
+									"key": "status",
+									"value": "active",
+									"description": "Filter by status (active/deleted)",
+									"disabled": true
+								}
+							]
+						},
+						"description": "List all employees with pagination and filtering options."
+					},
+					"response": []
+				},
+				{
+					"name": "Show Employee",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}",
+								"type": "text"
+							},
+							{
+								"key": "Accept",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/admin/employees/show_employee/:id",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"admin",
+								"employees",
+								"show_employee",
+								":id"
+							],
+							"variable": [
+								{
+									"key": "id",
+									"value": "10",
+									"description": "Employee ID"
+								}
+							]
+						},
+						"description": "Get details of a specific employee."
+					},
+					"response": []
+				},
+				{
+					"name": "Delete Employee",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}",
+								"type": "text"
+							},
+							{
+								"key": "Accept",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/admin/employees/delete_employee/:id",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"admin",
+								"employees",
+								"delete_employee",
+								":id"
+							],
+							"variable": [
+								{
+									"key": "id",
+									"value": "10",
+									"description": "Employee ID"
+								}
+							]
+						},
+						"description": "Soft delete an employee."
+					},
+					"response": []
+				},
+				{
+					"name": "Restore Employee",
+					"request": {
+						"method": "PATCH",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}",
+								"type": "text"
+							},
+							{
+								"key": "Accept",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/admin/employees/restore/:id",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"admin",
+								"employees",
+								"restore",
+								":id"
+							],
+							"variable": [
+								{
+									"key": "id",
+									"value": "10",
+									"description": "Employee ID"
+								}
+							]
+						},
+						"description": "Restore a soft-deleted employee."
+					},
+					"response": []
+				}
+			]
+		}
+	],
+	"variable": [
+		{
+			"key": "base_url",
+			"value": "http://localhost:8000",
+			"type": "string"
+		},
+		{
+			"key": "token",
+			"value": "",
+			"type": "string"
+		}
+	]
+}

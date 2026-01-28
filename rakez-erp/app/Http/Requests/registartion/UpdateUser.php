@@ -42,6 +42,7 @@ class UpdateUser extends FormRequest
                     }
                 },
             ],
+            'role' => 'nullable|string|exists:roles,name',
             'is_manager' => 'nullable|boolean',
             // Profile fields
             // Team should be a valid teams.id
@@ -76,6 +77,7 @@ class UpdateUser extends FormRequest
             'password.min' => 'كلمة المرور يجب أن تكون على الأقل 6 أحرف',
             'type.integer' => 'نوع المستخدم يجب أن يكون رقماً',
             'type.between' => 'نوع المستخدم يجب أن يكون بين 0 و 7',
+            'role.exists' => 'The selected role does not exist.',
             'is_manager.boolean' => 'قيمة المدير يجب أن تكون صحيحة أو خاطئة',
         ];
     }
