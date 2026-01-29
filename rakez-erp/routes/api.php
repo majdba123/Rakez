@@ -46,6 +46,7 @@ use App\Http\Controllers\Marketing\TeamManagementController;
 use App\Http\Controllers\Marketing\LeadController;
 use App\Http\Controllers\Marketing\MarketingReportController;
 use App\Http\Controllers\Marketing\MarketingSettingsController;
+use App\Http\Controllers\Dashboard\DashboardController;
 
 use Illuminate\Support\Facades\File;  // أضف هذا السطر في الأعلى
 
@@ -129,6 +130,8 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::get('show/{contractId}', [PhotographyDepartmentController::class, 'show'])->middleware('permission:departments.photography.view');
             Route::post('store/{contractId}', [PhotographyDepartmentController::class, 'store'])->middleware('permission:departments.photography.edit');
             Route::put('update/{contractId}', [PhotographyDepartmentController::class, 'update'])->middleware('permission:departments.photography.edit');
+            Route::patch('approve/{contractId}', [PhotographyDepartmentController::class, 'approve']);
+
         });
 
         // لوحة تحكم إدارة المشاريع - Project Management Dashboard
@@ -148,7 +151,7 @@ Route::middleware('auth:sanctum')->group(function () {
                 Route::post('/store', [TeamController::class, 'store']);
                 Route::put('/update/{id}', [TeamController::class, 'update']);
                 Route::delete('/delete/{id}', [TeamController::class, 'destroy']);
-                Route::delete('/show/{id}', [TeamController::class, 'show']);
+                Route::get('/show/{id}', [TeamController::class, 'show']);
 
                 Route::get('/index/{contractId}', [ContractController::class, 'getTeamsForContract_HR']);
                 Route::get('/contracts/{teamId}', [TeamController::class, 'contracts'])->whereNumber('teamId');
@@ -366,11 +369,26 @@ Route::middleware('auth:sanctum')->group(function () {
 
 
     Route::prefix('hr')->middleware(['auth:sanctum', 'hr'])->group(function () {
+
+
         Route::post('/add_employee', [RegisterController::class, 'add_employee']);
         Route::get('/list_employees', [RegisterController::class, 'list_employees']);
         Route::get('/show_employee/{id}', [RegisterController::class, 'show_employee']);
         Route::put('/update_employee/{id}', [RegisterController::class, 'update_employee']);
         Route::delete('/delete_employee/{id}', [RegisterController::class, 'delete_employee']);
+
+
+        Route::prefix('teams')->group(function () {
+
+
+            Route::get('/contracts/{teamId}', [TeamController::class, 'contracts'])->whereNumber('teamId');
+            Route::get('/contracts/locations/{teamId}', [TeamController::class, 'contractLocations'])->whereNumber('teamId');
+            Route::get('/sales-average/{teamId}', [TeamController::class, 'salesAverage'])->whereNumber('teamId');
+            Route::get('/getTeamsForContract/{contractId}', [ContractController::class, 'getTeamsForContract']);
+        });
+
+        Route::get('/dashboard', [DashboardController::class, 'hr']);
+
     });
 
 
