@@ -378,7 +378,8 @@ Route::middleware('auth:sanctum')->group(function () {
 
 
     Route::prefix('teams')->middleware(['auth:sanctum'])->group(function () {
+
             Route::get('/index', [TeamController::class, 'index']);
             Route::get('/show/{id}', [TeamController::class, 'show']);
         });
-    });
+
