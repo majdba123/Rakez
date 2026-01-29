@@ -143,6 +143,8 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::prefix('project_management')->group(function () {
 
             Route::prefix('teams')->group(function () {
+
+                Route::get('/index', [TeamController::class, 'index']);
                 Route::post('/store', [TeamController::class, 'store']);
                 Route::put('/update/{id}', [TeamController::class, 'update']);
                 Route::delete('/delete/{id}', [TeamController::class, 'destroy']);
