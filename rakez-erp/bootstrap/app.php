@@ -6,6 +6,8 @@ use App\Http\Middleware\ProjectManagementMiddleware;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
+use App\Http\Middleware\HrMiddleware;
+use App\Http\Middleware\EditorMiddleware;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -21,6 +23,9 @@ return Application::configure(basePath: dirname(__DIR__))
             'admin' => AdminMiddleware::class,
             'project_management' => ProjectManagementMiddleware::class,
             'sales_leader' => EnsureSalesLeader::class,
+            'hr' => HrMiddleware::class,
+            'editor' => EditorMiddleware::class,
+
             'auth' => \App\Http\Middleware\Authenticate::class,
             'role' => \Spatie\Permission\Middleware\RoleMiddleware::class,
             'permission' => \Spatie\Permission\Middleware\PermissionMiddleware::class,
