@@ -3,6 +3,7 @@
 namespace Tests\Feature\AI;
 
 use Tests\TestCase;
+use PHPUnit\Framework\Attributes\Test;
 use App\Models\User;
 use App\Models\Contract;
 use App\Models\MarketingProject;
@@ -51,7 +52,7 @@ class MarketingContextTest extends TestCase
         ]);
     }
 
-    /** @test */
+    #[Test]
     public function it_includes_marketing_dashboard_kpis_in_ai_context()
     {
         Lead::factory()->count(10)->create();
@@ -67,7 +68,7 @@ class MarketingContextTest extends TestCase
         // and the section is recognized.
     }
 
-    /** @test */
+    #[Test]
     public function it_includes_marketing_projects_list_in_ai_context()
     {
         $contract = Contract::factory()->create(['status' => 'approved']);

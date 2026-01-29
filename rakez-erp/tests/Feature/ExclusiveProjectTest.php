@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use Tests\TestCase;
+use PHPUnit\Framework\Attributes\Test;
 use App\Models\User;
 use App\Models\ExclusiveProjectRequest;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -35,7 +36,7 @@ class ExclusiveProjectTest extends TestCase
         $this->hrStaff->syncRolesFromType();
     }
 
-    /** @test */
+    #[Test]
     public function sales_staff_can_create_exclusive_project_request()
     {
         $data = [
@@ -65,7 +66,7 @@ class ExclusiveProjectTest extends TestCase
         ]);
     }
 
-    /** @test */
+    #[Test]
     public function hr_staff_cannot_create_exclusive_project_request()
     {
         $data = [
@@ -81,7 +82,7 @@ class ExclusiveProjectTest extends TestCase
         $response->assertStatus(403);
     }
 
-    /** @test */
+    #[Test]
     public function can_retrieve_exclusive_project_requests()
     {
         ExclusiveProjectRequest::factory()->count(3)->create([
@@ -96,7 +97,7 @@ class ExclusiveProjectTest extends TestCase
             ->assertJsonCount(3, 'data');
     }
 
-    /** @test */
+    #[Test]
     public function can_get_single_exclusive_project_request()
     {
         $request = ExclusiveProjectRequest::factory()->create([
@@ -116,7 +117,7 @@ class ExclusiveProjectTest extends TestCase
             ]);
     }
 
-    /** @test */
+    #[Test]
     public function project_manager_can_approve_exclusive_project_request()
     {
         $request = ExclusiveProjectRequest::factory()->create([
@@ -140,7 +141,7 @@ class ExclusiveProjectTest extends TestCase
         ]);
     }
 
-    /** @test */
+    #[Test]
     public function sales_staff_cannot_approve_exclusive_project_request()
     {
         $request = ExclusiveProjectRequest::factory()->create([
@@ -154,7 +155,7 @@ class ExclusiveProjectTest extends TestCase
         $response->assertStatus(403);
     }
 
-    /** @test */
+    #[Test]
     public function project_manager_can_reject_exclusive_project_request()
     {
         $request = ExclusiveProjectRequest::factory()->create([
@@ -182,7 +183,7 @@ class ExclusiveProjectTest extends TestCase
         ]);
     }
 
-    /** @test */
+    #[Test]
     public function can_complete_contract_for_approved_request()
     {
         $request = ExclusiveProjectRequest::factory()->create([
@@ -219,7 +220,7 @@ class ExclusiveProjectTest extends TestCase
         ]);
     }
 
-    /** @test */
+    #[Test]
     public function cannot_complete_contract_for_pending_request()
     {
         $request = ExclusiveProjectRequest::factory()->create([

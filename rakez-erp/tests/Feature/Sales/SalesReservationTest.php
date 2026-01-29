@@ -164,6 +164,8 @@ class SalesReservationTest extends TestCase
         $data = $this->getValidReservationData();
         $data['reservation_type'] = 'negotiation';
         $data['negotiation_notes'] = 'Client wants 10% discount';
+        $data['negotiation_reason'] = 'السعر';
+        $data['proposed_price'] = 450000;
 
         $response = $this->actingAs($this->salesUser, 'sanctum')
             ->postJson('/api/sales/reservations', $data);

@@ -149,6 +149,8 @@ class SalesReservationDoubleBookingTest extends TestCase
         $reservationData = $this->getReservationData($data['contract']->id, $data['unit']->id);
         $reservationData['reservation_type'] = 'negotiation';
         $reservationData['negotiation_notes'] = 'Test negotiation notes';
+        $reservationData['negotiation_reason'] = 'السعر';
+        $reservationData['proposed_price'] = 450000;
 
         // First negotiation reservation
         $response1 = $this->actingAs($this->salesUser1, 'sanctum')
@@ -177,6 +179,8 @@ class SalesReservationDoubleBookingTest extends TestCase
         $negotiationData = $this->getReservationData($data['contract']->id, $data['unit']->id);
         $negotiationData['reservation_type'] = 'negotiation';
         $negotiationData['negotiation_notes'] = 'Test notes';
+        $negotiationData['negotiation_reason'] = 'السعر';
+        $negotiationData['proposed_price'] = 450000;
         
         $response2 = $this->actingAs($this->salesUser2, 'sanctum')
             ->postJson('/api/sales/reservations', $negotiationData);

@@ -69,7 +69,32 @@ This directory contains complete documentation for the **Sales Module** and **AI
 
 ---
 
-#### AI Assistant Collection
+#### AI Assistant Help Collection (NEW)
+**File:** [postman/collections/AI_ASSISTANT_HELP_COLLECTION.json](./postman/collections/AI_ASSISTANT_HELP_COLLECTION.json)  
+**Endpoints:** 6  
+**Categories:**
+- Authentication (1 endpoint)
+- Chat (3 endpoints)
+- Knowledge Management (4 endpoints)
+- Error Examples (3 endpoints)
+
+**Features:**
+- ✅ Permission-based chat with knowledge filtering
+- ✅ Knowledge CRUD for admins
+- ✅ Arabic and English examples
+- ✅ Complete error response examples
+
+**How to Import:**
+1. Open Postman
+2. Click "Import" button
+3. Select `AI_ASSISTANT_HELP_COLLECTION.json`
+4. Set environment variables:
+   - `base_url`: http://localhost/api
+   - `auth_token`: (will be set automatically after login)
+
+---
+
+#### AI Assistant (Existing) Collection
 **File:** [POSTMAN_AI_ASSISTANT_COLLECTION.json](./POSTMAN_AI_ASSISTANT_COLLECTION.json)  
 **Endpoints:** 5 main + 8 examples  
 **Categories:**

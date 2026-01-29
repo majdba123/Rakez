@@ -3,6 +3,7 @@
 namespace Tests\Feature\Marketing;
 
 use Tests\TestCase;
+use PHPUnit\Framework\Attributes\Test;
 use App\Models\User;
 use App\Models\Lead;
 use App\Models\Contract;
@@ -22,7 +23,7 @@ class LeadManagementTest extends TestCase
         $this->marketingUser->assignRole('marketing');
     }
 
-    /** @test */
+    #[Test]
     public function it_can_create_lead()
     {
         $contract = Contract::factory()->create();
@@ -43,7 +44,7 @@ class LeadManagementTest extends TestCase
         ]);
     }
 
-    /** @test */
+    #[Test]
     public function it_can_list_leads()
     {
         Lead::factory()->count(3)->create();

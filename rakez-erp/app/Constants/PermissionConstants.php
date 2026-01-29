@@ -97,4 +97,18 @@ class PermissionConstants
     const EXCLUSIVE_PROJECTS_APPROVE = 'exclusive_projects.approve';
     const EXCLUSIVE_PROJECTS_CONTRACT_COMPLETE = 'exclusive_projects.contract.complete';
     const EXCLUSIVE_PROJECTS_CONTRACT_EXPORT = 'exclusive_projects.contract.export';
+
+    // AI Assistant
+    const USE_AI_ASSISTANT = 'use-ai-assistant';
+    const MANAGE_AI_KNOWLEDGE = 'manage-ai-knowledge';
+
+    // Credit
+    const CREDIT_DASHBOARD_VIEW = 'credit.dashboard.view';
+    const CREDIT_BOOKINGS_VIEW = 'credit.bookings.view';
+    const CREDIT_FINANCING_MANAGE = 'credit.financing.manage';
+    const CREDIT_TITLE_TRANSFER_MANAGE = 'credit.title_transfer.manage';
+    const CREDIT_CLAIM_FILES_GENERATE = 'credit.claim_files.generate';
+
+    // Accounting
+    const ACCOUNTING_DOWN_PAYMENT_CONFIRM = 'accounting.down_payment.confirm';
 }

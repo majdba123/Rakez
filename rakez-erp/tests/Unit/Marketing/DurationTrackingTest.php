@@ -3,6 +3,7 @@
 namespace Tests\Unit\Marketing;
 
 use Tests\TestCase;
+use PHPUnit\Framework\Attributes\Test;
 use App\Services\Marketing\MarketingProjectService;
 use App\Models\ContractInfo;
 use Carbon\Carbon;
@@ -20,7 +21,7 @@ class DurationTrackingTest extends TestCase
         $this->service = new MarketingProjectService();
     }
 
-    /** @test */
+    #[Test]
     public function it_returns_red_status_for_less_than_30_days()
     {
         $info = ContractInfo::factory()->create([
@@ -34,7 +35,7 @@ class DurationTrackingTest extends TestCase
         $this->assertLessThan(30, $result['days']);
     }
 
-    /** @test */
+    #[Test]
     public function it_returns_orange_status_for_30_to_90_days()
     {
         $info = ContractInfo::factory()->create([
@@ -49,7 +50,7 @@ class DurationTrackingTest extends TestCase
         $this->assertLessThanOrEqual(90, $result['days']);
     }
 
-    /** @test */
+    #[Test]
     public function it_returns_green_status_for_more_than_90_days()
     {
         $info = ContractInfo::factory()->create([

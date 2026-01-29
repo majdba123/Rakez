@@ -3,6 +3,7 @@
 namespace Tests\Feature\Marketing;
 
 use Tests\TestCase;
+use PHPUnit\Framework\Attributes\Test;
 use App\Models\User;
 use App\Models\Lead;
 use App\Models\Contract;
@@ -23,7 +24,7 @@ class MarketingDashboardTest extends TestCase
         $this->marketingUser->syncRolesFromType();
     }
 
-    /** @test */
+    #[Test]
     public function it_can_retrieve_dashboard_kpis()
     {
         // Create some data

@@ -3,6 +3,7 @@
 namespace Tests\Feature\Marketing;
 
 use Tests\TestCase;
+use PHPUnit\Framework\Attributes\Test;
 use App\Models\User;
 use App\Models\Contract;
 use App\Models\MarketingProject;
@@ -23,7 +24,7 @@ class MarketingTaskTest extends TestCase
         $this->marketingUser->assignRole('marketing');
     }
 
-    /** @test */
+    #[Test]
     public function it_can_create_marketing_task()
     {
         $contract = Contract::factory()->create();
@@ -44,7 +45,7 @@ class MarketingTaskTest extends TestCase
         ]);
     }
 
-    /** @test */
+    #[Test]
     public function it_can_update_task_status()
     {
         $contract = Contract::factory()->create();

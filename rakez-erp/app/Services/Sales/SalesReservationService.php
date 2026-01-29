@@ -4,6 +4,7 @@ namespace App\Services\Sales;
 
 use App\Models\SalesReservation;
 use App\Models\SalesReservationAction;
+use App\Models\NegotiationApproval;
 use App\Models\ContractUnit;
 use App\Models\Contract;
 use App\Models\User;
@@ -92,6 +93,11 @@ class SalesReservationService
                 ]
             ];
 
+            // Set approval deadline for negotiation reservations (48 hours)
+            $approvalDeadline = $data['reservation_type'] === 'negotiation' 
+                ? now()->addHours(48) 
+                : null;
+
             // Create reservation
             $reservation = SalesReservation::create([
                 'contract_id' => $data['contract_id'],
@@ -101,6 +107,10 @@ class SalesReservationService
                 'reservation_type' => $data['reservation_type'],
                 'contract_date' => $data['contract_date'],
                 'negotiation_notes' => $data['negotiation_notes'] ?? null,
+                'negotiation_reason' => $data['negotiation_reason'] ?? null,
+                'proposed_price' => $data['proposed_price'] ?? null,
+                'evacuation_date' => $data['evacuation_date'] ?? null,
+                'approval_deadline' => $approvalDeadline,
                 'client_name' => $data['client_name'],
                 'client_mobile' => $data['client_mobile'],
                 'client_nationality' => $data['client_nationality'],
@@ -112,6 +122,19 @@ class SalesReservationService
                 'snapshot' => $snapshot,
                 'confirmed_at' => $status === 'confirmed' ? now() : null,
             ]);
+
+            // Create negotiation approval record for negotiation reservations
+            if ($data['reservation_type'] === 'negotiation') {
+                NegotiationApproval::create([
+                    'sales_reservation_id' => $reservation->id,
+                    'requested_by' => $user->id,
+                    'status' => 'pending',
+                    'negotiation_reason' => $data['negotiation_reason'] ?? 'السعر',
+                    'original_price' => $unit->price,
+                    'proposed_price' => $data['proposed_price'] ?? $unit->price,
+                    'deadline_at' => $approvalDeadline,
+                ]);
+            }
 
             // Update unit status to reserved
             $unit->update(['status' => 'reserved']);
@@ -125,7 +148,12 @@ class SalesReservationService
             // Send notifications to departments (after commit)
             $this->notifyDepartments($reservation, $contract, $unit);
 
-            return $reservation->fresh(['contract', 'contractUnit', 'marketingEmployee']);
+            // Notify sales managers for negotiation approvals
+            if ($data['reservation_type'] === 'negotiation') {
+                $this->notifySalesManagers($reservation, $unit);
+            }
+
+            return $reservation->fresh(['contract', 'contractUnit', 'marketingEmployee', 'negotiationApproval']);
 
         } catch (Exception $e) {
             DB::rollBack();
@@ -295,6 +323,31 @@ class SalesReservationService
             ]);
 
             event(new UserNotificationEvent($user->id, $message));
+        }
+    }
+
+    /**
+     * Notify sales managers about new negotiation request.
+     */
+    protected function notifySalesManagers(SalesReservation $reservation, ContractUnit $unit): void
+    {
+        // Get users with negotiation approve permission
+        $managers = User::permission('sales.negotiation.approve')->get();
+
+        $message = sprintf(
+            'طلب موافقة تفاوض جديد: مشروع %s، وحدة %s - السعر المقترح: %s ر.س (مهلة الرد: 48 ساعة)',
+            $reservation->contract->project_name ?? 'N/A',
+            $unit->unit_number,
+            number_format($reservation->proposed_price ?? 0, 2)
+        );
+
+        foreach ($managers as $manager) {
+            UserNotification::create([
+                'user_id' => $manager->id,
+                'message' => $message,
+            ]);
+
+            event(new UserNotificationEvent($manager->id, $message));
         }
     }
 }

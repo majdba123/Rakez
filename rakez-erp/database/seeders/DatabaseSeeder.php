@@ -16,6 +16,7 @@ class DatabaseSeeder extends Seeder
             AdminUserSeeder::class,
             ArabicSeedDataSeeder::class,
             RolesAndPermissionsSeeder::class,
+            AssistantKnowledgeSalesSeeder::class,
             // Add other seeders here
         ]);
     }

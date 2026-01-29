@@ -4,6 +4,8 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class SalesReservation extends Model
 {
@@ -17,6 +19,10 @@ class SalesReservation extends Model
         'reservation_type',
         'contract_date',
         'negotiation_notes',
+        'negotiation_reason',
+        'proposed_price',
+        'evacuation_date',
+        'approval_deadline',
         'client_name',
         'client_mobile',
         'client_nationality',
@@ -24,6 +30,13 @@ class SalesReservation extends Model
         'payment_method',
         'down_payment_amount',
         'down_payment_status',
+        'down_payment_confirmed',
+        'down_payment_confirmed_by',
+        'down_payment_confirmed_at',
+        'brokerage_commission_percent',
+        'commission_payer',
+        'tax_amount',
+        'credit_status',
         'purchase_mechanism',
         'voucher_pdf_path',
         'snapshot',
@@ -33,8 +46,15 @@ class SalesReservation extends Model
 
     protected $casts = [
         'contract_date' => 'date',
+        'evacuation_date' => 'date',
         'snapshot' => 'array',
         'down_payment_amount' => 'decimal:2',
+        'proposed_price' => 'decimal:2',
+        'brokerage_commission_percent' => 'decimal:2',
+        'tax_amount' => 'decimal:2',
+        'down_payment_confirmed' => 'boolean',
+        'down_payment_confirmed_at' => 'datetime',
+        'approval_deadline' => 'datetime',
         'confirmed_at' => 'datetime',
         'cancelled_at' => 'datetime',
         'created_at' => 'datetime',
@@ -71,6 +91,54 @@ class SalesReservation extends Model
     public function actions()
     {
         return $this->hasMany(SalesReservationAction::class);
+    }
+
+    /**
+     * Get the negotiation approval for this reservation.
+     */
+    public function negotiationApproval(): HasOne
+    {
+        return $this->hasOne(NegotiationApproval::class);
+    }
+
+    /**
+     * Get the payment installments for this reservation.
+     */
+    public function paymentInstallments(): HasMany
+    {
+        return $this->hasMany(ReservationPaymentInstallment::class)->orderBy('due_date');
+    }
+
+    /**
+     * Get the financing tracker for this reservation.
+     */
+    public function financingTracker(): HasOne
+    {
+        return $this->hasOne(CreditFinancingTracker::class);
+    }
+
+    /**
+     * Get the title transfer for this reservation.
+     */
+    public function titleTransfer(): HasOne
+    {
+        return $this->hasOne(TitleTransfer::class);
+    }
+
+    /**
+     * Get the claim file for this reservation.
+     */
+    public function claimFile(): HasOne
+    {
+        return $this->hasOne(ClaimFile::class);
+    }
+
+    /**
+     * Get the user who confirmed the down payment.
+     */
+    public function downPaymentConfirmedBy()
+    {
+        return $this->belongsTo(User::class, 'down_payment_confirmed_by');
     }
 
     /**
@@ -133,5 +201,142 @@ class SalesReservation extends Model
     public function canCancel(): bool
     {
         return in_array($this->status, ['under_negotiation', 'confirmed']);
+    }
+
+    /**
+     * Check if reservation has a payment plan.
+     */
+    public function hasPaymentPlan(): bool
+    {
+        return $this->paymentInstallments()->exists();
+    }
+
+    /**
+     * Check if reservation is pending approval.
+     */
+    public function isPendingApproval(): bool
+    {
+        return $this->negotiationApproval()
+            ->where('status', 'pending')
+            ->exists();
+    }
+
+    /**
+     * Check if the associated project is off-plan.
+     */
+    public function isOffPlan(): bool
+    {
+        return $this->contract && $this->contract->is_off_plan;
+    }
+
+    /**
+     * Get the total payment plan amount.
+     */
+    public function getPaymentPlanTotal(): float
+    {
+        return (float) $this->paymentInstallments()->sum('amount');
+    }
+
+    /**
+     * Get the remaining payment plan amount.
+     */
+    public function getPaymentPlanRemaining(): float
+    {
+        return (float) $this->paymentInstallments()
+            ->whereIn('status', ['pending', 'overdue'])
+            ->sum('amount');
+    }
+
+    /**
+     * Scope for confirmed reservations ready for Credit.
+     */
+    public function scopeConfirmedForCredit($query)
+    {
+        return $query->where('status', 'confirmed');
+    }
+
+    /**
+     * Scope for reservations pending accounting confirmation.
+     */
+    public function scopePendingAccountingConfirmation($query)
+    {
+        return $query->where('status', 'confirmed')
+            ->where('down_payment_confirmed', false)
+            ->whereIn('payment_method', ['bank_transfer', 'bank_financing']);
+    }
+
+    /**
+     * Scope for sold projects (completed title transfers).
+     */
+    public function scopeSoldProjects($query)
+    {
+        return $query->where('credit_status', 'sold');
+    }
+
+    /**
+     * Scope by credit status.
+     */
+    public function scopeByCreditStatus($query, $status)
+    {
+        return $query->where('credit_status', $status);
+    }
+
+    /**
+     * Check if down payment requires accounting confirmation.
+     */
+    public function requiresAccountingConfirmation(): bool
+    {
+        return in_array($this->payment_method, ['bank_transfer', 'bank_financing'])
+            && !$this->down_payment_confirmed;
+    }
+
+    /**
+     * Check if this is a cash purchase.
+     */
+    public function isCashPurchase(): bool
+    {
+        return $this->purchase_mechanism === 'cash';
+    }
+
+    /**
+     * Check if this is a bank financing purchase.
+     */
+    public function isBankFinancing(): bool
+    {
+        return in_array($this->purchase_mechanism, ['supported_bank', 'unsupported_bank']);
+    }
+
+    /**
+     * Check if this is a supported bank financing.
+     */
+    public function isSupportedBank(): bool
+    {
+        return $this->purchase_mechanism === 'supported_bank';
+    }
+
+    /**
+     * Check if reservation has financing tracker.
+     */
+    public function hasFinancingTracker(): bool
+    {
+        return $this->financingTracker()->exists();
+    }
+
+    /**
+     * Check if reservation has title transfer.
+     */
+    public function hasTitleTransfer(): bool
+    {
+        return $this->titleTransfer()->exists();
+    }
+
+    /**
+     * Check if title transfer is completed.
+     */
+    public function isTitleTransferCompleted(): bool
+    {
+        return $this->titleTransfer()
+            ->where('status', 'completed')
+            ->exists();
     }
 }

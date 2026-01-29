@@ -3,6 +3,7 @@
 namespace Tests\Feature\Marketing;
 
 use Tests\TestCase;
+use PHPUnit\Framework\Attributes\Test;
 use App\Models\User;
 use App\Models\Contract;
 use App\Models\ContractInfo;
@@ -22,7 +23,7 @@ class MarketingProjectTest extends TestCase
         $this->marketingUser->syncRolesFromType();
     }
 
-    /** @test */
+    #[Test]
     public function it_can_list_marketing_projects()
     {
         $project = Contract::factory()->create(['status' => 'approved']);
@@ -36,7 +37,7 @@ class MarketingProjectTest extends TestCase
             ->assertJsonCount(1, 'data');
     }
 
-    /** @test */
+    #[Test]
     public function it_can_show_project_details_with_duration_status()
     {
         $contract = Contract::factory()->create(['status' => 'approved']);
@@ -62,7 +63,7 @@ class MarketingProjectTest extends TestCase
             ]);
     }
 
-    /** @test */
+    #[Test]
     public function it_can_calculate_campaign_budget()
     {
         $contract = Contract::factory()->create();

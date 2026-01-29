@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use Tests\TestCase;
+use PHPUnit\Framework\Attributes\Test;
 use App\Models\User;
 use App\Models\Contract;
 use App\Models\ContractUnit;
@@ -47,7 +48,7 @@ class WaitingListTest extends TestCase
         ]);
     }
 
-    /** @test */
+    #[Test]
     public function sales_staff_can_create_waiting_list_entry()
     {
         $data = [
@@ -77,7 +78,7 @@ class WaitingListTest extends TestCase
         ]);
     }
 
-    /** @test */
+    #[Test]
     public function can_retrieve_waiting_list_entries()
     {
         SalesWaitingList::factory()->count(3)->create([
@@ -94,7 +95,7 @@ class WaitingListTest extends TestCase
             ->assertJsonCount(3, 'data');
     }
 
-    /** @test */
+    #[Test]
     public function can_get_waiting_list_for_specific_unit()
     {
         SalesWaitingList::factory()->count(2)->create([
@@ -111,7 +112,7 @@ class WaitingListTest extends TestCase
             ->assertJsonCount(2, 'data');
     }
 
-    /** @test */
+    #[Test]
     public function sales_leader_can_convert_waiting_list_to_reservation()
     {
         // Make unit available
@@ -154,7 +155,7 @@ class WaitingListTest extends TestCase
         ]);
     }
 
-    /** @test */
+    #[Test]
     public function sales_staff_cannot_convert_waiting_list()
     {
         $waitingEntry = SalesWaitingList::factory()->create([
@@ -180,7 +181,7 @@ class WaitingListTest extends TestCase
         $response->assertStatus(403);
     }
 
-    /** @test */
+    #[Test]
     public function can_cancel_waiting_list_entry()
     {
         $waitingEntry = SalesWaitingList::factory()->create([

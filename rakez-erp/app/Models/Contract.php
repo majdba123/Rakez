@@ -32,6 +32,7 @@ class Contract extends Model
         'project_image_url',
         'developer_requiment',
         'status',
+        'is_off_plan',
         'notes',
         'emergency_contact_number',
         'security_guard_number',
@@ -44,6 +45,7 @@ class Contract extends Model
      */
     protected $casts = [
         'units' => 'array',
+        'is_off_plan' => 'boolean',
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
         'deleted_at' => 'datetime',

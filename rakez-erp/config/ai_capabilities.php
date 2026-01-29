@@ -60,15 +60,22 @@ return [
         'sales.tasks.manage' => 'Manage marketing tasks.',
         'sales.tasks.create_for_marketing' => 'Create daily tasks for marketing.',
         'sales.projects.allocate_shifts' => 'Allocate projects/shifts to marketing staff.',
+        'sales.negotiation.approve' => 'Approve or reject negotiation requests.',
+        'sales.payment-plan.manage' => 'Create and manage off-plan payment plans.',
         
         // Editing
         'editing.projects.view' => 'View projects and units.',
         'editing.media.upload' => 'Upload edited images and videos.',
         
         // HR
+        'hr.dashboard.view' => 'View HR dashboard KPIs.',
+        'hr.teams.manage' => 'Manage teams (CRUD and member assignment).',
         'hr.employees.manage' => 'Full employee management.',
         'hr.users.create' => 'Create new users with roles.',
         'hr.performance.view' => 'View team and employee performance.',
+        'hr.warnings.manage' => 'Issue and view employee warnings.',
+        'hr.contracts.manage' => 'Create and download employee contracts.',
+        'hr.reports.view' => 'Access HR reports.',
         'hr.reports.print' => 'Print performance reports.',
         
         // Marketing
@@ -85,6 +92,20 @@ return [
         'exclusive_projects.approve' => 'Approve exclusive project requests (PM Manager only).',
         'exclusive_projects.contract.complete' => 'Complete contract after approval.',
         'exclusive_projects.contract.export' => 'Export contract copy.',
+        
+        // AI Assistant
+        'use-ai-assistant' => 'Access the in-app AI help assistant.',
+        'manage-ai-knowledge' => 'Manage AI assistant knowledge base entries.',
+        
+        // Credit
+        'credit.dashboard.view' => 'View Credit department dashboard KPIs.',
+        'credit.bookings.view' => 'View bookings in Credit department.',
+        'credit.financing.manage' => 'Manage bank financing tracker stages.',
+        'credit.title_transfer.manage' => 'Manage title transfer process.',
+        'credit.claim_files.generate' => 'Generate claim files.',
+        
+        // Accounting
+        'accounting.down_payment.confirm' => 'Confirm down payments.',
     ],
     // Bootstrap role map - ONLY for migration/seeding, NOT a runtime dependency
     // In production, use DB permissions (Spatie or custom) as the source of truth
@@ -140,11 +161,18 @@ return [
             'sales.tasks.manage',
             'sales.tasks.create_for_marketing',
             'sales.projects.allocate_shifts',
+            'sales.negotiation.approve',
+            'sales.payment-plan.manage',
             'editing.projects.view',
             'editing.media.upload',
+            'hr.dashboard.view',
+            'hr.teams.manage',
             'hr.employees.manage',
             'hr.users.create',
             'hr.performance.view',
+            'hr.warnings.manage',
+            'hr.contracts.manage',
+            'hr.reports.view',
             'hr.reports.print',
             'marketing.dashboard.view',
             'marketing.projects.view',
@@ -157,6 +185,14 @@ return [
             'exclusive_projects.approve',
             'exclusive_projects.contract.complete',
             'exclusive_projects.contract.export',
+            'credit.dashboard.view',
+            'credit.bookings.view',
+            'credit.financing.manage',
+            'credit.title_transfer.manage',
+            'credit.claim_files.generate',
+            'accounting.down_payment.confirm',
+            'use-ai-assistant',
+            'manage-ai-knowledge',
         ],
         'project_management' => [
             // Staff permissions (base)
@@ -183,6 +219,7 @@ return [
             'exclusive_projects.request',
             'exclusive_projects.contract.complete',
             'exclusive_projects.contract.export',
+            'use-ai-assistant',
             // Manager permissions added dynamically when is_manager=true
         ],
         'editor' => [
@@ -196,6 +233,7 @@ return [
             'exclusive_projects.request',
             'exclusive_projects.contract.complete',
             'exclusive_projects.contract.export',
+            'use-ai-assistant',
         ],
         'developer' => [
             'contracts.view',
@@ -204,6 +242,7 @@ return [
             'exclusive_projects.request',
             'exclusive_projects.contract.complete',
             'exclusive_projects.contract.export',
+            'use-ai-assistant',
         ],
         'marketing' => [
             'marketing.dashboard.view',
@@ -217,6 +256,7 @@ return [
             'exclusive_projects.request',
             'exclusive_projects.contract.complete',
             'exclusive_projects.contract.export',
+            'use-ai-assistant',
         ],
         'sales' => [
             'sales.dashboard.view',
@@ -237,6 +277,7 @@ return [
             'exclusive_projects.request',
             'exclusive_projects.contract.complete',
             'exclusive_projects.contract.export',
+            'use-ai-assistant',
         ],
         'sales_leader' => [
             // Inherits all sales permissions
@@ -261,22 +302,52 @@ return [
             'sales.tasks.manage',
             'sales.tasks.create_for_marketing',
             'sales.projects.allocate_shifts',
+            'sales.negotiation.approve',
+            'sales.payment-plan.manage',
             'notifications.view',
             'exclusive_projects.request',
             'exclusive_projects.contract.complete',
             'exclusive_projects.contract.export',
+            'use-ai-assistant',
         ],
-        'hr' => [
+        'HR' => [
+            'hr.dashboard.view',
+            'hr.teams.manage',
             'hr.employees.manage',
             'hr.users.create',
             'hr.performance.view',
+            'hr.warnings.manage',
+            'hr.contracts.manage',
+            'hr.reports.view',
             'hr.reports.print',
             'notifications.view',
+            'use-ai-assistant',
             // NO exclusive project permissions
+        ],
+        'credit' => [
+            'credit.dashboard.view',
+            'credit.bookings.view',
+            'credit.financing.manage',
+            'credit.title_transfer.manage',
+            'credit.claim_files.generate',
+            'notifications.view',
+            'exclusive_projects.request',
+            'exclusive_projects.contract.complete',
+            'exclusive_projects.contract.export',
+            'use-ai-assistant',
+        ],
+        'accounting' => [
+            'accounting.down_payment.confirm',
+            'notifications.view',
+            'exclusive_projects.request',
+            'exclusive_projects.contract.complete',
+            'exclusive_projects.contract.export',
+            'use-ai-assistant',
         ],
         'default' => [
             'contracts.view',
             'notifications.view',
+            'use-ai-assistant',
         ],
     ],
 ];

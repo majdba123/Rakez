@@ -26,6 +26,8 @@ use App\Http\Controllers\Contract\MontageDepartmentController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\Dashboard\ProjectManagementDashboardController;
 use App\Http\Controllers\AI\AIAssistantController;
+use App\Http\Controllers\AI\AssistantChatController;
+use App\Http\Controllers\AI\AssistantKnowledgeController;
 use App\Http\Controllers\Sales\SalesDashboardController;
 use App\Http\Controllers\Sales\SalesProjectController;
 use App\Http\Controllers\Sales\SalesReservationController;
@@ -33,10 +35,19 @@ use App\Http\Controllers\Sales\SalesTargetController;
 use App\Http\Controllers\Sales\SalesAttendanceController;
 use App\Http\Controllers\Sales\MarketingTaskController;
 use App\Http\Controllers\Sales\WaitingListController;
+use App\Http\Controllers\Sales\NegotiationApprovalController;
+use App\Http\Controllers\Sales\PaymentPlanController;
 use App\Http\Controllers\ExclusiveProjectController;
 use App\Http\Middleware\CheckDynamicPermission;
 
 
+use App\Http\Controllers\HR\HrDashboardController;
+use App\Http\Controllers\HR\HrTeamController;
+use App\Http\Controllers\HR\MarketerPerformanceController;
+use App\Http\Controllers\HR\HrUserController;
+use App\Http\Controllers\HR\EmployeeWarningController;
+use App\Http\Controllers\HR\EmployeeContractController;
+use App\Http\Controllers\HR\HrReportController;
 use App\Http\Controllers\Marketing\MarketingDashboardController;
 use App\Http\Controllers\Marketing\MarketingProjectController;
 use App\Http\Controllers\Marketing\DeveloperMarketingPlanController;
@@ -47,6 +58,12 @@ use App\Http\Controllers\Marketing\TeamManagementController;
 use App\Http\Controllers\Marketing\LeadController;
 use App\Http\Controllers\Marketing\MarketingReportController;
 use App\Http\Controllers\Marketing\MarketingSettingsController;
+use App\Http\Controllers\Credit\CreditDashboardController;
+use App\Http\Controllers\Credit\CreditBookingController;
+use App\Http\Controllers\Credit\CreditFinancingController;
+use App\Http\Controllers\Credit\TitleTransferController;
+use App\Http\Controllers\Credit\ClaimFileController;
+use App\Http\Controllers\Accounting\AccountingConfirmationController;
 
 use Illuminate\Support\Facades\File;  // أضف هذا السطر في الأعلى
 
@@ -75,6 +92,20 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/conversations', [AIAssistantController::class, 'conversations']);
         Route::delete('/conversations/{sessionId}', [AIAssistantController::class, 'deleteSession']);
         Route::get('/sections', [AIAssistantController::class, 'sections']);
+    });
+
+    // AI Help Assistant (Knowledge-based)
+    Route::prefix('ai/assistant')->group(function () {
+        // Chat endpoint - requires use-ai-assistant permission (checked in controller)
+        Route::post('/chat', [AssistantChatController::class, 'chat']);
+
+        // Knowledge CRUD - requires manage-ai-knowledge permission
+        Route::middleware('permission:manage-ai-knowledge')->group(function () {
+            Route::get('/knowledge', [AssistantKnowledgeController::class, 'index']);
+            Route::post('/knowledge', [AssistantKnowledgeController::class, 'store']);
+            Route::put('/knowledge/{id}', [AssistantKnowledgeController::class, 'update']);
+            Route::delete('/knowledge/{id}', [AssistantKnowledgeController::class, 'destroy']);
+        });
     });
 
     // Contract Routes - Protected routes (user contracts)
@@ -216,6 +247,21 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::post('/{id}/convert', [WaitingListController::class, 'convert'])->middleware('permission:sales.waiting_list.convert');
             Route::delete('/{id}', [WaitingListController::class, 'cancel'])->middleware('permission:sales.waiting_list.create');
         });
+
+        // Negotiation Approval Routes (Manager only)
+        Route::prefix('negotiations')->middleware('permission:sales.negotiation.approve')->group(function () {
+            Route::get('/pending', [NegotiationApprovalController::class, 'index']);
+            Route::post('/{id}/approve', [NegotiationApprovalController::class, 'approve']);
+            Route::post('/{id}/reject', [NegotiationApprovalController::class, 'reject']);
+        });
+
+        // Payment Plan Routes (Off-plan projects)
+        Route::middleware('permission:sales.payment-plan.manage')->group(function () {
+            Route::get('reservations/{id}/payment-plan', [PaymentPlanController::class, 'show']);
+            Route::post('reservations/{id}/payment-plan', [PaymentPlanController::class, 'store']);
+            Route::put('payment-installments/{id}', [PaymentPlanController::class, 'update']);
+            Route::delete('payment-installments/{id}', [PaymentPlanController::class, 'destroy']);
+        });
     });
 
 
@@ -273,6 +319,59 @@ Route::middleware('auth:sanctum')->group(function () {
     });
 
     // ==========================================
+    // HR DEPARTMENT ROUTES
+    // ==========================================
+    Route::prefix('hr')->middleware(['auth:sanctum', 'role:HR|admin'])->group(function () {
+        
+        // Dashboard
+        Route::get('dashboard', [HrDashboardController::class, 'index'])->middleware('permission:hr.dashboard.view');
+        Route::post('dashboard/refresh', [HrDashboardController::class, 'refresh'])->middleware('permission:hr.dashboard.view');
+        
+        // Teams
+        Route::get('teams', [HrTeamController::class, 'index'])->middleware('permission:hr.teams.manage');
+        Route::post('teams', [HrTeamController::class, 'store'])->middleware('permission:hr.teams.manage');
+        Route::get('teams/{id}', [HrTeamController::class, 'show'])->middleware('permission:hr.teams.manage');
+        Route::put('teams/{id}', [HrTeamController::class, 'update'])->middleware('permission:hr.teams.manage');
+        Route::delete('teams/{id}', [HrTeamController::class, 'destroy'])->middleware('permission:hr.teams.manage');
+        Route::post('teams/{id}/members', [HrTeamController::class, 'assignMember'])->middleware('permission:hr.teams.manage');
+        Route::delete('teams/{id}/members/{userId}', [HrTeamController::class, 'removeMember'])->middleware('permission:hr.teams.manage');
+        
+        // Marketer Performance
+        Route::get('marketers/performance', [MarketerPerformanceController::class, 'index'])->middleware('permission:hr.performance.view');
+        Route::get('marketers/{id}/performance', [MarketerPerformanceController::class, 'show'])->middleware('permission:hr.performance.view');
+        
+        // Users
+        Route::get('users', [HrUserController::class, 'index'])->middleware('permission:hr.employees.manage');
+        Route::post('users', [HrUserController::class, 'store'])->middleware('permission:hr.employees.manage');
+        Route::get('users/{id}', [HrUserController::class, 'show'])->middleware('permission:hr.employees.manage');
+        Route::put('users/{id}', [HrUserController::class, 'update'])->middleware('permission:hr.employees.manage');
+        Route::patch('users/{id}/status', [HrUserController::class, 'toggleStatus'])->middleware('permission:hr.employees.manage');
+        Route::delete('users/{id}', [HrUserController::class, 'destroy'])->middleware('permission:hr.employees.manage');
+        Route::post('users/{id}/files', [HrUserController::class, 'uploadFiles'])->middleware('permission:hr.employees.manage');
+        
+        // Warnings
+        Route::get('users/{id}/warnings', [EmployeeWarningController::class, 'index'])->middleware('permission:hr.warnings.manage');
+        Route::post('users/{id}/warnings', [EmployeeWarningController::class, 'store'])->middleware('permission:hr.warnings.manage');
+        Route::delete('warnings/{id}', [EmployeeWarningController::class, 'destroy'])->middleware('permission:hr.warnings.manage');
+        
+        // Contracts
+        Route::get('users/{id}/contracts', [EmployeeContractController::class, 'index'])->middleware('permission:hr.contracts.manage');
+        Route::post('users/{id}/contracts', [EmployeeContractController::class, 'store'])->middleware('permission:hr.contracts.manage');
+        Route::get('contracts/{id}', [EmployeeContractController::class, 'show'])->middleware('permission:hr.contracts.manage');
+        Route::put('contracts/{id}', [EmployeeContractController::class, 'update'])->middleware('permission:hr.contracts.manage');
+        Route::post('contracts/{id}/pdf', [EmployeeContractController::class, 'generatePdf'])->middleware('permission:hr.contracts.manage');
+        Route::get('contracts/{id}/pdf', [EmployeeContractController::class, 'downloadPdf'])->middleware('permission:hr.contracts.manage');
+        Route::post('contracts/{id}/activate', [EmployeeContractController::class, 'activate'])->middleware('permission:hr.contracts.manage');
+        Route::post('contracts/{id}/terminate', [EmployeeContractController::class, 'terminate'])->middleware('permission:hr.contracts.manage');
+        
+        // Reports
+        Route::get('reports/team-performance', [HrReportController::class, 'teamPerformance'])->middleware('permission:hr.reports.view');
+        Route::get('reports/marketer-performance', [HrReportController::class, 'marketerPerformance'])->middleware('permission:hr.reports.view');
+        Route::get('reports/employee-count', [HrReportController::class, 'employeeCount'])->middleware('permission:hr.reports.view');
+        Route::get('reports/expiring-contracts', [HrReportController::class, 'expiringContracts'])->middleware('permission:hr.reports.view');
+    });
+
+    // ==========================================
     // MARKETING DEPARTMENT ROUTES
     // ==========================================
     Route::prefix('marketing')->middleware(['auth:sanctum', 'role:marketing|admin'])->group(function () {
@@ -325,6 +424,52 @@ Route::middleware('auth:sanctum')->group(function () {
         // Settings
         Route::get('settings', [MarketingSettingsController::class, 'index'])->middleware('permission:marketing.budgets.manage');
         Route::put('settings/{key}', [MarketingSettingsController::class, 'update'])->middleware('permission:marketing.budgets.manage');
+    });
+
+    // ==========================================
+    // CREDIT DEPARTMENT ROUTES
+    // ==========================================
+    Route::prefix('credit')->middleware(['auth:sanctum', 'role:credit|admin'])->group(function () {
+        
+        // Dashboard
+        Route::get('dashboard', [CreditDashboardController::class, 'index'])->middleware('permission:credit.dashboard.view');
+        Route::post('dashboard/refresh', [CreditDashboardController::class, 'refresh'])->middleware('permission:credit.dashboard.view');
+        
+        // Bookings
+        Route::get('bookings/confirmed', [CreditBookingController::class, 'confirmed'])->middleware('permission:credit.bookings.view');
+        Route::get('bookings/negotiation', [CreditBookingController::class, 'negotiation'])->middleware('permission:credit.bookings.view');
+        Route::get('bookings/waiting', [CreditBookingController::class, 'waiting'])->middleware('permission:credit.bookings.view');
+        Route::get('bookings/{id}', [CreditBookingController::class, 'show'])->middleware('permission:credit.bookings.view');
+        
+        // Financing Tracker
+        Route::post('bookings/{id}/financing', [CreditFinancingController::class, 'initialize'])->middleware('permission:credit.financing.manage');
+        Route::get('bookings/{id}/financing', [CreditFinancingController::class, 'show'])->middleware('permission:credit.bookings.view');
+        Route::patch('financing/{id}/stage/{stage}', [CreditFinancingController::class, 'completeStage'])->middleware('permission:credit.financing.manage');
+        Route::post('financing/{id}/reject', [CreditFinancingController::class, 'reject'])->middleware('permission:credit.financing.manage');
+        
+        // Title Transfer
+        Route::post('bookings/{id}/title-transfer', [TitleTransferController::class, 'initialize'])->middleware('permission:credit.title_transfer.manage');
+        Route::patch('title-transfer/{id}/schedule', [TitleTransferController::class, 'schedule'])->middleware('permission:credit.title_transfer.manage');
+        Route::post('title-transfer/{id}/complete', [TitleTransferController::class, 'complete'])->middleware('permission:credit.title_transfer.manage');
+        Route::get('title-transfers/pending', [TitleTransferController::class, 'pending'])->middleware('permission:credit.bookings.view');
+        Route::get('sold-projects', [TitleTransferController::class, 'soldProjects'])->middleware('permission:credit.bookings.view');
+        
+        // Claim Files
+        Route::post('bookings/{id}/claim-file', [ClaimFileController::class, 'generate'])->middleware('permission:credit.claim_files.generate');
+        Route::get('claim-files/{id}', [ClaimFileController::class, 'show'])->middleware('permission:credit.claim_files.generate');
+        Route::post('claim-files/{id}/pdf', [ClaimFileController::class, 'generatePdf'])->middleware('permission:credit.claim_files.generate');
+        Route::get('claim-files/{id}/pdf', [ClaimFileController::class, 'download'])->middleware('permission:credit.claim_files.generate');
+    });
+
+    // ==========================================
+    // ACCOUNTING DEPARTMENT ROUTES
+    // ==========================================
+    Route::prefix('accounting')->middleware(['auth:sanctum', 'role:accounting|admin'])->group(function () {
+        
+        // Down Payment Confirmations
+        Route::get('pending-confirmations', [AccountingConfirmationController::class, 'index'])->middleware('permission:accounting.down_payment.confirm');
+        Route::post('confirm/{reservationId}', [AccountingConfirmationController::class, 'confirm'])->middleware('permission:accounting.down_payment.confirm');
+        Route::get('confirmations/history', [AccountingConfirmationController::class, 'history'])->middleware('permission:accounting.down_payment.confirm');
     });
 
     Route::get('/storage/{path}', function ($path) {

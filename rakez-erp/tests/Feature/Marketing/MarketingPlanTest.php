@@ -3,6 +3,7 @@
 namespace Tests\Feature\Marketing;
 
 use Tests\TestCase;
+use PHPUnit\Framework\Attributes\Test;
 use App\Models\User;
 use App\Models\Contract;
 use App\Models\ContractInfo;
@@ -24,7 +25,7 @@ class MarketingPlanTest extends TestCase
         $this->marketingUser->syncRolesFromType();
     }
 
-    /** @test */
+    #[Test]
     public function it_can_create_developer_marketing_plan()
     {
         $contract = Contract::factory()->create();
@@ -45,7 +46,7 @@ class MarketingPlanTest extends TestCase
         ]);
     }
 
-    /** @test */
+    #[Test]
     public function it_can_auto_generate_employee_plan()
     {
         $contract = Contract::factory()->create();

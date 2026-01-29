@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use Tests\TestCase;
+use PHPUnit\Framework\Attributes\Test;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Spatie\Permission\Models\Role;
@@ -11,7 +12,7 @@ class PermissionsTest extends TestCase
 {
     use RefreshDatabase;
 
-    /** @test */
+    #[Test]
     public function project_management_staff_has_correct_permissions()
     {
         $user = User::factory()->create(['type' => 'project_management', 'is_manager' => false]);
@@ -35,7 +36,7 @@ class PermissionsTest extends TestCase
         $this->assertFalse($user->isProjectManagementManager());
     }
 
-    /** @test */
+    #[Test]
     public function project_management_manager_has_additional_permissions()
     {
         $basePermissions = [
@@ -67,7 +68,7 @@ class PermissionsTest extends TestCase
         $this->assertContains('exclusive_projects.approve', $effectivePermissions);
     }
 
-    /** @test */
+    #[Test]
     public function sales_staff_has_correct_permissions()
     {
         $user = User::factory()->create(['type' => 'sales', 'is_manager' => false]);
@@ -92,7 +93,7 @@ class PermissionsTest extends TestCase
         $this->assertFalse($user->isSalesLeader());
     }
 
-    /** @test */
+    #[Test]
     public function sales_leader_has_additional_permissions()
     {
         $leader = User::factory()->create(['type' => 'sales', 'is_manager' => true]);
@@ -116,7 +117,7 @@ class PermissionsTest extends TestCase
         $this->assertTrue($leader->isSalesLeader());
     }
 
-    /** @test */
+    #[Test]
     public function hr_staff_does_not_have_exclusive_project_permissions()
     {
         $user = User::factory()->create(['type' => 'hr']);
@@ -139,7 +140,7 @@ class PermissionsTest extends TestCase
         $this->assertFalse($user->hasPermissionTo('exclusive_projects.request'));
     }
 
-    /** @test */
+    #[Test]
     public function editing_staff_has_correct_permissions()
     {
         $user = User::factory()->create(['type' => 'editor']);
@@ -158,7 +159,7 @@ class PermissionsTest extends TestCase
         }
     }
 
-    /** @test */
+    #[Test]
     public function marketing_staff_has_correct_permissions()
     {
         $user = User::factory()->create(['type' => 'marketing']);

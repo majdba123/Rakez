@@ -22,12 +22,18 @@ class AIAssistantService
         private readonly SystemPromptBuilder $promptBuilder,
         private readonly ContextBuilder $contextBuilder,
         private readonly OpenAIResponsesClient $openAIClient,
-        private readonly ContextValidator $contextValidator
+        private readonly ContextValidator $contextValidator,
+        private readonly AccessExplanationEngine $explanationEngine
     ) {}
 
     public function ask(string $question, User $user, ?string $sectionKey = null, array $context = []): array
     {
         $this->ensureEnabled();
+
+        // Fast-path: Access Explanation
+        if ($explanation = $this->explanationEngine->explain($user, $question)) {
+            return $this->buildExplanationResponse($explanation, $user, $sectionKey);
+        }
         
         $capabilities = $this->capabilityResolver->resolve($user);
 
@@ -81,6 +87,11 @@ class AIAssistantService
     public function chat(string $message, User $user, ?string $sessionId, ?string $sectionKey = null, array $context = []): array
     {
         $this->ensureEnabled();
+
+        // Fast-path: Access Explanation
+        if ($explanation = $this->explanationEngine->explain($user, $message)) {
+            return $this->buildExplanationResponse($explanation, $user, $sectionKey, $sessionId);
+        }
         
         $capabilities = $this->capabilityResolver->resolve($user);
 
@@ -402,5 +413,32 @@ class AIAssistantService
         if ($used >= $limit) {
             throw new AiBudgetExceededException($limit, $used);
         }
+    }
+
+    private function buildExplanationResponse(array $explanation, User $user, ?string $sectionKey, ?string $sessionId = null): array
+    {
+        $sessionId = $sessionId ?: (string) Str::uuid();
+        
+        // Store the user message
+        $this->storeMessage($user, $sessionId, 'user', 'Access Explanation Request', $sectionKey, [
+            'explanation_result' => $explanation,
+        ]);
+
+        return [
+            'message' => $explanation['message'],
+            'session_id' => $sessionId,
+            'conversation_id' => null,
+            'steps' => $explanation['steps'],
+            'access_summary' => [
+                'allowed' => $explanation['allowed'],
+                'reason_code' => $explanation['reason_code'],
+            ],
+            'meta' => [
+                'session_id' => $sessionId,
+                'section' => $sectionKey,
+                'tokens' => 0,
+                'latency_ms' => 0,
+            ],
+        ];
     }
 }

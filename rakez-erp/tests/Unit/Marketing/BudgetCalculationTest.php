@@ -3,6 +3,7 @@
 namespace Tests\Unit\Marketing;
 
 use Tests\TestCase;
+use PHPUnit\Framework\Attributes\Test;
 use App\Services\Marketing\DeveloperMarketingPlanService;
 use App\Services\Marketing\EmployeeMarketingPlanService;
 use App\Services\Marketing\MarketingProjectService;
@@ -26,7 +27,7 @@ class BudgetCalculationTest extends TestCase
         $this->salesService = new ExpectedSalesService();
     }
 
-    /** @test */
+    #[Test]
     public function it_calculates_expected_impressions_correctly()
     {
         $marketingValue = 35000;
@@ -38,7 +39,7 @@ class BudgetCalculationTest extends TestCase
         $this->assertEquals($expected, $result);
     }
 
-    /** @test */
+    #[Test]
     public function it_calculates_expected_clicks_correctly()
     {
         $marketingValue = 35000;
@@ -50,7 +51,7 @@ class BudgetCalculationTest extends TestCase
         $this->assertEquals($expected, $result);
     }
 
-    /** @test */
+    #[Test]
     public function it_calculates_commission_value_correctly()
     {
         $unitsValue = 1000000;
@@ -62,7 +63,7 @@ class BudgetCalculationTest extends TestCase
         $this->assertEquals($expected, $result);
     }
 
-    /** @test */
+    #[Test]
     public function it_calculates_marketing_value_correctly()
     {
         $commissionValue = 25000;
@@ -74,7 +75,7 @@ class BudgetCalculationTest extends TestCase
         $this->assertEquals($expected, $result);
     }
 
-    /** @test */
+    #[Test]
     public function it_calculates_expected_bookings_correctly()
     {
         $direct = 100;
@@ -87,7 +88,7 @@ class BudgetCalculationTest extends TestCase
         $this->assertEquals($expected, $result);
     }
 
-    /** @test */
+    #[Test]
     public function it_calculates_deposit_value_per_booking_correctly()
     {
         $budget = 35000;

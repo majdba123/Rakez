@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use Tests\TestCase;
+use PHPUnit\Framework\Attributes\Test;
 use App\Models\User;
 use App\Models\Team;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -42,7 +43,7 @@ class EmployeeRoleTest extends TestCase
         $this->team = Team::factory()->create();
     }
 
-    /** @test */
+    #[Test]
     public function admin_can_list_all_roles()
     {
         $response = $this->actingAs($this->admin, 'sanctum')
@@ -60,7 +61,7 @@ class EmployeeRoleTest extends TestCase
         $this->assertGreaterThan(0, count($roles));
     }
 
-    /** @test */
+    #[Test]
     public function non_admin_cannot_list_roles()
     {
         $user = User::factory()->create(['type' => 'sales']);
@@ -72,7 +73,7 @@ class EmployeeRoleTest extends TestCase
         $response->assertStatus(403);
     }
 
-    /** @test */
+    #[Test]
     public function admin_can_add_employee_with_specific_role()
     {
         $employeeData = [
@@ -99,7 +100,7 @@ class EmployeeRoleTest extends TestCase
         $this->assertTrue($user->hasRole('sales'));
     }
 
-    /** @test */
+    #[Test]
     public function admin_can_add_employee_without_role_and_it_syncs_from_type()
     {
         $employeeData = [
@@ -121,7 +122,7 @@ class EmployeeRoleTest extends TestCase
         $this->assertTrue($user->hasRole('sales'));
     }
 
-    /** @test */
+    #[Test]
     public function validation_fails_when_role_does_not_exist()
     {
         $employeeData = [
@@ -141,7 +142,7 @@ class EmployeeRoleTest extends TestCase
             ->assertJsonValidationErrors(['role']);
     }
 
-    /** @test */
+    #[Test]
     public function admin_can_update_employee_role()
     {
         // Create an employee with sales role
@@ -168,7 +169,7 @@ class EmployeeRoleTest extends TestCase
         $this->assertFalse($employee->hasRole('sales'));
     }
 
-    /** @test */
+    #[Test]
     public function admin_can_update_employee_without_role_and_it_syncs_from_type()
     {
         // Create an employee
@@ -193,7 +194,7 @@ class EmployeeRoleTest extends TestCase
         $this->assertTrue($employee->hasRole('sales_leader'));
     }
 
-    /** @test */
+    #[Test]
     public function validation_fails_when_updating_with_nonexistent_role()
     {
         $employee = User::factory()->create([
@@ -213,7 +214,7 @@ class EmployeeRoleTest extends TestCase
             ->assertJsonValidationErrors(['role']);
     }
 
-    /** @test */
+    #[Test]
     public function admin_can_assign_different_role_than_type_suggests()
     {
         // Create employee with sales type but marketing role
@@ -239,7 +240,7 @@ class EmployeeRoleTest extends TestCase
         $this->assertFalse($user->hasRole('sales'));
     }
 
-    /** @test */
+    #[Test]
     public function roles_endpoint_returns_all_available_roles()
     {
         // Create additional roles
@@ -258,6 +259,6 @@ class EmployeeRoleTest extends TestCase
         $this->assertContains('sales', $roleNames);
         $this->assertContains('marketing', $roleNames);
         $this->assertContains('editor', $roleNames);
-        $this->assertContains('hr', $roleNames);
+        $this->assertContains('HR', $roleNames);
     }
 }

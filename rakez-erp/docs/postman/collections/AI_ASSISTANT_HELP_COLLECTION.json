@@ -1,0 +1,504 @@
+{
+  "info": {
+    "_postman_id": "ai-assistant-help-v1",
+    "name": "Rakez ERP - AI Assistant Help",
+    "description": "In-app AI Assistant Help & Guidance endpoints.\n\nThis assistant is read-only and respects user permissions.\n\n## Permissions Required\n- `use-ai-assistant`: Required for chat endpoint\n- `manage-ai-knowledge`: Required for knowledge CRUD\n\n## Authentication\nAll endpoints require Bearer token (Sanctum)",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{auth_token}}",
+        "type": "string"
+      }
+    ]
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost/api",
+      "type": "string"
+    },
+    {
+      "key": "auth_token",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Authentication",
+      "item": [
+        {
+          "name": "Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    var jsonData = pm.response.json();",
+                  "    if (jsonData.token) {",
+                  "        pm.collectionVariables.set('auth_token', jsonData.token);",
+                  "        console.log('Token saved successfully');",
+                  "    }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"email\": \"admin@example.com\",\n    \"password\": \"password\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/login",
+              "host": ["{{base_url}}"],
+              "path": ["login"]
+            },
+            "description": "Login to get authentication token. Token is automatically saved to collection variables."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Chat",
+      "item": [
+        {
+          "name": "Chat - Basic Question",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"message\": \"How do I create a new contract?\",\n    \"language\": \"en\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/ai/assistant/chat",
+              "host": ["{{base_url}}"],
+              "path": ["ai", "assistant", "chat"]
+            },
+            "description": "Send a basic help question to the AI assistant.\n\n**Required Permission:** `use-ai-assistant`\n\n**Parameters:**\n- `message` (required): User's question (max 6000 chars)\n- `language` (optional): 'ar' or 'en' (default: 'ar')\n- `module` (optional): Module context (e.g., 'sales', 'contracts')\n- `page_key` (optional): Page context (e.g., 'sales.reservations.index')\n- `conversation_id` (optional): Continue existing conversation"
+          },
+          "response": [
+            {
+              "name": "Success Response",
+              "status": "OK",
+              "code": 200,
+              "body": "{\n    \"success\": true,\n    \"data\": {\n        \"conversation_id\": 1,\n        \"reply\": \"To create a new contract, follow these steps:\\n1. Go to Contracts page\\n2. Click 'Create Contract'\\n3. Fill in the required information\\n4. Submit for approval\",\n        \"knowledge_used_count\": 3\n    }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Chat - With Module Context",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"message\": \"كيف أنشئ حجز جديد؟\",\n    \"module\": \"sales\",\n    \"page_key\": \"sales.reservations.index\",\n    \"language\": \"ar\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/ai/assistant/chat",
+              "host": ["{{base_url}}"],
+              "path": ["ai", "assistant", "chat"]
+            },
+            "description": "Chat with module and page context for more relevant answers."
+          },
+          "response": []
+        },
+        {
+          "name": "Chat - Continue Conversation",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"message\": \"What happens after I submit it?\",\n    \"conversation_id\": 1,\n    \"language\": \"en\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/ai/assistant/chat",
+              "host": ["{{base_url}}"],
+              "path": ["ai", "assistant", "chat"]
+            },
+            "description": "Continue an existing conversation by providing the conversation_id."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Knowledge Management (Admin)",
+      "item": [
+        {
+          "name": "List Knowledge Entries",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/ai/assistant/knowledge?per_page=15",
+              "host": ["{{base_url}}"],
+              "path": ["ai", "assistant", "knowledge"],
+              "query": [
+                {
+                  "key": "per_page",
+                  "value": "15",
+                  "description": "Items per page (max 100)"
+                },
+                {
+                  "key": "page",
+                  "value": "1",
+                  "disabled": true,
+                  "description": "Page number"
+                },
+                {
+                  "key": "module",
+                  "value": "sales",
+                  "disabled": true,
+                  "description": "Filter by module"
+                },
+                {
+                  "key": "page_key",
+                  "value": "sales.reservations.index",
+                  "disabled": true,
+                  "description": "Filter by page key"
+                },
+                {
+                  "key": "language",
+                  "value": "ar",
+                  "disabled": true,
+                  "description": "Filter by language (ar/en)"
+                },
+                {
+                  "key": "is_active",
+                  "value": "true",
+                  "disabled": true,
+                  "description": "Filter by active status"
+                },
+                {
+                  "key": "search",
+                  "value": "contract",
+                  "disabled": true,
+                  "description": "Search in title and content"
+                }
+              ]
+            },
+            "description": "List all knowledge entries with optional filters.\n\n**Required Permission:** `manage-ai-knowledge`\n\n**Filters:**\n- `module`: Filter by module name\n- `page_key`: Filter by page key\n- `language`: Filter by language (ar/en)\n- `is_active`: Filter by active status\n- `search`: Search in title and content\n- `per_page`: Items per page (default 15, max 100)\n- `page`: Page number"
+          },
+          "response": [
+            {
+              "name": "Success Response",
+              "status": "OK",
+              "code": 200,
+              "body": "{\n    \"success\": true,\n    \"data\": [\n        {\n            \"id\": 1,\n            \"module\": \"sales\",\n            \"page_key\": \"sales.reservations.index\",\n            \"title\": \"How to Create a Reservation\",\n            \"content_md\": \"## Steps\\n1. Navigate to Sales > Reservations\\n2. Click Create button...\",\n            \"tags\": [\"reservation\", \"sales\", \"guide\"],\n            \"roles\": [\"sales\", \"sales_leader\"],\n            \"permissions\": [\"sales.reservations.create\"],\n            \"language\": \"en\",\n            \"is_active\": true,\n            \"priority\": 50,\n            \"updated_by\": 1,\n            \"created_at\": \"2026-01-29T10:00:00.000000Z\",\n            \"updated_at\": \"2026-01-29T10:00:00.000000Z\"\n        }\n    ],\n    \"meta\": {\n        \"current_page\": 1,\n        \"last_page\": 1,\n        \"per_page\": 15,\n        \"total\": 1\n    }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Create Knowledge Entry",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"module\": \"sales\",\n    \"page_key\": \"sales.reservations.index\",\n    \"title\": \"How to Create a Reservation\",\n    \"content_md\": \"## Steps to Create a Reservation\\n\\n1. Navigate to **Sales > Reservations**\\n2. Click the **Create** button\\n3. Select the project and unit\\n4. Fill in client information\\n5. Choose payment method\\n6. Submit the reservation\\n\\n### Important Notes\\n- Make sure the unit is available\\n- Client information must be complete\",\n    \"tags\": [\"reservation\", \"sales\", \"guide\"],\n    \"roles\": [\"sales\", \"sales_leader\"],\n    \"permissions\": [\"sales.reservations.create\"],\n    \"language\": \"en\",\n    \"is_active\": true,\n    \"priority\": 50\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/ai/assistant/knowledge",
+              "host": ["{{base_url}}"],
+              "path": ["ai", "assistant", "knowledge"]
+            },
+            "description": "Create a new knowledge entry.\n\n**Required Permission:** `manage-ai-knowledge`\n\n**Fields:**\n- `module` (required): Module name (e.g., 'sales', 'contracts')\n- `page_key` (optional): Page key for specific page context\n- `title` (required): Entry title\n- `content_md` (required): Content in Markdown format\n- `tags` (optional): Array of tags for categorization\n- `roles` (optional): Array of role names that can see this entry (empty = all)\n- `permissions` (optional): Array of permission names required (empty = all)\n- `language` (required): 'ar' or 'en'\n- `is_active` (optional): Active status (default: true)\n- `priority` (optional): Display priority, lower = higher (default: 100)"
+          },
+          "response": [
+            {
+              "name": "Created Response",
+              "status": "Created",
+              "code": 201,
+              "body": "{\n    \"success\": true,\n    \"message\": \"Knowledge entry created successfully.\",\n    \"data\": {\n        \"id\": 1,\n        \"module\": \"sales\",\n        \"page_key\": \"sales.reservations.index\",\n        \"title\": \"How to Create a Reservation\",\n        \"content_md\": \"## Steps to Create a Reservation...\",\n        \"tags\": [\"reservation\", \"sales\", \"guide\"],\n        \"roles\": [\"sales\", \"sales_leader\"],\n        \"permissions\": [\"sales.reservations.create\"],\n        \"language\": \"en\",\n        \"is_active\": true,\n        \"priority\": 50,\n        \"updated_by\": 1,\n        \"created_at\": \"2026-01-29T10:00:00.000000Z\",\n        \"updated_at\": \"2026-01-29T10:00:00.000000Z\"\n    }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Create Knowledge Entry (Arabic)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"module\": \"sales\",\n    \"page_key\": \"sales.reservations.index\",\n    \"title\": \"كيفية إنشاء حجز جديد\",\n    \"content_md\": \"## خطوات إنشاء حجز\\n\\n1. اذهب إلى **المبيعات > الحجوزات**\\n2. اضغط على زر **إنشاء**\\n3. اختر المشروع والوحدة\\n4. أدخل بيانات العميل\\n5. اختر طريقة الدفع\\n6. أرسل الحجز\\n\\n### ملاحظات مهمة\\n- تأكد من أن الوحدة متاحة\\n- يجب أن تكون بيانات العميل كاملة\",\n    \"tags\": [\"حجز\", \"مبيعات\", \"دليل\"],\n    \"roles\": [\"sales\", \"sales_leader\"],\n    \"permissions\": [\"sales.reservations.create\"],\n    \"language\": \"ar\",\n    \"is_active\": true,\n    \"priority\": 50\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/ai/assistant/knowledge",
+              "host": ["{{base_url}}"],
+              "path": ["ai", "assistant", "knowledge"]
+            },
+            "description": "Create a knowledge entry in Arabic."
+          },
+          "response": []
+        },
+        {
+          "name": "Create Global Knowledge Entry",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"module\": \"general\",\n    \"page_key\": null,\n    \"title\": \"System Navigation Guide\",\n    \"content_md\": \"## How to Navigate the System\\n\\n### Main Menu\\nThe main menu is located on the left side. You can find:\\n- Dashboard\\n- Contracts\\n- Sales\\n- Marketing\\n- Settings\\n\\n### Quick Actions\\nUse the top bar for quick actions and notifications.\",\n    \"tags\": [\"navigation\", \"general\", \"guide\"],\n    \"roles\": null,\n    \"permissions\": null,\n    \"language\": \"en\",\n    \"is_active\": true,\n    \"priority\": 10\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/ai/assistant/knowledge",
+              "host": ["{{base_url}}"],
+              "path": ["ai", "assistant", "knowledge"]
+            },
+            "description": "Create a global knowledge entry (visible to all users on any page).\n\nSet `page_key` to null and leave `roles`/`permissions` empty or null."
+          },
+          "response": []
+        },
+        {
+          "name": "Update Knowledge Entry",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"title\": \"How to Create a Reservation (Updated)\",\n    \"content_md\": \"## Updated Steps\\n\\n1. Go to Sales > Reservations\\n2. Click Create\\n3. ...\",\n    \"is_active\": true,\n    \"priority\": 40\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/ai/assistant/knowledge/1",
+              "host": ["{{base_url}}"],
+              "path": ["ai", "assistant", "knowledge", "1"]
+            },
+            "description": "Update an existing knowledge entry.\n\n**Required Permission:** `manage-ai-knowledge`\n\nOnly include fields you want to update."
+          },
+          "response": [
+            {
+              "name": "Success Response",
+              "status": "OK",
+              "code": 200,
+              "body": "{\n    \"success\": true,\n    \"message\": \"Knowledge entry updated successfully.\",\n    \"data\": {\n        \"id\": 1,\n        \"title\": \"How to Create a Reservation (Updated)\",\n        \"...\": \"...\"\n    }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Delete Knowledge Entry",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/ai/assistant/knowledge/1",
+              "host": ["{{base_url}}"],
+              "path": ["ai", "assistant", "knowledge", "1"]
+            },
+            "description": "Delete a knowledge entry.\n\n**Required Permission:** `manage-ai-knowledge`"
+          },
+          "response": [
+            {
+              "name": "Success Response",
+              "status": "OK",
+              "code": 200,
+              "body": "{\n    \"success\": true,\n    \"message\": \"Knowledge entry deleted successfully.\"\n}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Error Examples",
+      "item": [
+        {
+          "name": "403 - Missing Permission (Chat)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"message\": \"Help me\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/ai/assistant/chat",
+              "host": ["{{base_url}}"],
+              "path": ["ai", "assistant", "chat"]
+            },
+            "description": "Example of 403 error when user doesn't have `use-ai-assistant` permission."
+          },
+          "response": [
+            {
+              "name": "403 Forbidden",
+              "status": "Forbidden",
+              "code": 403,
+              "body": "{\n    \"success\": false,\n    \"message\": \"You do not have permission to use the AI assistant.\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "422 - Validation Error",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"language\": \"invalid\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/ai/assistant/chat",
+              "host": ["{{base_url}}"],
+              "path": ["ai", "assistant", "chat"]
+            },
+            "description": "Example of validation error."
+          },
+          "response": [
+            {
+              "name": "422 Validation Error",
+              "status": "Unprocessable Entity",
+              "code": 422,
+              "body": "{\n    \"message\": \"The message field is required.\",\n    \"errors\": {\n        \"message\": [\"The message field is required.\"],\n        \"language\": [\"The selected language is invalid.\"]\n    }\n}"
+            }
+          ]
+        },
+        {
+          "name": "404 - Knowledge Not Found",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"title\": \"Updated Title\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/ai/assistant/knowledge/99999",
+              "host": ["{{base_url}}"],
+              "path": ["ai", "assistant", "knowledge", "99999"]
+            },
+            "description": "Example of 404 when knowledge entry doesn't exist."
+          },
+          "response": [
+            {
+              "name": "404 Not Found",
+              "status": "Not Found",
+              "code": 404,
+              "body": "{\n    \"success\": false,\n    \"message\": \"Knowledge entry not found.\"\n}"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
+
