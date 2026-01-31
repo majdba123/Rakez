@@ -40,7 +40,6 @@ use App\Http\Controllers\Sales\PaymentPlanController;
 use App\Http\Controllers\ExclusiveProjectController;
 use App\Http\Middleware\CheckDynamicPermission;
 
-
 use App\Http\Controllers\HR\HrDashboardController;
 use App\Http\Controllers\HR\HrTeamController;
 use App\Http\Controllers\HR\MarketerPerformanceController;
@@ -48,6 +47,7 @@ use App\Http\Controllers\HR\HrUserController;
 use App\Http\Controllers\HR\EmployeeWarningController;
 use App\Http\Controllers\HR\EmployeeContractController;
 use App\Http\Controllers\HR\HrReportController;
+use App\Http\Controllers\TeamController;
 use App\Http\Controllers\Marketing\MarketingDashboardController;
 use App\Http\Controllers\Marketing\MarketingProjectController;
 use App\Http\Controllers\Marketing\DeveloperMarketingPlanController;
@@ -64,6 +64,7 @@ use App\Http\Controllers\Credit\CreditFinancingController;
 use App\Http\Controllers\Credit\TitleTransferController;
 use App\Http\Controllers\Credit\ClaimFileController;
 use App\Http\Controllers\Accounting\AccountingConfirmationController;
+use App\Http\Controllers\Dashboard\DashboardController;
 
 use Illuminate\Support\Facades\File;  // أضف هذا السطر في الأعلى
 
@@ -161,12 +162,41 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::get('show/{contractId}', [PhotographyDepartmentController::class, 'show'])->middleware('permission:departments.photography.view');
             Route::post('store/{contractId}', [PhotographyDepartmentController::class, 'store'])->middleware('permission:departments.photography.edit');
             Route::put('update/{contractId}', [PhotographyDepartmentController::class, 'update'])->middleware('permission:departments.photography.edit');
+            Route::patch('approve/{contractId}', [PhotographyDepartmentController::class, 'approve']);
+
         });
 
         // لوحة تحكم إدارة المشاريع - Project Management Dashboard
         Route::prefix('project_management/dashboard')->group(function () {
             Route::get('/', [ProjectManagementDashboardController::class, 'index'])->middleware('permission:dashboard.analytics.view');
             Route::get('/units-statistics', [ProjectManagementDashboardController::class, 'unitsStatistics'])->middleware('permission:dashboard.analytics.view');
+        });
+
+
+
+
+        Route::prefix('project_management')->group(function () {
+
+            Route::prefix('teams')->group(function () {
+
+                Route::get('/index', [TeamController::class, 'index']);
+                Route::post('/store', [TeamController::class, 'store']);
+                Route::put('/update/{id}', [TeamController::class, 'update']);
+                Route::delete('/delete/{id}', [TeamController::class, 'destroy']);
+                Route::get('/show/{id}', [TeamController::class, 'show']);
+
+                Route::get('/index/{contractId}', [ContractController::class, 'getTeamsForContract_HR']);
+                Route::get('/contracts/{teamId}', [TeamController::class, 'contracts'])->whereNumber('teamId');
+
+                Route::post('/add/{contractId}', [ContractController::class, 'addTeamsToContract']);
+                Route::post('/remove/{contractId}', [ContractController::class, 'removeTeamsFromContract']);
+
+                Route::get('/contracts/locations/{teamId}', [TeamController::class, 'contractLocations'])->whereNumber('teamId');
+
+            });
+
+
+
         });
 
     });
@@ -238,7 +268,7 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::post('marketing-tasks', [MarketingTaskController::class, 'store'])->middleware('permission:sales.tasks.manage');
             Route::patch('marketing-tasks/{id}', [MarketingTaskController::class, 'update'])->middleware('permission:sales.tasks.manage');
         });
-        
+
         // Waiting List Routes
         Route::prefix('waiting-list')->group(function () {
             Route::get('/', [WaitingListController::class, 'index'])->middleware('permission:sales.waiting_list.create');
@@ -375,52 +405,52 @@ Route::middleware('auth:sanctum')->group(function () {
     // MARKETING DEPARTMENT ROUTES
     // ==========================================
     Route::prefix('marketing')->middleware(['auth:sanctum', 'role:marketing|admin'])->group(function () {
-        
+
         // Dashboard
         Route::get('dashboard', [MarketingDashboardController::class, 'index'])->middleware('permission:marketing.dashboard.view');
-        
+
         // Projects
         Route::get('projects', [MarketingProjectController::class, 'index'])->middleware('permission:marketing.projects.view');
         Route::get('projects/{contractId}', [MarketingProjectController::class, 'show'])->middleware('permission:marketing.projects.view');
         Route::post('projects/calculate-budget', [MarketingProjectController::class, 'calculateBudget'])->middleware('permission:marketing.budgets.manage');
-        
+
         // Developer Plans
         Route::get('developer-plans/{contractId}', [DeveloperMarketingPlanController::class, 'show'])->middleware('permission:marketing.plans.create');
         Route::post('developer-plans', [DeveloperMarketingPlanController::class, 'store'])->middleware('permission:marketing.plans.create');
-        
+
         // Employee Plans
         Route::get('employee-plans/project/{projectId}', [EmployeeMarketingPlanController::class, 'index'])->middleware('permission:marketing.plans.create');
         Route::get('employee-plans/{planId}', [EmployeeMarketingPlanController::class, 'show'])->middleware('permission:marketing.plans.create');
         Route::post('employee-plans', [EmployeeMarketingPlanController::class, 'store'])->middleware('permission:marketing.plans.create');
         Route::post('employee-plans/auto-generate', [EmployeeMarketingPlanController::class, 'autoGenerate'])->middleware('permission:marketing.plans.create');
-        
+
         // Expected Sales
         Route::get('expected-sales/{projectId}', [ExpectedSalesController::class, 'calculate'])->middleware('permission:marketing.budgets.manage');
         Route::put('settings/conversion-rate', [ExpectedSalesController::class, 'updateConversionRate'])->middleware('permission:marketing.budgets.manage');
-        
+
         // Tasks
         Route::get('tasks', [MarketingModuleTaskController::class, 'index'])->middleware('permission:marketing.tasks.view');
         Route::post('tasks', [MarketingModuleTaskController::class, 'store'])->middleware('permission:marketing.tasks.confirm');
         Route::put('tasks/{taskId}', [MarketingModuleTaskController::class, 'update'])->middleware('permission:marketing.tasks.confirm');
         Route::patch('tasks/{taskId}/status', [MarketingModuleTaskController::class, 'updateStatus'])->middleware('permission:marketing.tasks.confirm');
-        
+
         // Team Management
         Route::post('projects/{projectId}/team', [TeamManagementController::class, 'assignTeam'])->middleware('permission:marketing.projects.view');
         Route::get('projects/{projectId}/team', [TeamManagementController::class, 'getTeam'])->middleware('permission:marketing.projects.view');
         Route::get('projects/{projectId}/recommend-employee', [TeamManagementController::class, 'recommendEmployee'])->middleware('permission:marketing.projects.view');
-        
+
         // Leads
         Route::get('leads', [LeadController::class, 'index'])->middleware('permission:marketing.projects.view');
         Route::post('leads', [LeadController::class, 'store'])->middleware('permission:marketing.projects.view');
         Route::put('leads/{leadId}', [LeadController::class, 'update'])->middleware('permission:marketing.projects.view');
-        
+
         // Reports
         Route::get('reports/project/{projectId}', [MarketingReportController::class, 'projectPerformance'])->middleware('permission:marketing.reports.view');
         Route::get('reports/budget', [MarketingReportController::class, 'budgetReport'])->middleware('permission:marketing.reports.view');
         Route::get('reports/expected-bookings', [MarketingReportController::class, 'expectedBookingsReport'])->middleware('permission:marketing.reports.view');
         Route::get('reports/employee/{userId}', [MarketingReportController::class, 'employeePerformance'])->middleware('permission:marketing.reports.view');
         Route::get('reports/export/{planId}', [MarketingReportController::class, 'exportPlan'])->middleware('permission:marketing.reports.view');
-        
+
         // Settings
         Route::get('settings', [MarketingSettingsController::class, 'index'])->middleware('permission:marketing.budgets.manage');
         Route::put('settings/{key}', [MarketingSettingsController::class, 'update'])->middleware('permission:marketing.budgets.manage');
@@ -481,6 +511,41 @@ Route::middleware('auth:sanctum')->group(function () {
 
         return response()->file($filePath);
     })->where('path', '.*');
-});
+    });
 
-/**sa*/
+
+    Route::prefix('hr')->middleware(['auth:sanctum', 'hr'])->group(function () {
+
+
+        Route::post('/add_employee', [RegisterController::class, 'add_employee']);
+        Route::get('/list_employees', [RegisterController::class, 'list_employees']);
+        Route::get('/show_employee/{id}', [RegisterController::class, 'show_employee']);
+        Route::put('/update_employee/{id}', [RegisterController::class, 'update_employee']);
+        Route::delete('/delete_employee/{id}', [RegisterController::class, 'delete_employee']);
+
+
+        Route::prefix('teams')->group(function () {
+
+
+            Route::get('/contracts/{teamId}', [TeamController::class, 'contracts'])->whereNumber('teamId');
+            Route::get('/contracts/locations/{teamId}', [TeamController::class, 'contractLocations'])->whereNumber('teamId');
+            Route::get('/sales-average/{teamId}', [TeamController::class, 'salesAverage'])->whereNumber('teamId');
+            Route::get('/getTeamsForContract/{contractId}', [ContractController::class, 'getTeamsForContract']);
+        });
+
+        Route::get('/dashboard', [DashboardController::class, 'hr']);
+
+    });
+
+
+
+
+
+
+
+    Route::prefix('teams')->middleware(['auth:sanctum'])->group(function () {
+
+            Route::get('/index', [TeamController::class, 'index']);
+            Route::get('/show/{id}', [TeamController::class, 'show']);
+        });
+
