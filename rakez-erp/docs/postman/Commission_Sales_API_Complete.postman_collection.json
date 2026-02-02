@@ -1,0 +1,555 @@
+{
+	"info": {
+		"_postman_id": "commission-sales-2026-v1",
+		"name": "Commission & Sales Management - Complete API",
+		"description": "Complete Postman collection for Commission and Sales Management System\n\n**Total Endpoints**: 39\n- Dashboard & Analytics: 5\n- Commissions: 8\n- Commission Distributions: 9\n- Deposits: 15\n- Bulk Operations: 2\n\n**Version**: 1.0.0\n**Last Updated**: 2026-02-02\n\n**Base URL**: {{base_url}}/api/sales\n\n**Authentication**: Bearer Token (required for all endpoints)",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"auth": {
+		"type": "bearer",
+		"bearer": [
+			{
+				"key": "token",
+				"value": "{{auth_token}}",
+				"type": "string"
+			}
+		]
+	},
+	"item": [
+		{
+			"name": "1. Dashboard & Analytics",
+			"item": [
+				{
+					"name": "Dashboard KPIs",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/sales/analytics/dashboard?from=2026-01-01&to=2026-12-31",
+							"host": ["{{base_url}}"],
+							"path": ["api", "sales", "analytics", "dashboard"],
+							"query": [
+								{"key": "from", "value": "2026-01-01"},
+								{"key": "to", "value": "2026-12-31"}
+							]
+						}
+					}
+				},
+				{
+					"name": "Sold Units List",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/sales/analytics/sold-units?per_page=15",
+							"host": ["{{base_url}}"],
+							"path": ["api", "sales", "analytics", "sold-units"],
+							"query": [{"key": "per_page", "value": "15"}]
+						}
+					}
+				},
+				{
+					"name": "Monthly Commission Report",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/sales/analytics/commissions/monthly-report?year=2026&month=2",
+							"host": ["{{base_url}}"],
+							"path": ["api", "sales", "analytics", "commissions", "monthly-report"],
+							"query": [
+								{"key": "year", "value": "2026"},
+								{"key": "month", "value": "2"}
+							]
+						}
+					}
+				},
+				{
+					"name": "Deposit Stats by Project",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/sales/analytics/deposits/stats/project/1",
+							"host": ["{{base_url}}"],
+							"path": ["api", "sales", "analytics", "deposits", "stats", "project", "1"]
+						}
+					}
+				},
+				{
+					"name": "Commission Stats by Employee",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/sales/analytics/commissions/stats/employee/1",
+							"host": ["{{base_url}}"],
+							"path": ["api", "sales", "analytics", "commissions", "stats", "employee", "1"]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "2. Commissions",
+			"item": [
+				{
+					"name": "List Commissions",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/sales/commissions?status=pending",
+							"host": ["{{base_url}}"],
+							"path": ["api", "sales", "commissions"],
+							"query": [{"key": "status", "value": "pending"}]
+						}
+					}
+				},
+				{
+					"name": "Create Commission",
+					"request": {
+						"method": "POST",
+						"header": [{"key": "Content-Type", "value": "application/json"}],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"contract_unit_id\": 1,\n  \"sales_reservation_id\": 100,\n  \"final_selling_price\": 485000.00,\n  \"commission_percentage\": 3.0,\n  \"commission_source\": \"owner\",\n  \"team_responsible\": \"فريق الرياض\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/sales/commissions",
+							"host": ["{{base_url}}"],
+							"path": ["api", "sales", "commissions"]
+						}
+					}
+				},
+				{
+					"name": "Get Commission",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/sales/commissions/1",
+							"host": ["{{base_url}}"],
+							"path": ["api", "sales", "commissions", "1"]
+						}
+					}
+				},
+				{
+					"name": "Update Expenses",
+					"request": {
+						"method": "PUT",
+						"header": [{"key": "Content-Type", "value": "application/json"}],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"marketing_expenses\": 500.00,\n  \"bank_fees\": 100.00\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/sales/commissions/1/expenses",
+							"host": ["{{base_url}}"],
+							"path": ["api", "sales", "commissions", "1", "expenses"]
+						}
+					}
+				},
+				{
+					"name": "Get Summary",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/sales/commissions/1/summary",
+							"host": ["{{base_url}}"],
+							"path": ["api", "sales", "commissions", "1", "summary"]
+						}
+					}
+				},
+				{
+					"name": "Approve Commission",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/sales/commissions/1/approve",
+							"host": ["{{base_url}}"],
+							"path": ["api", "sales", "commissions", "1", "approve"]
+						}
+					}
+				},
+				{
+					"name": "Mark as Paid",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/sales/commissions/1/mark-paid",
+							"host": ["{{base_url}}"],
+							"path": ["api", "sales", "commissions", "1", "mark-paid"]
+						}
+					}
+				},
+				{
+					"name": "Generate PDF",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/sales/commissions/1/generate-claim",
+							"host": ["{{base_url}}"],
+							"path": ["api", "sales", "commissions", "1", "generate-claim"]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "3. Commission Distributions",
+			"item": [
+				{
+					"name": "Add Distribution",
+					"request": {
+						"method": "POST",
+						"header": [{"key": "Content-Type", "value": "application/json"}],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"type\": \"lead_generation\",\n  \"user_id\": 5,\n  \"percentage\": 30.0,\n  \"bank_account\": \"SA1234567890\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/sales/commissions/1/distributions",
+							"host": ["{{base_url}}"],
+							"path": ["api", "sales", "commissions", "1", "distributions"]
+						}
+					}
+				},
+				{
+					"name": "Distribute Lead Generation",
+					"request": {
+						"method": "POST",
+						"header": [{"key": "Content-Type", "value": "application/json"}],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"distributions\": [\n    {\n      \"user_id\": 5,\n      \"percentage\": 30.0,\n      \"bank_account\": \"SA1234567890\"\n    }\n  ]\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/sales/commissions/1/distribute/lead-generation",
+							"host": ["{{base_url}}"],
+							"path": ["api", "sales", "commissions", "1", "distribute", "lead-generation"]
+						}
+					}
+				},
+				{
+					"name": "Distribute Persuasion",
+					"request": {
+						"method": "POST",
+						"header": [{"key": "Content-Type", "value": "application/json"}],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"distributions\": [\n    {\n      \"user_id\": 6,\n      \"percentage\": 25.0,\n      \"bank_account\": \"SA0987654321\"\n    }\n  ]\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/sales/commissions/1/distribute/persuasion",
+							"host": ["{{base_url}}"],
+							"path": ["api", "sales", "commissions", "1", "distribute", "persuasion"]
+						}
+					}
+				},
+				{
+					"name": "Distribute Closing",
+					"request": {
+						"method": "POST",
+						"header": [{"key": "Content-Type", "value": "application/json"}],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"distributions\": [\n    {\n      \"user_id\": 7,\n      \"percentage\": 30.0,\n      \"bank_account\": \"SA1122334455\"\n    }\n  ]\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/sales/commissions/1/distribute/closing",
+							"host": ["{{base_url}}"],
+							"path": ["api", "sales", "commissions", "1", "distribute", "closing"]
+						}
+					}
+				},
+				{
+					"name": "Distribute Management",
+					"request": {
+						"method": "POST",
+						"header": [{"key": "Content-Type", "value": "application/json"}],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"distributions\": [\n    {\n      \"type\": \"sales_manager\",\n      \"user_id\": 8,\n      \"percentage\": 15.0,\n      \"bank_account\": \"SA5544332211\"\n    }\n  ]\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/sales/commissions/1/distribute/management",
+							"host": ["{{base_url}}"],
+							"path": ["api", "sales", "commissions", "1", "distribute", "management"]
+						}
+					}
+				},
+				{
+					"name": "Update Distribution",
+					"request": {
+						"method": "PUT",
+						"header": [{"key": "Content-Type", "value": "application/json"}],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"percentage\": 35.0,\n  \"bank_account\": \"SA9876543210\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/sales/commissions/distributions/1",
+							"host": ["{{base_url}}"],
+							"path": ["api", "sales", "commissions", "distributions", "1"]
+						}
+					}
+				},
+				{
+					"name": "Delete Distribution",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/sales/commissions/distributions/1",
+							"host": ["{{base_url}}"],
+							"path": ["api", "sales", "commissions", "distributions", "1"]
+						}
+					}
+				},
+				{
+					"name": "Approve Distribution",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/sales/commissions/distributions/1/approve",
+							"host": ["{{base_url}}"],
+							"path": ["api", "sales", "commissions", "distributions", "1", "approve"]
+						}
+					}
+				},
+				{
+					"name": "Reject Distribution",
+					"request": {
+						"method": "POST",
+						"header": [{"key": "Content-Type", "value": "application/json"}],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"notes\": \"Reason for rejection\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/sales/commissions/distributions/1/reject",
+							"host": ["{{base_url}}"],
+							"path": ["api", "sales", "commissions", "distributions", "1", "reject"]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "4. Deposits",
+			"item": [
+				{
+					"name": "List Deposits",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/sales/deposits?status=pending",
+							"host": ["{{base_url}}"],
+							"path": ["api", "sales", "deposits"],
+							"query": [{"key": "status", "value": "pending"}]
+						}
+					}
+				},
+				{
+					"name": "Create Deposit",
+					"request": {
+						"method": "POST",
+						"header": [{"key": "Content-Type", "value": "application/json"}],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"sales_reservation_id\": 100,\n  \"contract_id\": 10,\n  \"contract_unit_id\": 1,\n  \"amount\": 50000.00,\n  \"payment_method\": \"bank_transfer\",\n  \"client_name\": \"عبدالله سعيد\",\n  \"payment_date\": \"2026-02-01\",\n  \"commission_source\": \"owner\",\n  \"notes\": \"دفعة أولى\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/sales/deposits",
+							"host": ["{{base_url}}"],
+							"path": ["api", "sales", "deposits"]
+						}
+					}
+				},
+				{
+					"name": "Get Deposit",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/sales/deposits/1",
+							"host": ["{{base_url}}"],
+							"path": ["api", "sales", "deposits", "1"]
+						}
+					}
+				},
+				{
+					"name": "Update Deposit",
+					"request": {
+						"method": "PUT",
+						"header": [{"key": "Content-Type", "value": "application/json"}],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"amount\": 55000.00,\n  \"notes\": \"Updated amount\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/sales/deposits/1",
+							"host": ["{{base_url}}"],
+							"path": ["api", "sales", "deposits", "1"]
+						}
+					}
+				},
+				{
+					"name": "Delete Deposit",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/sales/deposits/1",
+							"host": ["{{base_url}}"],
+							"path": ["api", "sales", "deposits", "1"]
+						}
+					}
+				},
+				{
+					"name": "Follow-Up List",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/sales/deposits/follow-up",
+							"host": ["{{base_url}}"],
+							"path": ["api", "sales", "deposits", "follow-up"]
+						}
+					}
+				},
+				{
+					"name": "Confirm Receipt",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/sales/deposits/1/confirm-receipt",
+							"host": ["{{base_url}}"],
+							"path": ["api", "sales", "deposits", "1", "confirm-receipt"]
+						}
+					}
+				},
+				{
+					"name": "Mark as Received",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/sales/deposits/1/mark-received",
+							"host": ["{{base_url}}"],
+							"path": ["api", "sales", "deposits", "1", "mark-received"]
+						}
+					}
+				},
+				{
+					"name": "Refund Deposit",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/sales/deposits/1/refund",
+							"host": ["{{base_url}}"],
+							"path": ["api", "sales", "deposits", "1", "refund"]
+						}
+					}
+				},
+				{
+					"name": "Generate PDF",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/sales/deposits/1/generate-claim",
+							"host": ["{{base_url}}"],
+							"path": ["api", "sales", "deposits", "1", "generate-claim"]
+						}
+					}
+				},
+				{
+					"name": "Check Refundable",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/sales/deposits/1/can-refund",
+							"host": ["{{base_url}}"],
+							"path": ["api", "sales", "deposits", "1", "can-refund"]
+						}
+					}
+				},
+				{
+					"name": "Bulk Confirm",
+					"request": {
+						"method": "POST",
+						"header": [{"key": "Content-Type", "value": "application/json"}],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"deposit_ids\": [1, 2, 3, 4, 5]\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/sales/deposits/bulk-confirm",
+							"host": ["{{base_url}}"],
+							"path": ["api", "sales", "deposits", "bulk-confirm"]
+						}
+					}
+				},
+				{
+					"name": "Stats by Project",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/sales/deposits/stats/project/1",
+							"host": ["{{base_url}}"],
+							"path": ["api", "sales", "deposits", "stats", "project", "1"]
+						}
+					}
+				},
+				{
+					"name": "By Reservation",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/sales/deposits/by-reservation/1",
+							"host": ["{{base_url}}"],
+							"path": ["api", "sales", "deposits", "by-reservation", "1"]
+						}
+					}
+				},
+				{
+					"name": "Refundable by Project",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/sales/deposits/refundable/project/1",
+							"host": ["{{base_url}}"],
+							"path": ["api", "sales", "deposits", "refundable", "project", "1"]
+						}
+					}
+				}
+			]
+		}
+	],
+	"variable": [
+		{
+			"key": "base_url",
+			"value": "http://localhost:8000",
+			"type": "string"
+		},
+		{
+			"key": "auth_token",
+			"value": "",
+			"type": "string"
+		}
+	]
+}

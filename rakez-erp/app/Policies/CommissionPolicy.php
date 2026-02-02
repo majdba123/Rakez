@@ -44,7 +44,7 @@ class CommissionPolicy
     {
         // Only pending commissions can be updated
         if (!$commission->isPending()) {
-            return false;
+        return false;
         }
 
         return $user->hasAnyRole(['admin', 'sales_manager']);
@@ -57,7 +57,7 @@ class CommissionPolicy
     {
         // Only pending commissions can be deleted
         if (!$commission->isPending()) {
-            return false;
+        return false;
         }
 
         return $user->hasRole('admin');

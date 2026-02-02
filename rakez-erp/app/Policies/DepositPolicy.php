@@ -49,7 +49,7 @@ class DepositPolicy
     {
         // Only pending deposits can be updated
         if (!$deposit->isPending()) {
-            return false;
+        return false;
         }
 
         return $user->hasAnyRole(['admin', 'sales_manager', 'accountant']);
@@ -62,7 +62,7 @@ class DepositPolicy
     {
         // Only pending deposits can be deleted
         if (!$deposit->isPending()) {
-            return false;
+        return false;
         }
 
         return $user->hasAnyRole(['admin', 'sales_manager']);
