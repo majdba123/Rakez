@@ -502,6 +502,63 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('confirmations/history', [AccountingConfirmationController::class, 'history'])->middleware('permission:accounting.down_payment.confirm');
     });
 
+    // ==========================================
+    // COMMISSION AND SALES ANALYTICS ROUTES
+    // ==========================================
+    Route::prefix('sales')->middleware(['auth:sanctum'])->group(function () {
+        // Analytics Dashboard
+        Route::get('analytics/dashboard', [\App\Http\Controllers\Api\SalesAnalyticsController::class, 'dashboard']);
+        Route::get('analytics/sold-units', [\App\Http\Controllers\Api\SalesAnalyticsController::class, 'soldUnits']);
+        Route::get('analytics/deposits/stats/project/{contractId}', [\App\Http\Controllers\Api\SalesAnalyticsController::class, 'depositStatsByProject']);
+        Route::get('analytics/commissions/stats/employee/{userId}', [\App\Http\Controllers\Api\SalesAnalyticsController::class, 'commissionStatsByEmployee']);
+        Route::get('analytics/commissions/monthly-report', [\App\Http\Controllers\Api\SalesAnalyticsController::class, 'monthlyCommissionReport']);
+        
+        // Commissions
+        Route::prefix('commissions')->group(function () {
+            Route::get('/', [\App\Http\Controllers\Api\CommissionController::class, 'index']);
+            Route::post('/', [\App\Http\Controllers\Api\CommissionController::class, 'store']);
+            Route::get('/{commission}', [\App\Http\Controllers\Api\CommissionController::class, 'show']);
+            Route::put('/{commission}/expenses', [\App\Http\Controllers\Api\CommissionController::class, 'updateExpenses']);
+            Route::post('/{commission}/distributions', [\App\Http\Controllers\Api\CommissionController::class, 'addDistribution']);
+            Route::post('/{commission}/distribute/lead-generation', [\App\Http\Controllers\Api\CommissionController::class, 'distributeLeadGeneration']);
+            Route::post('/{commission}/distribute/persuasion', [\App\Http\Controllers\Api\CommissionController::class, 'distributePersuasion']);
+            Route::post('/{commission}/distribute/closing', [\App\Http\Controllers\Api\CommissionController::class, 'distributeClosing']);
+            Route::post('/{commission}/distribute/management', [\App\Http\Controllers\Api\CommissionController::class, 'distributeManagement']);
+            Route::post('/{commission}/approve', [\App\Http\Controllers\Api\CommissionController::class, 'approve']);
+            Route::post('/{commission}/mark-paid', [\App\Http\Controllers\Api\CommissionController::class, 'markAsPaid']);
+            Route::get('/{commission}/summary', [\App\Http\Controllers\Api\CommissionController::class, 'summary']);
+            
+            // Distribution management
+            Route::put('/distributions/{distribution}', [\App\Http\Controllers\Api\CommissionController::class, 'updateDistribution']);
+            Route::delete('/distributions/{distribution}', [\App\Http\Controllers\Api\CommissionController::class, 'deleteDistribution']);
+            Route::post('/distributions/{distribution}/approve', [\App\Http\Controllers\Api\CommissionController::class, 'approveDistribution']);
+            Route::post('/distributions/{distribution}/reject', [\App\Http\Controllers\Api\CommissionController::class, 'rejectDistribution']);
+        });
+        
+        // Deposits
+        Route::prefix('deposits')->group(function () {
+            Route::get('/', [\App\Http\Controllers\Api\DepositController::class, 'index']);
+            Route::post('/', [\App\Http\Controllers\Api\DepositController::class, 'store']);
+            Route::get('/follow-up', [\App\Http\Controllers\Api\DepositController::class, 'followUp']);
+            Route::get('/{deposit}', [\App\Http\Controllers\Api\DepositController::class, 'show']);
+            Route::put('/{deposit}', [\App\Http\Controllers\Api\DepositController::class, 'update']);
+            Route::post('/{deposit}/confirm-receipt', [\App\Http\Controllers\Api\DepositController::class, 'confirmReceipt']);
+            Route::post('/{deposit}/mark-received', [\App\Http\Controllers\Api\DepositController::class, 'markAsReceived']);
+            Route::post('/{deposit}/refund', [\App\Http\Controllers\Api\DepositController::class, 'refund']);
+            Route::post('/{deposit}/generate-claim', [\App\Http\Controllers\Api\DepositController::class, 'generateClaimFile']);
+            Route::get('/{deposit}/can-refund', [\App\Http\Controllers\Api\DepositController::class, 'canRefund']);
+            Route::delete('/{deposit}', [\App\Http\Controllers\Api\DepositController::class, 'destroy']);
+            
+            // Bulk operations
+            Route::post('/bulk-confirm', [\App\Http\Controllers\Api\DepositController::class, 'bulkConfirm']);
+            
+            // By project/reservation
+            Route::get('/stats/project/{contractId}', [\App\Http\Controllers\Api\DepositController::class, 'statsByProject']);
+            Route::get('/by-reservation/{salesReservationId}', [\App\Http\Controllers\Api\DepositController::class, 'byReservation']);
+            Route::get('/refundable/project/{contractId}', [\App\Http\Controllers\Api\DepositController::class, 'refundableDeposits']);
+        });
+    });
+
     Route::get('/storage/{path}', function ($path) {
         $filePath = storage_path('app/public/' . $path);
 

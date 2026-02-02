@@ -18,9 +18,11 @@ class StoreMarketingTaskRequest extends FormRequest
             'marketing_project_id' => 'nullable|exists:marketing_projects,id',
             'task_name' => 'required|string|max:255',
             'marketer_id' => 'required|exists:users,id',
-            'due_date' => 'required|date',
-            'priority' => 'nullable|string|in:low,medium,high',
-            'description' => 'nullable|string',
+            'participating_marketers_count' => 'nullable|integer|min:1',
+            'design_link' => 'nullable|string|max:500',
+            'design_number' => 'nullable|string|max:100',
+            'design_description' => 'nullable|string',
+            'status' => 'nullable|string|in:new,in_progress,completed',
         ];
     }
 }

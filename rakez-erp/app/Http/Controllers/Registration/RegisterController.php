@@ -45,7 +45,19 @@ class RegisterController extends Controller
      */
     public function list_employees(Request $request): mixed
     {
-        $users = $this->userService->listEmployees($request->all());
+        // Validate query parameters
+        $validated = $request->validate([
+            'type' => 'nullable|string',
+            'search' => 'nullable|string|max:255',
+            'status' => 'nullable|string|in:active,deleted',
+            'start_date' => 'nullable|date',
+            'end_date' => 'nullable|date|after_or_equal:start_date',
+            'sort_by' => 'nullable|string|in:created_at,name,email',
+            'sort_order' => 'nullable|string|in:asc,desc',
+            'per_page' => 'nullable|integer|min:1|max:100',
+        ]);
+        
+        $users = $this->userService->listEmployees($validated);
 
         return UserResource::collection($users)
             ->additional(['message' => 'Employees retrieved successfully']);

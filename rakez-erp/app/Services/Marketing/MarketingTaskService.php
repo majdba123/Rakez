@@ -12,12 +12,19 @@ class MarketingTaskService
         return MarketingTask::create($data);
     }
 
-    public function getDailyTasks($userId, $date = null)
+    public function getDailyTasks($userId, $date = null, $status = null)
     {
-        $date = $date ?: now()->toDateString();
-        return MarketingTask::where('marketer_id', $userId)
-            ->whereDate('due_date', $date)
-            ->get();
+        $query = MarketingTask::where('marketer_id', $userId);
+        
+        if ($date) {
+            $query->whereDate('created_at', $date);
+        }
+        
+        if ($status) {
+            $query->where('status', $status);
+        }
+        
+        return $query->get();
     }
 
     public function updateTaskStatus($taskId, $status)
@@ -29,10 +36,13 @@ class MarketingTaskService
 
     public function getTaskAchievementRate($userId, $date = null)
     {
-        $date = $date ?: now()->toDateString();
-        $tasks = MarketingTask::where('marketer_id', $userId)
-            ->whereDate('due_date', $date)
-            ->get();
+        $query = MarketingTask::where('marketer_id', $userId);
+        
+        if ($date) {
+            $query->whereDate('created_at', $date);
+        }
+        
+        $tasks = $query->get();
 
         if ($tasks->isEmpty()) return 0;
 

@@ -18,13 +18,12 @@ class MarketingTaskController extends Controller
 
     public function index(Request $request): JsonResponse
     {
-        if ($request->user()->cannot('marketing.tasks.view')) {
-            abort(403, 'Unauthorized. Marketing permission required.');
-        }
+        $this->authorize('viewAny', \App\Models\MarketingTask::class);
 
         $tasks = $this->taskService->getDailyTasks(
             $request->user()->id,
-            $request->query('date')
+            $request->query('date'),
+            $request->query('status')
         );
 
         return response()->json([
@@ -61,9 +60,8 @@ class MarketingTaskController extends Controller
 
     public function updateStatus(int $taskId, Request $request): JsonResponse
     {
-        if ($request->user()->cannot('marketing.tasks.view')) {
-            abort(403, 'Unauthorized. Marketing permission required.');
-        }
+        $task = \App\Models\MarketingTask::findOrFail($taskId);
+        $this->authorize('update', $task);
 
         $request->validate(['status' => 'required|string|in:new,in_progress,completed,cancelled']);
 

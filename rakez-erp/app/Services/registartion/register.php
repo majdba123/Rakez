@@ -38,7 +38,7 @@ class register
 
             // Optional profile fields
             $optional = [
-                'team',
+                'team_id', // Use team_id (foreign key) instead of deprecated 'team' string
                 'identity_number',
                 'birthday',
                 'date_of_works',
@@ -110,7 +110,7 @@ class register
 
         // Select only the columns used by the API resource to reduce payload
         $select = [
-            'id', 'name', 'email', 'phone', 'type', 'is_manager', 'team', 'identity_number',
+            'id', 'name', 'email', 'phone', 'type', 'is_manager', 'team_id', 'identity_number',
              'birthday', 'date_of_works', 'contract_type',
             'iban', 'salary', 'marital_status', 'created_at', 'updated_at'
         ];
@@ -214,7 +214,7 @@ class register
 
             // Update optional profile fields
             $profileFields = [
-                'team',
+                'team_id', // Use team_id (foreign key) instead of deprecated 'team' string
                 'identity_number',
                 'birthday',
                 'date_of_works',

@@ -21,11 +21,13 @@ class DeveloperMarketingPlanController extends Controller
         ]);
     }
 
-    public function store(Request $request): JsonResponse
+    public function store(\App\Http\Requests\Marketing\StoreDeveloperPlanRequest $request): JsonResponse
     {
+        $validated = $request->validated();
+        
         $plan = $this->planService->createOrUpdatePlan(
-            $request->input('contract_id'),
-            $request->all()
+            $validated['contract_id'],
+            $validated
         );
 
         return response()->json([

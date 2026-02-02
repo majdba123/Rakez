@@ -34,13 +34,15 @@ class MarketingProjectController extends Controller
         ]);
     }
 
-    public function calculateBudget(Request $request): JsonResponse
+    public function calculateBudget(\App\Http\Requests\Marketing\CalculateBudgetRequest $request): JsonResponse
     {
+        $validated = $request->validated();
+        
         return response()->json([
             'success' => true,
             'data' => $this->projectService->calculateCampaignBudget(
-                $request->input('contract_id'),
-                $request->all()
+                $validated['contract_id'],
+                $validated
             )
         ]);
     }

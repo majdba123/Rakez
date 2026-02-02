@@ -32,12 +32,14 @@ class EmployeeMarketingPlanController extends Controller
         ]);
     }
 
-    public function store(Request $request): JsonResponse
+    public function store(\App\Http\Requests\Marketing\StoreEmployeePlanRequest $request): JsonResponse
     {
+        $validated = $request->validated();
+        
         $plan = $this->planService->createPlan(
-            $request->input('marketing_project_id'),
-            $request->input('user_id'),
-            $request->all()
+            $validated['marketing_project_id'],
+            $validated['user_id'],
+            $validated
         );
 
         return response()->json([

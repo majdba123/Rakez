@@ -16,10 +16,11 @@ class UpdateMarketingTaskRequest extends FormRequest
         return [
             'task_name' => 'sometimes|string|max:255',
             'marketer_id' => 'sometimes|exists:users,id',
-            'due_date' => 'sometimes|date',
-            'priority' => 'nullable|string|in:low,medium,high',
-            'description' => 'nullable|string',
-            'status' => 'nullable|string|in:new,in_progress,completed,cancelled',
+            'participating_marketers_count' => 'sometimes|integer|min:1',
+            'design_link' => 'nullable|string|max:500',
+            'design_number' => 'nullable|string|max:100',
+            'design_description' => 'nullable|string',
+            'status' => 'nullable|string|in:new,in_progress,completed',
         ];
     }
 }

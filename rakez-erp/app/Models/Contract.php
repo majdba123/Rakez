@@ -104,6 +104,22 @@ class Contract extends Model
     }
 
     /**
+     * Get the contract units through second party data.
+     * الوحدات
+     */
+    public function units()
+    {
+        return $this->hasManyThrough(
+            ContractUnit::class,
+            SecondPartyData::class,
+            'contract_id', // Foreign key on second_party_data table
+            'second_party_data_id', // Foreign key on contract_units table
+            'id', // Local key on contracts table
+            'id' // Local key on second_party_data table
+        );
+    }
+
+    /**
      * Teams assigned to this contract (many-to-many)
      */
     public function teams()
@@ -301,5 +317,13 @@ class Contract extends Model
     public function salesProjectAssignments()
     {
         return $this->hasMany(\App\Models\SalesProjectAssignment::class);
+    }
+
+    /**
+     * Get the deposits for this contract.
+     */
+    public function deposits()
+    {
+        return $this->hasMany(\App\Models\Deposit::class);
     }
 }

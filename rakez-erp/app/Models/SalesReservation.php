@@ -339,4 +339,20 @@ class SalesReservation extends Model
             ->where('status', 'completed')
             ->exists();
     }
+
+    /**
+     * Get the commission for this reservation.
+     */
+    public function commission()
+    {
+        return $this->hasOne(\App\Models\Commission::class);
+    }
+
+    /**
+     * Get the deposits for this reservation.
+     */
+    public function deposits()
+    {
+        return $this->hasMany(\App\Models\Deposit::class);
+    }
 }

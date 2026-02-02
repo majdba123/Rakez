@@ -11,9 +11,7 @@ class MarketingSettingsController extends Controller
 {
     public function index(): JsonResponse
     {
-        if (request()->user()->cannot('marketing.dashboard.view')) {
-            abort(403, 'Unauthorized. Marketing permission required.');
-        }
+        $this->authorize('viewAny', MarketingSetting::class);
 
         return response()->json([
             'success' => true,

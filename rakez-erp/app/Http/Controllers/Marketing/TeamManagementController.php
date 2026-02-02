@@ -30,9 +30,7 @@ class TeamManagementController extends Controller
 
     public function getTeam(int $projectId): JsonResponse
     {
-        if (request()->user()->cannot('marketing.projects.view')) {
-            abort(403, 'Unauthorized. Marketing permission required.');
-        }
+        $this->authorize('viewAny', \App\Models\MarketingProjectTeam::class);
 
         return response()->json([
             'success' => true,
@@ -42,9 +40,7 @@ class TeamManagementController extends Controller
 
     public function recommendEmployee(int $projectId): JsonResponse
     {
-        if (request()->user()->cannot('marketing.projects.view')) {
-            abort(403, 'Unauthorized. Marketing permission required.');
-        }
+        $this->authorize('viewAny', \App\Models\MarketingProjectTeam::class);
 
         return response()->json([
             'success' => true,

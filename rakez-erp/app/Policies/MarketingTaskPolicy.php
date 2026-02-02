@@ -8,72 +8,42 @@ use App\Models\User;
 class MarketingTaskPolicy
 {
     /**
-     * Determine if user can view any marketing tasks.
+     * Determine whether the user can view any marketing tasks.
      */
     public function viewAny(User $user): bool
     {
-        return $user->hasPermissionTo('sales.tasks.manage') || $user->hasRole('admin');
+        return $user->can('marketing.tasks.view');
     }
 
     /**
-     * Determine if user can view a specific marketing task.
+     * Determine whether the user can view the marketing task.
      */
-    public function view(User $user, MarketingTask $task): bool
+    public function view(User $user, MarketingTask $marketingTask): bool
     {
-        // Admin can view all
-        if ($user->hasRole('admin')) {
-            return true;
-        }
-
-        // Leader who created the task can view it
-        if ($user->hasPermissionTo('sales.tasks.manage')) {
-            return $task->created_by === $user->id;
-        }
-
-        // Marketer assigned to the task can view it
-        return $task->marketer_id === $user->id;
+        return $user->can('marketing.tasks.view');
     }
 
     /**
-     * Determine if user can create marketing tasks (leader only).
+     * Determine whether the user can create marketing tasks.
      */
     public function create(User $user): bool
     {
-        return $user->hasPermissionTo('sales.tasks.manage') && 
-               $user->type === 'sales' && 
-               $user->is_manager;
+        return $user->can('marketing.tasks.view');
     }
 
     /**
-     * Determine if user can update a marketing task.
+     * Determine whether the user can update the marketing task.
      */
-    public function update(User $user, MarketingTask $task): bool
+    public function update(User $user, MarketingTask $marketingTask): bool
     {
-        // Admin can update any
-        if ($user->hasRole('admin')) {
-            return true;
-        }
-
-        // Leader who created the task can update it
-        if ($user->hasPermissionTo('sales.tasks.manage')) {
-            return $task->created_by === $user->id;
-        }
-
-        return false;
+        return $user->can('marketing.tasks.confirm');
     }
 
     /**
-     * Determine if user can delete a marketing task (leader only).
+     * Determine whether the user can delete the marketing task.
      */
-    public function delete(User $user, MarketingTask $task): bool
+    public function delete(User $user, MarketingTask $marketingTask): bool
     {
-        // Admin can delete any
-        if ($user->hasRole('admin')) {
-            return true;
-        }
-
-        // Leader who created the task can delete it
-        return $user->hasPermissionTo('sales.tasks.manage') && 
-               $task->created_by === $user->id;
+        return $user->can('marketing.tasks.confirm');
     }
 }

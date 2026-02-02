@@ -61,5 +61,21 @@ class ContractUnit extends Model
     {
         return $this->hasMany(\App\Models\SalesTarget::class);
     }
+
+    /**
+     * Get the commission for this unit.
+     */
+    public function commission()
+    {
+        return $this->hasOne(\App\Models\Commission::class);
+    }
+
+    /**
+     * Get the deposits for this unit.
+     */
+    public function deposits()
+    {
+        return $this->hasMany(\App\Models\Deposit::class);
+    }
 }
 

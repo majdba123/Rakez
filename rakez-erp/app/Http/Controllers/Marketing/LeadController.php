@@ -12,9 +12,7 @@ class LeadController extends Controller
 {
     public function index(): JsonResponse
     {
-        if (request()->user()->cannot('marketing.projects.view')) {
-            abort(403, 'Unauthorized. Marketing permission required.');
-        }
+        $this->authorize('viewAny', Lead::class);
 
         return response()->json([
             'success' => true,

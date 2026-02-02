@@ -21,11 +21,16 @@ class SalesDashboardController extends Controller
      */
     public function index(Request $request): JsonResponse
     {
+        // Check if user has required sales role
+        $user = $request->user();
+        if (!$user->hasAnyRole(['sales', 'sales_leader', 'admin'])) {
+            abort(403, 'Unauthorized. Sales role required.');
+        }
+
         try {
             $scope = $request->query('scope', 'me');
             $from = $request->query('from');
             $to = $request->query('to');
-            $user = $request->user();
 
             $kpis = $this->dashboardService->getKPIs($scope, $from, $to, $user);
 

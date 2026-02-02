@@ -26,9 +26,7 @@ class ExpectedSalesController extends Controller
 
     public function updateConversionRate(Request $request): JsonResponse
     {
-        if ($request->user()->cannot('marketing.dashboard.view')) {
-            abort(403, 'Unauthorized. Marketing permission required.');
-        }
+        $this->authorize('update', new MarketingSetting());
 
         $request->validate(['value' => 'required|numeric|min:0|max:100']);
 

@@ -21,7 +21,7 @@ class User extends Authenticatable
         'phone',
         'email',
         'password',
-        'team_id',
+        'team_id', // Foreign key to teams table (replaces deprecated 'team' string field)
         'cv_path',
         'contract_path',
         'identity_number',
@@ -413,5 +413,29 @@ class User extends Authenticatable
     public function scopeMarketers($query)
     {
         return $query->where('type', 'sales');
+    }
+
+    /**
+     * Get commission distributions for this user.
+     */
+    public function commissionDistributions()
+    {
+        return $this->hasMany(\App\Models\CommissionDistribution::class);
+    }
+
+    /**
+     * Get commission distributions approved by this user.
+     */
+    public function approvedCommissionDistributions()
+    {
+        return $this->hasMany(\App\Models\CommissionDistribution::class, 'approved_by');
+    }
+
+    /**
+     * Get deposits confirmed by this user.
+     */
+    public function confirmedDeposits()
+    {
+        return $this->hasMany(\App\Models\Deposit::class, 'confirmed_by');
     }
 }
