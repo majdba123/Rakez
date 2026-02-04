@@ -33,6 +33,7 @@ class LeadController extends Controller
     public function update(int $leadId, UpdateLeadRequest $request): JsonResponse
     {
         $lead = Lead::findOrFail($leadId);
+        $this->authorize('update', $lead);
         $lead->update($request->validated());
         return response()->json([
             'success' => true,

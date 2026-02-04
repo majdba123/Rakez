@@ -355,11 +355,11 @@ class MarketingAccessTest extends BasePermissionTestCase
         
         $response = $this->actingAs($marketing, 'sanctum')
             ->postJson('/api/marketing/leads', [
-                'marketing_project_id' => $this->marketingProject->id,
+                'project_id' => $this->marketingProject->contract_id,
                 'name' => 'Test Lead',
-                'email' => 'lead@example.com',
-                'phone' => '1234567890',
+                'contact_info' => '1234567890',
                 'source' => 'website',
+                'status' => 'new',
             ]);
         
         $this->assertNotEquals(403, $response->status());
@@ -371,7 +371,7 @@ class MarketingAccessTest extends BasePermissionTestCase
         $marketing = $this->createMarketingStaff();
         
         $lead = Lead::factory()->create([
-            'marketing_project_id' => $this->marketingProject->id,
+            'project_id' => $this->marketingProject->contract_id,
             'assigned_to' => $marketing->id,
         ]);
         

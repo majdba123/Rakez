@@ -9,9 +9,16 @@ use App\Models\Deposit;
 use App\Models\Commission;
 use App\Models\CommissionDistribution;
 use App\Models\User;
+use App\Services\Accounting\AccountingNotificationService;
 
 class SalesNotificationService
 {
+    protected AccountingNotificationService $accountingNotificationService;
+
+    public function __construct(AccountingNotificationService $accountingNotificationService)
+    {
+        $this->accountingNotificationService = $accountingNotificationService;
+    }
     /**
      * Notify when a unit is reserved.
      */
@@ -31,6 +38,9 @@ class SalesNotificationService
 
         // Notify sales managers
         $this->notifySalesManagers($message);
+
+        // Notify accounting department
+        $this->accountingNotificationService->notifyUnitReserved($reservation);
     }
 
     /**
@@ -54,6 +64,9 @@ class SalesNotificationService
 
         // Notify accountants
         $this->notifyAccountants($message);
+
+        // Notify accounting department
+        $this->accountingNotificationService->notifyDepositReceived($deposit);
     }
 
     /**
@@ -75,6 +88,9 @@ class SalesNotificationService
 
         // Notify sales managers
         $this->notifySalesManagers($message);
+
+        // Notify accounting department
+        $this->accountingNotificationService->notifyUnitVacated($reservation);
     }
 
     /**
@@ -96,6 +112,9 @@ class SalesNotificationService
 
         // Notify sales managers
         $this->notifySalesManagers($message);
+
+        // Notify accounting department
+        $this->accountingNotificationService->notifyReservationCancelled($reservation);
     }
 
     /**
@@ -127,6 +146,9 @@ class SalesNotificationService
 
         // Notify all admins
         AdminNotification::notifyAllAdmins($message);
+
+        // Notify accounting department
+        $this->accountingNotificationService->notifyCommissionConfirmed($commission);
     }
 
     /**
@@ -161,6 +183,9 @@ class SalesNotificationService
 
         // Notify accountants
         $this->notifyAccountants($message);
+
+        // Notify accounting department
+        $this->accountingNotificationService->notifyCommissionReceivedFromOwner($commission);
     }
 
     /**
@@ -262,7 +287,8 @@ class SalesNotificationService
      */
     protected function notifyAccountants(string $message): void
     {
-        $accountants = User::where('type', 'accountant')->get();
+        // Support both 'accountant' and 'accounting' types for backward compatibility
+        $accountants = User::whereIn('type', ['accountant', 'accounting'])->get();
 
         foreach ($accountants as $accountant) {
             UserNotification::create([

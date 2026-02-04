@@ -15,7 +15,7 @@ class HrMiddleware
 {
     /**
      * Handle an incoming request.
-     * Only allows users with type 'HR' or 'admin'
+     * Only allows users with type 'hr' or 'admin'
      *
      * @param  \Closure(\Illuminate\Http\Request): (\Symfony\Component\HttpFoundation\Response)  $next
      */
@@ -30,7 +30,7 @@ class HrMiddleware
             ], 401);
         }
 
-        $allowedTypes = ['HR', 'admin'];
+        $allowedTypes = ['hr', 'admin'];
 
         if (!in_array($user->type, $allowedTypes)) {
             return response()->json([

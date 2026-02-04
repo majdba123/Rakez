@@ -15,8 +15,7 @@ class MarketingNotificationService
         foreach ($marketingUsers as $user) {
             UserNotification::create([
                 'user_id' => $user->id,
-                'content' => "New media uploaded for contract #{$contractId}",
-                'type' => 'media_upload',
+                'message' => "New media uploaded for contract #{$contractId}",
                 'status' => 'pending'
             ]);
         }
@@ -26,8 +25,7 @@ class MarketingNotificationService
     {
         UserNotification::create([
             'user_id' => $userId,
-            'content' => "You have been assigned a new marketing task #{$taskId}",
-            'type' => 'new_task',
+            'message' => "You have been assigned a new marketing task #{$taskId}",
             'status' => 'pending'
         ]);
     }

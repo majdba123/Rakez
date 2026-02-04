@@ -10,8 +10,15 @@ class MarketingProjectService
 {
     public function getProjectsWithCompletedContracts()
     {
-        return Contract::where('status', 'approved') // Assuming 'approved' means completed for marketing
-            ->with(['info', 'marketingProject'])
+        return MarketingProject::whereHas('contract', function ($query) {
+                $query->where('status', 'approved');
+            })
+            ->with([
+                'contract.info',
+                'contract.projectMedia',
+                'contract.secondPartyData',
+                'teamLeader',
+            ])
             ->get();
     }
 

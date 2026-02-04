@@ -97,7 +97,7 @@ class ContractUnitController extends Controller
     public function update(UpdateContractUnitRequest $request, int $unitId): JsonResponse
     {
         try {
-            $unit = \App\Models\ContractUnit::findOrFail($unitId);
+            $unit = \App\Models\ContractUnit::with('secondPartyData.contract')->findOrFail($unitId);
             $this->authorize('update', $unit);
 
             $data = $request->validated();
@@ -117,7 +117,7 @@ class ContractUnitController extends Controller
     public function destroy(int $unitId): JsonResponse
     {
         try {
-            $unit = \App\Models\ContractUnit::findOrFail($unitId);
+            $unit = \App\Models\ContractUnit::with('secondPartyData.contract')->findOrFail($unitId);
             $this->authorize('delete', $unit);
 
             $this->contractUnitService->deleteUnit($unitId);

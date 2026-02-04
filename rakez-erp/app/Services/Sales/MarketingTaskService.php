@@ -5,10 +5,14 @@ namespace App\Services\Sales;
 use App\Models\MarketingTask;
 use App\Models\Contract;
 use App\Models\User;
+use App\Services\Marketing\MarketingNotificationService;
 use Illuminate\Support\Collection;
 
 class MarketingTaskService
 {
+    public function __construct(
+        private readonly MarketingNotificationService $notificationService
+    ) {}
     /**
      * Get projects for task management (leader only).
      */
@@ -50,7 +54,7 @@ class MarketingTaskService
             throw new \Exception('Marketer must be in the same team as leader');
         }
 
-        return MarketingTask::create([
+        $task = MarketingTask::create([
             'contract_id' => $data['contract_id'],
             'task_name' => $data['task_name'],
             'marketer_id' => $data['marketer_id'],
@@ -58,8 +62,13 @@ class MarketingTaskService
             'design_link' => $data['design_link'] ?? null,
             'design_number' => $data['design_number'] ?? null,
             'design_description' => $data['design_description'] ?? null,
+            'status' => 'new',
             'created_by' => $leader->id,
         ]);
+
+        $this->notificationService->notifyNewTask($task->marketer_id, $task->id);
+
+        return $task;
     }
 
     /**

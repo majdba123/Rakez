@@ -20,13 +20,12 @@ class AIAccessTest extends BasePermissionTestCase
     #[Test]
     public function ai_ask_accessible_by_authenticated_users()
     {
+        // Only users with contracts.view permission can access contracts section
         $users = [
             $this->createAdmin(),
-            $this->createSalesStaff(),
-            $this->createMarketingStaff(),
             $this->createProjectManagementStaff(),
-            $this->createHRStaff(),
             $this->createEditor(),
+            $this->createDeveloper(),
         ];
 
         foreach ($users as $user) {
@@ -37,8 +36,17 @@ class AIAccessTest extends BasePermissionTestCase
                 ]);
             
             // Should not be forbidden (403), might return other errors based on data
-            $this->assertNotEquals(403, $response->status());
+            $this->assertNotEquals(403, $response->status(), "User type {$user->type} should be able to access contracts section");
         }
+        
+        // HR can access general section (doesn't require contracts.view)
+        $hrUser = $this->createHRStaff();
+        $response = $this->actingAs($hrUser, 'sanctum')
+            ->postJson('/api/ai/ask', [
+                'question' => 'What is the total number of units?',
+                'section' => 'general',
+            ]);
+        $this->assertNotEquals(403, $response->status());
     }
 
     #[Test]
@@ -383,15 +391,17 @@ class AIAccessTest extends BasePermissionTestCase
     #[Test]
     public function ai_assistant_respects_user_permissions()
     {
-        // Sales staff should not see contracts.view_all data
+        // Sales staff doesn't have contracts.view permission, so can't access contracts section
         $sales = $this->createSalesStaff();
+        $this->assertFalse($sales->hasPermissionTo('contracts.view'));
         $this->assertFalse($sales->hasPermissionTo('contracts.view_all'));
         
-        // PM staff should see contracts.view_all data
+        // PM staff has contracts.view and contracts.view_all permissions
         $pm = $this->createProjectManagementStaff();
+        $this->assertTrue($pm->hasPermissionTo('contracts.view'));
         $this->assertTrue($pm->hasPermissionTo('contracts.view_all'));
         
-        // Both can access AI, but responses should be filtered by permissions
+        // Sales can't access contracts section (403), PM can
         $salesResponse = $this->actingAs($sales, 'sanctum')
             ->postJson('/api/ai/ask', [
                 'question' => 'Show me all contracts',
@@ -404,8 +414,8 @@ class AIAccessTest extends BasePermissionTestCase
                 'section' => 'contracts',
             ]);
         
-        $this->assertNotEquals(403, $salesResponse->status());
-        $this->assertNotEquals(403, $pmResponse->status());
+        $this->assertEquals(403, $salesResponse->status()); // Sales should be forbidden
+        $this->assertNotEquals(403, $pmResponse->status()); // PM should have access
     }
 
     #[Test]

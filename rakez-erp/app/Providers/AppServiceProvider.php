@@ -30,6 +30,7 @@ class AppServiceProvider extends ServiceProvider
         Gate::policy(\App\Models\SalesReservation::class, \App\Policies\SalesReservationPolicy::class);
         Gate::policy(\App\Models\SalesTarget::class, \App\Policies\SalesTargetPolicy::class);
         Gate::policy(\App\Models\MarketingTask::class, \App\Policies\MarketingTaskPolicy::class);
+        Gate::policy(\App\Models\MarketingProjectTeam::class, \App\Policies\MarketingProjectTeamPolicy::class);
         Gate::policy(\App\Models\SalesAttendanceSchedule::class, \App\Policies\SalesAttendancePolicy::class);
         Gate::policy(\App\Models\Commission::class, \App\Policies\CommissionPolicy::class);
         Gate::policy(\App\Models\Deposit::class, \App\Policies\DepositPolicy::class);

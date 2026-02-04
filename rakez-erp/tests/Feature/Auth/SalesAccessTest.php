@@ -384,6 +384,13 @@ class SalesAccessTest extends BasePermissionTestCase
     {
         $salesLeader = $this->createSalesLeader();
         
+        // Assign leader to project
+        SalesProjectAssignment::create([
+            'contract_id' => $this->contract->id,
+            'leader_id' => $salesLeader->id,
+            'assigned_by' => $this->createAdmin()->id,
+        ]);
+        
         $response = $this->actingAs($salesLeader, 'sanctum')
             ->patchJson("/api/sales/projects/{$this->contract->id}/emergency-contacts", [
                 'emergency_contacts' => ['John Doe: 1234567890'],

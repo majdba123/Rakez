@@ -6,6 +6,22 @@ use Illuminate\Foundation\Http\FormRequest;
 
 class StoreEmployeePlanRequest extends FormRequest
 {
+    private const PLATFORMS = [
+        'TikTok',
+        'Meta',
+        'Snap',
+        'YouTube',
+        'LinkedIn',
+        'X',
+    ];
+
+    private const CAMPAIGNS = [
+        'Direct Communication',
+        'Hand Raise',
+        'Impression',
+        'Sales',
+    ];
+
     public function authorize(): bool
     {
         return true;
@@ -18,8 +34,45 @@ class StoreEmployeePlanRequest extends FormRequest
             'user_id' => 'required|exists:users,id',
             'commission_value' => 'nullable|numeric',
             'marketing_value' => 'nullable|numeric',
-            'platform_distribution' => 'nullable|array',
-            'campaign_distribution' => 'nullable|array',
+            'platform_distribution' => ['nullable', 'array', function ($attribute, $value, $fail) {
+                $this->validateDistribution($attribute, $value, self::PLATFORMS, $fail);
+            }],
+            'campaign_distribution' => ['nullable', 'array', function ($attribute, $value, $fail) {
+                $this->validateDistribution($attribute, $value, self::CAMPAIGNS, $fail);
+            }],
         ];
+    }
+
+    private function validateDistribution(string $attribute, ?array $value, array $allowed, callable $fail): void
+    {
+        if (!$value) {
+            return;
+        }
+
+        $keys = array_keys($value);
+        $invalidKeys = array_diff($keys, $allowed);
+        if (!empty($invalidKeys)) {
+            $fail($attribute . ' has invalid keys: ' . implode(', ', $invalidKeys));
+            return;
+        }
+
+        $missingKeys = array_diff($allowed, $keys);
+        if (!empty($missingKeys)) {
+            $fail($attribute . ' must include: ' . implode(', ', $missingKeys));
+            return;
+        }
+
+        $total = 0;
+        foreach ($value as $key => $percentage) {
+            if (!is_numeric($percentage) || $percentage < 0 || $percentage > 100) {
+                $fail($attribute . ' percentage for ' . $key . ' must be between 0 and 100.');
+                return;
+            }
+            $total += (float) $percentage;
+        }
+
+        if (round($total, 2) !== 100.0) {
+            $fail($attribute . ' percentages must total 100.');
+        }
     }
 }

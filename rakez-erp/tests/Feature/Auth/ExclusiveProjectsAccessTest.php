@@ -464,7 +464,7 @@ class ExclusiveProjectsAccessTest extends BasePermissionTestCase
         // Step 4: Export contract
         $response = $this->actingAs($sales, 'sanctum')
             ->getJson("/api/exclusive-projects/{$project->id}/export");
-        $this->assertNotEquals(403, $response->status());
+        $this->assertNotEquals(403, $response->getStatusCode());
     }
 
     #[Test]

@@ -7,7 +7,7 @@ use App\Models\ContractUnit;
 use App\Models\MarketingTask;
 use App\Models\DailyDeposit;
 use App\Models\MarketingProject;
-use Illuminate\Support\Facades\DB;
+use App\Models\DailyMarketingSpend;
 
 class MarketingDashboardService
 {
@@ -61,13 +61,15 @@ class MarketingDashboardService
         return DailyDeposit::whereDate('date', $date)->count();
     }
 
-    public function getDepositCost()
+    public function getDepositCost($date = null)
     {
-        $totalMarketingValue = DB::table('employee_marketing_plans')->sum('marketing_value');
-        $totalDeposits = DailyDeposit::count();
+        $date = $date ?: now()->toDateString();
 
-        if ($totalDeposits === 0) return 0;
+        $dailySpend = DailyMarketingSpend::whereDate('date', $date)->sum('amount');
+        $dailyDeposits = DailyDeposit::whereDate('date', $date)->count();
 
-        return $totalMarketingValue / $totalDeposits;
+        if ($dailyDeposits === 0) return 0;
+
+        return $dailySpend / $dailyDeposits;
     }
 }

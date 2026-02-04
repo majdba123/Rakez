@@ -5,14 +5,10 @@ namespace Tests\Feature\HR;
 use App\Models\User;
 use App\Models\Team;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Spatie\Permission\Models\Permission;
-use Spatie\Permission\Models\Role;
-use Tests\TestCase;
+use Tests\Feature\Auth\BasePermissionTestCase;
 
-class HrDashboardTest extends TestCase
+class HrDashboardTest extends BasePermissionTestCase
 {
-    use RefreshDatabase;
-
     protected User $hrUser;
     protected User $regularUser;
 
@@ -20,42 +16,16 @@ class HrDashboardTest extends TestCase
     {
         parent::setUp();
 
-        // Create HR permissions
-        $permissions = [
-            'hr.dashboard.view',
-            'hr.teams.manage',
-            'hr.employees.manage',
-            'hr.performance.view',
-            'hr.warnings.manage',
-            'hr.contracts.manage',
-            'hr.reports.view',
-        ];
-
-        foreach ($permissions as $permission) {
-            Permission::firstOrCreate(['name' => $permission]);
-        }
-
-        // Create HR role
-        $hrRole = Role::firstOrCreate(['name' => 'HR']);
-        $hrRole->syncPermissions($permissions);
-
-        // Create HR user
-        $this->hrUser = User::factory()->create([
-            'type' => 'HR',
-            'is_active' => true,
-        ]);
-        $this->hrUser->assignRole('HR');
+        // Create HR user using base class helper
+        $this->hrUser = $this->createHRStaff();
 
         // Create regular user
-        $this->regularUser = User::factory()->create([
-            'type' => 'sales',
-            'is_active' => true,
-        ]);
+        $this->regularUser = $this->createSalesStaff();
     }
 
     public function test_hr_user_can_access_dashboard(): void
     {
-        $response = $this->actingAs($this->hrUser)
+        $response = $this->actingAs($this->hrUser, 'sanctum')
             ->getJson('/api/hr/dashboard');
 
         $response->assertStatus(200)
@@ -79,7 +49,7 @@ class HrDashboardTest extends TestCase
 
     public function test_non_hr_user_cannot_access_dashboard(): void
     {
-        $response = $this->actingAs($this->regularUser)
+        $response = $this->actingAs($this->regularUser, 'sanctum')
             ->getJson('/api/hr/dashboard');
 
         $response->assertStatus(403);
@@ -98,7 +68,7 @@ class HrDashboardTest extends TestCase
         User::factory()->count(5)->create(['is_active' => true]);
         User::factory()->count(2)->create(['is_active' => false]);
 
-        $response = $this->actingAs($this->hrUser)
+        $response = $this->actingAs($this->hrUser, 'sanctum')
             ->getJson('/api/hr/dashboard');
 
         $response->assertStatus(200);
@@ -110,7 +80,7 @@ class HrDashboardTest extends TestCase
 
     public function test_dashboard_accepts_year_and_month_filters(): void
     {
-        $response = $this->actingAs($this->hrUser)
+        $response = $this->actingAs($this->hrUser, 'sanctum')
             ->getJson('/api/hr/dashboard?year=2025&month=6');
 
         $response->assertStatus(200)
@@ -120,7 +90,7 @@ class HrDashboardTest extends TestCase
 
     public function test_hr_user_can_refresh_dashboard_cache(): void
     {
-        $response = $this->actingAs($this->hrUser)
+        $response = $this->actingAs($this->hrUser, 'sanctum')
             ->postJson('/api/hr/dashboard/refresh');
 
         $response->assertStatus(200)

@@ -27,6 +27,11 @@ class MarketingProjectTest extends TestCase
     public function it_can_list_marketing_projects()
     {
         $project = Contract::factory()->create(['status' => 'approved']);
+        ContractInfo::factory()->create([
+            'contract_id' => $project->id,
+            'avg_property_value' => 500000,
+            'commission_percent' => 2.5
+        ]);
         MarketingProject::create(['contract_id' => $project->id]);
 
         $response = $this->actingAs($this->marketingUser, 'sanctum')
@@ -34,7 +39,24 @@ class MarketingProjectTest extends TestCase
 
         $response->assertStatus(200)
             ->assertJsonPath('success', true)
-            ->assertJsonCount(1, 'data');
+            ->assertJsonCount(1, 'data')
+            ->assertJsonStructure([
+                'data' => [
+                    [
+                        'id',
+                        'contract_id',
+                        'project_name',
+                        'developer_name',
+                        'units_count' => ['available', 'pending'],
+                        'avg_unit_price',
+                        'advertiser_number',
+                        'commission_percent',
+                        'total_available_value',
+                        'media_links',
+                        'description',
+                    ]
+                ]
+            ]);
     }
 
     #[Test]

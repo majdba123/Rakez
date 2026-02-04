@@ -9,6 +9,8 @@ use App\Models\Lead;
 use App\Models\Contract;
 use App\Models\MarketingProject;
 use App\Models\MarketingTask;
+use App\Models\DailyDeposit;
+use App\Models\DailyMarketingSpend;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
 class MarketingDashboardTest extends TestCase
@@ -41,6 +43,16 @@ class MarketingDashboardTest extends TestCase
             'due_date' => now()->toDateString()
         ]);
 
+        DailyMarketingSpend::create([
+            'date' => now()->toDateString(),
+            'amount' => 1000,
+        ]);
+        DailyDeposit::create([
+            'date' => now()->toDateString(),
+            'amount' => 500,
+            'project_id' => $project->id,
+        ]);
+
         $response = $this->actingAs($this->marketingUser, 'sanctum')
             ->getJson('/api/marketing/dashboard');
 
@@ -60,5 +72,6 @@ class MarketingDashboardTest extends TestCase
             ]);
             
         $this->assertEquals(5, $response->json('data.total_leads'));
+        $this->assertEquals(1000, $response->json('data.deposit_cost'));
     }
 }

@@ -36,15 +36,15 @@ class HrReportTest extends TestCase
         }
 
         // Create HR role
-        $hrRole = Role::firstOrCreate(['name' => 'HR']);
+        $hrRole = Role::firstOrCreate(['name' => 'hr']);
         $hrRole->syncPermissions($permissions);
 
         // Create HR user
         $this->hrUser = User::factory()->create([
-            'type' => 'HR',
+            'type' => 'hr',
             'is_active' => true,
         ]);
-        $this->hrUser->assignRole('HR');
+        $this->hrUser->assignRole('hr');
     }
 
     public function test_hr_user_can_access_team_performance_report(): void

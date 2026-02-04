@@ -24,7 +24,7 @@ class HrUserTest extends TestCase
         Storage::fake('public');
 
         // Create required roles first
-        foreach (['admin', 'HR', 'sales', 'marketing', 'project_management', 'editor', 'credit', 'accounting', 'project_acquisition'] as $roleName) {
+        foreach (['admin', 'hr', 'sales', 'marketing', 'project_management', 'editor', 'credit', 'accounting', 'project_acquisition'] as $roleName) {
             Role::firstOrCreate(['name' => $roleName]);
         }
 
@@ -44,15 +44,15 @@ class HrUserTest extends TestCase
         }
 
         // Create HR role
-        $hrRole = Role::firstOrCreate(['name' => 'HR']);
+        $hrRole = Role::firstOrCreate(['name' => 'hr']);
         $hrRole->syncPermissions($permissions);
 
         // Create HR user
         $this->hrUser = User::factory()->create([
-            'type' => 'HR',
+            'type' => 'hr',
             'is_active' => true,
         ]);
-        $this->hrUser->assignRole('HR');
+        $this->hrUser->assignRole('hr');
     }
 
     public function test_hr_user_can_list_employees(): void

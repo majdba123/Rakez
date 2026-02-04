@@ -64,6 +64,11 @@ use App\Http\Controllers\Credit\CreditFinancingController;
 use App\Http\Controllers\Credit\TitleTransferController;
 use App\Http\Controllers\Credit\ClaimFileController;
 use App\Http\Controllers\Accounting\AccountingConfirmationController;
+use App\Http\Controllers\Accounting\AccountingDashboardController;
+use App\Http\Controllers\Accounting\AccountingNotificationController;
+use App\Http\Controllers\Accounting\AccountingCommissionController;
+use App\Http\Controllers\Accounting\AccountingDepositController;
+use App\Http\Controllers\Accounting\AccountingSalaryController;
 use App\Http\Controllers\Dashboard\DashboardController;
 
 use Illuminate\Support\Facades\File;  // أضف هذا السطر في الأعلى
@@ -351,7 +356,7 @@ Route::middleware('auth:sanctum')->group(function () {
     // ==========================================
     // HR DEPARTMENT ROUTES
     // ==========================================
-    Route::prefix('hr')->middleware(['auth:sanctum', 'role:HR|admin'])->group(function () {
+    Route::prefix('hr')->middleware(['auth:sanctum', 'role:hr|admin'])->group(function () {
         
         // Dashboard
         Route::get('dashboard', [HrDashboardController::class, 'index'])->middleware('permission:hr.dashboard.view');
@@ -496,7 +501,39 @@ Route::middleware('auth:sanctum')->group(function () {
     // ==========================================
     Route::prefix('accounting')->middleware(['auth:sanctum', 'role:accounting|admin'])->group(function () {
         
-        // Down Payment Confirmations
+        // Dashboard (Tab 1)
+        Route::get('dashboard', [AccountingDashboardController::class, 'index'])->middleware('permission:accounting.dashboard.view');
+        
+        // Notifications (Tab 2)
+        Route::get('notifications', [AccountingNotificationController::class, 'index'])->middleware('permission:accounting.notifications.view');
+        Route::post('notifications/{id}/read', [AccountingNotificationController::class, 'markAsRead'])->middleware('permission:accounting.notifications.view');
+        Route::post('notifications/read-all', [AccountingNotificationController::class, 'markAllAsRead'])->middleware('permission:accounting.notifications.view');
+        
+        // Sold Units & Commissions (Tabs 3 & 4)
+        Route::get('sold-units', [AccountingCommissionController::class, 'index'])->middleware('permission:accounting.sold-units.view');
+        Route::get('sold-units/{id}', [AccountingCommissionController::class, 'show'])->middleware('permission:accounting.sold-units.view');
+        Route::post('sold-units/{id}/commission', [AccountingCommissionController::class, 'createManual'])->middleware('permission:accounting.commissions.create');
+        Route::put('commissions/{id}/distributions', [AccountingCommissionController::class, 'updateDistributions'])->middleware('permission:accounting.sold-units.manage');
+        Route::post('commissions/{id}/distributions/{distId}/approve', [AccountingCommissionController::class, 'approveDistribution'])->middleware('permission:accounting.commissions.approve');
+        Route::post('commissions/{id}/distributions/{distId}/reject', [AccountingCommissionController::class, 'rejectDistribution'])->middleware('permission:accounting.commissions.approve');
+        Route::get('commissions/{id}/summary', [AccountingCommissionController::class, 'summary'])->middleware('permission:accounting.sold-units.view');
+        Route::post('commissions/{id}/distributions/{distId}/confirm', [AccountingCommissionController::class, 'confirmPayment'])->middleware('permission:accounting.commissions.approve');
+        
+        // Deposits (Tab 5)
+        Route::get('deposits/pending', [AccountingDepositController::class, 'pending'])->middleware('permission:accounting.deposits.view');
+        Route::post('deposits/{id}/confirm', [AccountingDepositController::class, 'confirm'])->middleware('permission:accounting.deposits.manage');
+        Route::get('deposits/follow-up', [AccountingDepositController::class, 'followUp'])->middleware('permission:accounting.deposits.view');
+        Route::post('deposits/{id}/refund', [AccountingDepositController::class, 'refund'])->middleware('permission:accounting.deposits.manage');
+        Route::post('deposits/claim-file/{reservationId}', [AccountingDepositController::class, 'generateClaimFile'])->middleware('permission:accounting.deposits.view');
+        
+        // Salaries (Tab 6)
+        Route::get('salaries', [AccountingSalaryController::class, 'index'])->middleware('permission:accounting.salaries.view');
+        Route::get('salaries/{userId}', [AccountingSalaryController::class, 'show'])->middleware('permission:accounting.salaries.view');
+        Route::post('salaries/{userId}/distribute', [AccountingSalaryController::class, 'createDistribution'])->middleware('permission:accounting.salaries.distribute');
+        Route::post('salaries/distributions/{distributionId}/approve', [AccountingSalaryController::class, 'approveDistribution'])->middleware('permission:accounting.salaries.distribute');
+        Route::post('salaries/distributions/{distributionId}/paid', [AccountingSalaryController::class, 'markAsPaid'])->middleware('permission:accounting.salaries.distribute');
+        
+        // Legacy Down Payment Confirmations (keep for backward compatibility)
         Route::get('pending-confirmations', [AccountingConfirmationController::class, 'index'])->middleware('permission:accounting.down_payment.confirm');
         Route::post('confirm/{reservationId}', [AccountingConfirmationController::class, 'confirm'])->middleware('permission:accounting.down_payment.confirm');
         Route::get('confirmations/history', [AccountingConfirmationController::class, 'history'])->middleware('permission:accounting.down_payment.confirm');
@@ -590,7 +627,7 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::get('/getTeamsForContract/{contractId}', [ContractController::class, 'getTeamsForContract']);
         });
 
-        Route::get('/dashboard', [DashboardController::class, 'hr']);
+        // Dashboard route is defined in the first HR route group above (line ~357)
 
     });
 

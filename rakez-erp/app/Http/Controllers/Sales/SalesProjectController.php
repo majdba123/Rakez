@@ -157,7 +157,7 @@ class SalesProjectController extends Controller
      * Update project emergency contacts (leader only).
      */
     public function updateEmergencyContacts(
-        UpdateEmergencyContactsRequest $request, 
+        UpdateEmergencyContactsRequest $request,
         int $contractId
     ): JsonResponse {
         try {

@@ -30,6 +30,7 @@ class User extends Authenticatable
         'contract_type',
         'iban',
         'salary',
+        'commission_eligibility',
         'marital_status',
         'nationality',
         'job_title',
@@ -59,6 +60,7 @@ class User extends Authenticatable
         'date_of_works' => 'date',
         'contract_end_date' => 'date',
         'salary' => 'decimal:2',
+        'commission_eligibility' => 'boolean',
         'is_manager' => 'boolean',
         'work_phone_approval' => 'boolean',
         'logo_usage_approval' => 'boolean',
@@ -437,5 +439,29 @@ class User extends Authenticatable
     public function confirmedDeposits()
     {
         return $this->hasMany(\App\Models\Deposit::class, 'confirmed_by');
+    }
+
+    /**
+     * Get salary distributions for this user.
+     */
+    public function salaryDistributions()
+    {
+        return $this->hasMany(\App\Models\AccountingSalaryDistribution::class);
+    }
+
+    /**
+     * Check if user is eligible for commission.
+     */
+    public function isCommissionEligible(): bool
+    {
+        return $this->commission_eligibility === true;
+    }
+
+    /**
+     * Check if user is accounting type.
+     */
+    public function isAccounting(): bool
+    {
+        return $this->type === 'accounting';
     }
 }

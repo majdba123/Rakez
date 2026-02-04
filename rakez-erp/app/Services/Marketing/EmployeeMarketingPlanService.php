@@ -10,18 +10,43 @@ use App\Models\ContractInfo;
 
 class EmployeeMarketingPlanService
 {
+    public const PLATFORMS = [
+        'TikTok',
+        'Meta',
+        'Snap',
+        'YouTube',
+        'LinkedIn',
+        'X',
+    ];
+
+    public const CAMPAIGNS = [
+        'Direct Communication',
+        'Hand Raise',
+        'Impression',
+        'Sales',
+    ];
+
     public function createPlan($marketingProjectId, $userId, $inputs)
     {
         $commissionValue = $inputs['commission_value'] ?? 0;
         $marketingValue = $inputs['marketing_value'] ?? 0;
-        
+
+        $platformDistribution = $this->normalizeDistribution(
+            $inputs['platform_distribution'] ?? $this->buildEqualDistribution(self::PLATFORMS),
+            self::PLATFORMS
+        );
+        $campaignDistribution = $this->normalizeDistribution(
+            $inputs['campaign_distribution'] ?? $this->buildEqualDistribution(self::CAMPAIGNS),
+            self::CAMPAIGNS
+        );
+
         $plan = EmployeeMarketingPlan::create([
             'marketing_project_id' => $marketingProjectId,
             'user_id' => $userId,
             'commission_value' => $commissionValue,
             'marketing_value' => $marketingValue,
-            'platform_distribution' => $inputs['platform_distribution'] ?? [],
-            'campaign_distribution' => $inputs['campaign_distribution'] ?? [],
+            'platform_distribution' => $platformDistribution,
+            'campaign_distribution' => $campaignDistribution,
         ]);
 
         if (isset($inputs['campaigns'])) {
@@ -71,19 +96,8 @@ class EmployeeMarketingPlanService
         $marketingPercent = 10;
         $marketingValue = $this->calculateMarketingValue($commissionValue, $marketingPercent);
 
-        // Default platform distribution percentages
-        $platformDistribution = [
-            'Snapchat' => 40,
-            'Instagram' => 30,
-            'TikTok' => 30
-        ];
-
-        // Default campaign distribution percentages
-        $campaignDistribution = [
-            'Awareness' => 30,
-            'Lead Generation' => 50,
-            'Conversion' => 20
-        ];
+        $platformDistribution = $this->buildEqualDistribution(self::PLATFORMS);
+        $campaignDistribution = $this->buildEqualDistribution(self::CAMPAIGNS);
 
         return $this->createPlan($marketingProjectId, $userId, [
             'commission_value' => $commissionValue,
@@ -91,5 +105,31 @@ class EmployeeMarketingPlanService
             'platform_distribution' => $platformDistribution,
             'campaign_distribution' => $campaignDistribution
         ]);
+    }
+
+    private function buildEqualDistribution(array $keys): array
+    {
+        $count = count($keys);
+        if ($count === 0) return [];
+
+        $base = floor((100 / $count) * 100) / 100;
+        $distribution = [];
+        $total = 0.0;
+
+        foreach ($keys as $index => $key) {
+            $distribution[$key] = $index === $count - 1 ? round(100 - $total, 2) : $base;
+            $total += $distribution[$key];
+        }
+
+        return $distribution;
+    }
+
+    private function normalizeDistribution(array $input, array $allowed): array
+    {
+        $normalized = [];
+        foreach ($allowed as $key) {
+            $normalized[$key] = isset($input[$key]) ? (float) $input[$key] : 0.0;
+        }
+        return $normalized;
     }
 }

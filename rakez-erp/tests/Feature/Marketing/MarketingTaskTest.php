@@ -8,6 +8,7 @@ use App\Models\User;
 use App\Models\Contract;
 use App\Models\MarketingProject;
 use App\Models\MarketingTask;
+use App\Models\UserNotification;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
 class MarketingTaskTest extends TestCase
@@ -42,6 +43,10 @@ class MarketingTaskTest extends TestCase
         $response->assertStatus(201);
         $this->assertDatabaseHas('marketing_tasks', [
             'task_name' => 'Social Media Post'
+        ]);
+        $this->assertDatabaseHas('user_notifications', [
+            'user_id' => $this->marketingUser->id,
+            'status' => 'pending',
         ]);
     }
 

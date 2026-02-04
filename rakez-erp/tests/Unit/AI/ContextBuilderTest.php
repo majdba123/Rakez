@@ -27,7 +27,7 @@ class ContextBuilderTest extends TestCase
             new ProjectManagementDashboardService(),
             new MarketingDashboardService(),
             new MarketingProjectService(),
-            new MarketingTaskService(),
+            new MarketingTaskService(app(\App\Services\Marketing\MarketingNotificationService::class)),
             new ContextValidator(new SectionRegistry()),
             new SectionRegistry()
         );

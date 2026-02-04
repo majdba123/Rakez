@@ -259,6 +259,6 @@ class EmployeeRoleTest extends TestCase
         $this->assertContains('sales', $roleNames);
         $this->assertContains('marketing', $roleNames);
         $this->assertContains('editor', $roleNames);
-        $this->assertContains('HR', $roleNames);
+        $this->assertContains('hr', $roleNames);
     }
 }

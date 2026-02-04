@@ -4,12 +4,20 @@ namespace App\Services\Marketing;
 
 use App\Models\MarketingTask;
 use App\Models\User;
+use App\Services\Marketing\MarketingNotificationService;
 
 class MarketingTaskService
 {
+    public function __construct(
+        private readonly MarketingNotificationService $notificationService
+    ) {}
+
     public function createTask($data)
     {
-        return MarketingTask::create($data);
+        $task = MarketingTask::create($data);
+        $this->notificationService->notifyNewTask($task->marketer_id, $task->id);
+
+        return $task;
     }
 
     public function getDailyTasks($userId, $date = null, $status = null)

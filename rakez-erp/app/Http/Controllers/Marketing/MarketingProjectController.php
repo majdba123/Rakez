@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Marketing;
 
 use App\Http\Controllers\Controller;
 use App\Services\Marketing\MarketingProjectService;
+use App\Http\Resources\Marketing\MarketingProjectResource;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -17,7 +18,9 @@ class MarketingProjectController extends Controller
     {
         return response()->json([
             'success' => true,
-            'data' => $this->projectService->getProjectsWithCompletedContracts()
+            'data' => MarketingProjectResource::collection(
+                $this->projectService->getProjectsWithCompletedContracts()
+            )->resolve()
         ]);
     }
 

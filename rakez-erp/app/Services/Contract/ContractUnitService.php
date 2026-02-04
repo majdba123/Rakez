@@ -162,11 +162,19 @@ class ContractUnitService
 
     /**
      * Check if current user is authorized to modify units
-     * Only the employee who processed the contract can add/update units
+     * Allows:
+     * - The employee who processed the contract
+     * - Users with 'units.edit' permission (e.g., PM staff, admins)
      */
     private function authorizeUnitModification(SecondPartyData $secondPartyData): void
     {
+        $currentUser = Auth::user();
         $currentUserId = Auth::id();
+
+        // Allow if user has units.edit permission (PM staff, admin)
+        if ($currentUser && $currentUser->can('units.edit')) {
+            return;
+        }
 
         // Allow if user is the one who processed this contract
         if ($secondPartyData->processed_by !== $currentUserId) {

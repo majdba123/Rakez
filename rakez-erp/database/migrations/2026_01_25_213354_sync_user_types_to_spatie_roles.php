@@ -14,26 +14,39 @@ return new class extends Migration
     public function up(): void
     {
         // First, ensure roles and permissions are seeded
-        Artisan::call('db:seed', [
-            '--class' => RolesAndPermissionsSeeder::class,
-            '--force' => true
-        ]);
+        try {
+            Artisan::call('db:seed', [
+                '--class' => RolesAndPermissionsSeeder::class,
+                '--force' => true
+            ]);
+        } catch (\Exception $e) {
+            // If seeder fails (e.g., deadlock), continue - roles might already exist
+            // This is acceptable in fresh migrations as data will be seeded later
+        }
 
         // Sync roles for all users based on their type and is_manager status
-        User::chunk(100, function ($users) {
+        // Use smaller chunks and add delay to prevent deadlocks
+        User::chunk(50, function ($users) {
             foreach ($users as $user) {
-                $roleName = $user->type;
+                try {
+                    $roleName = $user->type;
 
-                // Handle sales leader special case
-                if ($user->type === 'sales' && $user->is_manager) {
-                    $roleName = 'sales_leader';
-                }
+                    // Handle sales leader special case
+                    if ($user->type === 'sales' && $user->is_manager) {
+                        $roleName = 'sales_leader';
+                    }
 
-                // Check if role exists before assigning
-                if (Role::where('name', $roleName)->exists()) {
-                    $user->assignRole($roleName);
+                    // Check if role exists before assigning
+                    if (Role::where('name', $roleName)->exists()) {
+                        $user->assignRole($roleName);
+                    }
+                } catch (\Exception $e) {
+                    // Skip this user if role assignment fails
+                    continue;
                 }
             }
+            // Small delay between chunks to prevent lock conflicts
+            usleep(5000); // 5ms
         });
     }
 

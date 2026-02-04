@@ -8,6 +8,10 @@ use App\Models\EmployeeMarketingPlan;
 use App\Models\ExpectedBooking;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
+use Symfony\Component\HttpFoundation\StreamedResponse;
+use Illuminate\Http\Response;
+use Barryvdh\DomPDF\Facade\Pdf;
 
 class MarketingReportController extends Controller
 {
@@ -61,12 +65,46 @@ class MarketingReportController extends Controller
         ]);
     }
 
-    public function exportPlan(int $planId, string $format): JsonResponse
+    public function exportPlan(int $planId, Request $request): StreamedResponse|JsonResponse|Response
     {
-        // Placeholder for PDF/Excel export
+        $plan = EmployeeMarketingPlan::with(['user', 'marketingProject.contract'])->findOrFail($planId);
+        $format = strtolower($request->query('format', 'pdf'));
+
+        if ($format === 'pdf') {
+            $html = view('marketing.plan_export', ['plan' => $plan])->render();
+            return Pdf::loadHTML($html)->download("marketing_plan_{$planId}.pdf");
+        }
+
+        if ($format === 'excel') {
+            $headers = [
+                'Content-Type' => 'text/csv',
+                'Content-Disposition' => "attachment; filename=marketing_plan_{$planId}.csv",
+            ];
+
+            return response()->streamDownload(function () use ($plan) {
+                $output = fopen('php://output', 'w');
+                fputcsv($output, ['Plan ID', $plan->id]);
+                fputcsv($output, ['Project', $plan->marketingProject->contract->project_name ?? '']);
+                fputcsv($output, ['User', $plan->user->name ?? '']);
+                fputcsv($output, ['Commission Value', $plan->commission_value]);
+                fputcsv($output, ['Marketing Value', $plan->marketing_value]);
+                fputcsv($output, []);
+                fputcsv($output, ['Platform Distribution']);
+                foreach (($plan->platform_distribution ?? []) as $platform => $percentage) {
+                    fputcsv($output, [$platform, $percentage]);
+                }
+                fputcsv($output, []);
+                fputcsv($output, ['Campaign Distribution']);
+                foreach (($plan->campaign_distribution ?? []) as $campaign => $percentage) {
+                    fputcsv($output, [$campaign, $percentage]);
+                }
+                fclose($output);
+            }, "marketing_plan_{$planId}.csv", $headers);
+        }
+
         return response()->json([
-            'success' => true,
-            'message' => "Exporting plan #{$planId} as {$format} (feature coming soon)"
-        ]);
+            'success' => false,
+            'message' => 'Unsupported export format'
+        ], 422);
     }
 }

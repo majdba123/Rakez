@@ -68,4 +68,41 @@ class MarketingPlanTest extends TestCase
             'user_id' => $this->marketingUser->id
         ]);
     }
+
+    #[Test]
+    public function it_can_create_employee_plan_with_fixed_distributions()
+    {
+        $contract = Contract::factory()->create();
+        $project = MarketingProject::create(['contract_id' => $contract->id]);
+
+        $response = $this->actingAs($this->marketingUser, 'sanctum')
+            ->postJson('/api/marketing/employee-plans', [
+                'marketing_project_id' => $project->id,
+                'user_id' => $this->marketingUser->id,
+                'commission_value' => 20000,
+                'marketing_value' => 2000,
+                'platform_distribution' => [
+                    'TikTok' => 20,
+                    'Meta' => 20,
+                    'Snap' => 20,
+                    'YouTube' => 20,
+                    'LinkedIn' => 10,
+                    'X' => 10,
+                ],
+                'campaign_distribution' => [
+                    'Direct Communication' => 30,
+                    'Hand Raise' => 30,
+                    'Impression' => 20,
+                    'Sales' => 20,
+                ]
+            ]);
+
+        $response->assertStatus(200)
+            ->assertJsonPath('success', true);
+
+        $this->assertDatabaseHas('employee_marketing_plans', [
+            'marketing_project_id' => $project->id,
+            'user_id' => $this->marketingUser->id,
+        ]);
+    }
 }
