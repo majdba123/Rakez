@@ -3,6 +3,7 @@
 namespace Tests\Feature\Accounting;
 
 use Tests\TestCase;
+use Tests\Traits\TestsWithPermissions;
 use App\Models\User;
 use App\Models\AccountingSalaryDistribution;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -10,13 +11,19 @@ use Laravel\Sanctum\Sanctum;
 
 class AccountingSalaryTest extends TestCase
 {
-    use RefreshDatabase;
+    use RefreshDatabase, TestsWithPermissions;
 
     protected User $accountingUser;
 
     protected function setUp(): void
     {
         parent::setUp();
+        
+        // Create accounting role with required permissions
+        $this->createRoleWithPermissions('accounting', [
+            'accounting.salaries.view',
+            'accounting.salaries.distribute',
+        ]);
         
         $this->accountingUser = User::factory()->create(['type' => 'accounting']);
         $this->accountingUser->assignRole('accounting');

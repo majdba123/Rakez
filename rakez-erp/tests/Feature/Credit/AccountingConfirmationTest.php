@@ -3,15 +3,14 @@
 namespace Tests\Feature\Credit;
 
 use Tests\TestCase;
+use Tests\Traits\TestsWithPermissions;
 use App\Models\User;
 use App\Models\SalesReservation;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Spatie\Permission\Models\Role;
-use Spatie\Permission\Models\Permission;
 
 class AccountingConfirmationTest extends TestCase
 {
-    use RefreshDatabase;
+    use RefreshDatabase, TestsWithPermissions;
 
     protected User $accountingUser;
     protected User $adminUser;
@@ -20,15 +19,15 @@ class AccountingConfirmationTest extends TestCase
     {
         parent::setUp();
 
-        // Create permission
-        Permission::firstOrCreate(['name' => 'accounting.down_payment.confirm', 'guard_name' => 'web']);
+        // Create accounting role with required permission
+        $this->createRoleWithPermissions('accounting', [
+            'accounting.down_payment.confirm',
+        ]);
 
-        // Create roles
-        $accountingRole = Role::firstOrCreate(['name' => 'accounting', 'guard_name' => 'web']);
-        $accountingRole->syncPermissions(['accounting.down_payment.confirm']);
-
-        $adminRole = Role::firstOrCreate(['name' => 'admin', 'guard_name' => 'web']);
-        $adminRole->syncPermissions(['accounting.down_payment.confirm']);
+        // Create admin role with required permission
+        $this->createRoleWithPermissions('admin', [
+            'accounting.down_payment.confirm',
+        ]);
 
         // Create users
         $this->accountingUser = User::factory()->create(['type' => 'accounting']);

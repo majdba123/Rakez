@@ -18,6 +18,7 @@
                 {
                   "listen": "test",
                   "script": {
+                    "id": "9f999205-5c06-436e-9f2c-26a27d9b4b4d",
                     "exec": [
                       "if (pm.response.code === 200) {",
                       "    const jsonData = pm.response.json();",
@@ -30,7 +31,20 @@
                       "}"
                     ],
                     "type": "text/javascript",
-                    "id": "9f999205-5c06-436e-9f2c-26a27d9b4b4d"
+                    "packages": {},
+                    "requests": {}
+                  }
+                },
+                {
+                  "listen": "prerequest",
+                  "script": {
+                    "id": "f64bda73-9978-41b4-9eff-0869c852938b",
+                    "exec": [
+                      ""
+                    ],
+                    "type": "text/javascript",
+                    "packages": {},
+                    "requests": {}
                   }
                 }
               ],
@@ -45,7 +59,7 @@
                 ],
                 "body": {
                   "mode": "raw",
-                  "raw": "{\n    \"email\": \"{{user_email}}\",\n    \"password\": \"{{user_password}}\"\n}",
+                  "raw": "{\n    \"email\": \"ahmed@rakez.com\",\n    \"password\": \"password\"\n}",
                   "options": {
                     "raw": {
                       "language": "json"

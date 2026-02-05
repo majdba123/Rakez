@@ -3,6 +3,7 @@
 namespace Tests\Feature\Accounting;
 
 use Tests\TestCase;
+use Tests\Traits\TestsWithPermissions;
 use App\Models\User;
 use App\Models\SalesReservation;
 use App\Models\Deposit;
@@ -11,13 +12,18 @@ use Laravel\Sanctum\Sanctum;
 
 class AccountingDashboardTest extends TestCase
 {
-    use RefreshDatabase;
+    use RefreshDatabase, TestsWithPermissions;
 
     protected User $accountingUser;
 
     protected function setUp(): void
     {
         parent::setUp();
+        
+        // Create accounting role with required permission
+        $this->createRoleWithPermissions('accounting', [
+            'accounting.dashboard.view',
+        ]);
         
         $this->accountingUser = User::factory()->create(['type' => 'accounting']);
         $this->accountingUser->assignRole('accounting');
