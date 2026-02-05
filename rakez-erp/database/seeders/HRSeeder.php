@@ -17,9 +17,31 @@ class HRSeeder extends Seeder
 
         foreach ($nonAdminUsers as $index => $user) {
             $status = $index % 3 === 0 ? 'draft' : ($index % 5 === 0 ? 'expired' : 'active');
+            $startDate = now()->subDays(fake()->numberBetween(0, 365))->toDateString();
+
+            $endDate = null;
+            if ($status === 'active') {
+                $endDate = now()->addDays(fake()->numberBetween(30, 365 * 2))->toDateString();
+            } elseif ($status === 'expired') {
+                $endDate = now()->subDays(fake()->numberBetween(1, 365))->toDateString();
+            }
+
             EmployeeContract::firstOrCreate(
                 ['user_id' => $user->id],
-                ['status' => $status]
+                [
+                    'status' => $status,
+                    'start_date' => $startDate,
+                    'end_date' => $endDate,
+                    'contract_data' => [
+                        'job_title' => fake()->jobTitle(),
+                        'department' => fake()->randomElement(['Sales', 'Marketing', 'HR', 'IT', 'Accounting', 'Operations']),
+                        'salary' => fake()->numberBetween(3000, 20000),
+                        'work_type' => fake()->randomElement(['full_time', 'part_time', 'contract']),
+                        'probation_period' => '90 days',
+                        'terms' => fake()->paragraphs(2, true),
+                        'benefits' => fake()->sentences(4, true),
+                    ],
+                ]
             );
         }
 
