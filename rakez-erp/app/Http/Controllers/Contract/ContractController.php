@@ -12,6 +12,8 @@ use App\Models\Contract;
 use App\Services\Contract\ContractService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\DB;
 use Exception;
 
 class ContractController extends Controller
@@ -27,7 +29,13 @@ class ContractController extends Controller
     public function index(Request $request): JsonResponse
     {
         try {
-            $user = auth()->user();
+            $user = $request->user();
+            if (!$user) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'غير مصرح - يرجى تسجيل الدخول',
+                ], 401);
+            }
             $filters = [
                 'status' => $request->input('status'),
                 'city' => $request->input('city'),
@@ -258,6 +266,116 @@ class ContractController extends Controller
                         'lng' => $row->lng !== null ? (float) $row->lng : null,
                     ];
                 }),
+                'meta' => [
+                    'total' => $rows->total(),
+                    'count' => $rows->count(),
+                    'per_page' => $rows->perPage(),
+                    'current_page' => $rows->currentPage(),
+                    'last_page' => $rows->lastPage(),
+                ],
+            ], 200);
+        } catch (Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
+     * Inventory/Admin: contracts list for inventory dashboard.
+     *
+     * Returns only:
+     * - color (based on remaining time until agency_date)
+     * - contract_id, project_name, status, lat, lng
+     * - agency_date
+     * - units_stats: counts grouped by unit status and unit type (sum of `count`)
+     */
+    public function inventoryAgencyOverview(Request $request): JsonResponse
+    {
+        try {
+            $filters = [
+                'status' => $request->input('status'),
+                'user_id' => $request->input('user_id'),
+                'city' => $request->input('city'),
+                'district' => $request->input('district'),
+                'project_name' => $request->input('project_name'),
+                'has_photography' => $request->input('has_photography'),
+                'has_montage' => $request->input('has_montage'),
+            ];
+
+            $perPage = (int) $request->input('per_page', 50);
+            $perPage = max(1, min($perPage, 200));
+
+            $rows = $this->contractService->getContractsAgencyOverviewForAdmin($filters, $perPage);
+
+            $contractIds = collect($rows->items())->pluck('contract_id')->map(fn($v) => (int) $v)->all();
+
+            // Aggregate units: sum(count) by contract_id / status / unit_type
+            $unitAgg = [];
+            if (!empty($contractIds)) {
+                $unitRows = DB::table('contract_units')
+                    ->join('second_party_data', 'second_party_data.id', '=', 'contract_units.second_party_data_id')
+                    ->whereNull('contract_units.deleted_at')
+                    ->whereNull('second_party_data.deleted_at')
+                    ->whereIn('second_party_data.contract_id', $contractIds)
+                    ->groupBy('second_party_data.contract_id', 'contract_units.status', 'contract_units.unit_type')
+                    ->select([
+                        'second_party_data.contract_id as contract_id',
+                        'contract_units.status as unit_status',
+                        'contract_units.unit_type as unit_type',
+                        DB::raw('SUM(contract_units.count) as total_count'),
+                    ])
+                    ->get();
+
+                foreach ($unitRows as $r) {
+                    $cid = (int) $r->contract_id;
+                    $status = (string) ($r->unit_status ?? 'unknown');
+                    $type = (string) ($r->unit_type ?? 'unknown');
+                    $count = (int) $r->total_count;
+
+                    $unitAgg[$cid]['total'] = ($unitAgg[$cid]['total'] ?? 0) + $count;
+                    $unitAgg[$cid]['by_status'][$status]['total'] = ($unitAgg[$cid]['by_status'][$status]['total'] ?? 0) + $count;
+                    $unitAgg[$cid]['by_status'][$status]['by_type'][$type] = ($unitAgg[$cid]['by_status'][$status]['by_type'][$type] ?? 0) + $count;
+                }
+            }
+
+            $data = collect($rows->items())->map(function ($row) use ($unitAgg) {
+                $agencyDate = $row->agency_date ? Carbon::parse($row->agency_date) : null;
+                $remainingDays = $agencyDate ? now()->diffInDays($agencyDate, false) : null;
+
+                $color = null;
+                if ($remainingDays !== null) {
+                    if ($remainingDays > 90) {
+                        $color = 'green';
+                    } elseif ($remainingDays > 30) {
+                        $color = 'yellow';
+                    } else {
+                        $color = 'red';
+                    }
+                }
+
+                $cid = (int) $row->contract_id;
+
+                return [
+                    'contract_id' => $cid,
+                    'project_name' => $row->project_name,
+                    'status' => $row->status,
+                    'lat' => $row->lat !== null ? (float) $row->lat : null,
+                    'lng' => $row->lng !== null ? (float) $row->lng : null,
+                    'agency_date' => $agencyDate?->toDateString(),
+                    'color' => $color,
+                    'units_stats' => $unitAgg[$cid] ?? [
+                        'total' => 0,
+                        'by_status' => [],
+                    ],
+                ];
+            });
+
+            return response()->json([
+                'success' => true,
+                'message' => 'تم جلب بيانات المخزون بنجاح',
+                'data' => $data,
                 'meta' => [
                     'total' => $rows->total(),
                     'count' => $rows->count(),

@@ -236,6 +236,94 @@ class ContractService
         }
     }
 
+    /**
+     * Inventory/Admin: contract list with only agency_date + location fields and adminIndex-like filters.
+     * Returns lightweight rows (no eager-loading).
+     */
+    public function getContractsAgencyOverviewForAdmin(array $filters = [], int $perPage = 50): LengthAwarePaginator
+    {
+        try {
+            $query = Contract::query()
+                ->leftJoin('contract_infos', function ($join) {
+                    $join->on('contract_infos.contract_id', '=', 'contracts.id')
+                        ->whereNull('contract_infos.deleted_at');
+                })
+                ->whereNotNull('contract_infos.agency_date')
+                ->select([
+                    'contracts.id as contract_id',
+                    'contracts.project_name',
+                    'contracts.status',
+                    'contracts.city',
+                    'contracts.district',
+                    'contract_infos.agency_date',
+                    'contract_infos.lat',
+                    'contract_infos.lng',
+                    'contracts.created_at',
+                ]);
+
+            // Same filter behavior as adminIndex/getContractsForAdmin
+            if (isset($filters['status']) && !empty($filters['status'])) {
+                $query->where('contracts.status', $filters['status']);
+            }
+            if (isset($filters['user_id']) && !empty($filters['user_id'])) {
+                $query->where('contracts.user_id', $filters['user_id']);
+            }
+            if (isset($filters['city']) && !empty($filters['city'])) {
+                $query->where('contracts.city', $filters['city']);
+            }
+            if (isset($filters['district']) && !empty($filters['district'])) {
+                $query->where('contracts.district', $filters['district']);
+            }
+            if (isset($filters['project_name']) && !empty($filters['project_name'])) {
+                $query->where('contracts.project_name', 'like', '%' . addslashes($filters['project_name']) . '%');
+            }
+
+            if (isset($filters['has_photography'])) {
+                $has = (string) $filters['has_photography'];
+                if ($has === '1' || $has === 'true') {
+                    $query->whereExists(function ($q) {
+                        $q->select(DB::raw(1))
+                            ->from('photography_departments')
+                            ->whereColumn('photography_departments.contract_id', 'contracts.id')
+                            ->whereNull('photography_departments.deleted_at');
+                    });
+                } elseif ($has === '0' || $has === 'false') {
+                    $query->whereNotExists(function ($q) {
+                        $q->select(DB::raw(1))
+                            ->from('photography_departments')
+                            ->whereColumn('photography_departments.contract_id', 'contracts.id')
+                            ->whereNull('photography_departments.deleted_at');
+                    });
+                }
+            }
+
+            if (isset($filters['has_montage'])) {
+                $has = (string) $filters['has_montage'];
+                if ($has === '1' || $has === 'true') {
+                    $query->whereExists(function ($q) {
+                        $q->select(DB::raw(1))
+                            ->from('montage_departments')
+                            ->whereColumn('montage_departments.contract_id', 'contracts.id')
+                            ->whereNull('montage_departments.deleted_at');
+                    });
+                } elseif ($has === '0' || $has === 'false') {
+                    $query->whereNotExists(function ($q) {
+                        $q->select(DB::raw(1))
+                            ->from('montage_departments')
+                            ->whereColumn('montage_departments.contract_id', 'contracts.id')
+                            ->whereNull('montage_departments.deleted_at');
+                    });
+                }
+            }
+
+            $query->orderBy('contracts.created_at', 'desc');
+
+            return $query->paginate($perPage);
+        } catch (Exception $e) {
+            throw new Exception('Failed to fetch agency overview: ' . $e->getMessage());
+        }
+    }
+
 
     public function storeContract(array $data): Contract
     {

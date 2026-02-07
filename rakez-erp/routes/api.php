@@ -235,6 +235,10 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::prefix('contracts')->group(function () {
             Route::get('/show/{id}', [ContractController::class, 'show']);
             Route::get('/admin-index', [ContractController::class, 'adminIndex'])->middleware('permission:contracts.view_all');
+            // Inventory dashboard (filters via query params)
+            Route::get('/agency-overview', [ContractController::class, 'inventoryAgencyOverview'])->middleware('permission:contracts.view_all');
+            // Locations (filters via query params)
+            Route::get('/locations', [ContractController::class, 'locations'])->middleware('permission:contracts.view_all');
         });
 
         // Second party data
@@ -247,8 +251,7 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::get('/show/{contractId}', [ContractUnitController::class, 'indexByContract'])->middleware('permission:units.view');
         });
 
-        // Team contract locations
-        Route::get('/contracts/locations', [ContractController::class, 'locations'])->middleware('permission:contracts.view_all');
+        // NOTE: locations moved under /inventory/contracts/locations (GET/POST) above.
     });
 
     // ==========================================
