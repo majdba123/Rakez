@@ -26,7 +26,7 @@ return [
         'notifications.view' => 'View notifications.',
         'notifications.manage' => 'Manage and send notifications.',
         'employees.manage' => 'Manage employees.',
-        
+
         // Project Management
         'projects.view' => 'View projects and units.',
         'projects.create' => 'Create and enter project data.',
@@ -37,7 +37,7 @@ return [
         'projects.team.allocate' => 'Allocate team to project.',
         'projects.approve' => 'Approve projects (Manager only).',
         'projects.archive' => 'Archive projects (Manager only).',
-        
+
         // Sales
         'sales.dashboard.view' => 'View sales dashboard.',
         'sales.projects.view' => 'View sales projects.',
@@ -62,11 +62,11 @@ return [
         'sales.projects.allocate_shifts' => 'Allocate projects/shifts to marketing staff.',
         'sales.negotiation.approve' => 'Approve or reject negotiation requests.',
         'sales.payment-plan.manage' => 'Create and manage off-plan payment plans.',
-        
+
         // Editing
         'editing.projects.view' => 'View projects and units.',
         'editing.media.upload' => 'Upload edited images and videos.',
-        
+
         // HR
         'hr.dashboard.view' => 'View HR dashboard KPIs.',
         'hr.teams.manage' => 'Manage teams (CRUD and member assignment).',
@@ -77,7 +77,7 @@ return [
         'hr.contracts.manage' => 'Create and download employee contracts.',
         'hr.reports.view' => 'Access HR reports.',
         'hr.reports.print' => 'Print performance reports.',
-        
+
         // Marketing
         'marketing.dashboard.view' => 'View marketing dashboard KPIs.',
         'marketing.projects.view' => 'View marketing projects and plans.',
@@ -86,24 +86,24 @@ return [
         'marketing.tasks.view' => 'View marketing tasks and achievement rates.',
         'marketing.tasks.confirm' => 'Confirm daily task execution.',
         'marketing.reports.view' => 'View performance and budget reports.',
-        
+
         // Exclusive Projects
         'exclusive_projects.request' => 'Request exclusive project (all except HR).',
         'exclusive_projects.approve' => 'Approve exclusive project requests (PM Manager only).',
         'exclusive_projects.contract.complete' => 'Complete contract after approval.',
         'exclusive_projects.contract.export' => 'Export contract copy.',
-        
+
         // AI Assistant
         'use-ai-assistant' => 'Access the in-app AI help assistant.',
         'manage-ai-knowledge' => 'Manage AI assistant knowledge base entries.',
-        
+
         // Credit
         'credit.dashboard.view' => 'View Credit department dashboard KPIs.',
         'credit.bookings.view' => 'View bookings in Credit department.',
         'credit.financing.manage' => 'Manage bank financing tracker stages.',
         'credit.title_transfer.manage' => 'Manage title transfer process.',
         'credit.claim_files.generate' => 'Generate claim files.',
-        
+
         // Accounting
         'accounting.dashboard.view' => 'View accounting dashboard metrics.',
         'accounting.notifications.view' => 'View accounting notifications.',
@@ -372,6 +372,15 @@ return [
             'exclusive_projects.request',
             'exclusive_projects.contract.complete',
             'exclusive_projects.contract.export',
+            'use-ai-assistant',
+        ],
+        'inventory' => [
+            // Needed for /api/inventory/* routes we added
+            'contracts.view',
+            'contracts.view_all',
+            'units.view',
+            'second_party.view',
+            'notifications.view',
             'use-ai-assistant',
         ],
         'default' => [

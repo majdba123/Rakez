@@ -145,6 +145,97 @@ class ContractService
         }
     }
 
+    /**
+     * High-performance: get only contract locations (lat/lng) across all contracts,
+     * with filters equivalent to adminIndex/getContractsForAdmin.
+     */
+    public function getContractLocationsForAdmin(array $filters = [], int $perPage = 200): LengthAwarePaginator
+    {
+        try {
+            $query = Contract::query()
+                ->leftJoin('contract_infos', 'contract_infos.contract_id', '=', 'contracts.id')
+                ->select([
+                    'contracts.id as contract_id',
+                    'contracts.project_name',
+                    'contracts.status',
+                    'contract_infos.lat',
+                    'contract_infos.lng',
+                    'contracts.created_at',
+                ]);
+
+            // Filter by status
+            if (isset($filters['status']) && !empty($filters['status'])) {
+                $query->where('contracts.status', $filters['status']);
+            }
+
+            // Filter by user
+            if (isset($filters['user_id']) && !empty($filters['user_id'])) {
+                $query->where('contracts.user_id', $filters['user_id']);
+            }
+
+            // Filter by city
+            if (isset($filters['city']) && !empty($filters['city'])) {
+                $query->where('contracts.city', $filters['city']);
+            }
+
+            // Filter by district
+            if (isset($filters['district']) && !empty($filters['district'])) {
+                $query->where('contracts.district', $filters['district']);
+            }
+
+            // Filter by project name (search)
+            if (isset($filters['project_name']) && !empty($filters['project_name'])) {
+                $query->where('contracts.project_name', 'like', '%' . addslashes($filters['project_name']) . '%');
+            }
+
+            // Filter by has photography department (respect soft deletes)
+            if (isset($filters['has_photography'])) {
+                $has = (string) $filters['has_photography'];
+                if ($has === '1' || $has === 'true') {
+                    $query->whereExists(function ($q) {
+                        $q->select(DB::raw(1))
+                            ->from('photography_departments')
+                            ->whereColumn('photography_departments.contract_id', 'contracts.id')
+                            ->whereNull('photography_departments.deleted_at');
+                    });
+                } elseif ($has === '0' || $has === 'false') {
+                    $query->whereNotExists(function ($q) {
+                        $q->select(DB::raw(1))
+                            ->from('photography_departments')
+                            ->whereColumn('photography_departments.contract_id', 'contracts.id')
+                            ->whereNull('photography_departments.deleted_at');
+                    });
+                }
+            }
+
+            // Filter by has montage department (respect soft deletes)
+            if (isset($filters['has_montage'])) {
+                $has = (string) $filters['has_montage'];
+                if ($has === '1' || $has === 'true') {
+                    $query->whereExists(function ($q) {
+                        $q->select(DB::raw(1))
+                            ->from('montage_departments')
+                            ->whereColumn('montage_departments.contract_id', 'contracts.id')
+                            ->whereNull('montage_departments.deleted_at');
+                    });
+                } elseif ($has === '0' || $has === 'false') {
+                    $query->whereNotExists(function ($q) {
+                        $q->select(DB::raw(1))
+                            ->from('montage_departments')
+                            ->whereColumn('montage_departments.contract_id', 'contracts.id')
+                            ->whereNull('montage_departments.deleted_at');
+                    });
+                }
+            }
+
+            $query->orderBy('contracts.created_at', 'desc');
+
+            return $query->paginate($perPage);
+        } catch (Exception $e) {
+            throw new Exception('Failed to fetch contract locations: ' . $e->getMessage());
+        }
+    }
+
 
     public function storeContract(array $data): Contract
     {

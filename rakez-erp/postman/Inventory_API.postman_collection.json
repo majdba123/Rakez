@@ -1,0 +1,118 @@
+{
+  "info": {
+    "_postman_id": "c3a0c8f6-5d6b-4c1c-9b5c-4a0b7f9f3d21",
+    "name": "Rakez ERP - Inventory API",
+    "description": "Inventory-prefixed endpoints for contracts visibility and related lookups.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "https://api.rakez.com.sa" },
+    { "key": "token", "value": "" },
+    { "key": "contractId", "value": "1" },
+    { "key": "status", "value": "" },
+    { "key": "city", "value": "" },
+    { "key": "district", "value": "" },
+    { "key": "project_name", "value": "" },
+    { "key": "has_photography", "value": "" },
+    { "key": "has_montage", "value": "" },
+    { "key": "secondPartyId", "value": "1" }
+  ],
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      { "key": "token", "value": "{{token}}", "type": "string" }
+    ]
+  },
+  "item": [
+    {
+      "name": "Inventory - Contracts",
+      "item": [
+        {
+          "name": "Get Contract (show)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/inventory/contracts/show/{{contractId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "inventory", "contracts", "show", "{{contractId}}"]
+            }
+          }
+        },
+        {
+          "name": "Admin Contracts Index (admin-index)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/inventory/contracts/admin-index",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "inventory", "contracts", "admin-index"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Inventory - Second Party Data",
+      "item": [
+        {
+          "name": "Get Second Party Data (show)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/inventory/second-party-data/show/{{secondPartyId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "inventory", "second-party-data", "show", "{{secondPartyId}}"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Inventory - Contract Units",
+      "item": [
+        {
+          "name": "Get Units By Contract (show/{contractId})",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/inventory/contracts/units/show/{{contractId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "inventory", "contracts", "units", "show", "{{contractId}}"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Inventory - Teams",
+      "item": [
+        {
+          "name": "Get Contract Locations (filtered)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/inventory/contracts/locations?status={{status}}&city={{city}}&district={{district}}&project_name={{project_name}}&has_photography={{has_photography}}&has_montage={{has_montage}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "inventory", "contracts", "locations"],
+              "query": [
+                { "key": "status", "value": "{{status}}" },
+                { "key": "city", "value": "{{city}}" },
+                { "key": "district", "value": "{{district}}" },
+                { "key": "project_name", "value": "{{project_name}}" },
+                { "key": "has_photography", "value": "{{has_photography}}" },
+                { "key": "has_montage", "value": "{{has_montage}}" }
+              ]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
+
+

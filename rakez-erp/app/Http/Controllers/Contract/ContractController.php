@@ -40,11 +40,11 @@ class ContractController extends Controller
                 // Can view all, no user filter enforced
             } elseif ($user->isManager() && $user->team) {
                 // Manager sees team contracts
-                // Note: Service needs to support team filtering. 
-                // For now, we'll filter by the manager's ID to avoid breaking, 
+                // Note: Service needs to support team filtering.
+                // For now, we'll filter by the manager's ID to avoid breaking,
                 // but ideally this should pass the team or list of user IDs.
                 // Assuming for now we default to own contracts if service doesn't support team yet.
-                $filters['user_id'] = $user->id; 
+                $filters['user_id'] = $user->id;
             } else {
                 // Regular user sees only their own
                 $filters['user_id'] = $user->id;
@@ -102,7 +102,7 @@ class ContractController extends Controller
         try {
             // Fetch contract without service-level auth check
             $contract = $this->contractService->getContractById($id, null);
-            
+
             // Enforce Policy
             $this->authorize('view', $contract);
 
@@ -116,7 +116,7 @@ class ContractController extends Controller
             if ($e instanceof \Illuminate\Auth\Access\AuthorizationException) {
                 $statusCode = 403;
             }
-            
+
             return response()->json([
                 'success' => false,
                 'message' => $e->getMessage(),
@@ -131,7 +131,7 @@ class ContractController extends Controller
         try {
             // Fetch contract to authorize
             $contract = $this->contractService->getContractById($id, null);
-            
+
             $this->authorize('update', $contract);
 
             $validated = $request->validated();
@@ -164,7 +164,7 @@ class ContractController extends Controller
     {
         try {
             $contract = $this->contractService->getContractById($id, null);
-            
+
             $this->authorize('delete', $contract);
 
             $this->contractService->deleteContract($id, null);
@@ -216,6 +216,55 @@ class ContractController extends Controller
                     'current_page' => $contracts->currentPage(),
                     'last_page' => $contracts->lastPage(),
                 ]
+            ], 200);
+        } catch (Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
+     * Inventory/Admin: return only contract locations with adminIndex-like filters.
+     */
+    public function locations(Request $request): JsonResponse
+    {
+        try {
+            $filters = [
+                'status' => $request->input('status'),
+                'user_id' => $request->input('user_id'),
+                'city' => $request->input('city'),
+                'district' => $request->input('district'),
+                'project_name' => $request->input('project_name'),
+                'has_photography' => $request->input('has_photography'),
+                'has_montage' => $request->input('has_montage'),
+            ];
+
+            $perPage = (int) $request->input('per_page', 200);
+            $perPage = max(1, min($perPage, 500));
+
+            $rows = $this->contractService->getContractLocationsForAdmin($filters, $perPage);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'تم جلب المواقع بنجاح',
+                'data' => collect($rows->items())->map(function ($row) {
+                    return [
+                        'contract_id' => (int) $row->contract_id,
+                        'project_name' => $row->project_name,
+                        'status' => $row->status,
+                        'lat' => $row->lat !== null ? (float) $row->lat : null,
+                        'lng' => $row->lng !== null ? (float) $row->lng : null,
+                    ];
+                }),
+                'meta' => [
+                    'total' => $rows->total(),
+                    'count' => $rows->count(),
+                    'per_page' => $rows->perPage(),
+                    'current_page' => $rows->currentPage(),
+                    'last_page' => $rows->lastPage(),
+                ],
             ], 200);
         } catch (Exception $e) {
             return response()->json([
