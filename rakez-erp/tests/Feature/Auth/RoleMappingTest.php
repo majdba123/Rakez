@@ -4,6 +4,8 @@ namespace Tests\Feature\Auth;
 
 use PHPUnit\Framework\Attributes\Test;
 use App\Models\User;
+use App\Models\Team;
+use App\Services\registartion\register;
 use Spatie\Permission\Models\Role;
 
 /**
@@ -393,5 +395,140 @@ class RoleMappingTest extends BasePermissionTestCase
                 "Permission '{$permissionName}' should exist in database"
             );
         }
+    }
+
+    #[Test]
+    public function newly_created_user_can_immediately_access_role_endpoints()
+    {
+        // Create a team for testing
+        $team = Team::factory()->create();
+        
+        // Create user via registration service
+        $registrationService = new register();
+        $userData = [
+            'name' => 'Integration Test User',
+            'email' => 'integration@test.com',
+            'phone' => '0501234999',
+            'password' => 'password123',
+            'type' => 5, // sales
+            'team' => $team->id,
+        ];
+
+        $user = $registrationService->register($userData);
+        $user->refresh();
+
+        // Immediately make API request to role-specific endpoint
+        $response = $this->actingAs($user, 'sanctum')
+            ->getJson('/api/sales/dashboard?scope=me');
+
+        // Verify successful access (200 response)
+        $response->assertStatus(200);
+        $response->assertJsonStructure([
+            'success',
+            'data'
+        ]);
+        
+        // Verify no 403 error
+        $this->assertNotEquals(403, $response->status(), 'User should not get 403 error immediately after creation');
+    }
+
+    #[Test]
+    public function permission_cache_does_not_cause_403_errors()
+    {
+        // Create a team for testing
+        $team = Team::factory()->create();
+        
+        // Create user with role via registration service
+        $registrationService = new register();
+        $userData = [
+            'name' => 'Cache Test User',
+            'email' => 'cache@test.com',
+            'phone' => '0501234998',
+            'password' => 'password123',
+            'type' => 0, // marketing
+            'team' => $team->id,
+        ];
+
+        $user = $registrationService->register($userData);
+        $user->refresh();
+
+        // Make multiple API requests in quick succession
+        $response1 = $this->actingAs($user, 'sanctum')
+            ->getJson('/api/marketing/dashboard');
+        
+        $response2 = $this->actingAs($user, 'sanctum')
+            ->getJson('/api/marketing/dashboard');
+        
+        $response3 = $this->actingAs($user, 'sanctum')
+            ->getJson('/api/marketing/dashboard');
+
+        // Verify all requests succeed (no intermittent 403 errors)
+        $response1->assertStatus(200);
+        $response2->assertStatus(200);
+        $response3->assertStatus(200);
+        
+        $this->assertNotEquals(403, $response1->status(), 'First request should not get 403 error');
+        $this->assertNotEquals(403, $response2->status(), 'Second request should not get 403 error');
+        $this->assertNotEquals(403, $response3->status(), 'Third request should not get 403 error');
+    }
+
+    #[Test]
+    public function marketing_user_created_via_registration_can_access_endpoints_immediately()
+    {
+        $team = Team::factory()->create();
+        
+        $registrationService = new register();
+        $userData = [
+            'name' => 'Marketing Registration User',
+            'email' => 'marketing-reg@test.com',
+            'phone' => '0501234997',
+            'password' => 'password123',
+            'type' => 0, // marketing
+            'team' => $team->id,
+        ];
+
+        $user = $registrationService->register($userData);
+        $user->refresh();
+
+        // Verify user has role and permissions
+        $this->assertTrue($user->hasRole('marketing'));
+        $this->assertTrue($user->hasPermissionTo('marketing.dashboard.view'));
+
+        // Immediately access marketing endpoint
+        $response = $this->actingAs($user, 'sanctum')
+            ->getJson('/api/marketing/dashboard');
+
+        $response->assertStatus(200);
+        $this->assertNotEquals(403, $response->status());
+    }
+
+    #[Test]
+    public function sales_user_created_via_registration_can_access_endpoints_immediately()
+    {
+        $team = Team::factory()->create();
+        
+        $registrationService = new register();
+        $userData = [
+            'name' => 'Sales Registration User',
+            'email' => 'sales-reg@test.com',
+            'phone' => '0501234996',
+            'password' => 'password123',
+            'type' => 5, // sales
+            'team' => $team->id,
+        ];
+
+        $user = $registrationService->register($userData);
+        $user->refresh();
+
+        // Verify user has role and permissions
+        $this->assertTrue($user->hasRole('sales'));
+        $this->assertTrue($user->hasPermissionTo('sales.dashboard.view'));
+
+        // Immediately access sales endpoint
+        $response = $this->actingAs($user, 'sanctum')
+            ->getJson('/api/sales/dashboard?scope=me');
+
+        $response->assertStatus(200);
+        $this->assertNotEquals(403, $response->status());
     }
 }

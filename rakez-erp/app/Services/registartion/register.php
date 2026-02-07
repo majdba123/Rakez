@@ -11,6 +11,8 @@ use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
+use Spatie\Permission\PermissionRegistrar;
+use Spatie\Permission\Models\Role;
 
 class register
 {
@@ -55,6 +57,11 @@ class register
                 }
             }
 
+            // Map 'team' to 'team_id' if provided (for backward compatibility)
+            if (isset($data['team']) && !isset($data['team_id'])) {
+                $userData['team_id'] = $data['team'];
+            }
+
             // Add user type
             $typeNames = [
                 0 => 'marketing',
@@ -78,10 +85,17 @@ class register
             // Sync Spatie roles
             // If a specific role is provided, use it; otherwise fall back to type-based role
             if (isset($data['role'])) {
+                // Verify role exists before assignment
+                if (!Role::where('name', $data['role'])->exists()) {
+                    throw new \InvalidArgumentException("Role '{$data['role']}' does not exist.");
+                }
                 $user->syncRoles([$data['role']]);
             } else {
                 $user->syncRolesFromType();
             }
+
+            // Clear permission cache to ensure fresh permissions are loaded
+            app()[PermissionRegistrar::class]->forgetCachedPermissions();
 
             // Save to admin_notifications table
             AdminNotification::createForNewEmployee($user);
@@ -261,10 +275,17 @@ class register
             // Sync Spatie roles
             // If a specific role is provided, use it; otherwise sync based on type/is_manager
             if (isset($data['role'])) {
+                // Verify role exists before assignment
+                if (!Role::where('name', $data['role'])->exists()) {
+                    throw new \InvalidArgumentException("Role '{$data['role']}' does not exist.");
+                }
                 $user->syncRoles([$data['role']]);
             } elseif (isset($data['type']) || isset($data['is_manager'])) {
                 $user->syncRolesFromType();
             }
+
+            // Clear permission cache to ensure fresh permissions are loaded after role update
+            app()[PermissionRegistrar::class]->forgetCachedPermissions();
 
             DB::commit();
             return $user;
