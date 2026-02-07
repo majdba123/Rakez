@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Middleware\AdminMiddleware;
+use App\Http\Middleware\InventoryMiddleware;
 use App\Http\Middleware\EnsureSalesLeader;
 use App\Http\Middleware\ProjectManagementMiddleware;
 use Illuminate\Foundation\Application;
@@ -25,6 +26,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'sales_leader' => EnsureSalesLeader::class,
             'hr' => HrMiddleware::class,
             'editor' => EditorMiddleware::class,
+            'inventory' => InventoryMiddleware::class,
 
             'auth' => \App\Http\Middleware\Authenticate::class,
             'role' => \Spatie\Permission\Middleware\RoleMiddleware::class,
