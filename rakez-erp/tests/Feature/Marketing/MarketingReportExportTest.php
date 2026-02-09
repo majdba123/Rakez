@@ -36,7 +36,7 @@ class MarketingReportExportTest extends TestCase
             'platform_distribution' => [
                 'TikTok' => 20,
                 'Meta' => 20,
-                'Snap' => 20,
+                'Snapchat' => 20,
                 'YouTube' => 20,
                 'LinkedIn' => 10,
                 'X' => 10,
@@ -69,7 +69,7 @@ class MarketingReportExportTest extends TestCase
             'platform_distribution' => [
                 'TikTok' => 20,
                 'Meta' => 20,
-                'Snap' => 20,
+                'Snapchat' => 20,
                 'YouTube' => 20,
                 'LinkedIn' => 10,
                 'X' => 10,

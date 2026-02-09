@@ -4,7 +4,9 @@ namespace App\Http\Controllers\Marketing;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Marketing\AssignTeamRequest;
+use App\Http\Requests\Marketing\AssignCampaignRequest;
 use App\Services\Marketing\TeamManagementService;
+use App\Models\Team;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -13,6 +15,59 @@ class TeamManagementController extends Controller
     public function __construct(
         private TeamManagementService $teamService
     ) {}
+
+    public function index(): JsonResponse
+    {
+        $this->authorize('marketing.teams.view');
+
+        $teams = Team::with(['members', 'creator'])->get();
+
+        return response()->json([
+            'success' => true,
+            'data' => $teams
+        ]);
+    }
+
+    public function assignCampaign(AssignCampaignRequest $request): JsonResponse
+    {
+        $team = Team::findOrFail($request->input('team_id'));
+        $campaign = \App\Models\MarketingCampaign::findOrFail($request->input('campaign_id'));
+
+        // Assign team members to the employee plan that owns the campaign
+        $employeePlan = $campaign->employeePlan;
+        if (!$employeePlan) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Campaign does not have an associated employee plan'
+            ], 404);
+        }
+
+        // Get team members
+        $teamMembers = $team->members()->where('type', 'sales')->pluck('id')->toArray();
+
+        if (empty($teamMembers)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Team has no sales members to assign'
+            ], 400);
+        }
+
+        // Assign team members to the marketing project team
+        $marketingProject = $employeePlan->marketingProject;
+        if ($marketingProject) {
+            $this->teamService->assignTeamToProject($marketingProject->id, $teamMembers);
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Campaign assigned to team successfully',
+            'data' => [
+                'team_id' => $team->id,
+                'campaign_id' => $campaign->id,
+                'assigned_members' => $teamMembers
+            ]
+        ]);
+    }
 
     public function assignTeam(int $projectId, AssignTeamRequest $request): JsonResponse
     {

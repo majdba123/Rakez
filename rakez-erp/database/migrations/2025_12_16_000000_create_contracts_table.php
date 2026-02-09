@@ -20,7 +20,7 @@ return new class extends Migration
 
             $table->string('city')->nullable();
             $table->string('district')->nullable();
-            $table->enum('status', ['pending', 'approved', 'rejected', 'completed'])->default('pending');
+            $table->enum('status', ['pending', 'approved', 'rejected', 'completed', 'ready'])->default('pending');
             $table->text('notes')->nullable();
             $table->text('developer_requiment')->nullable();
 

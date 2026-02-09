@@ -71,4 +71,71 @@ class MarketingTaskTest extends TestCase
         $response->assertStatus(200);
         $this->assertEquals('completed', $task->fresh()->status);
     }
+
+    #[Test]
+    public function it_returns_422_when_required_fields_are_missing()
+    {
+        $response = $this->actingAs($this->marketingUser, 'sanctum')
+            ->postJson('/api/marketing/tasks', []);
+
+        $response->assertStatus(422)
+            ->assertJsonValidationErrors(['contract_id', 'task_name', 'marketer_id']);
+    }
+
+    #[Test]
+    public function it_returns_422_with_proper_error_messages()
+    {
+        $response = $this->actingAs($this->marketingUser, 'sanctum')
+            ->postJson('/api/marketing/tasks', []);
+
+        $response->assertStatus(422)
+            ->assertJsonStructure([
+                'message',
+                'errors' => [
+                    'contract_id',
+                    'task_name',
+                    'marketer_id'
+                ]
+            ])
+            ->assertJsonValidationErrors(['contract_id', 'task_name', 'marketer_id']);
+        
+        // Verify message contains at least one of the required field names
+        $message = $response->json('message');
+        $this->assertTrue(
+            str_contains(strtolower($message), 'contract id') || 
+            str_contains(strtolower($message), 'task name') || 
+            str_contains(strtolower($message), 'marketer id'),
+            "Message should mention at least one required field. Got: {$message}"
+        );
+    }
+
+    #[Test]
+    public function it_validates_contract_id_exists()
+    {
+        $response = $this->actingAs($this->marketingUser, 'sanctum')
+            ->postJson('/api/marketing/tasks', [
+                'contract_id' => 99999,
+                'task_name' => 'Test Task',
+                'marketer_id' => $this->marketingUser->id,
+            ]);
+
+        $response->assertStatus(422)
+            ->assertJsonValidationErrors(['contract_id']);
+    }
+
+    #[Test]
+    public function it_validates_marketer_id_exists()
+    {
+        $contract = Contract::factory()->create();
+
+        $response = $this->actingAs($this->marketingUser, 'sanctum')
+            ->postJson('/api/marketing/tasks', [
+                'contract_id' => $contract->id,
+                'task_name' => 'Test Task',
+                'marketer_id' => 99999,
+            ]);
+
+        $response->assertStatus(422)
+            ->assertJsonValidationErrors(['marketer_id']);
+    }
 }

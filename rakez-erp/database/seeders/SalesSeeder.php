@@ -34,8 +34,34 @@ class SalesSeeder extends Seeder
         $salesLeaders = $salesLeaders ?: $salesUsers;
 
         foreach ($readyContracts as $contractId) {
+            $leaderId = Arr::random($salesLeaders);
+            
+            // Create assignments with date ranges (some active, some past, some future)
+            $dateType = fake()->numberBetween(0, 2);
+            $startDate = null;
+            $endDate = null;
+            
+            if ($dateType === 0) {
+                // Active assignment (started in past, ends in future)
+                $startDate = now()->subDays(fake()->numberBetween(10, 60))->toDateString();
+                $endDate = now()->addDays(fake()->numberBetween(30, 180))->toDateString();
+            } elseif ($dateType === 1) {
+                // Past assignment (ended in past)
+                $startDate = now()->subDays(fake()->numberBetween(90, 180))->toDateString();
+                $endDate = now()->subDays(fake()->numberBetween(10, 30))->toDateString();
+            } else {
+                // Future assignment (starts in future)
+                $startDate = now()->addDays(fake()->numberBetween(10, 60))->toDateString();
+                $endDate = now()->addDays(fake()->numberBetween(90, 240))->toDateString();
+            }
+            
             SalesProjectAssignment::firstOrCreate(
-                ['leader_id' => Arr::random($salesLeaders), 'contract_id' => $contractId],
+                [
+                    'leader_id' => $leaderId,
+                    'contract_id' => $contractId,
+                    'start_date' => $startDate,
+                    'end_date' => $endDate,
+                ],
                 ['assigned_by' => Arr::random($salesLeaders)]
             );
         }

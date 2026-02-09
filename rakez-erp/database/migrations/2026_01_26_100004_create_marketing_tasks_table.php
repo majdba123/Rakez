@@ -27,9 +27,9 @@ return new class extends Migration
             
             $table->timestamps();
             
-            // Indexes
-            $table->index(['contract_id', 'status'], 'idx_contract_status');
-            $table->index(['marketer_id', 'created_at'], 'idx_marketer');
+            // Indexes - use unique names to avoid conflicts
+            $table->index(['contract_id', 'status'], 'idx_marketing_task_contract_status');
+            $table->index(['marketer_id', 'created_at'], 'idx_marketing_task_marketer');
         });
     }
 

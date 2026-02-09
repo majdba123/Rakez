@@ -285,6 +285,9 @@ Route::middleware('auth:sanctum')->group(function () {
         // My attendance
         Route::get('attendance/my', [SalesAttendanceController::class, 'my'])->middleware('permission:sales.attendance.view');
 
+        // My assignments
+        Route::get('assignments/my', [SalesProjectController::class, 'getMyAssignments'])->middleware('permission:sales.projects.view');
+
         // Team management (leader only)
         Route::middleware('permission:sales.team.manage')->group(function () {
             Route::get('team/projects', [SalesProjectController::class, 'teamProjects']);
@@ -457,7 +460,9 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('employee-plans', [EmployeeMarketingPlanController::class, 'store'])->middleware('permission:marketing.plans.create');
         Route::post('employee-plans/auto-generate', [EmployeeMarketingPlanController::class, 'autoGenerate'])->middleware('permission:marketing.plans.create');
 
-        // Expected Sales
+        // Expected Sales - Add POST method and GET without projectId first (before parameterized route)
+        Route::post('expected-sales', [ExpectedSalesController::class, 'store'])->middleware('permission:marketing.budgets.manage');
+        Route::get('expected-sales', [ExpectedSalesController::class, 'index'])->middleware('permission:marketing.budgets.manage');
         Route::get('expected-sales/{projectId}', [ExpectedSalesController::class, 'calculate'])->middleware('permission:marketing.budgets.manage');
         Route::put('settings/conversion-rate', [ExpectedSalesController::class, 'updateConversionRate'])->middleware('permission:marketing.budgets.manage');
 
@@ -468,14 +473,25 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::patch('tasks/{taskId}/status', [MarketingModuleTaskController::class, 'updateStatus'])->middleware('permission:marketing.tasks.confirm');
 
         // Team Management
+        Route::get('teams', [TeamManagementController::class, 'index'])->middleware('permission:marketing.teams.view');
+        Route::post('teams/assign', [TeamManagementController::class, 'assignCampaign'])->middleware('permission:marketing.teams.manage');
         Route::post('projects/{projectId}/team', [TeamManagementController::class, 'assignTeam'])->middleware('permission:marketing.projects.view');
         Route::get('projects/{projectId}/team', [TeamManagementController::class, 'getTeam'])->middleware('permission:marketing.projects.view');
         Route::get('projects/{projectId}/recommend-employee', [TeamManagementController::class, 'recommendEmployee'])->middleware('permission:marketing.projects.view');
+
+        // Route aliases for backward compatibility with Postman collection
+        Route::post('plans/developer', [DeveloperMarketingPlanController::class, 'store'])->middleware('permission:marketing.plans.create');
+        Route::get('plans/developer/{contractId}', [DeveloperMarketingPlanController::class, 'show'])->middleware('permission:marketing.plans.create');
+        Route::post('plans/employee', [EmployeeMarketingPlanController::class, 'store'])->middleware('permission:marketing.plans.create');
+        Route::get('plans/employee', [EmployeeMarketingPlanController::class, 'index'])->middleware('permission:marketing.plans.create');
+        Route::get('plans/employee/{planId}', [EmployeeMarketingPlanController::class, 'show'])->middleware('permission:marketing.plans.create');
 
         // Leads
         Route::get('leads', [LeadController::class, 'index'])->middleware('permission:marketing.projects.view');
         Route::post('leads', [LeadController::class, 'store'])->middleware('permission:marketing.projects.view');
         Route::put('leads/{leadId}', [LeadController::class, 'update'])->middleware('permission:marketing.projects.view');
+        Route::post('leads/{leadId}/convert', [LeadController::class, 'convert'])->middleware('permission:marketing.projects.view');
+        Route::post('leads/{leadId}/assign', [LeadController::class, 'assign'])->middleware('permission:marketing.projects.view');
 
         // Reports
         Route::get('reports/project/{projectId}', [MarketingReportController::class, 'projectPerformance'])->middleware('permission:marketing.reports.view');

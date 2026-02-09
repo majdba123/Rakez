@@ -14,9 +14,24 @@ class EmployeeMarketingPlanController extends Controller
         private EmployeeMarketingPlanService $planService
     ) {}
 
-    public function index(int $projectId): JsonResponse
+    public function index(Request $request, ?int $projectId = null): JsonResponse
     {
-        $plans = EmployeeMarketingPlan::where('marketing_project_id', $projectId)->with('user')->get();
+        $query = EmployeeMarketingPlan::with('user');
+
+        // Support both route parameter and query parameter for backward compatibility
+        if ($projectId) {
+            $query->where('marketing_project_id', $projectId);
+        } elseif ($request->has('project_id')) {
+            $query->where('marketing_project_id', $request->input('project_id'));
+        }
+
+        // Filter by user_id if provided
+        if ($request->has('user_id')) {
+            $query->where('user_id', $request->input('user_id'));
+        }
+
+        $plans = $query->get();
+        
         return response()->json([
             'success' => true,
             'data' => $plans
