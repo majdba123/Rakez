@@ -5,16 +5,24 @@ namespace App\Services\Sales;
 use App\Models\Contract;
 use App\Models\ContractUnit;
 use App\Models\User;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Pagination\LengthAwarePaginator;
 
 class SalesProjectService
 {
+    public const SALES_STATUS_PENDING = 'pending';
+    public const SALES_STATUS_AVAILABLE = 'available';
     /**
      * Get projects with sales status computation.
      */
     public function getProjects(array $filters, User $user): LengthAwarePaginator
     {
-        $query = Contract::with(['secondPartyData.contractUnits', 'montageDepartment']);
+        $query = Contract::with([
+            'secondPartyData.contractUnits',
+            'montageDepartment',
+            'salesProjectAssignments.leader',
+            'user'
+        ]);
 
         // Apply filters
         if (!empty($filters['q'])) {
@@ -63,7 +71,9 @@ class SalesProjectService
         $contract = Contract::with([
             'secondPartyData.contractUnits',
             'montageDepartment',
-            'info'
+            'info',
+            'salesProjectAssignments.leader',
+            'user'
         ])->findOrFail($contractId);
 
         $contract->sales_status = $this->computeProjectSalesStatus($contract);
@@ -164,7 +174,7 @@ class SalesProjectService
     {
         // Check if contract status is ready OR approved (for tests)
         if ($contract->status !== 'ready' && $contract->status !== 'approved') {
-            return 'pending';
+            return self::SALES_STATUS_PENDING;
         }
 
         // Check if SecondPartyData exists
@@ -174,7 +184,7 @@ class SalesProjectService
             $contract->load('secondPartyData.contractUnits');
             $secondPartyData = $contract->secondPartyData;
             if (!$secondPartyData) {
-                return 'pending';
+                return self::SALES_STATUS_PENDING;
             }
         }
 
@@ -195,7 +205,7 @@ class SalesProjectService
                     if ($secondPartyData->contractUnits->isNotEmpty()) {
                         $unitsQuery = $secondPartyData->contractUnits;
                     } else {
-                        return 'pending';
+                        return self::SALES_STATUS_PENDING;
                     }
                 } else {
                     $unitsQuery = $freshSecondPartyData->contractUnits();
@@ -215,10 +225,10 @@ class SalesProjectService
         }
 
         if ($hasUnpricedUnits) {
-            return 'pending';
+            return self::SALES_STATUS_PENDING;
         }
 
-        return 'available';
+        return self::SALES_STATUS_AVAILABLE;
     }
 
     /**
@@ -227,7 +237,7 @@ class SalesProjectService
     protected function computeUnitAvailability(ContractUnit $unit, string $projectSalesStatus): array
     {
         // If project is not available, unit is pending
-        if ($projectSalesStatus !== 'available') {
+        if ($projectSalesStatus !== self::SALES_STATUS_AVAILABLE) {
             return ['status' => 'pending', 'can_reserve' => false];
         }
 
@@ -323,7 +333,36 @@ class SalesProjectService
         return Contract::whereHas('salesProjectAssignments', function ($q) use ($leader) {
             $q->where('leader_id', $leader->id)
               ->active();
-        })->with('secondPartyData.contractUnits')->get();
+        })->with(['secondPartyData.contractUnits', 'salesProjectAssignments.leader', 'user'])->get();
+    }
+
+    /**
+     * Get team projects for leader (paginated).
+     *
+     * @param User $leader
+     * @param int $perPage
+     * @return LengthAwarePaginator
+     */
+    public function listTeamProjectsPaginated(User $leader, int $perPage = 15): LengthAwarePaginator
+    {
+        $query = Contract::whereHas('salesProjectAssignments', function ($q) use ($leader) {
+            $q->where('leader_id', $leader->id)
+              ->active();
+        })->with(['secondPartyData.contractUnits', 'salesProjectAssignments.leader', 'user'])->orderBy('created_at', 'desc');
+
+        $projects = $query->paginate($perPage);
+
+        // Compute sales status for each project
+        $projects->getCollection()->transform(function ($contract) {
+            $contract->sales_status = $this->computeProjectSalesStatus($contract);
+            $contract->total_units = $contract->secondPartyData ? $contract->secondPartyData->contractUnits()->count() : 0;
+            $contract->available_units = $this->getAvailableUnitsCount($contract);
+            $contract->reserved_units = $this->getReservedUnitsCount($contract);
+            $contract->remaining_days = $this->getProjectRemainingDays($contract);
+            return $contract;
+        });
+
+        return $projects;
     }
 
     /**
@@ -442,5 +481,26 @@ class SalesProjectService
         
         // Return null if expired (negative days)
         return $remainingDays >= 0 ? $remainingDays : null;
+    }
+
+    /**
+     * Count projects currently under marketing based on sales availability logic.
+     * Project is considered under marketing when:
+     * - Contract status is ready/approved
+     * - Has units
+     * - All units are priced (> 0)
+     */
+    public function countProjectsUnderMarketing(string $scope, User $user): int
+    {
+        $query = Contract::query();
+        $this->applyScopeFilter($query, $scope, $user);
+
+        return $query
+            ->whereIn('status', ['ready', 'approved'])
+            ->whereHas('secondPartyData.contractUnits')
+            ->whereDoesntHave('secondPartyData.contractUnits', function (Builder $q) {
+                $q->whereNull('price')->orWhere('price', '<=', 0);
+            })
+            ->count();
     }
 }

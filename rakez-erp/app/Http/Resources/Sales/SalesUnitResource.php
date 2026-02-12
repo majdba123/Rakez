@@ -13,6 +13,7 @@ class SalesUnitResource extends JsonResource
             'unit_id' => $this->id,
             'unit_number' => $this->unit_number,
             'unit_type' => $this->unit_type,
+            'type' => $this->unit_type, // backward compatibility
             'area_m2' => (float) $this->area,
             'floor' => $this->floor,
             'price' => (float) $this->price,

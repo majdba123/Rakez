@@ -24,7 +24,9 @@ class ContractsSeeder extends Seeder
         $statuses = array_merge(
             array_fill(0, 20, 'ready'),
             array_fill(0, 15, 'approved'),
-            array_fill(0, 15, 'pending')
+            array_fill(0, 10, 'pending'),
+            array_fill(0, 3, 'rejected'),
+            array_fill(0, 2, 'completed')
         );
         shuffle($statuses);
 
@@ -83,9 +85,22 @@ class ContractsSeeder extends Seeder
                 'processed_at' => now()->subDays(fake()->numberBetween(1, 20)),
             ]);
 
-            ContractUnit::factory()
-                ->count($counts['units_per_contract'])
-                ->create(['second_party_data_id' => $secondParty->id]);
+            // Seed contract units with all possible statuses
+            $unitsPerContract = $counts['units_per_contract'];
+            $unitStatuses = array_merge(
+                array_fill(0, (int) ceil($unitsPerContract * 0.4), 'available'),
+                array_fill(0, (int) ceil($unitsPerContract * 0.3), 'pending'),
+                array_fill(0, (int) ceil($unitsPerContract * 0.2), 'reserved'),
+                array_fill(0, max(1, $unitsPerContract - (int) ceil($unitsPerContract * 0.4) - (int) ceil($unitsPerContract * 0.3) - (int) ceil($unitsPerContract * 0.2)), 'sold')
+            );
+            shuffle($unitStatuses);
+            
+            for ($u = 0; $u < $unitsPerContract; $u++) {
+                ContractUnit::factory()->create([
+                    'second_party_data_id' => $secondParty->id,
+                    'status' => $unitStatuses[$u] ?? 'available',
+                ]);
+            }
 
             for ($m = 0; $m < 3; $m++) {
                 ProjectMedia::create([

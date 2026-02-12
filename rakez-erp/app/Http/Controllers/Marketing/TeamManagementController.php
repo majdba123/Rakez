@@ -7,6 +7,7 @@ use App\Http\Requests\Marketing\AssignTeamRequest;
 use App\Http\Requests\Marketing\AssignCampaignRequest;
 use App\Services\Marketing\TeamManagementService;
 use App\Models\Team;
+use App\Http\Responses\ApiResponse;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -16,16 +17,16 @@ class TeamManagementController extends Controller
         private TeamManagementService $teamService
     ) {}
 
-    public function index(): JsonResponse
+    public function index(Request $request): JsonResponse
     {
         $this->authorize('marketing.teams.view');
 
-        $teams = Team::with(['members', 'creator'])->get();
+        $perPage = ApiResponse::getPerPage($request);
+        $teams = Team::with(['members', 'creator'])
+            ->orderBy('created_at', 'desc')
+            ->paginate($perPage);
 
-        return response()->json([
-            'success' => true,
-            'data' => $teams
-        ]);
+        return ApiResponse::paginated($teams, 'تم جلب قائمة الفرق بنجاح');
     }
 
     public function assignCampaign(AssignCampaignRequest $request): JsonResponse

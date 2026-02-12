@@ -26,8 +26,9 @@ class AccountingSeeder extends Seeder
         $commissionIds = [];
 
         if ($confirmedReservations->isNotEmpty()) {
-            foreach ($confirmedReservations as $reservation) {
-                $depositStatus = Arr::random(['received', 'confirmed', 'refunded']);
+            foreach ($confirmedReservations as $index => $reservation) {
+                $depositStatuses = ['pending', 'received', 'confirmed', 'refunded'];
+                $depositStatus = $depositStatuses[$index % 4];
                 Deposit::create([
                     'sales_reservation_id' => $reservation->id,
                     'contract_id' => $reservation->contract_id,
@@ -39,8 +40,8 @@ class AccountingSeeder extends Seeder
                     'commission_source' => $depositStatus === 'refunded' ? 'owner' : Arr::random(['owner', 'buyer']),
                     'status' => $depositStatus,
                     'notes' => fake()->optional()->sentence(),
-                    'confirmed_by' => Arr::random($accountingPool),
-                    'confirmed_at' => now()->subDays(fake()->numberBetween(0, 5)),
+                    'confirmed_by' => in_array($depositStatus, ['confirmed', 'refunded']) ? Arr::random($accountingPool) : null,
+                    'confirmed_at' => in_array($depositStatus, ['confirmed', 'refunded']) ? now()->subDays(fake()->numberBetween(0, 5)) : null,
                     'refunded_at' => $depositStatus === 'refunded' ? now()->subDays(1) : null,
                 ]);
             }
@@ -48,7 +49,8 @@ class AccountingSeeder extends Seeder
             $additionalDeposits = max(0, $counts['deposits'] - $confirmedReservations->count());
             for ($i = 0; $i < $additionalDeposits; $i++) {
                 $reservation = $confirmedReservations->random();
-                $status = Arr::random(['received', 'confirmed', 'refunded']);
+                $depositStatuses = ['pending', 'received', 'confirmed', 'refunded'];
+                $status = $depositStatuses[$i % 4];
                 Deposit::create([
                     'sales_reservation_id' => $reservation->id,
                     'contract_id' => $reservation->contract_id,
@@ -60,8 +62,8 @@ class AccountingSeeder extends Seeder
                     'commission_source' => $status === 'refunded' ? 'owner' : Arr::random(['owner', 'buyer']),
                     'status' => $status,
                     'notes' => fake()->optional()->sentence(),
-                    'confirmed_by' => Arr::random($accountingPool),
-                    'confirmed_at' => now()->subDays(fake()->numberBetween(0, 5)),
+                    'confirmed_by' => in_array($status, ['confirmed', 'refunded']) ? Arr::random($accountingPool) : null,
+                    'confirmed_at' => in_array($status, ['confirmed', 'refunded']) ? now()->subDays(fake()->numberBetween(0, 5)) : null,
                     'refunded_at' => $status === 'refunded' ? now()->subDays(1) : null,
                 ]);
             }
@@ -110,26 +112,53 @@ class AccountingSeeder extends Seeder
                 $salesUsers = User::where('type', 'marketing')->pluck('id')->all();
             }
 
-            foreach ($commissionIds as $commissionId) {
+            $distributionTypes = ['lead_generation', 'persuasion', 'closing', 'team_leader', 'sales_manager', 'project_manager', 'external_marketer', 'other'];
+            $distributionStatuses = ['pending', 'approved', 'rejected', 'paid'];
+            
+            foreach ($commissionIds as $commissionIndex => $commissionId) {
                 $commission = Commission::find($commissionId);
                 $commissionNet = $commission?->net_amount ?? 0;
-                $distributionCount = fake()->numberBetween(2, 3);
+                $distributionCount = fake()->numberBetween(2, 4);
                 for ($i = 0; $i < $distributionCount; $i++) {
-                    $status = fake()->boolean(40) ? 'approved' : 'pending';
+                    $status = $distributionStatuses[($commissionIndex * $distributionCount + $i) % 4];
                     $percentage = fake()->randomFloat(2, 10, 40);
                     $amount = $commissionNet > 0 ? ($commissionNet * $percentage) / 100 : 0;
-
-                    $distribution = CommissionDistribution::create([
+                    $type = $distributionTypes[($commissionIndex * $distributionCount + $i) % 8];
+                    
+                    $distributionData = [
                         'commission_id' => $commissionId,
-                        'user_id' => Arr::random($salesUsers),
-                        'type' => Arr::random(['lead_generation', 'persuasion', 'closing']),
+                        'type' => $type,
                         'percentage' => $percentage,
                         'amount' => $amount,
                         'status' => $status,
                         'notes' => fake()->optional()->sentence(),
-                        'approved_by' => $status === 'approved' ? Arr::random($accountingPool) : null,
-                        'approved_at' => $status === 'approved' ? now()->subDays(1) : null,
-                    ]);
+                    ];
+                    
+                    // For external_marketer and other types, add external_name
+                    if (in_array($type, ['external_marketer', 'other'])) {
+                        $distributionData['external_name'] = fake()->name();
+                        $distributionData['user_id'] = null;
+                    } else {
+                        $distributionData['user_id'] = Arr::random($salesUsers);
+                    }
+                    
+                    // Add bank_account for external types
+                    if (in_array($type, ['external_marketer', 'other'])) {
+                        $distributionData['bank_account'] = 'SA' . fake()->numerify('######################');
+                    }
+                    
+                    // Set approval fields based on status
+                    if (in_array($status, ['approved', 'rejected', 'paid'])) {
+                        $distributionData['approved_by'] = Arr::random($accountingPool);
+                        $distributionData['approved_at'] = now()->subDays(fake()->numberBetween(1, 10));
+                    }
+                    
+                    // Set paid_at for paid status
+                    if ($status === 'paid') {
+                        $distributionData['paid_at'] = now()->subDays(fake()->numberBetween(1, 5));
+                    }
+
+                    $distribution = CommissionDistribution::create($distributionData);
                     $distribution->calculateAmount();
                     $distribution->save();
                 }

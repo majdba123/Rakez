@@ -20,7 +20,14 @@ class MarketingTaskService
         return $task;
     }
 
-    public function getDailyTasks($userId, $date = null, $status = null)
+    /**
+     * @param int $userId
+     * @param string|null $date
+     * @param string|null $status
+     * @param int $perPage
+     * @return \Illuminate\Contracts\Pagination\LengthAwarePaginator
+     */
+    public function getDailyTasks($userId, $date = null, $status = null, int $perPage = 15)
     {
         $query = MarketingTask::where('marketer_id', $userId);
         
@@ -32,7 +39,7 @@ class MarketingTaskService
             $query->where('status', $status);
         }
         
-        return $query->get();
+        return $query->orderBy('created_at', 'desc')->paginate($perPage);
     }
 
     public function updateTaskStatus($taskId, $status)

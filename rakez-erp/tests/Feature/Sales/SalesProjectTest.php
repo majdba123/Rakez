@@ -265,6 +265,8 @@ class SalesProjectTest extends TestCase
                     'project',
                     'unit',
                     'marketing_employee',
+                    'readonly_project_unit_snapshot',
+                    'flags',
                     'lookups' => [
                         'reservation_types',
                         'payment_methods',
@@ -274,6 +276,8 @@ class SalesProjectTest extends TestCase
                     ],
                 ],
             ]);
+
+        $response->assertJsonPath('data.flags.is_off_plan', false);
     }
 
     public function test_project_assignment_with_date_range()

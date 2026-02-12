@@ -29,10 +29,17 @@ class MarketingProjectResource extends JsonResource
             ],
             'avg_unit_price' => $info?->avg_property_value ?? 0,
             'advertiser_number' => (!empty($info?->agency_number)) ? 'Available' : 'Pending',
+            'advertiser_number_value' => $info?->agency_number,
+            'advertiser_number_status' => (!empty($info?->agency_number)) ? 'Available' : 'Pending',
             'commission_percent' => $info?->commission_percent ?? 0,
             'total_available_value' => $availableUnits->sum('price'),
             'media_links' => $contract->projectMedia
-                ->where('department', 'montage')
+                ->filter(function ($media) {
+                    $isSupportedDepartment = in_array($media->department, ['montage', 'photography'], true);
+                    $isSupportedType = in_array($media->type, ['image', 'video'], true);
+
+                    return $isSupportedDepartment || $isSupportedType;
+                })
                 ->map(fn($m) => ['type' => $m->type, 'url' => $m->url]),
             'description' => $contract->notes ?? '',
             'created_at' => $this->created_at,

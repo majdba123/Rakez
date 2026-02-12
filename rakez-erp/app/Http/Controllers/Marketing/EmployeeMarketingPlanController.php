@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Marketing;
 use App\Http\Controllers\Controller;
 use App\Services\Marketing\EmployeeMarketingPlanService;
 use App\Models\EmployeeMarketingPlan;
+use App\Http\Responses\ApiResponse;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -30,12 +31,10 @@ class EmployeeMarketingPlanController extends Controller
             $query->where('user_id', $request->input('user_id'));
         }
 
-        $plans = $query->get();
-        
-        return response()->json([
-            'success' => true,
-            'data' => $plans
-        ]);
+        $perPage = ApiResponse::getPerPage($request);
+        $plans = $query->orderBy('created_at', 'desc')->paginate($perPage);
+
+        return ApiResponse::paginated($plans, 'تم جلب قائمة خطط التسويق بنجاح');
     }
 
     public function show(int $planId): JsonResponse

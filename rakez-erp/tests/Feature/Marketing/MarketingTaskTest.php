@@ -73,6 +73,28 @@ class MarketingTaskTest extends TestCase
     }
 
     #[Test]
+    public function it_rejects_cancelled_status_to_match_database_enum()
+    {
+        $contract = Contract::factory()->create();
+        $task = MarketingTask::create([
+            'contract_id' => $contract->id,
+            'task_name' => 'Enum Guard Task',
+            'marketer_id' => $this->marketingUser->id,
+            'status' => 'new',
+            'created_by' => $this->marketingUser->id,
+            'due_date' => now()->toDateString()
+        ]);
+
+        $response = $this->actingAs($this->marketingUser)
+            ->patchJson("/api/marketing/tasks/{$task->id}/status", [
+                'status' => 'cancelled'
+            ]);
+
+        $response->assertStatus(422)
+            ->assertJsonValidationErrors(['status']);
+    }
+
+    #[Test]
     public function it_returns_422_when_required_fields_are_missing()
     {
         $response = $this->actingAs($this->marketingUser, 'sanctum')

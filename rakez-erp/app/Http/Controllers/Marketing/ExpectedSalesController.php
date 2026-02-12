@@ -7,6 +7,7 @@ use App\Http\Requests\Marketing\CalculateExpectedSalesRequest;
 use App\Services\Marketing\ExpectedSalesService;
 use App\Models\MarketingSetting;
 use App\Models\ExpectedBooking;
+use App\Http\Responses\ApiResponse;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -63,12 +64,10 @@ class ExpectedSalesController extends Controller
             $query->whereDate('created_at', '<=', $request->input('end_date'));
         }
 
-        $expectedSales = $query->get();
+        $perPage = ApiResponse::getPerPage($request);
+        $expectedSales = $query->orderBy('created_at', 'desc')->paginate($perPage);
 
-        return response()->json([
-            'success' => true,
-            'data' => $expectedSales
-        ]);
+        return ApiResponse::paginated($expectedSales, 'تم جلب قائمة المبيعات المتوقعة بنجاح');
     }
 
     public function updateConversionRate(Request $request): JsonResponse

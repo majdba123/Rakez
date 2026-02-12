@@ -113,13 +113,17 @@ class EmployeeContractService
     }
 
     /**
-     * Get contracts for a user.
+     * Get contracts for a user (paginated).
+     *
+     * @param int $userId
+     * @param int $perPage
+     * @return \Illuminate\Contracts\Pagination\LengthAwarePaginator
      */
-    public function getUserContracts(int $userId): Collection
+    public function getUserContracts(int $userId, int $perPage = 15)
     {
         return EmployeeContract::where('user_id', $userId)
             ->orderBy('created_at', 'desc')
-            ->get();
+            ->paginate($perPage);
     }
 
     /**

@@ -8,7 +8,11 @@ use App\Models\ContractInfo;
 
 class MarketingProjectService
 {
-    public function getProjectsWithCompletedContracts()
+    /**
+     * @param int $perPage
+     * @return \Illuminate\Contracts\Pagination\LengthAwarePaginator
+     */
+    public function getProjectsWithCompletedContracts(int $perPage = 15)
     {
         return MarketingProject::whereHas('contract', function ($query) {
                 $query->where('status', 'approved');
@@ -19,7 +23,8 @@ class MarketingProjectService
                 'contract.secondPartyData',
                 'teamLeader',
             ])
-            ->get();
+            ->orderBy('created_at', 'desc')
+            ->paginate($perPage);
     }
 
     public function getProjectDetails($contractId)
@@ -46,13 +51,14 @@ class MarketingProjectService
         $commissionValue = $unitPrice * ($commissionPercent / 100);
         $marketingValue = $commissionValue * ($marketingPercent / 100);
 
-        $durationDays = $info->agreement_duration_days ?? 30;
+        $durationDays = (int) ($info->agreement_duration_days ?? 30);
+        $durationMonths = $this->resolveDurationMonths($info, $durationDays);
 
         return [
             'commission_value' => $commissionValue,
             'marketing_value' => $marketingValue,
             'daily_budget' => $this->calculateDailyBudget($marketingValue, $durationDays),
-            'monthly_budget' => $this->calculateMonthlyBudget($marketingValue, $durationDays / 30),
+            'monthly_budget' => $this->calculateMonthlyBudget($marketingValue, $durationMonths),
         ];
     }
 
@@ -82,7 +88,7 @@ class MarketingProjectService
                 'label' => 'Less than 1 month remaining',
                 'days' => $remainingDays
             ];
-        } elseif ($remainingDays <= 90) {
+        } elseif ($remainingDays < 90) {
             return [
                 'status' => 'orange',
                 'label' => '1-3 months remaining',
@@ -95,5 +101,18 @@ class MarketingProjectService
                 'days' => $remainingDays
             ];
         }
+    }
+
+    private function resolveDurationMonths(?ContractInfo $info, int $durationDays): int
+    {
+        if ($info && !empty($info->agreement_duration_months)) {
+            return max(1, (int) $info->agreement_duration_months);
+        }
+
+        if ($durationDays <= 0) {
+            return 1;
+        }
+
+        return (int) ceil($durationDays / 30);
     }
 }

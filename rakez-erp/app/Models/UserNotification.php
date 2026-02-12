@@ -13,6 +13,12 @@ class UserNotification extends Model
         'user_id',
         'message',
         'status',
+        'event_type',
+        'context',
+    ];
+
+    protected $casts = [
+        'context' => 'array',
     ];
 
     public function user()
