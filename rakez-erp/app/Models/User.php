@@ -226,7 +226,7 @@ class User extends Authenticatable
     public function getEffectivePermissions(): array
     {
         $permissions = $this->getAllPermissions()->pluck('name')->toArray();
-        
+
         // Add manager-specific permissions dynamically
         if ($this->isProjectManagementManager()) {
             $managerPermissions = [
@@ -237,7 +237,7 @@ class User extends Authenticatable
             ];
             $permissions = array_merge($permissions, $managerPermissions);
         }
-        
+
         return array_unique($permissions);
     }
 
@@ -263,7 +263,7 @@ class User extends Authenticatable
         // Verify role exists before assignment
         if (\Spatie\Permission\Models\Role::where('name', $roleName)->exists()) {
             $this->syncRoles([$roleName]);
-            
+
             // Clear permission cache to ensure fresh permissions are loaded
             app()[\Spatie\Permission\PermissionRegistrar::class]->forgetCachedPermissions();
         }
@@ -372,7 +372,7 @@ class User extends Authenticatable
     public function getWarningsCount(?int $year = null): int
     {
         $query = $this->warnings();
-        
+
         if ($year) {
             $query->whereYear('warning_date', $year);
         }
@@ -467,5 +467,38 @@ class User extends Authenticatable
     public function isAccounting(): bool
     {
         return $this->type === 'accounting';
+    }
+
+    /**
+     * Get conversations where this user is user_one.
+     */
+    public function conversationsAsUserOne()
+    {
+        return $this->hasMany(\App\Models\Conversation::class, 'user_one_id');
+    }
+
+    /**
+     * Get conversations where this user is user_two.
+     */
+    public function conversationsAsUserTwo()
+    {
+        return $this->hasMany(\App\Models\Conversation::class, 'user_two_id');
+    }
+
+    /**
+     * Get all conversations for this user.
+     */
+    public function conversations()
+    {
+        return \App\Models\Conversation::where('user_one_id', $this->id)
+            ->orWhere('user_two_id', $this->id);
+    }
+
+    /**
+     * Get all messages sent by this user.
+     */
+    public function sentMessages()
+    {
+        return $this->hasMany(\App\Models\Message::class, 'sender_id');
     }
 }

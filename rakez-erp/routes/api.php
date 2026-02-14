@@ -133,6 +133,17 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::patch('/mark-all-read', [NotificationController::class, 'userMarkAllAsRead']);
             Route::patch('/{id}/read', [NotificationController::class, 'userMarkAsRead']);
         });
+
+        // Chat Routes
+        Route::prefix('chat')->group(function () {
+            Route::get('/conversations', [ChatController::class, 'index']);
+            Route::get('/conversations/{userId}', [ChatController::class, 'getOrCreateConversation']);
+            Route::get('/conversations/{conversationId}/messages', [ChatController::class, 'getMessages']);
+            Route::post('/conversations/{conversationId}/messages', [ChatController::class, 'sendMessage']);
+            Route::patch('/conversations/{conversationId}/read', [ChatController::class, 'markAsRead']);
+            Route::delete('/messages/{messageId}', [ChatController::class, 'deleteMessage']);
+            Route::get('/unread-count', [ChatController::class, 'getUnreadCount']);
+        });
     });
 
 

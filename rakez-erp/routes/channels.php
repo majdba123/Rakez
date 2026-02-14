@@ -24,4 +24,16 @@ Broadcast::channel('user-notifications.{userId}', function (User $user, $userId)
     return (int) $user->id === (int) $userId;
 });
 
+// Private channel for conversations - only users in the conversation can listen
+Broadcast::channel('conversation.{conversationId}', function (User $user, $conversationId) {
+    $conversation = \App\Models\Conversation::find($conversationId);
+
+    if (!$conversation) {
+        return false;
+    }
+
+    // Check if user is part of this conversation
+    return $conversation->hasUser($user->id);
+});
+
 // Public channel - no authorization needed (handled automatically)
