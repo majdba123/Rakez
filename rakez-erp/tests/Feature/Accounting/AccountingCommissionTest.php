@@ -78,7 +78,27 @@ class AccountingCommissionTest extends TestCase
         $response = $this->getJson("/api/accounting/sold-units/{$reservation->id}");
 
         $response->assertStatus(200)
-            ->assertJson(['success' => true]);
+            ->assertJson(['success' => true])
+            ->assertJsonStructure(['data' => ['available_marketers']]);
+    }
+
+    /** @test */
+    public function accounting_user_can_list_marketers_for_dropdown()
+    {
+        Sanctum::actingAs($this->accountingUser);
+
+        User::factory()->create(['type' => 'sales', 'is_active' => true, 'name' => 'Sales User']);
+        User::factory()->create(['type' => 'marketing', 'is_active' => true, 'name' => 'Marketing User']);
+
+        $response = $this->getJson('/api/accounting/marketers');
+
+        $response->assertStatus(200)
+            ->assertJson(['success' => true])
+            ->assertJsonStructure([
+                'data' => [
+                    '*' => ['id', 'name'],
+                ],
+            ]);
     }
 
     /** @test */

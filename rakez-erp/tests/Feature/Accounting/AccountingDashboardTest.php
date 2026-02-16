@@ -19,12 +19,12 @@ class AccountingDashboardTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        
+
         // Create accounting role with required permission
         $this->createRoleWithPermissions('accounting', [
             'accounting.dashboard.view',
         ]);
-        
+
         $this->accountingUser = User::factory()->create(['type' => 'accounting']);
         $this->accountingUser->assignRole('accounting');
     }
@@ -61,6 +61,21 @@ class AccountingDashboardTest extends TestCase
         $response = $this->getJson('/api/accounting/dashboard?from_date=2026-01-01&to_date=2026-12-31');
 
         $response->assertStatus(200);
+    }
+
+    /** @test */
+    public function dashboard_returns_422_with_errors_on_validation_failure()
+    {
+        Sanctum::actingAs($this->accountingUser);
+
+        $response = $this->getJson('/api/accounting/dashboard?from_date=2026-12-31&to_date=2026-01-01');
+
+        $response->assertStatus(422)
+            ->assertJson([
+                'success' => false,
+                'message' => 'Validation failed.',
+            ])
+            ->assertJsonStructure(['errors']);
     }
 
     /** @test */

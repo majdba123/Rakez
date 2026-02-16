@@ -140,6 +140,7 @@ return [
         'credit.financing.manage' => 'Manage bank financing tracker stages.',
         'credit.title_transfer.manage' => 'Manage title transfer process.',
         'credit.claim_files.generate' => 'Generate claim files.',
+        'credit.payment_plan.manage' => 'Create and manage payment plans for on-map bookings (Credit).',
 
         // Accounting
         'accounting.dashboard.view' => 'View accounting dashboard metrics.',
@@ -240,6 +241,7 @@ return [
             'credit.financing.manage',
             'credit.title_transfer.manage',
             'credit.claim_files.generate',
+            'credit.payment_plan.manage',
             'accounting.dashboard.view',
             'accounting.notifications.view',
             'accounting.sold-units.view',
@@ -345,6 +347,7 @@ return [
             'credit.financing.manage',
             'credit.title_transfer.manage',
             'credit.claim_files.generate',
+            'credit.payment_plan.manage',
             'notifications.view',
             'exclusive_projects.request',
             'exclusive_projects.contract.complete',
@@ -352,6 +355,7 @@ return [
             'use-ai-assistant',
         ],
         'accounting' => [
+            'contracts.view_all',
             'accounting.dashboard.view',
             'accounting.notifications.view',
             'accounting.sold-units.view',

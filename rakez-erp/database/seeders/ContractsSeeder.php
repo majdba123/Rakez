@@ -17,6 +17,21 @@ use Illuminate\Support\Arr;
 
 class ContractsSeeder extends Seeder
 {
+    /**
+     * Fixed list of developers so multiple contracts share the same developer
+     * (realistic for Developers Management view).
+     */
+    protected array $developerList = [
+        ['name' => 'شركة الراجحي للتطوير العقاري', 'number' => '+966112345001'],
+        ['name' => 'مؤسسة دار الأركان', 'number' => '+966112345002'],
+        ['name' => 'مجموعة إعمار العقارية', 'number' => '+966112345003'],
+        ['name' => 'شركة المملكة القابضة', 'number' => '+966112345004'],
+        ['name' => 'شركة أبراج البناء', 'number' => '+966112345005'],
+        ['name' => 'مؤسسة المدى للتطوير', 'number' => '+966112345006'],
+        ['name' => 'شركة النخيل العقارية', 'number' => '+966112345007'],
+        ['name' => 'مجموعة العليان', 'number' => '+966112345008'],
+    ];
+
     public function run(): void
     {
         $counts = SeedCounts::all();
@@ -41,11 +56,14 @@ class ContractsSeeder extends Seeder
             $status = $statuses[$i] ?? 'pending';
             $ownerId = $owners ? Arr::random($owners) : null;
             $isOffPlan = fake()->boolean(30);
+            $developer = Arr::random($this->developerList);
 
             $contract = Contract::factory()->create([
                 'user_id' => $ownerId,
                 'status' => $status,
                 'is_off_plan' => $isOffPlan,
+                'developer_name' => $developer['name'],
+                'developer_number' => $developer['number'],
                 'project_image_url' => 'https://via.placeholder.com/800x600',
                 'emergency_contact_number' => '05' . fake()->numerify('########'),
                 'security_guard_number' => '05' . fake()->numerify('########'),
@@ -94,7 +112,7 @@ class ContractsSeeder extends Seeder
                 array_fill(0, max(1, $unitsPerContract - (int) ceil($unitsPerContract * 0.4) - (int) ceil($unitsPerContract * 0.3) - (int) ceil($unitsPerContract * 0.2)), 'sold')
             );
             shuffle($unitStatuses);
-            
+
             for ($u = 0; $u < $unitsPerContract; $u++) {
                 ContractUnit::factory()->create([
                     'second_party_data_id' => $secondParty->id,

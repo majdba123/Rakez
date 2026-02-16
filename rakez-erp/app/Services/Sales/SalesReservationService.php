@@ -199,10 +199,9 @@ class SalesReservationService
     {
         $reservation = SalesReservation::findOrFail($id);
 
-        // Check ownership first - regular sales employees can only cancel their own reservations
+        // Check ownership: sales can cancel own; admin and credit can cancel any (e.g. bank rejected, client withdrew)
         if ($reservation->marketing_employee_id !== $user->id) {
-            // Only admins can cancel others' reservations
-            if (!$user->hasRole('admin')) {
+            if (!$user->hasRole('admin') && !$user->hasRole('credit')) {
                 throw new \Illuminate\Auth\Access\AuthorizationException('Unauthorized to cancel this reservation');
             }
         }
@@ -364,6 +363,22 @@ class SalesReservationService
             ]);
 
             event(new UserNotificationEvent($manager->id, $message));
+        }
+
+        // Notify credit department (حجز تفاوض جديد) for visibility
+        $creditUsers = User::where('type', 'credit')->get();
+        foreach ($creditUsers as $user) {
+            UserNotification::create([
+                'user_id' => $user->id,
+                'message' => $message,
+                'event_type' => 'negotiation_requested',
+                'context' => [
+                    'reservation_id' => $reservation->id,
+                    'contract_id' => $reservation->contract_id,
+                    'unit_id' => $unit->id,
+                ],
+            ]);
+            event(new UserNotificationEvent($user->id, $message));
         }
     }
 }

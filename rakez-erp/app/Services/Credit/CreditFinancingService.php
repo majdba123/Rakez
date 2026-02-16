@@ -17,11 +17,19 @@ class CreditFinancingService
      */
     public const STAGE_NAMES = [
         1 => 'التواصل مع العميل',
-        2 => 'تقديم الطلب للبنك',
-        3 => 'إصدار التقييم',
-        4 => 'زيارة المقيّم',
+        2 => 'رفع الطلب للبنك',
+        3 => 'صدور التقييم',
+        4 => 'زيارة المقيم',
         5 => 'الإجراءات البنكية والعقود',
     ];
+
+    /**
+     * Get tracker by reservation (booking) id. Internal use; used by controller to resolve booking_id to tracker.
+     */
+    public function getTrackerByReservationId(int $reservationId): CreditFinancingTracker
+    {
+        return CreditFinancingTracker::where('sales_reservation_id', $reservationId)->firstOrFail();
+    }
 
     /**
      * Initialize a financing tracker for a reservation.
@@ -32,16 +40,16 @@ class CreditFinancingService
 
         // Validate reservation is confirmed and uses bank financing
         if ($reservation->status !== 'confirmed') {
-            throw new Exception('يمكن بدء تتبع التمويل فقط للحجوزات المؤكدة');
+            throw new Exception('يمكن بدء إجراءات التمويل فقط للحجوزات المؤكدة');
         }
 
         if (!$reservation->isBankFinancing()) {
-            throw new Exception('تتبع التمويل متاح فقط للشراء بالتمويل البنكي');
+            throw new Exception('إجراءات التمويل متاحة فقط للشراء بالتمويل البنكي');
         }
 
         // Check if tracker already exists
         if ($reservation->hasFinancingTracker()) {
-            throw new Exception('يوجد متتبع تمويل مسبقًا لهذا الحجز');
+            throw new Exception('تم تهيئة إجراءات التمويل مسبقاً لهذا الحجز');
         }
 
         DB::beginTransaction();
@@ -85,7 +93,7 @@ class CreditFinancingService
         $tracker = CreditFinancingTracker::findOrFail($trackerId);
 
         if ($tracker->overall_status !== 'in_progress') {
-            throw new Exception('لا يمكن تحديث متتبع غير نشط');
+            throw new Exception('لا يمكن الانتقال للمرحلة التالية حالياً');
         }
 
         // Ensure previous stages are completed
@@ -103,12 +111,9 @@ class CreditFinancingService
                 "stage_{$stage}_completed_at" => $now,
             ];
 
-            // Stage-specific data
+            // Stage-specific data (bank_name optional so "Confirm" transition works; can be set later)
             if ($stage === 1) {
-                if (empty($data['bank_name'])) {
-                    throw new Exception('اسم البنك مطلوب');
-                }
-                $updateData['bank_name'] = $data['bank_name'];
+                $updateData['bank_name'] = isset($data['bank_name']) && $data['bank_name'] !== '' ? $data['bank_name'] : null;
                 $updateData['client_salary'] = $data['client_salary'] ?? null;
                 $updateData['employment_type'] = $data['employment_type'] ?? null;
             }
@@ -163,7 +168,7 @@ class CreditFinancingService
         $tracker = CreditFinancingTracker::findOrFail($trackerId);
 
         if ($tracker->overall_status !== 'in_progress') {
-            throw new Exception('لا يمكن رفض متتبع غير نشط');
+            throw new Exception('لا يمكن رفض طلب التمويل في الحالة الحالية');
         }
 
         DB::beginTransaction();
@@ -218,6 +223,40 @@ class CreditFinancingService
     }
 
     /**
+     * Advance to next stage, or initialize if no tracker exists.
+     * Single action for "نقل للمرحلة التالية": either creates the financing request or completes the current stage.
+     *
+     * @return array{action: 'initialized'|'stage_completed', financing: CreditFinancingTracker, stage?: int}
+     */
+    public function advanceOrInitialize(int $reservationId, array $data, User $user): array
+    {
+        $reservation = SalesReservation::findOrFail($reservationId);
+
+        if (!$reservation->hasFinancingTracker()) {
+            $tracker = $this->initializeTracker($reservationId, $user->id);
+            return [
+                'action' => 'initialized',
+                'financing' => $tracker->fresh(['reservation', 'assignedUser']),
+            ];
+        }
+
+        $tracker = CreditFinancingTracker::where('sales_reservation_id', $reservationId)->first();
+
+        if ($tracker->allStagesCompleted()) {
+            throw new Exception('لا يمكن الانتقال للمرحلة التالية حالياً');
+        }
+
+        $stage = $tracker->getCurrentStage();
+        $tracker = $this->completeStage($tracker->id, $stage, $data, $user);
+
+        return [
+            'action' => 'stage_completed',
+            'financing' => $tracker,
+            'stage' => $stage,
+        ];
+    }
+
+    /**
      * Get tracker details with full info.
      */
     public function getTrackerDetails(int $trackerId): array
@@ -226,7 +265,7 @@ class CreditFinancingService
             ->findOrFail($trackerId);
 
         return [
-            'tracker' => $tracker,
+            'financing' => $tracker,
             'progress_summary' => $tracker->getProgressSummary(),
             'current_stage' => $tracker->getCurrentStage(),
             'remaining_days' => $tracker->getRemainingDays(),
@@ -272,11 +311,16 @@ class CreditFinancingService
         $stageName = self::STAGE_NAMES[$stage] ?? "المرحلة {$stage}";
         $message = "تأخر في مرحلة: {$stageName} - حجز رقم {$tracker->sales_reservation_id}";
 
-        // Notify assigned user
+        // Notify assigned user (انتهاء مهلة أي إجراء)
         if ($tracker->assigned_to) {
             UserNotification::create([
                 'user_id' => $tracker->assigned_to,
                 'message' => $message,
+                'event_type' => 'financing_stage_overdue',
+                'context' => [
+                    'reservation_id' => $tracker->sales_reservation_id,
+                    'stage' => $stage,
+                ],
             ]);
         }
 
@@ -286,6 +330,11 @@ class CreditFinancingService
             UserNotification::create([
                 'user_id' => $manager->id,
                 'message' => $message,
+                'event_type' => 'financing_stage_overdue',
+                'context' => [
+                    'reservation_id' => $tracker->sales_reservation_id,
+                    'stage' => $stage,
+                ],
             ]);
         }
     }

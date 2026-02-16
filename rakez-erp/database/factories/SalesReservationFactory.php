@@ -26,7 +26,7 @@ class SalesReservationFactory extends Factory
             'proposed_price' => null,
             'evacuation_date' => null,
             'approval_deadline' => null,
-            'client_name' => $this->faker->name(),
+            'client_name' => $this->faker->name(), // required for credit/bookings list
             'client_mobile' => '05' . $this->faker->numerify('########'),
             'client_nationality' => 'Saudi',
             'client_iban' => 'SA' . $this->faker->numerify('######################'),

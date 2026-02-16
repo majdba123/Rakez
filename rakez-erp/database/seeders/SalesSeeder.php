@@ -22,9 +22,13 @@ class SalesSeeder extends Seeder
         $counts = SeedCounts::all();
 
         $readyContracts = Contract::where('status', 'ready')->pluck('id')->all();
-        $salesUsers = User::where('type', 'sales')->pluck('id')->all();
-        if (!$salesUsers) {
-            $salesUsers = User::where('type', 'marketing')->pluck('id')->all();
+        // Use only sales users with team_id set so marketing details (فريق المشروع، فريق البائع) are populated
+        $salesUsers = User::where('type', 'sales')->whereNotNull('team_id')->pluck('id')->all();
+        if (empty($salesUsers)) {
+            $salesUsers = User::where('type', 'marketing')->whereNotNull('team_id')->pluck('id')->all();
+        }
+        if (empty($salesUsers)) {
+            $salesUsers = User::whereIn('type', ['sales', 'marketing'])->pluck('id')->all();
         }
 
         $accountingUsers = User::where('type', 'accounting')->pluck('id')->all();
@@ -119,9 +123,9 @@ class SalesSeeder extends Seeder
         }
 
         $reservationStatusMap = array_merge(
-            array_fill(0, 120, 'under_negotiation'),
-            array_fill(0, 120, 'confirmed'),
-            array_fill(0, 60, 'cancelled')
+            array_fill(0, 100, 'under_negotiation'),
+            array_fill(0, 160, 'confirmed'),
+            array_fill(0, 40, 'cancelled')
         );
         shuffle($reservationStatusMap);
 
@@ -138,6 +142,9 @@ class SalesSeeder extends Seeder
                 ? 'cash'
                 : Arr::random(['supported_bank', 'unsupported_bank']);
 
+            // client_name is required for credit/bookings list display
+            $clientName = Arr::random($this->arabicClientNames());
+
             $reservation = SalesReservation::create([
                 'contract_id' => $contractId,
                 'contract_unit_id' => $unitId,
@@ -150,7 +157,7 @@ class SalesSeeder extends Seeder
                 'proposed_price' => $status === 'under_negotiation' ? fake()->randomFloat(2, 300000, 900000) : null,
                 'evacuation_date' => $status === 'under_negotiation' ? now()->addMonths(2)->format('Y-m-d') : null,
                 'approval_deadline' => $status === 'under_negotiation' ? now()->addHours(48) : null,
-                'client_name' => fake()->name(),
+                'client_name' => $clientName,
                 'client_mobile' => '05' . fake()->numerify('########'),
                 'client_nationality' => 'Saudi',
                 'client_iban' => 'SA' . fake()->numerify('######################'),
@@ -186,6 +193,28 @@ class SalesSeeder extends Seeder
                 ]);
             }
         }
+    }
+
+    /** Arabic client names for seeded reservations (client_name is required). */
+    private function arabicClientNames(): array
+    {
+        return [
+            'عبدالله المنصور',
+            'محمد السعيد',
+            'خالد العتيبي',
+            'فهد الشمري',
+            'سعد الدوسري',
+            'ناصر القحطاني',
+            'راشد الحربي',
+            'عمر الزهراني',
+            'يوسف الغامدي',
+            'أحمد الشهري',
+            'عبدالرحمن المطيري',
+            'تركي العنزي',
+            'بندر البلوي',
+            'سلطان السلمي',
+            'ماجد الحارثي',
+        ];
     }
 
     private function buildContractUnitsMap(array $contractIds): array

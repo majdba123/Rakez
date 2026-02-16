@@ -88,13 +88,14 @@ class ClaimFileService
         $info = $contract?->info;
 
         return [
-            // Project Information
+            // Project Information (5.1 البيانات المعروضة)
             'project_name' => $contract?->project_name ?? $info?->project_name ?? null,
             'project_location' => $contract?->city ?? null,
+            'project_district' => $contract?->district ?? null,
 
             // Unit Information
             'unit_number' => $unit?->unit_number ?? null,
-            'unit_type' => $unit?->type ?? null,
+            'unit_type' => $unit?->unit_type ?? null,
             'unit_area' => $unit?->area ?? null,
             'unit_price' => $unit?->price ?? null,
 
@@ -126,6 +127,16 @@ class ClaimFileService
             'reservation_id' => $reservation->id,
             'reservation_type' => $reservation->reservation_type,
         ];
+    }
+
+    /**
+     * List claim files (for Tab 5: إصدار ملف المطالبة والإفراغات).
+     */
+    public function listClaimFiles(int $perPage = 15): \Illuminate\Contracts\Pagination\LengthAwarePaginator
+    {
+        return ClaimFile::with(['reservation.contract', 'reservation.contractUnit', 'generatedBy'])
+            ->orderBy('created_at', 'desc')
+            ->paginate($perPage);
     }
 
     /**

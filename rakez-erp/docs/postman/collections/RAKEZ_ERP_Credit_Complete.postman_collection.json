@@ -1,0 +1,647 @@
+{
+  "info": {
+    "_postman_id": "credit-module-complete-001",
+    "name": "RAKEZ ERP - Credit Module (Complete)",
+    "description": "## Credit Department - Complete API Collection\n\n**31 requests** (1 Login + 2 Dashboard + 4 Notifications incl. proxy + 2 Confirmed + 6 Negotiation/Waiting/Sold/Cancelled/Cancel + 5 Financing + 6 Title Transfer incl. unschedule + 5 Claim Files). Credit endpoints under `/api/credit/`. **GET /api/notifications** (proxy) for credit/admin.\n\n**Credit endpoints** covering all 5 tabs:\n\n1. **Tab 1 - Dashboard** – KPIs (confirmed/negotiation/waiting bookings, requires review, rejected with down payment, stage breakdown, title transfer breakdown)\n2. **Tab 2 - Notifications** – List, mark read, mark all read\n3. **Tab 3 - Bookings** – Confirmed, sold, cancelled, negotiation (list + update PUT/PATCH), waiting lists; show booking details; cancel; **إجراءات التمويل (Financing)** – advance/init, get status, complete stage, reject; title transfer (init, schedule, unschedule, complete); pending transfers; sold projects\n4. **Tab 5 - Claim Files** – List claim files, generate for booking, show, generate PDF, download PDF\n\n**Auth**: Bearer token (set `auth_token` from Login)\n**Base URL**: `{{base_url}}` (مثال: http://localhost:8000/api — بدون شرطة نهائية)\n\n**Roles**: credit, admin\n**Permissions**: credit.dashboard.view, credit.bookings.view, credit.financing.manage, credit.title_transfer.manage, credit.claim_files.generate\n\n**Financing (booking-centric only)**: All financing operations use **booking_id** only. No tracker or internal IDs in URLs or in responses. Response `data` includes `booking_id`, stage state, and progress; internal tracking is created and detected in the backend only.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {"key": "token", "value": "{{auth_token}}", "type": "string"}
+    ]
+  },
+  "variable": [
+    {"key": "booking_id", "value": "1", "description": "Sales reservation ID (from List Confirmed Bookings). All financing operations use this only; no tracker IDs in URLs or responses."},
+    {"key": "transfer_id", "value": "1", "description": "Title transfer ID (from Initialize or List Pending)"},
+    {"key": "claim_file_id", "value": "1", "description": "Claim file ID (from List or Generate)"},
+    {"key": "notification_id", "value": "1", "description": "Notification ID (from List Notifications)"},
+    {"key": "stage_number", "value": "1", "description": "Financing stage 1-5"},
+    {"key": "installment_id", "value": "1", "description": "Payment installment ID (from Get Payment Plan)"}
+  ],
+  "item": [
+    {
+      "name": "00 - Auth",
+      "item": [
+        {
+          "name": "Login",
+          "request": {
+            "auth": {"type": "noauth"},
+            "method": "POST",
+            "header": [
+              {"key": "Accept", "value": "application/json"},
+              {"key": "Content-Type", "value": "application/json"}
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"email\": \"{{user_email}}\",\n    \"password\": \"{{user_password}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/login",
+              "host": ["{{base_url}}"],
+              "path": ["login"]
+            },
+            "event": [
+              {
+                "listen": "test",
+                "script": {
+                  "exec": [
+                    "const res = pm.response.json();",
+                    "if (res.access_token) {",
+                    "    pm.environment.set('auth_token', res.access_token);",
+                    "    pm.environment.set('user_id', res.user?.id || '');",
+                    "    pm.test('Login successful', function () { pm.response.to.have.status(200); });",
+                    "} else {",
+                    "    pm.test('Login failed', function () { pm.expect(res.access_token).to.exist; });",
+                    "}"
+                  ],
+                  "type": "text/javascript"
+                }
+              }
+            ],
+            "description": "Run this first. Saves access_token and user_id to environment.\n\nUse a **credit** or **admin** user. API returns: access_token, user"
+          }
+        }
+      ]
+    },
+    {
+      "name": "01 - Dashboard (Tab 1)",
+      "item": [
+        {
+          "name": "Get Dashboard",
+          "request": {
+            "method": "GET",
+            "header": [{"key": "Accept", "value": "application/json"}],
+            "url": {
+              "raw": "{{base_url}}/credit/dashboard",
+              "host": ["{{base_url}}"],
+              "path": ["credit", "dashboard"]
+            },
+            "description": "**Tab 1 - لوحة التحكم**\n\nReturns: kpis (confirmed_bookings_count, negotiation_bookings_count, waiting_bookings_count, requires_review_count, rejected_with_paid_down_payment_count, projects_in_progress_count, rejected_by_bank_count, overdue_stages, pending_accounting_confirmation, in_title_transfer_count, sold_projects_count), kpis_labels_ar, stage_breakdown, stage_labels_ar, title_transfer_breakdown, title_transfer_labels_ar.\n\n**Permission**: credit.dashboard.view"
+          }
+        },
+        {
+          "name": "Refresh Dashboard Cache",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Accept", "value": "application/json"}],
+            "url": {
+              "raw": "{{base_url}}/credit/dashboard/refresh",
+              "host": ["{{base_url}}"],
+              "path": ["credit", "dashboard", "refresh"]
+            },
+            "description": "Clears dashboard KPIs cache so next GET /credit/dashboard returns fresh data.\n\n**Permission**: credit.dashboard.view"
+          }
+        }
+      ]
+    },
+    {
+      "name": "02 - Notifications (Tab 2)",
+      "item": [
+        {
+          "name": "List Notifications (Proxy)",
+          "request": {
+            "method": "GET",
+            "header": [{"key": "Accept", "value": "application/json"}],
+            "url": {
+              "raw": "{{base_url}}/notifications?per_page=15",
+              "host": ["{{base_url}}"],
+              "path": ["notifications"],
+              "query": [
+                {"key": "per_page", "value": "15"},
+                {"key": "from_date", "value": "", "disabled": true, "description": "YYYY-MM-DD"},
+                {"key": "to_date", "value": "", "disabled": true},
+                {"key": "status", "value": "", "disabled": true, "description": "pending|read"}
+              ]
+            },
+            "description": "**Proxy**: GET /api/notifications (بدون /credit/). للمستخدم credit أو admin يعيد نفس استجابة credit/notifications. Query: per_page, from_date, to_date, status.\n\n**Permission**: auth"
+          }
+        },
+        {
+          "name": "List Notifications",
+          "request": {
+            "method": "GET",
+            "header": [{"key": "Accept", "value": "application/json"}],
+            "url": {
+              "raw": "{{base_url}}/credit/notifications?per_page=15",
+              "host": ["{{base_url}}"],
+              "path": ["credit", "notifications"],
+              "query": [
+                {"key": "per_page", "value": "15"},
+                {"key": "from_date", "value": "", "disabled": true, "description": "YYYY-MM-DD"},
+                {"key": "to_date", "value": "", "disabled": true, "description": "YYYY-MM-DD"},
+                {"key": "status", "value": "", "disabled": true, "description": "pending|read"}
+              ]
+            },
+            "description": "**Tab 2 - الإشعارات**\n\nCredit user's notifications: new negotiation, price approval/rejection, down payment confirm, reservation confirmed, deadline expired, evacuation complete.\n\n**Permission**: credit.bookings.view"
+          }
+        },
+        {
+          "name": "Mark Notification as Read",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Accept", "value": "application/json"}],
+            "url": {
+              "raw": "{{base_url}}/credit/notifications/{{notification_id}}/read",
+              "host": ["{{base_url}}"],
+              "path": ["credit", "notifications", "{{notification_id}}", "read"]
+            },
+            "description": "Set notification_id from list response. **Permission**: credit.bookings.view"
+          }
+        },
+        {
+          "name": "Mark All Notifications as Read",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Accept", "value": "application/json"}],
+            "url": {
+              "raw": "{{base_url}}/credit/notifications/read-all",
+              "host": ["{{base_url}}"],
+              "path": ["credit", "notifications", "read-all"]
+            },
+            "description": "**Permission**: credit.bookings.view"
+          }
+        }
+      ]
+    },
+    {
+      "name": "03 - Bookings - Confirmed (Tab 3.1)",
+      "item": [
+        {
+          "name": "List Confirmed Bookings",
+          "request": {
+            "method": "GET",
+            "header": [{"key": "Accept", "value": "application/json"}],
+            "url": {
+              "raw": "{{base_url}}/credit/bookings/confirmed?per_page=15",
+              "host": ["{{base_url}}"],
+              "path": ["credit", "bookings", "confirmed"],
+              "query": [
+                {"key": "per_page", "value": "15"},
+                {"key": "credit_status", "value": "", "disabled": true, "description": "pending|in_progress|title_transfer|sold|rejected"},
+                {"key": "purchase_mechanism", "value": "", "disabled": true, "description": "cash|supported_bank|unsupported_bank"},
+                {"key": "down_payment_confirmed", "value": "", "disabled": true, "description": "true|false"},
+                {"key": "from_date", "value": "", "disabled": true},
+                {"key": "to_date", "value": "", "disabled": true}
+              ]
+            },
+            "description": "**Tab 3.1 - الحجوزات المؤكدة**\n\nReturns data[] with contract, contractUnit, marketingEmployee.team, financing, titleTransfer. Use an id from data for Show Booking.\n\n**Permission**: credit.bookings.view"
+          }
+        },
+        {
+          "name": "Show Booking Details",
+          "request": {
+            "method": "GET",
+            "header": [{"key": "Accept", "value": "application/json"}],
+            "url": {
+              "raw": "{{base_url}}/credit/bookings/{{booking_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["credit", "bookings", "{{booking_id}}"]
+            },
+            "description": "**Tab 3.1 - تفاصيل الحجز**\n\nReturns: project, unit, client, financial, marketing, credit_procedure_steps (6 steps: key, label_ar, status, date for متابعة إجراءات الائتمان), **financing** (حالة إجراءات التمويل، أو null إن لم تبدأ بعد), title_transfer, claim_file, payment_installments, is_cash_purchase, is_bank_financing, requires_accounting_confirmation.\n\nSet booking_id (reservation id). **Permission**: credit.bookings.view"
+          }
+        }
+      ]
+    },
+    {
+      "name": "04 - Bookings - Negotiation & Waiting (Tab 3.4 & 3.5)",
+      "item": [
+        {
+          "name": "List Negotiation Bookings",
+          "request": {
+            "method": "GET",
+            "header": [{"key": "Accept", "value": "application/json"}],
+            "url": {
+              "raw": "{{base_url}}/credit/bookings/negotiation?per_page=15",
+              "host": ["{{base_url}}"],
+              "path": ["credit", "bookings", "negotiation"],
+              "query": [{"key": "per_page", "value": "15"}]
+            },
+            "description": "**Tab 4 - حجوزات التفاوض** (read-only). **Permission**: credit.bookings.view"
+          }
+        },
+        {
+          "name": "Update Negotiation (PUT or PATCH)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {"key": "Accept", "value": "application/json"},
+              {"key": "Content-Type", "value": "application/json"}
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{}"
+            },
+            "url": {
+              "raw": "{{base_url}}/credit/bookings/negotiation/{{booking_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["credit", "bookings", "negotiation", "{{booking_id}}"]
+            },
+            "description": "تحديث حالة التفاوض (يدعم PUT و PATCH). استخدم معرف حجز صالح (من قائمة التفاوض). Body اختياري.\n\n**مهم للواجهة الأمامية:** لا تستدعِ هذا الطلب أبداً عندما يكون معرف الحجز غير معرّف (undefined). تأكد من تمرير id الحجز من الصف المحدد أو من نافذة التفاوض؛ وإلا سيرد الـ API: 404 معرف الحجز غير صالح.\n\n**Permission**: credit.bookings.view"
+          }
+        },
+        {
+          "name": "List Waiting Bookings",
+          "request": {
+            "method": "GET",
+            "header": [{"key": "Accept", "value": "application/json"}],
+            "url": {
+              "raw": "{{base_url}}/credit/bookings/waiting?per_page=15",
+              "host": ["{{base_url}}"],
+              "path": ["credit", "bookings", "waiting"],
+              "query": [{"key": "per_page", "value": "15"}]
+            },
+            "description": "**Tab 5 - حجوزات الانتظار** (read-only). **Permission**: credit.bookings.view"
+          }
+        },
+        {
+          "name": "List Sold Bookings",
+          "request": {
+            "method": "GET",
+            "header": [{"key": "Accept", "value": "application/json"}],
+            "url": {
+              "raw": "{{base_url}}/credit/bookings/sold?per_page=15",
+              "host": ["{{base_url}}"],
+              "path": ["credit", "bookings", "sold"],
+              "query": [
+                {"key": "per_page", "value": "15"},
+                {"key": "from_date", "value": "", "disabled": true, "description": "YYYY-MM-DD"},
+                {"key": "to_date", "value": "", "disabled": true, "description": "YYYY-MM-DD"},
+                {"key": "contract_id", "value": "", "disabled": true}
+              ]
+            },
+            "description": "**تبويب مباعة** – Reservations with credit_status = sold. Same card shape as confirmed. Query: per_page, from_date, to_date, contract_id. **Permission**: credit.bookings.view"
+          }
+        },
+        {
+          "name": "List Cancelled Bookings",
+          "request": {
+            "method": "GET",
+            "header": [{"key": "Accept", "value": "application/json"}],
+            "url": {
+              "raw": "{{base_url}}/credit/bookings/cancelled?per_page=15",
+              "host": ["{{base_url}}"],
+              "path": ["credit", "bookings", "cancelled"],
+              "query": [
+                {"key": "per_page", "value": "15"},
+                {"key": "from_date", "value": "", "disabled": true, "description": "YYYY-MM-DD (cancelled_at)"},
+                {"key": "to_date", "value": "", "disabled": true, "description": "YYYY-MM-DD"},
+                {"key": "contract_id", "value": "", "disabled": true}
+              ]
+            },
+            "description": "**تبويب مرفوضة / ملغاة** – Reservations with cancelled_at set. Query: per_page, from_date, to_date, contract_id. **Permission**: credit.bookings.view"
+          }
+        },
+        {
+          "name": "Cancel Booking",
+          "request": {
+            "method": "POST",
+            "header": [
+              {"key": "Accept", "value": "application/json"},
+              {"key": "Content-Type", "value": "application/json"}
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"cancellation_reason\": \"رفض البنك\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/credit/bookings/{{booking_id}}/cancel",
+              "host": ["{{base_url}}"],
+              "path": ["credit", "bookings", "{{booking_id}}", "cancel"]
+            },
+            "description": "**Tab 3.5 - إلغاء الحجز** (e.g. bank rejected or client withdrew). Optional body: cancellation_reason. **Permission**: credit.bookings.view"
+          }
+        }
+      ]
+    },
+    {
+      "name": "05 - إجراءات التمويل (Financing) (Tab 3.2.2)",
+      "item": [
+        {
+          "name": "نقل للمرحلة التالية (Advance or Initialize)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {"key": "Accept", "value": "application/json"},
+              {"key": "Content-Type", "value": "application/json"}
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"bank_name\": \"بنك الراجحي\",\n    \"client_salary\": 25000,\n    \"employment_type\": \"government\",\n    \"appraiser_name\": \"\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/credit/bookings/{{booking_id}}/financing/advance",
+              "host": ["{{base_url}}"],
+              "path": ["credit", "bookings", "{{booking_id}}", "financing", "advance"]
+            },
+            "description": "عملية واحدة: الموظف يضغط \"نقل للمرحلة التالية\" فقط.\n- إن لم تبدأ إجراءات التمويل: يتم تهيئتها فوراً (action: initialized، 201، data.financing).\n- إن بدأت: يتم إكمال المرحلة الحالية (action: stage_completed، 200، data.financing).\nBody اختياري للمرحلة 1 (bank_name مطلوب عند إكمال المرحلة 1) والمرحلة 4 (appraiser_name).\n\n**Permission**: credit.financing.manage"
+          }
+        },
+        {
+          "name": "Initialize Financing",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Accept", "value": "application/json"}],
+            "url": {
+              "raw": "{{base_url}}/credit/bookings/{{booking_id}}/financing",
+              "host": ["{{base_url}}"],
+              "path": ["credit", "bookings", "{{booking_id}}", "financing"]
+            },
+            "description": "بدء إجراءات التمويل لحجز مؤكد (تمويل بنكي). الاستجابة تحتوي data.financing مع المرحلة 1 قيد التنفيذ. يُفضّل استخدام \"نقل للمرحلة التالية\" (advance) لتهيئة أو إكمال مرحلة دفعة واحدة.\n\n**Permission**: credit.financing.manage"
+          }
+        },
+        {
+          "name": "Get Financing Status",
+          "request": {
+            "method": "GET",
+            "header": [{"key": "Accept", "value": "application/json"}],
+            "url": {
+              "raw": "{{base_url}}/credit/bookings/{{booking_id}}/financing",
+              "host": ["{{base_url}}"],
+              "path": ["credit", "bookings", "{{booking_id}}", "financing"]
+            },
+            "description": "جلب حالة إجراءات التمويل للحجز. الاستجابة لا تتضمن معرفات تتبع داخلية؛ فقط booking_id وحالة المراحل. إن بدأت: data.financing (بدون id)، progress_summary، current_stage، remaining_days، all_completed، booking_id. إن لم تبدأ: data = null.\n\n**Permission**: credit.bookings.view"
+          }
+        },
+        {
+          "name": "Complete Stage (1-5)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {"key": "Accept", "value": "application/json"},
+              {"key": "Content-Type", "value": "application/json"}
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"bank_name\": \"بنك الراجحي\",\n    \"client_salary\": 25000,\n    \"employment_type\": \"government\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/credit/bookings/{{booking_id}}/financing/stage/{{stage_number}}",
+              "host": ["{{base_url}}"],
+              "path": ["credit", "bookings", "{{booking_id}}", "financing", "stage", "{{stage_number}}"]
+            },
+            "description": "**المراحل**: 1=التواصل مع العميل (bank_name مطلوب للمرحلة 1)، 2=رفع الطلب للبنك، 3=صدور التقييم، 4=زيارة المقيم (appraiser_name اختياري)، 5=الإجراءات البنكية والعقود. استخدم booking_id و stage_number (1–5).\n\n**تحقق الطلب:** للمرحلة 1 حقل bank_name مطلوب؛ عند إرسال الطلب بدون bank_name يرجع الـ API **422** مع errors.bank_name.\n\n**Permission**: credit.financing.manage"
+          }
+        },
+        {
+          "name": "Reject Financing",
+          "request": {
+            "method": "POST",
+            "header": [
+              {"key": "Accept", "value": "application/json"},
+              {"key": "Content-Type", "value": "application/json"}
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"reason\": \"رفض البنك التمويل\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/credit/bookings/{{booking_id}}/financing/reject",
+              "host": ["{{base_url}}"],
+              "path": ["credit", "bookings", "{{booking_id}}", "financing", "reject"]
+            },
+            "description": "Body: reason (مطلوب). يغيّر حالة الحجز إلى مرفوض (credit_status = rejected). استخدم booking_id فقط.\n\n**Permission**: credit.financing.manage"
+          }
+        }
+      ]
+    },
+    {
+      "name": "06 - Title Transfer (Tab 3.4)",
+      "item": [
+        {
+          "name": "Initialize Title Transfer",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Accept", "value": "application/json"}],
+            "url": {
+              "raw": "{{base_url}}/credit/bookings/{{booking_id}}/title-transfer",
+              "host": ["{{base_url}}"],
+              "path": ["credit", "bookings", "{{booking_id}}", "title-transfer"]
+            },
+            "description": "Start title transfer (after financing completed or cash). Sets credit_status to title_transfer. **Permission**: credit.title_transfer.manage"
+          }
+        },
+        {
+          "name": "Schedule Title Transfer",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {"key": "Accept", "value": "application/json"},
+              {"key": "Content-Type", "value": "application/json"}
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"scheduled_date\": \"2026-03-15\",\n    \"notes\": \"موعد الإفراغ\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/credit/title-transfer/{{transfer_id}}/schedule",
+              "host": ["{{base_url}}"],
+              "path": ["credit", "title-transfer", "{{transfer_id}}", "schedule"]
+            },
+            "description": "scheduled_date required (YYYY-MM-DD, after today). **Permission**: credit.title_transfer.manage"
+          }
+        },
+        {
+          "name": "Unschedule Title Transfer (إلغاء موعد الافراغ)",
+          "request": {
+            "method": "PATCH",
+            "header": [{"key": "Accept", "value": "application/json"}],
+            "url": {
+              "raw": "{{base_url}}/credit/title-transfer/{{transfer_id}}/unschedule",
+              "host": ["{{base_url}}"],
+              "path": ["credit", "title-transfer", "{{transfer_id}}", "unschedule"]
+            },
+            "description": "Cancel/clear the scheduled evacuation date. Only when transfer status is scheduled; 400 if no date set or already completed. **Permission**: credit.title_transfer.manage"
+          }
+        },
+        {
+          "name": "Complete Title Transfer (تم الإفراغ)",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Accept", "value": "application/json"}],
+            "url": {
+              "raw": "{{base_url}}/credit/title-transfer/{{transfer_id}}/complete",
+              "host": ["{{base_url}}"],
+              "path": ["credit", "title-transfer", "{{transfer_id}}", "complete"]
+            },
+            "description": "Moves project to sold (credit_status = sold). **Permission**: credit.title_transfer.manage"
+          }
+        },
+        {
+          "name": "List Pending Title Transfers",
+          "request": {
+            "method": "GET",
+            "header": [{"key": "Accept", "value": "application/json"}],
+            "url": {
+              "raw": "{{base_url}}/credit/title-transfers/pending",
+              "host": ["{{base_url}}"],
+              "path": ["credit", "title-transfers", "pending"]
+            },
+            "description": "Transfers in pending, preparation, or scheduled status. **Permission**: credit.bookings.view"
+          }
+        },
+        {
+          "name": "List Sold Projects",
+          "request": {
+            "method": "GET",
+            "header": [{"key": "Accept", "value": "application/json"}],
+            "url": {
+              "raw": "{{base_url}}/credit/sold-projects?per_page=15",
+              "host": ["{{base_url}}"],
+              "path": ["credit", "sold-projects"],
+              "query": [
+                {"key": "per_page", "value": "15"},
+                {"key": "from_date", "value": "", "disabled": true},
+                {"key": "to_date", "value": "", "disabled": true},
+                {"key": "contract_id", "value": "", "disabled": true}
+              ]
+            },
+            "description": "Completed title transfers (المشاريع المباعة). Response: data[] (transfer_id, reservation_id, project_name, unit_number, client_name, completed_date, processed_by), meta.pagination.\n\n**Permission**: credit.bookings.view"
+          }
+        }
+      ]
+    },
+    {
+      "name": "07 - Claim Files (Tab 5)",
+      "item": [
+        {
+          "name": "List Claim Files",
+          "request": {
+            "method": "GET",
+            "header": [{"key": "Accept", "value": "application/json"}],
+            "url": {
+              "raw": "{{base_url}}/credit/claim-files?per_page=15",
+              "host": ["{{base_url}}"],
+              "path": ["credit", "claim-files"],
+              "query": [{"key": "per_page", "value": "15"}]
+            },
+            "description": "**Tab 5 - إصدار ملف المطالبة والإفراغات**\n\nList all claim files. Data: id, reservation_id, project_name, unit_number, file_data, has_pdf, created_at. **Permission**: credit.claim_files.generate"
+          }
+        },
+        {
+          "name": "Generate Claim File",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Accept", "value": "application/json"}],
+            "url": {
+              "raw": "{{base_url}}/credit/bookings/{{booking_id}}/claim-file",
+              "host": ["{{base_url}}"],
+              "path": ["credit", "bookings", "{{booking_id}}", "claim-file"]
+            },
+            "description": "Create claim file for a **sold** reservation (credit_status = sold). Set booking_id. **Permission**: credit.claim_files.generate"
+          }
+        },
+        {
+          "name": "Get Claim File",
+          "request": {
+            "method": "GET",
+            "header": [{"key": "Accept", "value": "application/json"}],
+            "url": {
+              "raw": "{{base_url}}/credit/claim-files/{{claim_file_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["credit", "claim-files", "{{claim_file_id}}"]
+            },
+            "description": "Full claim file with reservation, contract, unit, generatedBy. **Permission**: credit.claim_files.generate"
+          }
+        },
+        {
+          "name": "Generate Claim File PDF",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Accept", "value": "application/json"}],
+            "url": {
+              "raw": "{{base_url}}/credit/claim-files/{{claim_file_id}}/pdf",
+              "host": ["{{base_url}}"],
+              "path": ["credit", "claim-files", "{{claim_file_id}}", "pdf"]
+            },
+            "description": "Generates PDF and returns pdf_path and download_url. **Permission**: credit.claim_files.generate"
+          }
+        },
+        {
+          "name": "Download Claim File PDF",
+          "request": {
+            "method": "GET",
+            "header": [{"key": "Accept", "value": "application/json"}],
+            "url": {
+              "raw": "{{base_url}}/credit/claim-files/{{claim_file_id}}/pdf",
+              "host": ["{{base_url}}"],
+              "path": ["credit", "claim-files", "{{claim_file_id}}", "pdf"]
+            },
+            "description": "Returns file stream. Use after Generate Claim File PDF. **Permission**: credit.claim_files.generate"
+          }
+        }
+      ]
+    },
+    {
+      "name": "08 - Payment Plan (Tab 3.3)",
+      "item": [
+        {
+          "name": "Get Payment Plan",
+          "request": {
+            "method": "GET",
+            "header": [{"key": "Accept", "value": "application/json"}],
+            "url": {
+              "raw": "{{base_url}}/credit/bookings/{{booking_id}}/payment-plan",
+              "host": ["{{base_url}}"],
+              "path": ["credit", "bookings", "{{booking_id}}", "payment-plan"]
+            },
+            "description": "Tab 3.3 - خطة دفعات (on-map projects). Returns installments + summary. Permission: credit.payment_plan.manage"
+          }
+        },
+        {
+          "name": "Create Payment Plan",
+          "request": {
+            "method": "POST",
+            "header": [
+              {"key": "Accept", "value": "application/json"},
+              {"key": "Content-Type", "value": "application/json"}
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"installments\": [\n        {\"due_date\": \"2026-03-01\", \"amount\": 100000, \"description\": \"الدفعة الأولى\"},\n        {\"due_date\": \"2026-06-01\", \"amount\": 150000, \"description\": \"الدفعة الثانية\"}\n    ]\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/credit/bookings/{{booking_id}}/payment-plan",
+              "host": ["{{base_url}}"],
+              "path": ["credit", "bookings", "{{booking_id}}", "payment-plan"]
+            },
+            "description": "installments[].due_date (>= today), amount (required), description (optional). Permission: credit.payment_plan.manage"
+          }
+        },
+        {
+          "name": "Update Installment",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {"key": "Accept", "value": "application/json"},
+              {"key": "Content-Type", "value": "application/json"}
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"due_date\": \"2026-03-15\",\n    \"amount\": 120000,\n    \"description\": \"تحديث\",\n    \"status\": \"pending\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/credit/payment-installments/{{installment_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["credit", "payment-installments", "{{installment_id}}"]
+            },
+            "description": "Body: due_date, amount, description, status (pending|paid|overdue). Set installment_id from Get Payment Plan. Permission: credit.payment_plan.manage"
+          }
+        },
+        {
+          "name": "Delete Installment",
+          "request": {
+            "method": "DELETE",
+            "header": [{"key": "Accept", "value": "application/json"}],
+            "url": {
+              "raw": "{{base_url}}/credit/payment-installments/{{installment_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["credit", "payment-installments", "{{installment_id}}"]
+            },
+            "description": "Permission: credit.payment_plan.manage"
+          }
+        }
+      ]
+    }
+  ]
+}

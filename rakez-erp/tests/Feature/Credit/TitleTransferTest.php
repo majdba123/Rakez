@@ -170,7 +170,7 @@ class TitleTransferTest extends TestCase
             ->getJson('/api/credit/sold-projects');
 
         $response->assertStatus(200)
-            ->assertJsonPath('meta.total', 2);
+            ->assertJsonPath('meta.pagination.total', 2);
     }
 
     public function test_can_list_pending_title_transfers(): void

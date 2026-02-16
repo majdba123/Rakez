@@ -3,9 +3,11 @@
 namespace App\Http\Controllers\Accounting;
 
 use App\Http\Controllers\Controller;
+use App\Models\CommissionDistribution;
 use App\Services\Accounting\AccountingCommissionService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\ValidationException;
 use Exception;
 
 class AccountingCommissionController extends Controller
@@ -39,13 +41,41 @@ class AccountingCommissionController extends Controller
             return response()->json([
                 'success' => true,
                 'message' => 'تم جلب الوحدات المباعة بنجاح',
-                'data' => $soldUnits->items(),
+                'data' => $soldUnits->items(), // flattened list: project_name, unit_type, final_selling_price, commission_*, team_responsible at top level
                 'meta' => [
                     'total' => $soldUnits->total(),
                     'per_page' => $soldUnits->perPage(),
                     'current_page' => $soldUnits->currentPage(),
                     'last_page' => $soldUnits->lastPage(),
                 ],
+            ], 200);
+        } catch (ValidationException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation failed.',
+                'errors' => $e->errors(),
+            ], 422);
+        } catch (Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
+     * List marketers/employees for commission distribution dropdown.
+     * GET /api/accounting/marketers
+     */
+    public function marketers(Request $request): JsonResponse
+    {
+        try {
+            $marketers = $this->commissionService->getCommissionEligibleMarketers();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'تم جلب قائمة المسوقين بنجاح',
+                'data' => $marketers,
             ], 200);
         } catch (Exception $e) {
             return response()->json([
@@ -56,19 +86,27 @@ class AccountingCommissionController extends Controller
     }
 
     /**
-     * Get single unit with full commission breakdown.
+     * Get single unit with full commission breakdown (same shape as form data inputs).
      * GET /api/accounting/sold-units/{id}
      */
     public function show(Request $request, int $id): JsonResponse
     {
         try {
             $soldUnit = $this->commissionService->getSoldUnitWithCommission($id);
+            $data = $this->commissionService->transformSoldUnitForDetail($soldUnit);
+            $data['available_marketers'] = $this->commissionService->getCommissionEligibleMarketers();
 
             return response()->json([
                 'success' => true,
                 'message' => 'تم جلب بيانات الوحدة بنجاح',
-                'data' => $soldUnit,
+                'data' => $data,
             ], 200);
+        } catch (ValidationException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation failed.',
+                'errors' => $e->errors(),
+            ], 422);
         } catch (Exception $e) {
             $statusCode = str_contains($e->getMessage(), 'No query results') ? 404 : 500;
             return response()->json([
@@ -105,6 +143,12 @@ class AccountingCommissionController extends Controller
                 'message' => 'تم إنشاء العمولة بنجاح',
                 'data' => $commission,
             ], 201);
+        } catch (ValidationException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation failed.',
+                'errors' => $e->errors(),
+            ], 422);
         } catch (Exception $e) {
             return response()->json([
                 'success' => false,
@@ -140,6 +184,12 @@ class AccountingCommissionController extends Controller
                 'message' => 'تم تحديث توزيعات العمولة بنجاح',
                 'data' => $commission,
             ], 200);
+        } catch (ValidationException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation failed.',
+                'errors' => $e->errors(),
+            ], 422);
         } catch (Exception $e) {
             return response()->json([
                 'success' => false,
@@ -165,6 +215,12 @@ class AccountingCommissionController extends Controller
                 'message' => 'تم الموافقة على توزيع العمولة بنجاح',
                 'data' => $distribution,
             ], 200);
+        } catch (ValidationException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation failed.',
+                'errors' => $e->errors(),
+            ], 422);
         } catch (Exception $e) {
             return response()->json([
                 'success' => false,
@@ -195,6 +251,12 @@ class AccountingCommissionController extends Controller
                 'message' => 'تم رفض توزيع العمولة',
                 'data' => $distribution,
             ], 200);
+        } catch (ValidationException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation failed.',
+                'errors' => $e->errors(),
+            ], 422);
         } catch (Exception $e) {
             return response()->json([
                 'success' => false,
@@ -233,6 +295,10 @@ class AccountingCommissionController extends Controller
     public function confirmPayment(Request $request, int $id, int $distId): JsonResponse
     {
         try {
+            $distribution = CommissionDistribution::findOrFail($distId);
+            if ((int) $distribution->commission_id !== (int) $id) {
+                return response()->json(['success' => false, 'message' => 'Distribution does not belong to this commission.'], 400);
+            }
             $distribution = $this->commissionService->confirmCommissionPayment($distId);
 
             return response()->json([

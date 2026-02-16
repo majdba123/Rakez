@@ -96,7 +96,7 @@ class CreditFinancingTest extends TestCase
         ]);
 
         $response = $this->actingAs($this->creditUser)
-            ->patchJson("/api/credit/financing/{$tracker->id}/stage/1", [
+            ->patchJson("/api/credit/bookings/{$reservation->id}/financing/stage/1", [
                 'bank_name' => 'البنك الأهلي',
                 'client_salary' => 15000,
                 'employment_type' => 'government',
@@ -120,13 +120,12 @@ class CreditFinancingTest extends TestCase
         ]);
 
         $response = $this->actingAs($this->creditUser)
-            ->patchJson("/api/credit/financing/{$tracker->id}/stage/1", [
+            ->patchJson("/api/credit/bookings/{$reservation->id}/financing/stage/1", [
                 'client_salary' => 15000,
             ]);
 
-        // Bank name is required for stage 1 - returns 422 from request validation
-        // or 400 from service validation
-        $response->assertStatus(400);
+        // Bank name is required for stage 1 - 422 from request validation when stage is merged
+        $response->assertStatus(422);
     }
 
     public function test_cannot_skip_stages(): void
@@ -142,7 +141,7 @@ class CreditFinancingTest extends TestCase
         ]);
 
         $response = $this->actingAs($this->creditUser)
-            ->patchJson("/api/credit/financing/{$tracker->id}/stage/3", []);
+            ->patchJson("/api/credit/bookings/{$reservation->id}/financing/stage/3", []);
 
         $response->assertStatus(400);
     }
@@ -160,7 +159,7 @@ class CreditFinancingTest extends TestCase
         ]);
 
         $response = $this->actingAs($this->creditUser)
-            ->postJson("/api/credit/financing/{$tracker->id}/reject", [
+            ->postJson("/api/credit/bookings/{$reservation->id}/financing/reject", [
                 'reason' => 'تم رفض طلب التمويل من البنك',
             ]);
 
@@ -192,12 +191,61 @@ class CreditFinancingTest extends TestCase
             ->assertJsonStructure([
                 'success',
                 'data' => [
-                    'tracker',
+                    'financing',
                     'progress_summary',
                     'current_stage',
                     'remaining_days',
+                    'booking_id',
                 ],
+            ])
+            ->assertJsonPath('data.booking_id', $reservation->id);
+    }
+
+    public function test_advance_initializes_when_no_tracker(): void
+    {
+        $reservation = SalesReservation::factory()->create([
+            'status' => 'confirmed',
+            'purchase_mechanism' => 'supported_bank',
+        ]);
+
+        $response = $this->actingAs($this->creditUser)
+            ->postJson("/api/credit/bookings/{$reservation->id}/financing/advance", []);
+
+        $response->assertStatus(201)
+            ->assertJson(['success' => true])
+            ->assertJsonPath('data.action', 'initialized')
+            ->assertJsonPath('data.financing.stage_1_status', 'in_progress');
+
+        $this->assertDatabaseHas('credit_financing_trackers', [
+            'sales_reservation_id' => $reservation->id,
+            'overall_status' => 'in_progress',
+        ]);
+    }
+
+    public function test_advance_completes_current_stage_when_tracker_exists(): void
+    {
+        $reservation = SalesReservation::factory()->create([
+            'status' => 'confirmed',
+            'purchase_mechanism' => 'supported_bank',
+        ]);
+
+        CreditFinancingTracker::factory()->create([
+            'sales_reservation_id' => $reservation->id,
+        ]);
+
+        $response = $this->actingAs($this->creditUser)
+            ->postJson("/api/credit/bookings/{$reservation->id}/financing/advance", [
+                'bank_name' => 'بنك الراجحي',
+                'client_salary' => 20000,
+                'employment_type' => 'private',
             ]);
+
+        $response->assertStatus(200)
+            ->assertJson(['success' => true])
+            ->assertJsonPath('data.action', 'stage_completed')
+            ->assertJsonPath('data.stage', 1)
+            ->assertJsonPath('data.financing.stage_1_status', 'completed')
+            ->assertJsonPath('data.financing.stage_2_status', 'in_progress');
     }
 }
 

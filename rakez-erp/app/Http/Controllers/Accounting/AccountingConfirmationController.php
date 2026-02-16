@@ -24,6 +24,7 @@ class AccountingConfirmationController extends Controller
                 'contract',
                 'contractUnit',
                 'marketingEmployee',
+                'deposits',
             ])
                 ->pendingAccountingConfirmation();
 
@@ -43,10 +44,20 @@ class AccountingConfirmationController extends Controller
             $perPage = min((int) $request->input('per_page', 15), 100);
             $reservations = $query->orderBy('confirmed_at', 'desc')->paginate($perPage);
 
+            $data = array_map(function (SalesReservation $reservation) {
+                $amount = $reservation->down_payment_amount
+                    ?? $reservation->deposits->sum('amount');
+                $amount = $amount !== null ? (float) $amount : 0;
+                return array_merge($reservation->toArray(), [
+                    'booking_number' => (string) $reservation->id,
+                    'amount' => round($amount, 2),
+                ]);
+            }, $reservations->items());
+
             return response()->json([
                 'success' => true,
                 'message' => 'تم جلب الحجوزات المعلقة للتأكيد بنجاح',
-                'data' => $reservations->items(),
+                'data' => $data,
                 'meta' => [
                     'total' => $reservations->total(),
                     'per_page' => $reservations->perPage(),
@@ -117,6 +128,8 @@ class AccountingConfirmationController extends Controller
     /**
      * Get confirmation history.
      * GET /accounting/confirmations/history
+     *
+     * Each item includes booking_number (reservation id) and amount (down payment or deposits total).
      */
     public function history(Request $request): JsonResponse
     {
@@ -125,6 +138,7 @@ class AccountingConfirmationController extends Controller
                 'contract',
                 'contractUnit',
                 'downPaymentConfirmedBy',
+                'deposits',
             ])
                 ->where('down_payment_confirmed', true)
                 ->whereNotNull('down_payment_confirmed_at');
@@ -140,10 +154,21 @@ class AccountingConfirmationController extends Controller
             $perPage = min((int) $request->input('per_page', 15), 100);
             $reservations = $query->orderBy('down_payment_confirmed_at', 'desc')->paginate($perPage);
 
+            $data = array_map(function (SalesReservation $reservation) {
+                $amount = $reservation->down_payment_amount
+                    ?? $reservation->deposits->sum('amount');
+                $amount = $amount !== null ? (float) $amount : 0;
+
+                return array_merge($reservation->toArray(), [
+                    'booking_number' => (string) $reservation->id,
+                    'amount' => round($amount, 2),
+                ]);
+            }, $reservations->items());
+
             return response()->json([
                 'success' => true,
                 'message' => 'تم جلب سجل التأكيدات بنجاح',
-                'data' => $reservations->items(),
+                'data' => $data,
                 'meta' => [
                     'total' => $reservations->total(),
                     'per_page' => $reservations->perPage(),
@@ -176,6 +201,10 @@ class AccountingConfirmationController extends Controller
             UserNotification::create([
                 'user_id' => $user->id,
                 'message' => $message,
+                'event_type' => 'down_payment_confirmed',
+                'context' => [
+                    'reservation_id' => $reservation->id,
+                ],
             ]);
         }
     }

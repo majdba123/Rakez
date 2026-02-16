@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Services\Accounting\AccountingDashboardService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\ValidationException;
 use Exception;
 
 class AccountingDashboardController extends Controller
@@ -39,6 +40,12 @@ class AccountingDashboardController extends Controller
                 'message' => 'تم جلب بيانات لوحة المحاسبة بنجاح',
                 'data' => $metrics,
             ], 200);
+        } catch (ValidationException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation failed.',
+                'errors' => $e->errors(),
+            ], 422);
         } catch (Exception $e) {
             return response()->json([
                 'success' => false,

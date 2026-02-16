@@ -18,27 +18,33 @@ class ArabicSeedDataSeeder extends Seeder
      */
     public function run(): void
     {
-        // 1. Create Users with Arabic Names
-        $salesLeader = User::create([
-            'name' => 'أحمد القحطاني',
-            'email' => 'ahmed@rakez.com',
-            'password' => Hash::make('password'),
-            'type' => 'sales_leader',
-        ]);
+        // 1. Create or update Users with Arabic Names (idempotent for re-seeding)
+        $salesLeader = User::updateOrCreate(
+            ['email' => 'ahmed@rakez.com'],
+            [
+                'name' => 'أحمد القحطاني',
+                'password' => Hash::make('password'),
+                'type' => 'sales_leader',
+            ]
+        );
 
-        $marketer = User::create([
-            'name' => 'سارة الشمري',
-            'email' => 'sara@rakez.com',
-            'password' => Hash::make('password'),
-            'type' => 'marketing',
-        ]);
+        $marketer = User::updateOrCreate(
+            ['email' => 'sara@rakez.com'],
+            [
+                'name' => 'سارة الشمري',
+                'password' => Hash::make('password'),
+                'type' => 'marketing',
+            ]
+        );
 
-        $aiUser = User::create([
-            'name' => 'خالد العتيبي',
-            'email' => 'khaled@rakez.com',
-            'password' => Hash::make('password'),
-            'type' => 'user',
-        ]);
+        $aiUser = User::updateOrCreate(
+            ['email' => 'khaled@rakez.com'],
+            [
+                'name' => 'خالد العتيبي',
+                'password' => Hash::make('password'),
+                'type' => 'user',
+            ]
+        );
 
         // 2. Create Contracts (Projects) with Arabic Titles
         $projects = [
@@ -253,7 +259,7 @@ class ArabicSeedDataSeeder extends Seeder
             ],
         ]);
 
-        // Sales Reservations
+        // Sales Reservations (client_name is required)
         DB::table('sales_reservations')->insert([
             'marketing_employee_id' => $marketer->id,
             'contract_id' => Contract::first()->id,

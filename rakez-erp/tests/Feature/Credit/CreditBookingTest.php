@@ -128,8 +128,12 @@ class CreditBookingTest extends TestCase
                     'marketing',
                     'status',
                     'credit_status',
+                    'credit_procedure_steps',
                 ],
-            ]);
+            ])
+            ->assertJsonPath('data.credit_procedure_steps.0.label_ar', 'التواصل مع العميل')
+            ->assertJsonPath('data.credit_procedure_steps.1.label_ar', 'رفع الطلب للبنك')
+            ->assertJsonPath('data.credit_procedure_steps.6.label_ar', 'فترة التجهيز قبل الإفراغ');
     }
 
     public function test_returns_404_for_nonexistent_booking(): void

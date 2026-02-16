@@ -13,6 +13,9 @@ class UsersSeeder extends Seeder
     public function run(): void
     {
         $teamIds = Team::pluck('id')->all();
+        if (empty($teamIds)) {
+            $teamIds = [Team::create(['name' => 'Default Team', 'description' => 'Primary team'])->id];
+        }
 
         $fixedUsers = [
             [
@@ -85,18 +88,22 @@ class UsersSeeder extends Seeder
 
         foreach ($fixedUsers as $userData) {
             $teamId = $userData['type'] === 'admin' ? null : Arr::random($teamIds);
+            $attrs = [
+                'name' => $userData['name'],
+                'password' => Hash::make('password'),
+                'type' => $userData['type'],
+                'is_manager' => $userData['is_manager'],
+                'team_id' => $teamId,
+                'phone' => '05' . fake()->numerify('########'),
+                'commission_eligibility' => in_array($userData['type'], ['sales', 'marketing'], true),
+                'is_active' => true,
+            ];
+            if ($userData['type'] !== 'admin') {
+                $attrs['salary'] = fake()->numberBetween(3000, 20000);
+            }
             User::updateOrCreate(
                 ['email' => $userData['email']],
-                [
-                    'name' => $userData['name'],
-                    'password' => Hash::make('password'),
-                    'type' => $userData['type'],
-                    'is_manager' => $userData['is_manager'],
-                    'team_id' => $teamId,
-                    'phone' => '05' . fake()->numerify('########'),
-                    'commission_eligibility' => in_array($userData['type'], ['sales', 'marketing'], true),
-                    'is_active' => true,
-                ]
+                $attrs
             );
         }
 
@@ -118,9 +125,10 @@ class UsersSeeder extends Seeder
                 User::factory()->create([
                     'type' => $type,
                     'is_manager' => $isManager,
-                    'team_id' => Arr::random($teamIds),
+                    'team_id' => $teamIds ? Arr::random($teamIds) : null,
                     'commission_eligibility' => in_array($type, ['sales', 'marketing'], true),
                     'is_active' => true,
+                    'salary' => $type === 'admin' ? null : fake()->numberBetween(3000, 20000),
                 ]);
             }
         }

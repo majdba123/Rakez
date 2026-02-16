@@ -5,6 +5,8 @@ namespace App\Services\Credit;
 use App\Models\SalesReservation;
 use App\Models\SalesWaitingList;
 use App\Models\CreditFinancingTracker;
+use App\Models\TitleTransfer;
+use App\Services\Credit\CreditFinancingService;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 
@@ -22,6 +24,8 @@ class CreditDashboardService
                 'waiting_bookings_count' => $this->getWaitingBookingsCount(),
                 'requires_review_count' => $this->getRequiresReviewCount(),
                 'rejected_with_paid_down_payment_count' => $this->getRejectedWithPaidDownPaymentCount(),
+                'projects_in_progress_count' => $this->getProjectsInProgressCount(),
+                'rejected_by_bank_count' => $this->getRejectedByBankCount(),
                 'overdue_stages' => $this->getOverdueStagesSummary(),
                 'pending_accounting_confirmation' => $this->getPendingAccountingConfirmationCount(),
                 'in_title_transfer_count' => $this->getInTitleTransferCount(),
@@ -79,6 +83,24 @@ class CreditDashboardService
     }
 
     /**
+     * Get count of projects in progress (confirmed reservations with financing in progress).
+     */
+    public function getProjectsInProgressCount(): int
+    {
+        return SalesReservation::confirmedForCredit()
+            ->where('credit_status', 'in_progress')
+            ->count();
+    }
+
+    /**
+     * Get count of all reservations rejected by bank (all credit_status = rejected).
+     */
+    public function getRejectedByBankCount(): int
+    {
+        return SalesReservation::where('credit_status', 'rejected')->count();
+    }
+
+    /**
      * Get summary of overdue stages.
      */
     public function getOverdueStagesSummary(): array
@@ -117,12 +139,36 @@ class CreditDashboardService
     }
 
     /**
+     * Get Arabic labels for financing stages 1-5 (for display in dashboard).
+     */
+    public function getStageLabelsAr(): array
+    {
+        $names = CreditFinancingService::STAGE_NAMES;
+        $out = [];
+        foreach ($names as $num => $label) {
+            $out["stage_{$num}"] = $label;
+        }
+        return $out;
+    }
+
+    /**
+     * Get title transfer breakdown (stages 6 & 7: preparation, contract execution).
+     */
+    public function getTitleTransferBreakdown(): array
+    {
+        return [
+            'preparation_count' => TitleTransfer::where('status', 'preparation')->count(),
+            'scheduled_count' => TitleTransfer::where('status', 'scheduled')->count(),
+        ];
+    }
+
+    /**
      * Get detailed stage breakdown.
      */
     public function getStageBreakdown(): array
     {
         $breakdown = [];
-        
+
         for ($i = 1; $i <= 5; $i++) {
             $breakdown["stage_{$i}"] = [
                 'pending' => CreditFinancingTracker::inProgress()->where("stage_{$i}_status", 'pending')->count(),

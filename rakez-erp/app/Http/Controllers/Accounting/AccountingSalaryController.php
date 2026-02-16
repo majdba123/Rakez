@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Services\Accounting\AccountingSalaryService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\ValidationException;
 use Exception;
 
 class AccountingSalaryController extends Controller
@@ -32,21 +33,29 @@ class AccountingSalaryController extends Controller
                 'commission_eligible' => 'nullable|boolean',
             ]);
 
-            $month = $request->input('month');
-            $year = $request->input('year');
+            $month = (int) $request->input('month');
+            $year = (int) $request->input('year');
             $filters = $request->only(['type', 'team_id', 'commission_eligible']);
 
             $salaries = $this->salaryService->getSalariesWithCommissions($month, $year, $filters);
+            $data = is_array($salaries) ? $salaries : $salaries->values()->all();
 
             return response()->json([
                 'success' => true,
                 'message' => 'تم جلب بيانات الرواتب بنجاح',
-                'data' => $salaries,
+                'data' => $data,
+                'count' => count($data),
                 'period' => [
                     'month' => $month,
                     'year' => $year,
                 ],
             ], 200);
+        } catch (ValidationException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation failed.',
+                'errors' => $e->errors(),
+            ], 422);
         } catch (Exception $e) {
             return response()->json([
                 'success' => false,
@@ -77,6 +86,12 @@ class AccountingSalaryController extends Controller
                 'message' => 'تم جلب بيانات الموظف بنجاح',
                 'data' => $employeeData,
             ], 200);
+        } catch (ValidationException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation failed.',
+                'errors' => $e->errors(),
+            ], 422);
         } catch (Exception $e) {
             $statusCode = str_contains($e->getMessage(), 'No query results') ? 404 : 500;
             return response()->json([
@@ -108,6 +123,12 @@ class AccountingSalaryController extends Controller
                 'message' => 'تم إنشاء توزيع الراتب بنجاح',
                 'data' => $distribution,
             ], 201);
+        } catch (ValidationException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation failed.',
+                'errors' => $e->errors(),
+            ], 422);
         } catch (Exception $e) {
             $statusCode = str_contains($e->getMessage(), 'No query results') ? 404 : 400;
             return response()->json([

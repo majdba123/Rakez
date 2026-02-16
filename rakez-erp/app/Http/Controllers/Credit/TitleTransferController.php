@@ -74,6 +74,29 @@ class TitleTransferController extends Controller
     }
 
     /**
+     * Cancel scheduled evacuation date (إلغاء موعد الافراغ).
+     * PATCH /credit/title-transfer/{id}/unschedule
+     */
+    public function unschedule(Request $request, int $id): JsonResponse
+    {
+        try {
+            $transfer = $this->transferService->unscheduleTransfer($id);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'تم إلغاء موعد الإفراغ بنجاح',
+                'data' => $transfer,
+            ], 200);
+        } catch (Exception $e) {
+            $statusCode = str_contains($e->getMessage(), 'No query results') ? 404 : 400;
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage(),
+            ], $statusCode);
+        }
+    }
+
+    /**
      * Complete title transfer.
      * POST /credit/title-transfer/{id}/complete
      */

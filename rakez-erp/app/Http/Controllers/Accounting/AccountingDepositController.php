@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Services\Accounting\AccountingDepositService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\ValidationException;
 use Exception;
 
 class AccountingDepositController extends Controller
@@ -47,6 +48,12 @@ class AccountingDepositController extends Controller
                     'last_page' => $deposits->lastPage(),
                 ],
             ], 200);
+        } catch (ValidationException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation failed.',
+                'errors' => $e->errors(),
+            ], 422);
         } catch (Exception $e) {
             return response()->json([
                 'success' => false,
@@ -107,6 +114,12 @@ class AccountingDepositController extends Controller
                     'last_page' => $reservations->lastPage(),
                 ],
             ], 200);
+        } catch (ValidationException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation failed.',
+                'errors' => $e->errors(),
+            ], 422);
         } catch (Exception $e) {
             return response()->json([
                 'success' => false,

@@ -185,12 +185,34 @@ class NegotiationApprovalService
             $message .= ' - السبب: ' . $approval->manager_notes;
         }
 
+        $eventType = $status === 'approved' ? 'negotiation_price_approved' : 'negotiation_price_rejected';
+
         UserNotification::create([
             'user_id' => $approval->requested_by,
             'message' => $message,
+            'event_type' => $eventType,
+            'context' => [
+                'reservation_id' => $approval->reservation_id,
+                'approval_id' => $approval->id,
+            ],
         ]);
 
         event(new UserNotificationEvent($approval->requested_by, $message));
+
+        // Notify credit department (الموافقة أو الرفض على السعر)
+        $creditUsers = User::where('type', 'credit')->get();
+        foreach ($creditUsers as $user) {
+            UserNotification::create([
+                'user_id' => $user->id,
+                'message' => $message,
+                'event_type' => $eventType,
+                'context' => [
+                    'reservation_id' => $approval->reservation_id,
+                    'approval_id' => $approval->id,
+                ],
+            ]);
+            event(new UserNotificationEvent($user->id, $message));
+        }
     }
 
     /**
@@ -210,6 +232,10 @@ class NegotiationApprovalService
             UserNotification::create([
                 'user_id' => $user->id,
                 'message' => $message,
+                'event_type' => 'reservation_confirmed',
+                'context' => [
+                    'reservation_id' => $reservation->id,
+                ],
             ]);
 
             event(new UserNotificationEvent($user->id, $message));
@@ -231,6 +257,8 @@ class NegotiationApprovalService
         UserNotification::create([
             'user_id' => $approval->requested_by,
             'message' => $message,
+            'event_type' => 'negotiation_deadline_expired',
+            'context' => ['reservation_id' => $approval->reservation_id, 'approval_id' => $approval->id],
         ]);
         event(new UserNotificationEvent($approval->requested_by, $message));
 
@@ -240,8 +268,22 @@ class NegotiationApprovalService
             UserNotification::create([
                 'user_id' => $manager->id,
                 'message' => $message,
+                'event_type' => 'negotiation_deadline_expired',
+                'context' => ['reservation_id' => $approval->reservation_id, 'approval_id' => $approval->id],
             ]);
             event(new UserNotificationEvent($manager->id, $message));
+        }
+
+        // Notify credit department (انتهاء مهلة أي إجراء)
+        $creditUsers = User::where('type', 'credit')->get();
+        foreach ($creditUsers as $user) {
+            UserNotification::create([
+                'user_id' => $user->id,
+                'message' => $message,
+                'event_type' => 'negotiation_deadline_expired',
+                'context' => ['reservation_id' => $approval->reservation_id, 'approval_id' => $approval->id],
+            ]);
+            event(new UserNotificationEvent($user->id, $message));
         }
     }
 }

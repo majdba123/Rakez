@@ -22,7 +22,7 @@ class AccountingNotificationService
             $reservation->client_name ?? '-'
         );
 
-        $this->notifyAccountingUsers($message);
+        $this->notifyAccountingUsers($message, 'unit_reserved');
     }
 
     /**
@@ -38,7 +38,7 @@ class AccountingNotificationService
             $deposit->client_name ?? '-'
         );
 
-        $this->notifyAccountingUsers($message);
+        $this->notifyAccountingUsers($message, 'deposit_received');
     }
 
     /**
@@ -52,7 +52,7 @@ class AccountingNotificationService
             $reservation->contractUnit?->unit_number ?? '-'
         );
 
-        $this->notifyAccountingUsers($message);
+        $this->notifyAccountingUsers($message, 'unit_vacated');
     }
 
     /**
@@ -67,7 +67,7 @@ class AccountingNotificationService
             $reservation->client_name ?? '-'
         );
 
-        $this->notifyAccountingUsers($message);
+        $this->notifyAccountingUsers($message, 'reservation_cancelled');
     }
 
     /**
@@ -82,7 +82,7 @@ class AccountingNotificationService
             $commission->contractUnit?->unit_number ?? '-'
         );
 
-        $this->notifyAccountingUsers($message);
+        $this->notifyAccountingUsers($message, 'commission_confirmed');
     }
 
     /**
@@ -101,7 +101,7 @@ class AccountingNotificationService
             $commission->contractUnit?->unit_number ?? '-'
         );
 
-        $this->notifyAccountingUsers($message);
+        $this->notifyAccountingUsers($message, 'commission_received');
     }
 
     /**
@@ -125,12 +125,19 @@ class AccountingNotificationService
             $query->where('status', $filters['status']);
         }
 
-        // Filter by notification type (based on message content keywords)
+        // Filter by notification type: prefer event_type when set, else message keyword
         if (isset($filters['type'])) {
-            $query->where('message', 'like', '%' . $this->getTypeKeyword($filters['type']) . '%');
+            $keyword = $this->getTypeKeyword($filters['type']);
+            $query->where(function ($q) use ($filters, $keyword) {
+                $q->where('event_type', $filters['type'])
+                    ->orWhere('message', 'like', '%' . $keyword . '%');
+            });
         }
 
-        return $query->orderBy('created_at', 'desc')->paginate($filters['per_page'] ?? 15);
+        $paginator = $query->orderBy('created_at', 'desc')->paginate($filters['per_page'] ?? 15);
+        $paginator->setCollection($paginator->getCollection()->map(fn ($n) => $this->transformNotificationForList($n)));
+
+        return $paginator;
     }
 
     /**
@@ -155,7 +162,7 @@ class AccountingNotificationService
     /**
      * Send notification to all accounting users.
      */
-    protected function notifyAccountingUsers(string $message): void
+    protected function notifyAccountingUsers(string $message, ?string $eventType = null): void
     {
         $accountingUsers = User::where('type', 'accounting')
             ->where('is_active', true)
@@ -166,6 +173,7 @@ class AccountingNotificationService
                 'user_id' => $user->id,
                 'message' => $message,
                 'status' => 'pending',
+                'event_type' => $eventType,
             ]);
         }
     }
@@ -185,5 +193,65 @@ class AccountingNotificationService
         ];
 
         return $keywords[$type] ?? '';
+    }
+
+    /**
+     * Infer notification type from message content (for legacy notifications with null event_type).
+     */
+    protected function getTypeFromMessage(string $message): ?string
+    {
+        $keywords = [
+            'unit_reserved' => 'حجز وحدة',
+            'deposit_received' => 'استلام عربون',
+            'unit_vacated' => 'إخلاء وحدة',
+            'reservation_cancelled' => 'إلغاء حجز',
+            'commission_confirmed' => 'تأكيد عمولة',
+            'commission_received' => 'استلام عمولة من المالك',
+        ];
+
+        foreach ($keywords as $type => $keyword) {
+            if (str_contains($message, $keyword)) {
+                return $type;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Arabic title for notification type (for list display).
+     */
+    protected function getTitleForType(string $type): string
+    {
+        $titles = [
+            'unit_reserved' => 'حجز وحدة جديدة',
+            'deposit_received' => 'استلام عربون',
+            'unit_vacated' => 'إخلاء وحدة',
+            'reservation_cancelled' => 'إلغاء حجز',
+            'commission_confirmed' => 'تأكيد عمولة',
+            'commission_received' => 'استلام عمولة من المالك',
+        ];
+
+        return $titles[$type] ?? 'إشعار';
+    }
+
+    /**
+     * Transform a notification into a flat list item with type and title.
+     */
+    public function transformNotificationForList(UserNotification $n): array
+    {
+        $type = $n->event_type ?? $this->getTypeFromMessage($n->message ?? '');
+        $title = $type ? $this->getTitleForType($type) : 'إشعار';
+
+        return [
+            'id' => $n->id,
+            'message' => $n->message,
+            'status' => $n->status,
+            'type' => $type,
+            'title' => $title,
+            'created_at' => $n->created_at?->toDateTimeString(),
+            'event_type' => $n->event_type,
+            'context' => $n->context,
+        ];
     }
 }

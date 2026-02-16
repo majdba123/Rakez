@@ -19,6 +19,47 @@ class ClaimFileController extends Controller
     }
 
     /**
+     * List claim files (Tab 5: إصدار ملف المطالبة والإفراغات).
+     * GET /credit/claim-files
+     */
+    public function index(Request $request): JsonResponse
+    {
+        try {
+            $perPage = min((int) $request->input('per_page', 15), 100);
+            $claimFiles = $this->claimFileService->listClaimFiles($perPage);
+
+            $data = $claimFiles->getCollection()->map(function ($cf) {
+                return [
+                    'id' => $cf->id,
+                    'reservation_id' => $cf->sales_reservation_id,
+                    'project_name' => $cf->reservation?->contract?->project_name,
+                    'unit_number' => $cf->reservation?->contractUnit?->unit_number,
+                    'file_data' => $cf->file_data,
+                    'has_pdf' => $cf->hasPdf(),
+                    'created_at' => $cf->created_at,
+                ];
+            });
+
+            return response()->json([
+                'success' => true,
+                'message' => 'تم جلب ملفات المطالبة بنجاح',
+                'data' => $data->values()->all(),
+                'meta' => [
+                    'total' => $claimFiles->total(),
+                    'per_page' => $claimFiles->perPage(),
+                    'current_page' => $claimFiles->currentPage(),
+                    'last_page' => $claimFiles->lastPage(),
+                ],
+            ], 200);
+        } catch (Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
      * Generate claim file for a reservation.
      * POST /credit/bookings/{id}/claim-file
      */

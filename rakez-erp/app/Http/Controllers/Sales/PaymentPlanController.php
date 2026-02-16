@@ -25,8 +25,8 @@ class PaymentPlanController extends Controller
      */
     public function show(Request $request, int $reservationId): JsonResponse
     {
-        // Check permission
-        if (!$request->user()->can('sales.payment-plan.manage')) {
+        // Check permission (sales or credit)
+        if (!$request->user()->can('sales.payment-plan.manage') && !$request->user()->can('credit.payment_plan.manage')) {
             return response()->json(['message' => 'Unauthorized'], 403);
         }
 
@@ -107,8 +107,8 @@ class PaymentPlanController extends Controller
      */
     public function destroy(Request $request, int $installmentId): JsonResponse
     {
-        // Check permission
-        if (!$request->user()->can('sales.payment-plan.manage')) {
+        // Check permission (sales or credit)
+        if (!$request->user()->can('sales.payment-plan.manage') && !$request->user()->can('credit.payment_plan.manage')) {
             return response()->json(['message' => 'Unauthorized'], 403);
         }
 

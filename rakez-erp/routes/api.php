@@ -17,6 +17,7 @@ use App\Http\Controllers\FoodTypeController;
 use App\Http\Controllers\UserNotificationController;
 use App\Http\Controllers\ForgetPasswordController;
 use App\Http\Controllers\Contract\ContractController;
+use App\Http\Controllers\Contract\DeveloperController;
 use App\Http\Controllers\Contract\ContractInfoController;
 use App\Http\Controllers\Contract\SecondPartyDataController;
 use App\Http\Controllers\Contract\ContractUnitController;
@@ -65,6 +66,7 @@ use App\Http\Controllers\Credit\CreditBookingController;
 use App\Http\Controllers\Credit\CreditFinancingController;
 use App\Http\Controllers\Credit\TitleTransferController;
 use App\Http\Controllers\Credit\ClaimFileController;
+use App\Http\Controllers\Credit\CreditNotificationController;
 use App\Http\Controllers\Accounting\AccountingConfirmationController;
 use App\Http\Controllers\Accounting\AccountingDashboardController;
 use App\Http\Controllers\Accounting\AccountingNotificationController;
@@ -72,6 +74,7 @@ use App\Http\Controllers\Accounting\AccountingCommissionController;
 use App\Http\Controllers\Accounting\AccountingDepositController;
 use App\Http\Controllers\Accounting\AccountingSalaryController;
 use App\Http\Controllers\Dashboard\DashboardController;
+use App\Http\Controllers\Api\NotificationsProxyController;
 
 use Illuminate\Support\Facades\File;  // أضف هذا السطر في الأعلى
 
@@ -93,6 +96,11 @@ Route::middleware('auth:sanctum')->group(function () {
     });
 
     Route::post('/logout', [LoginController::class, 'logout']);
+
+    // Notifications proxy: GET /api/notifications (dispatches to credit or accounting by role)
+    Route::get('notifications', [NotificationsProxyController::class, 'index']);
+    Route::post('notifications/{id}/read', [NotificationsProxyController::class, 'markAsRead']);
+    Route::post('notifications/read-all', [NotificationsProxyController::class, 'markAllAsRead']);
 
     Route::prefix('ai')->middleware(['throttle:ai-assistant', 'permission:use-ai-assistant'])->group(function () {
         Route::post('/ask', [AIAssistantController::class, 'ask']);
@@ -146,6 +154,11 @@ Route::middleware('auth:sanctum')->group(function () {
         });
     });
 
+
+    Route::middleware(['auth:sanctum', 'role:project_management|admin|accounting'])->group(function () {
+        Route::get('/developers', [DeveloperController::class, 'index']);
+        Route::get('/developers/{developer_number}', [DeveloperController::class, 'show']);
+    });
 
     Route::middleware(['auth:sanctum', 'role:project_management|admin'])->group(function () {
 
@@ -545,34 +558,54 @@ Route::middleware('auth:sanctum')->group(function () {
     // ==========================================
     Route::prefix('credit')->middleware(['auth:sanctum', 'role:credit|admin'])->group(function () {
 
-        // Dashboard
+        // Dashboard (Tab 1)
         Route::get('dashboard', [CreditDashboardController::class, 'index'])->middleware('permission:credit.dashboard.view');
         Route::post('dashboard/refresh', [CreditDashboardController::class, 'refresh'])->middleware('permission:credit.dashboard.view');
 
-        // Bookings
+        // Notifications (Tab 2)
+        Route::get('notifications', [CreditNotificationController::class, 'index'])->middleware('permission:credit.bookings.view');
+        Route::post('notifications/{id}/read', [CreditNotificationController::class, 'markAsRead'])->middleware('permission:credit.bookings.view');
+        Route::post('notifications/read-all', [CreditNotificationController::class, 'markAllAsRead'])->middleware('permission:credit.bookings.view');
+
+        // Bookings (Tab 3)
+        Route::get('bookings', [CreditBookingController::class, 'index'])->middleware('permission:credit.bookings.view');
         Route::get('bookings/confirmed', [CreditBookingController::class, 'confirmed'])->middleware('permission:credit.bookings.view');
         Route::get('bookings/negotiation', [CreditBookingController::class, 'negotiation'])->middleware('permission:credit.bookings.view');
+        Route::match(['put', 'patch'], 'bookings/negotiation/{id}', [CreditBookingController::class, 'updateNegotiation'])->middleware('permission:credit.bookings.view');
         Route::get('bookings/waiting', [CreditBookingController::class, 'waiting'])->middleware('permission:credit.bookings.view');
+        Route::get('bookings/sold', [CreditBookingController::class, 'sold'])->middleware('permission:credit.bookings.view');
+        Route::get('bookings/cancelled', [CreditBookingController::class, 'cancelled'])->middleware('permission:credit.bookings.view');
+        Route::get('bookings/show/{id}', [CreditBookingController::class, 'show'])->middleware('permission:credit.bookings.view');
         Route::get('bookings/{id}', [CreditBookingController::class, 'show'])->middleware('permission:credit.bookings.view');
+        Route::post('bookings/{id}/cancel', [CreditBookingController::class, 'cancel'])->middleware('permission:credit.bookings.view');
 
-        // Financing Tracker
+        // Financing (all booking-centric; no tracker id in URLs)
         Route::post('bookings/{id}/financing', [CreditFinancingController::class, 'initialize'])->middleware('permission:credit.financing.manage');
+        Route::post('bookings/{id}/financing/advance', [CreditFinancingController::class, 'advance'])->middleware('permission:credit.financing.manage');
         Route::get('bookings/{id}/financing', [CreditFinancingController::class, 'show'])->middleware('permission:credit.bookings.view');
-        Route::patch('financing/{id}/stage/{stage}', [CreditFinancingController::class, 'completeStage'])->middleware('permission:credit.financing.manage');
-        Route::post('financing/{id}/reject', [CreditFinancingController::class, 'reject'])->middleware('permission:credit.financing.manage');
+        Route::patch('bookings/{id}/financing/stage/{stage}', [CreditFinancingController::class, 'completeStage'])->middleware('permission:credit.financing.manage');
+        Route::post('bookings/{id}/financing/reject', [CreditFinancingController::class, 'reject'])->middleware('permission:credit.financing.manage');
 
         // Title Transfer
         Route::post('bookings/{id}/title-transfer', [TitleTransferController::class, 'initialize'])->middleware('permission:credit.title_transfer.manage');
         Route::patch('title-transfer/{id}/schedule', [TitleTransferController::class, 'schedule'])->middleware('permission:credit.title_transfer.manage');
+        Route::patch('title-transfer/{id}/unschedule', [TitleTransferController::class, 'unschedule'])->middleware('permission:credit.title_transfer.manage');
         Route::post('title-transfer/{id}/complete', [TitleTransferController::class, 'complete'])->middleware('permission:credit.title_transfer.manage');
         Route::get('title-transfers/pending', [TitleTransferController::class, 'pending'])->middleware('permission:credit.bookings.view');
         Route::get('sold-projects', [TitleTransferController::class, 'soldProjects'])->middleware('permission:credit.bookings.view');
 
-        // Claim Files
+        // Claim Files (Tab 5: إصدار ملف المطالبة والإفراغات)
+        Route::get('claim-files', [ClaimFileController::class, 'index'])->middleware('permission:credit.claim_files.generate');
         Route::post('bookings/{id}/claim-file', [ClaimFileController::class, 'generate'])->middleware('permission:credit.claim_files.generate');
         Route::get('claim-files/{id}', [ClaimFileController::class, 'show'])->middleware('permission:credit.claim_files.generate');
         Route::post('claim-files/{id}/pdf', [ClaimFileController::class, 'generatePdf'])->middleware('permission:credit.claim_files.generate');
         Route::get('claim-files/{id}/pdf', [ClaimFileController::class, 'download'])->middleware('permission:credit.claim_files.generate');
+
+        // Payment plan for on-map projects (3.3 إنشاء خطة دفعات)
+        Route::get('bookings/{id}/payment-plan', [PaymentPlanController::class, 'show'])->middleware('permission:credit.payment_plan.manage');
+        Route::post('bookings/{id}/payment-plan', [PaymentPlanController::class, 'store'])->middleware('permission:credit.payment_plan.manage');
+        Route::put('payment-installments/{id}', [PaymentPlanController::class, 'update'])->middleware('permission:credit.payment_plan.manage');
+        Route::delete('payment-installments/{id}', [PaymentPlanController::class, 'destroy'])->middleware('permission:credit.payment_plan.manage');
     });
 
     // ==========================================
@@ -589,6 +622,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('notifications/read-all', [AccountingNotificationController::class, 'markAllAsRead'])->middleware('permission:accounting.notifications.view');
 
         // Sold Units & Commissions (Tabs 3 & 4)
+        Route::get('marketers', [AccountingCommissionController::class, 'marketers'])->middleware('permission:accounting.sold-units.view');
         Route::get('sold-units', [AccountingCommissionController::class, 'index'])->middleware('permission:accounting.sold-units.view');
         Route::get('sold-units/{id}', [AccountingCommissionController::class, 'show'])->middleware('permission:accounting.sold-units.view');
         Route::post('sold-units/{id}/commission', [AccountingCommissionController::class, 'createManual'])->middleware('permission:accounting.commissions.create');

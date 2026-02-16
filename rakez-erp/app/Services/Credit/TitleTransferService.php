@@ -90,6 +90,39 @@ class TitleTransferService
     }
 
     /**
+     * Cancel/clear the scheduled evacuation date (إلغاء موعد الافراغ).
+     * Only allowed when status is 'scheduled'.
+     */
+    public function unscheduleTransfer(int $transferId): TitleTransfer
+    {
+        $transfer = TitleTransfer::findOrFail($transferId);
+
+        if ($transfer->status === 'completed') {
+            throw new Exception('نقل الملكية مكتمل ولا يمكن إلغاء الموعد.');
+        }
+
+        if ($transfer->status !== 'scheduled') {
+            throw new Exception('لا يوجد موعد محدد للإلغاء.');
+        }
+
+        DB::beginTransaction();
+        try {
+            $transfer->update([
+                'status' => 'preparation',
+                'scheduled_date' => null,
+                'notes' => null,
+            ]);
+
+            DB::commit();
+
+            return $transfer->fresh(['reservation']);
+        } catch (Exception $e) {
+            DB::rollBack();
+            throw $e;
+        }
+    }
+
+    /**
      * Complete a title transfer.
      */
     public function completeTransfer(int $transferId, User $user): TitleTransfer
@@ -206,15 +239,19 @@ class TitleTransferService
             UserNotification::create([
                 'user_id' => $reservation->marketing_employee_id,
                 'message' => $message,
+                'event_type' => 'evacuation_complete',
+                'context' => ['reservation_id' => $reservation->id],
             ]);
         }
 
-        // Notify credit users
+        // Notify credit users (اكتمال الإفراغ)
         $creditUsers = User::where('type', 'credit')->get();
         foreach ($creditUsers as $user) {
             UserNotification::create([
                 'user_id' => $user->id,
                 'message' => $message,
+                'event_type' => 'evacuation_complete',
+                'context' => ['reservation_id' => $reservation->id],
             ]);
         }
 
@@ -224,6 +261,8 @@ class TitleTransferService
             UserNotification::create([
                 'user_id' => $user->id,
                 'message' => $message,
+                'event_type' => 'evacuation_complete',
+                'context' => ['reservation_id' => $reservation->id],
             ]);
         }
     }
