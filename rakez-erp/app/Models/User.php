@@ -226,7 +226,7 @@ class User extends Authenticatable
     public function getEffectivePermissions(): array
     {
         $permissions = $this->getAllPermissions()->pluck('name')->toArray();
-
+        
         // Add manager-specific permissions dynamically
         if ($this->isProjectManagementManager()) {
             $managerPermissions = [
@@ -237,7 +237,7 @@ class User extends Authenticatable
             ];
             $permissions = array_merge($permissions, $managerPermissions);
         }
-
+        
         return array_unique($permissions);
     }
 
@@ -263,7 +263,7 @@ class User extends Authenticatable
         // Verify role exists before assignment
         if (\Spatie\Permission\Models\Role::where('name', $roleName)->exists()) {
             $this->syncRoles([$roleName]);
-
+            
             // Clear permission cache to ensure fresh permissions are loaded
             app()[\Spatie\Permission\PermissionRegistrar::class]->forgetCachedPermissions();
         }
@@ -372,7 +372,7 @@ class User extends Authenticatable
     public function getWarningsCount(?int $year = null): int
     {
         $query = $this->warnings();
-
+        
         if ($year) {
             $query->whereYear('warning_date', $year);
         }

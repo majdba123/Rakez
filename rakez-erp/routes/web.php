@@ -49,3 +49,17 @@ Route::get('/test/broadcast/admin', function () {
     event(new AdminNotificationEvent('Admin test message at ' . now()));
     return 'Admin broadcast sent';
 });
+
+// ==========================================
+// CHAT SYSTEM TEST PAGE
+// ==========================================
+
+// Chat test page (requires authentication)
+Route::get('/chat/test', function () {
+    // Ensure user is authenticated
+    if (!auth()->check()) {
+        return redirect('/login')->with('error', 'يجب تسجيل الدخول لاستخدام نظام الدردشة');
+    }
+
+    return view('chat.test');
+})->middleware('auth');

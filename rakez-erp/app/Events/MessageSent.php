@@ -42,6 +42,7 @@ class MessageSent implements ShouldBroadcastNow
      */
     public function broadcastWith(): array
     {
+
         return [
             'id' => $this->message->id,
             'conversation_id' => $this->message->conversation_id,
@@ -55,6 +56,7 @@ class MessageSent implements ShouldBroadcastNow
             'is_read' => $this->message->is_read,
             'created_at' => $this->message->created_at->toISOString(),
         ];
+
     }
 }
 
