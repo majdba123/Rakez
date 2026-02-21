@@ -1,0 +1,792 @@
+{
+  "info": {
+    "_postman_id": "rakez-erp-project-management-001",
+    "name": "RAKEZ ERP - Project Management API",
+    "description": "## Project Management – Single API Collection\n\n**All Project Management endpoints** in one collection:\n\n1. **Auth** – Login (sets auth_token)\n2. **Dashboard** – KPIs, units statistics (2)\n3. **Teams** – CRUD, get assigned teams, add/remove teams, locations (10)\n4. **Contracts** – List projects (by segment), list contracts, update status, get contract (stages), update stage, update project link, export PDF (7)\n5. **Second Party Data** – Show, store, update, list, contracts by email (5)\n6. **Contract Units** – List, CSV upload, CRUD (5)\n7. **Boards Department** – Show, store, update (3)\n8. **Photography Department** – Show, store, update, approve (4)\n9. **Developers** – List, show (2)\n\n**Auth**: Bearer token. Run **00 - Auth → Login** first.\n**Roles**: project_management, admin. **Base URL**: {{base_url}} (e.g. http://localhost:8000/api)\n**Variables**: base_url, user_email, user_password, auth_token; contract_id, team_id, unit_id, stage_number, developer_number",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {"key": "token", "value": "{{auth_token}}", "type": "string"}
+    ]
+  },
+  "item": [
+    {
+      "name": "00 - Auth",
+      "item": [
+        {
+          "name": "Login",
+          "request": {
+            "auth": {"type": "noauth"},
+            "method": "POST",
+            "header": [
+              {"key": "Accept", "value": "application/json"},
+              {"key": "Content-Type", "value": "application/json"}
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"email\": \"{{user_email}}\",\n    \"password\": \"{{user_password}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/login",
+              "host": ["{{base_url}}"],
+              "path": ["login"]
+            },
+            "description": "Run first to set auth_token. Roles: project_management or admin (for full PM access).",
+            "event": [
+              {
+                "listen": "test",
+                "script": {
+                  "exec": [
+                    "const res = pm.response.json();",
+                    "if (res.access_token) {",
+                    "    pm.environment.set('auth_token', res.access_token);",
+                    "    pm.environment.set('user_id', res.user?.id || '');",
+                    "    pm.test('Login successful', function () { pm.response.to.have.status(200); });",
+                    "} else {",
+                    "    pm.test('Login failed', function () { pm.expect(res.access_token).to.exist; });",
+                    "}"
+                  ],
+                  "type": "text/javascript"
+                }
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "01 - Dashboard",
+      "item": [
+        {
+          "name": "Get Dashboard",
+          "request": {
+            "method": "GET",
+            "header": [{"key": "Accept", "value": "application/json"}],
+            "url": {
+              "raw": "{{base_url}}/project_management/dashboard",
+              "host": ["{{base_url}}"],
+              "path": ["project_management", "dashboard"]
+            },
+            "description": "Get project management dashboard with KPIs. Roles: project_management, admin. Permission: dashboard.analytics.view"
+          }
+        },
+        {
+          "name": "Get Units Statistics",
+          "request": {
+            "method": "GET",
+            "header": [{"key": "Accept", "value": "application/json"}],
+            "url": {
+              "raw": "{{base_url}}/project_management/dashboard/units-statistics",
+              "host": ["{{base_url}}"],
+              "path": ["project_management", "dashboard", "units-statistics"]
+            },
+            "description": "Get units statistics (available, sold, total). Roles: project_management, admin. Permission: dashboard.analytics.view"
+          }
+        }
+      ]
+    },
+    {
+      "name": "02 - Teams",
+      "item": [
+        {
+          "name": "List Teams",
+          "request": {
+            "method": "GET",
+            "header": [{"key": "Accept", "value": "application/json"}],
+            "url": {
+              "raw": "{{base_url}}/project_management/teams/index?per_page=15",
+              "host": ["{{base_url}}"],
+              "path": ["project_management", "teams", "index"],
+              "query": [
+                {"key": "status", "value": "", "disabled": true},
+                {"key": "sort_by", "value": "created_at"},
+                {"key": "sort_order", "value": "desc"},
+                {"key": "per_page", "value": "15"}
+              ]
+            },
+            "description": "Get all teams. Query: status, sort_by, sort_order, per_page. Permission: projects.view"
+          }
+        },
+        {
+          "name": "Create Team",
+          "request": {
+            "method": "POST",
+            "header": [
+              {"key": "Accept", "value": "application/json"},
+              {"key": "Content-Type", "value": "application/json"}
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"name\": \"Sales Team Alpha\",\n    \"description\": \"Primary sales team\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/project_management/teams/store",
+              "host": ["{{base_url}}"],
+              "path": ["project_management", "teams", "store"]
+            },
+            "description": "Create a new team. Body: name (required), description (optional). Permission: projects.team.create",
+            "event": [
+              {
+                "listen": "test",
+                "script": {
+                  "exec": [
+                    "if (pm.response.code === 201) {",
+                    "    const jsonData = pm.response.json();",
+                    "    if (jsonData.data && jsonData.data.id) {",
+                    "        pm.environment.set('team_id', jsonData.data.id);",
+                    "    }",
+                    "}"
+                  ],
+                  "type": "text/javascript"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "name": "Show Team",
+          "request": {
+            "method": "GET",
+            "header": [{"key": "Accept", "value": "application/json"}],
+            "url": {
+              "raw": "{{base_url}}/project_management/teams/show/{{team_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["project_management", "teams", "show", "{{team_id}}"]
+            },
+            "description": "Get team details. Permission: projects.view"
+          }
+        },
+        {
+          "name": "Update Team",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {"key": "Accept", "value": "application/json"},
+              {"key": "Content-Type", "value": "application/json"}
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"name\": \"Sales Team Alpha - Updated\",\n    \"description\": \"Updated description\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/project_management/teams/update/{{team_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["project_management", "teams", "update", "{{team_id}}"]
+            },
+            "description": "Update team. Body: name (optional), description (optional). Permission: projects.team.create"
+          }
+        },
+        {
+          "name": "Delete Team",
+          "request": {
+            "method": "DELETE",
+            "header": [{"key": "Accept", "value": "application/json"}],
+            "url": {
+              "raw": "{{base_url}}/project_management/teams/delete/{{team_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["project_management", "teams", "delete", "{{team_id}}"]
+            },
+            "description": "Delete a team. Permission: projects.team.create"
+          }
+        },
+        {
+          "name": "Get Teams for Contract",
+          "request": {
+            "method": "GET",
+            "header": [{"key": "Accept", "value": "application/json"}],
+            "url": {
+              "raw": "{{base_url}}/project_management/teams/index/{{contract_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["project_management", "teams", "index", "{{contract_id}}"]
+            },
+            "description": "Get teams assigned to a contract. Permission: projects.view"
+          }
+        },
+        {
+          "name": "Get Team Contracts",
+          "request": {
+            "method": "GET",
+            "header": [{"key": "Accept", "value": "application/json"}],
+            "url": {
+              "raw": "{{base_url}}/project_management/teams/contracts/{{team_id}}?per_page=15",
+              "host": ["{{base_url}}"],
+              "path": ["project_management", "teams", "contracts", "{{team_id}}"],
+              "query": [
+                {"key": "status", "value": ""},
+                {"key": "per_page", "value": "15"}
+              ]
+            },
+            "description": "Get all contracts assigned to a team. Query: status, per_page. Permission: projects.view"
+          }
+        },
+        {
+          "name": "Add Teams to Contract",
+          "request": {
+            "method": "POST",
+            "header": [
+              {"key": "Accept", "value": "application/json"},
+              {"key": "Content-Type", "value": "application/json"}
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"team_ids\": [1, 2, 3]\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/project_management/teams/add/{{contract_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["project_management", "teams", "add", "{{contract_id}}"]
+            },
+            "description": "Assign teams to a contract. Body: team_ids (array). Permission: projects.team.allocate"
+          }
+        },
+        {
+          "name": "Remove Teams from Contract",
+          "request": {
+            "method": "POST",
+            "header": [
+              {"key": "Accept", "value": "application/json"},
+              {"key": "Content-Type", "value": "application/json"}
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"team_ids\": [1, 2]\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/project_management/teams/remove/{{contract_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["project_management", "teams", "remove", "{{contract_id}}"]
+            },
+            "description": "Remove teams from a contract. Body: team_ids (array). Permission: projects.team.allocate"
+          }
+        },
+        {
+          "name": "Get Contract Locations",
+          "request": {
+            "method": "GET",
+            "header": [{"key": "Accept", "value": "application/json"}],
+            "url": {
+              "raw": "{{base_url}}/project_management/teams/contracts/locations/{{team_id}}?per_page=200",
+              "host": ["{{base_url}}"],
+              "path": ["project_management", "teams", "contracts", "locations", "{{team_id}}"],
+              "query": [
+                {"key": "status", "value": ""},
+                {"key": "per_page", "value": "200"}
+              ]
+            },
+            "description": "Get contract locations for a team. Query: status, per_page. Permission: projects.view"
+          }
+        }
+      ]
+    },
+    {
+      "name": "03 - Contracts",
+      "item": [
+        {
+          "name": "List Projects (by segment)",
+          "request": {
+            "method": "GET",
+            "header": [{"key": "Accept", "value": "application/json"}],
+            "url": {
+              "raw": "{{base_url}}/project_management/projects?segment=unready&per_page=15",
+              "host": ["{{base_url}}"],
+              "path": ["project_management", "projects"],
+              "query": [
+                {"key": "segment", "value": "unready"},
+                {"key": "team_id", "value": ""},
+                {"key": "search", "value": ""},
+                {"key": "per_page", "value": "15"}
+              ]
+            },
+            "description": "List projects for PM dashboard. segment=unready|ready_for_marketing|archive. Permission: contracts.view_all"
+          }
+        },
+        {
+          "name": "List Projects (Ready for Marketing)",
+          "request": {
+            "method": "GET",
+            "header": [{"key": "Accept", "value": "application/json"}],
+            "url": {
+              "raw": "{{base_url}}/project_management/projects?segment=ready_for_marketing&per_page=15",
+              "host": ["{{base_url}}"],
+              "path": ["project_management", "projects"],
+              "query": [
+                {"key": "segment", "value": "ready_for_marketing"},
+                {"key": "team_id", "value": ""},
+                {"key": "search", "value": ""},
+                {"key": "per_page", "value": "15"}
+              ]
+            },
+            "description": "List projects ready for marketing (مشاريع جاهزة للتسويق). Returns contracts with status=ready. Permission: contracts.view_all"
+          }
+        },
+        {
+          "name": "List Contracts (Admin)",
+          "request": {
+            "method": "GET",
+            "header": [{"key": "Accept", "value": "application/json"}],
+            "url": {
+              "raw": "{{base_url}}/contracts/admin-index?per_page=15",
+              "host": ["{{base_url}}"],
+              "path": ["contracts", "admin-index"],
+              "query": [
+                {"key": "status", "value": "pending"},
+                {"key": "user_id", "value": ""},
+                {"key": "city", "value": ""},
+                {"key": "district", "value": ""},
+                {"key": "project_name", "value": ""},
+                {"key": "has_photography", "value": ""},
+                {"key": "has_montage", "value": ""},
+                {"key": "per_page", "value": "15"}
+              ]
+            },
+            "description": "Get all contracts for project management. Query: status, user_id, city, district, project_name, has_photography, has_montage, per_page. Permission: contracts.view_all"
+          }
+        },
+        {
+          "name": "Update Contract Status",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {"key": "Accept", "value": "application/json"},
+              {"key": "Content-Type", "value": "application/json"}
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"status\": \"ready\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/contracts/update-status/{{contract_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["contracts", "update-status", "{{contract_id}}"]
+            },
+            "description": "Update contract status. Body: status (required, \"ready\" or \"rejected\"). Permission: contracts.approve"
+          }
+        },
+        {
+          "name": "Get Contract (with stages, project link)",
+          "request": {
+            "method": "GET",
+            "header": [{"key": "Accept", "value": "application/json"}],
+            "url": {
+              "raw": "{{base_url}}/project_management/contracts/{{contract_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["project_management", "contracts", "{{contract_id}}"]
+            },
+            "description": "Get contract detail for project tracker: project_link, preparation_progress, 7 stages (document_link, entry_date, completed, completed_at). Permission: contracts.view"
+          }
+        },
+        {
+          "name": "Update Stage (document link, entry date, mark complete)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {"key": "Accept", "value": "application/json"},
+              {"key": "Content-Type", "value": "application/json"}
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"document_link\": \"https://example.com/doc\",\n    \"entry_date\": \"2026-02-19\",\n    \"mark_complete\": true\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/project_management/contracts/{{contract_id}}/stages/{{stage_number}}",
+              "host": ["{{base_url}}"],
+              "path": ["project_management", "contracts", "{{contract_id}}", "stages", "{{stage_number}}"]
+            },
+            "description": "Update a preparation stage (1-7). Body: document_link (optional, url), entry_date (optional, Y-m-d), mark_complete (optional, boolean). Permission: contracts.view; policy update required."
+          }
+        },
+        {
+          "name": "Update Project Link",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {"key": "Accept", "value": "application/json"},
+              {"key": "Content-Type", "value": "application/json"}
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"project_link\": \"https://example.com/project\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/project_management/contracts/{{contract_id}}/project-link",
+              "host": ["{{base_url}}"],
+              "path": ["project_management", "contracts", "{{contract_id}}", "project-link"]
+            },
+            "description": "Update the project link (Documents section). Body: project_link (optional, url, max 2048). Permission: contracts.view."
+          }
+        },
+        {
+          "name": "Export Contract PDF",
+          "request": {
+            "method": "GET",
+            "header": [{"key": "Accept", "value": "application/pdf"}],
+            "url": {
+              "raw": "{{base_url}}/project_management/contracts/{{contract_id}}/export",
+              "host": ["{{base_url}}"],
+              "path": ["project_management", "contracts", "{{contract_id}}", "export"]
+            },
+            "description": "Download contract as PDF. Permission: contracts.view"
+          }
+        }
+      ]
+    },
+    {
+      "name": "04 - Second Party Data",
+      "item": [
+        {
+          "name": "Get Second Party (by contract)",
+          "request": {
+            "method": "GET",
+            "header": [{"key": "Accept", "value": "application/json"}],
+            "url": {
+              "raw": "{{base_url}}/second-party-data/show/{{contract_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["second-party-data", "show", "{{contract_id}}"]
+            },
+            "description": "Get second party data for a contract. id = contractId. Permission: second_party.view"
+          }
+        },
+        {
+          "name": "Store Second Party",
+          "request": {
+            "method": "POST",
+            "header": [
+              {"key": "Accept", "value": "application/json"},
+              {"key": "Content-Type", "value": "application/json"}
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"real_estate_papers_url\": \"https://example.com/papers.pdf\",\n    \"plans_equipment_docs_url\": \"https://example.com/plans.pdf\",\n    \"project_logo_url\": \"https://example.com/logo.png\",\n    \"prices_units_url\": \"https://example.com/prices.pdf\",\n    \"marketing_license_url\": \"https://example.com/license.pdf\",\n    \"advertiser_section_url\": \"125712612\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/second-party-data/store/{{contract_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["second-party-data", "store", "{{contract_id}}"]
+            },
+            "description": "Store second party data for a contract. All fields optional (URLs, advertiser_section_url digits). Permission: second_party.edit"
+          }
+        },
+        {
+          "name": "Update Second Party",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {"key": "Accept", "value": "application/json"},
+              {"key": "Content-Type", "value": "application/json"}
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"real_estate_papers_url\": \"https://example.com/papers2.pdf\",\n    \"advertiser_section_url\": \"125712613\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/second-party-data/update/{{contract_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["second-party-data", "update", "{{contract_id}}"]
+            },
+            "description": "Update second party data. Same optional fields as store. Permission: second_party.edit"
+          }
+        },
+        {
+          "name": "List Second Parties",
+          "request": {
+            "method": "GET",
+            "header": [{"key": "Accept", "value": "application/json"}],
+            "url": {
+              "raw": "{{base_url}}/second-party-data/second-parties?per_page=15",
+              "host": ["{{base_url}}"],
+              "path": ["second-party-data", "second-parties"],
+              "query": [{"key": "per_page", "value": "15"}]
+            },
+            "description": "Get all second parties (unique by email). Query: per_page. Permission: second_party.view"
+          }
+        },
+        {
+          "name": "Get Contracts by Second Party Email",
+          "request": {
+            "method": "GET",
+            "header": [{"key": "Accept", "value": "application/json"}],
+            "url": {
+              "raw": "{{base_url}}/second-party-data/contracts-by-email?email=client@example.com&per_page=15",
+              "host": ["{{base_url}}"],
+              "path": ["second-party-data", "contracts-by-email"],
+              "query": [
+                {"key": "email", "value": "client@example.com"},
+                {"key": "per_page", "value": "15"}
+              ]
+            },
+            "description": "Get contracts by second party email. Query: email (required), per_page. Permission: second_party.view"
+          }
+        }
+      ]
+    },
+    {
+      "name": "05 - Contract Units",
+      "item": [
+        {
+          "name": "List Units by Contract",
+          "request": {
+            "method": "GET",
+            "header": [{"key": "Accept", "value": "application/json"}],
+            "url": {
+              "raw": "{{base_url}}/contracts/units/show/{{contract_id}}?per_page=15",
+              "host": ["{{base_url}}"],
+              "path": ["contracts", "units", "show", "{{contract_id}}"],
+              "query": [{"key": "per_page", "value": "15"}]
+            },
+            "description": "Get all units for a contract. Permission: units.view"
+          }
+        },
+        {
+          "name": "Upload Units CSV",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Accept", "value": "application/json"}],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {"key": "csv_file", "type": "file", "src": "", "description": "CSV file (max 10MB)"}
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/contracts/units/upload-csv/{{contract_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["contracts", "units", "upload-csv", "{{contract_id}}"]
+            },
+            "description": "Bulk upload units via CSV. Form-data: csv_file (required). Permission: units.csv_upload"
+          }
+        },
+        {
+          "name": "Create Unit",
+          "request": {
+            "method": "POST",
+            "header": [
+              {"key": "Accept", "value": "application/json"},
+              {"key": "Content-Type", "value": "application/json"}
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"unit_type\": \"apartment\",\n    \"unit_number\": \"A-101\",\n    \"status\": \"available\",\n    \"price\": 500000,\n    \"area\": \"120 sqm\",\n    \"description\": \"3BR apartment\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/contracts/units/store/{{contract_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["contracts", "units", "store", "{{contract_id}}"]
+            },
+            "description": "Create a unit. Body: unit_type, unit_number (required), status (pending|sold|reserved|available), price (required), area, description. Permission: units.edit",
+            "event": [
+              {
+                "listen": "test",
+                "script": {
+                  "exec": [
+                    "if (pm.response.code === 201) {",
+                    "    const jsonData = pm.response.json();",
+                    "    if (jsonData.data && jsonData.data.id) {",
+                    "        pm.environment.set('unit_id', jsonData.data.id);",
+                    "    }",
+                    "}"
+                  ],
+                  "type": "text/javascript"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "name": "Update Unit",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {"key": "Accept", "value": "application/json"},
+              {"key": "Content-Type", "value": "application/json"}
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"status\": \"sold\",\n    \"price\": 520000\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/contracts/units/update/{{unit_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["contracts", "units", "update", "{{unit_id}}"]
+            },
+            "description": "Update a unit. Body: unit_type, unit_number, status, price, area, description (all optional). Permission: units.edit"
+          }
+        },
+        {
+          "name": "Delete Unit",
+          "request": {
+            "method": "DELETE",
+            "header": [{"key": "Accept", "value": "application/json"}],
+            "url": {
+              "raw": "{{base_url}}/contracts/units/delete/{{unit_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["contracts", "units", "delete", "{{unit_id}}"]
+            },
+            "description": "Delete a unit. Permission: units.edit"
+          }
+        }
+      ]
+    },
+    {
+      "name": "06 - Boards Department",
+      "item": [
+        {
+          "name": "Get Boards (by contract)",
+          "request": {
+            "method": "GET",
+            "header": [{"key": "Accept", "value": "application/json"}],
+            "url": {
+              "raw": "{{base_url}}/boards-department/show/{{contract_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["boards-department", "show", "{{contract_id}}"]
+            },
+            "description": "Get boards department data for a contract. Permission: departments.boards.view"
+          }
+        },
+        {
+          "name": "Store Boards",
+          "request": {
+            "method": "POST",
+            "header": [
+              {"key": "Accept", "value": "application/json"},
+              {"key": "Content-Type", "value": "application/json"}
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"has_ads\": true\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/boards-department/store/{{contract_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["boards-department", "store", "{{contract_id}}"]
+            },
+            "description": "Store boards department data. Body: has_ads (required, boolean). Permission: departments.boards.edit"
+          }
+        },
+        {
+          "name": "Update Boards",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {"key": "Accept", "value": "application/json"},
+              {"key": "Content-Type", "value": "application/json"}
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"has_ads\": false\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/boards-department/update/{{contract_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["boards-department", "update", "{{contract_id}}"]
+            },
+            "description": "Update boards department data. Body: has_ads (optional, boolean). Permission: departments.boards.edit"
+          }
+        }
+      ]
+    },
+    {
+      "name": "07 - Photography Department",
+      "item": [
+        {
+          "name": "Get Photography (by contract)",
+          "request": {
+            "method": "GET",
+            "header": [{"key": "Accept", "value": "application/json"}],
+            "url": {
+              "raw": "{{base_url}}/photography-department/show/{{contract_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["photography-department", "show", "{{contract_id}}"]
+            },
+            "description": "Get photography department data for a contract. Permission: departments.photography.view"
+          }
+        },
+        {
+          "name": "Store Photography",
+          "request": {
+            "method": "POST",
+            "header": [
+              {"key": "Accept", "value": "application/json"},
+              {"key": "Content-Type", "value": "application/json"}
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"image_url\": \"https://example.com/image.jpg\",\n    \"video_url\": \"https://example.com/video.mp4\",\n    \"description\": \"Project photos\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/photography-department/store/{{contract_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["photography-department", "store", "{{contract_id}}"]
+            },
+            "description": "Store photography data. Body: image_url (required), video_url (required), description (optional). Permission: departments.photography.edit"
+          }
+        },
+        {
+          "name": "Update Photography",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {"key": "Accept", "value": "application/json"},
+              {"key": "Content-Type", "value": "application/json"}
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"image_url\": \"https://example.com/image2.jpg\",\n    \"video_url\": \"https://example.com/video2.mp4\",\n    \"description\": \"Updated\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/photography-department/update/{{contract_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["photography-department", "update", "{{contract_id}}"]
+            },
+            "description": "Update photography data. Body: image_url, video_url, description (all optional). Permission: departments.photography.edit"
+          }
+        },
+        {
+          "name": "Approve Photography",
+          "request": {
+            "method": "PATCH",
+            "header": [{"key": "Accept", "value": "application/json"}],
+            "url": {
+              "raw": "{{base_url}}/photography-department/approve/{{contract_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["photography-department", "approve", "{{contract_id}}"]
+            },
+            "description": "Approve photography work for a contract. No body. Permission: departments.photography.edit"
+          }
+        }
+      ]
+    },
+    {
+      "name": "08 - Developers",
+      "item": [
+        {
+          "name": "List Developers",
+          "request": {
+            "method": "GET",
+            "header": [{"key": "Accept", "value": "application/json"}],
+            "url": {
+              "raw": "{{base_url}}/developers",
+              "host": ["{{base_url}}"],
+              "path": ["developers"]
+            },
+            "description": "Get unique developers with projects, units count, teams. Roles: project_management, admin, accounting."
+          }
+        },
+        {
+          "name": "Show Developer",
+          "request": {
+            "method": "GET",
+            "header": [{"key": "Accept", "value": "application/json"}],
+            "url": {
+              "raw": "{{base_url}}/developers/{{developer_number}}",
+              "host": ["{{base_url}}"],
+              "path": ["developers", "{{developer_number}}"]
+            },
+            "description": "Get single developer by developer_number. Roles: project_management, admin, accounting."
+          }
+        }
+      ]
+    }
+  ]
+}

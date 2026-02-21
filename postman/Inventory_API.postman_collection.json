@@ -1,0 +1,146 @@
+{
+  "info": {
+    "_postman_id": "c3a0c8f6-5d6b-4c1c-9b5c-4a0b7f9f3d21",
+    "name": "Rakez ERP - Inventory API",
+    "description": "Inventory-prefixed endpoints for contracts visibility and related lookups.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "https://api.rakez.com.sa" },
+    { "key": "token", "value": "" },
+    { "key": "contractId", "value": "1" },
+    { "key": "status", "value": "" },
+    { "key": "user_id", "value": "" },
+    { "key": "city", "value": "" },
+    { "key": "district", "value": "" },
+    { "key": "project_name", "value": "" },
+    { "key": "has_photography", "value": "" },
+    { "key": "has_montage", "value": "" },
+    { "key": "per_page", "value": "50" },
+    { "key": "secondPartyId", "value": "1" }
+  ],
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      { "key": "token", "value": "{{token}}", "type": "string" }
+    ]
+  },
+  "item": [
+    {
+      "name": "Inventory - Contracts",
+      "item": [
+        {
+          "name": "Get Contract (show)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/inventory/contracts/show/{{contractId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "inventory", "contracts", "show", "{{contractId}}"]
+            }
+          }
+        },
+        {
+          "name": "Admin Contracts Index (admin-index)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/inventory/contracts/admin-index",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "inventory", "contracts", "admin-index"]
+            }
+          }
+        },
+        {
+          "name": "Contracts Agency Overview (inventory dashboard)",
+          "description": "GET query filters:\n- status: pending|approved|rejected|completed|ready\n- user_id: filter by contract owner\n- city, district: exact match\n- project_name: partial match\n- has_photography / has_montage: 1 or 0\n- per_page: 1..200\n\nColor rules (based on remaining days until agency_date):\n- green: > 90 days\n- yellow: 31..90 days\n- red: <= 30 days (including expired)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/inventory/contracts/agency-overview?status={{status}}&user_id={{user_id}}&city={{city}}&district={{district}}&project_name={{project_name}}&has_photography={{has_photography}}&has_montage={{has_montage}}&per_page={{per_page}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "inventory", "contracts", "agency-overview"],
+              "query": [
+                { "key": "status", "value": "{{status}}" },
+                { "key": "user_id", "value": "{{user_id}}" },
+                { "key": "city", "value": "{{city}}" },
+                { "key": "district", "value": "{{district}}" },
+                { "key": "project_name", "value": "{{project_name}}" },
+                { "key": "has_photography", "value": "{{has_photography}}" },
+                { "key": "has_montage", "value": "{{has_montage}}" },
+                { "key": "per_page", "value": "{{per_page}}" }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Inventory - Second Party Data",
+      "item": [
+        {
+          "name": "Get Second Party Data (show)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/inventory/second-party-data/show/{{secondPartyId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "inventory", "second-party-data", "show", "{{secondPartyId}}"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Inventory - Contract Units",
+      "item": [
+        {
+          "name": "Get Units By Contract (show/{contractId})",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/inventory/contracts/units/show/{{contractId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "inventory", "contracts", "units", "show", "{{contractId}}"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Inventory - Locations",
+      "item": [
+        {
+          "name": "Contract Locations (filtered)",
+          "description": "GET query filters:\n- status: pending|approved|rejected|completed|ready\n- user_id: filter by contract owner\n- city, district: exact match\n- project_name: partial match\n- has_photography / has_montage: 1 or 0\n- per_page: 1..500",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/inventory/contracts/locations?status={{status}}&user_id={{user_id}}&city={{city}}&district={{district}}&project_name={{project_name}}&has_photography={{has_photography}}&has_montage={{has_montage}}&per_page=200",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "inventory", "contracts", "locations"],
+              "query": [
+                { "key": "status", "value": "{{status}}" },
+                { "key": "user_id", "value": "{{user_id}}" },
+                { "key": "city", "value": "{{city}}" },
+                { "key": "district", "value": "{{district}}" },
+                { "key": "project_name", "value": "{{project_name}}" },
+                { "key": "has_photography", "value": "{{has_photography}}" },
+                { "key": "has_montage", "value": "{{has_montage}}" },
+                { "key": "per_page", "value": "200" }
+              ]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
+
+

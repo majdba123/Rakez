@@ -1,0 +1,135 @@
+{
+  "info": {
+    "_postman_id": "rakez-erp-ai-v2-001",
+    "name": "RAKEZ ERP - AI Assistant v2",
+    "description": "## Rakiz AI Assistant v2 API\n\n**4 requests** (Login + 3 v2 endpoints).\n\n- **Auth**: Bearer token. Run **00 - Auth → Login** first (sets `auth_token`). Use same `base_url`, `user_email`, `user_password` as main ERP environment.\n- **Permission**: User must have `use-ai-assistant`.\n\n### Endpoints\n\n1. **POST /ai/v2/chat** – Main chat. Request body: `message`, optional `session_id`, optional `page_context` (route, entity_id, entity_type, filters). Response: strict JSON with `answer_markdown`, `confidence`, `sources`, `links`, `suggested_actions`, `follow_up_questions`, `access_notes`.\n2. **POST /ai/v2/search** – RAG-only search. Body: `query`, optional `filters`, optional `limit`. Returns `sources` array.\n3. **POST /ai/v2/explain-access** – Explain route/entity access. Body: `route` (required), optional `entity_type`, `entity_id`. Returns `allowed`, `missing_permissions`, `human_reason`, `suggested_routes` (filtered by user permissions).\n\n**Base URL**: `{{base_url}}` (e.g. http://localhost:8000/api)",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {"key": "token", "value": "{{auth_token}}", "type": "string"}
+    ]
+  },
+  "item": [
+    {
+      "name": "00 - Auth",
+      "item": [
+        {
+          "name": "Login",
+          "request": {
+            "auth": {"type": "noauth"},
+            "method": "POST",
+            "header": [
+              {"key": "Accept", "value": "application/json"},
+              {"key": "Content-Type", "value": "application/json"}
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"email\": \"{{user_email}}\",\n    \"password\": \"{{user_password}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/login",
+              "host": ["{{base_url}}"],
+              "path": ["login"]
+            },
+            "description": "Run first to set auth_token. Uses same base_url, user_email, user_password as main ERP environment.",
+            "event": [
+              {
+                "listen": "test",
+                "script": {
+                  "exec": [
+                    "const res = pm.response.json();",
+                    "if (res.access_token) {",
+                    "    pm.environment.set('auth_token', res.access_token);",
+                    "    pm.environment.set('user_id', res.user?.id || '');",
+                    "    pm.test('Login successful', function () { pm.response.to.have.status(200); });",
+                    "} else {",
+                    "    pm.test('Login failed', function () { pm.expect(res.access_token).to.exist; });",
+                    "}"
+                  ],
+                  "type": "text/javascript"
+                }
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "01 - Chat",
+      "item": [
+        {
+          "name": "POST Chat (v2)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {"key": "Accept", "value": "application/json"},
+              {"key": "Content-Type", "value": "application/json"}
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"message\": \"How many leads do we have?\",\n    \"session_id\": null,\n    \"page_context\": {\n        \"route\": \"/marketing/leads\",\n        \"entity_id\": null,\n        \"entity_type\": null,\n        \"filters\": {}\n    }\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/ai/v2/chat",
+              "host": ["{{base_url}}"],
+              "path": ["ai", "v2", "chat"]
+            },
+            "description": "Main orchestrated chat. Response: success, data { answer_markdown, confidence, sources, links, suggested_actions, follow_up_questions, access_notes { had_denied_request, reason } }."
+          }
+        }
+      ]
+    },
+    {
+      "name": "02 - Search",
+      "item": [
+        {
+          "name": "POST RAG Search (v2)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {"key": "Accept", "value": "application/json"},
+              {"key": "Content-Type", "value": "application/json"}
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"query\": \"marketing tasks\",\n    \"filters\": {},\n    \"limit\": 10\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/ai/v2/search",
+              "host": ["{{base_url}}"],
+              "path": ["ai", "v2", "search"]
+            },
+            "description": "RAG sources only. Response: success, data { sources: [{ type, title, ref, excerpt?, link? }] }."
+          }
+        }
+      ]
+    },
+    {
+      "name": "03 - Explain Access",
+      "item": [
+        {
+          "name": "POST Explain Access (v2)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {"key": "Accept", "value": "application/json"},
+              {"key": "Content-Type", "value": "application/json"}
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"route\": \"/api/marketing/leads\",\n    \"entity_type\": \"lead\",\n    \"entity_id\": 1\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/ai/v2/explain-access",
+              "host": ["{{base_url}}"],
+              "path": ["ai", "v2", "explain-access"]
+            },
+            "description": "Explain access for a route or entity. Response: success, data { allowed, missing_permissions, human_reason, suggested_routes } (suggested_routes filtered by user permissions)."
+          }
+        }
+      ]
+    }
+  ]
+}

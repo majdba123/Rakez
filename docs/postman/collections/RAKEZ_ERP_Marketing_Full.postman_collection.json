@@ -1,0 +1,731 @@
+{
+  "info": {
+    "_postman_id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+    "name": "Rakez ERP - Marketing (Full)",
+    "description": "Full API collection for the Marketing module: dashboard, projects, plans, tasks, leads, teams, reports, and budget distributions. Roles: marketing, admin. Auth: Bearer token; run 00 - Auth → Login first. Variables: base_url (e.g. http://localhost:8000/api), user_email, user_password, token; optional: project_id, contract_id, task_id, lead_id, plan_id, distribution_id, campaign_id.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      { "key": "token", "value": "{{token}}", "type": "string" }
+    ]
+  },
+  "variable": [
+    { "key": "base_url", "value": "http://localhost:8000/api" },
+    { "key": "token", "value": "" },
+    { "key": "user_email", "value": "" },
+    { "key": "user_password", "value": "" },
+    { "key": "project_id", "value": "1" },
+    { "key": "contract_id", "value": "1" },
+    { "key": "task_id", "value": "1" },
+    { "key": "lead_id", "value": "1" },
+    { "key": "plan_id", "value": "1" },
+    { "key": "distribution_id", "value": "1" },
+    { "key": "campaign_id", "value": "1" },
+    { "key": "user_id", "value": "1" }
+  ],
+  "item": [
+    {
+      "name": "00 - Auth",
+      "item": [
+        {
+          "name": "Login",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [
+              { "key": "Accept", "value": "application/json", "type": "text" },
+              { "key": "Content-Type", "value": "application/json", "type": "text" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{user_email}}\",\n  \"password\": \"{{user_password}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/login",
+              "host": ["{{base_url}}"],
+              "path": ["login"]
+            },
+            "description": "Run first to set token. Sets collection variable token from access_token.",
+            "event": [
+              {
+                "listen": "test",
+                "script": {
+                  "exec": [
+                    "var res = pm.response.json();",
+                    "if (res.access_token) {",
+                    "  pm.collectionVariables.set('token', res.access_token);",
+                    "  pm.test('Login successful', function() { pm.response.to.have.status(200); });",
+                    "} else {",
+                    "  pm.test('Login failed', function() { pm.expect(res.access_token).to.exist; });",
+                    "}"
+                  ],
+                  "type": "text/javascript"
+                }
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Dashboard",
+      "item": [
+        {
+          "name": "Get Marketing Dashboard",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Accept", "value": "application/json", "type": "text" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/marketing/dashboard",
+              "host": ["{{base_url}}"],
+              "path": ["marketing", "dashboard"]
+            },
+            "description": "Returns KPIs: total_leads, available_units_value, available_units_count, daily_task_achievement_rate, daily_deposits_count, deposit_cost, total_expected_bookings, total_expected_booking_value, deposit_value_per_booking."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Projects",
+      "item": [
+        {
+          "name": "List Marketing Projects",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Accept", "value": "application/json", "type": "text" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/marketing/projects?per_page=15&page=1",
+              "host": ["{{base_url}}"],
+              "path": ["marketing", "projects"],
+              "query": [
+                { "key": "per_page", "value": "15", "description": "Items per page" },
+                { "key": "page", "value": "1" }
+              ]
+            },
+            "description": "Paginated list of marketing projects (contracts with status approved)."
+          }
+        },
+        {
+          "name": "Get Project by Contract ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Accept", "value": "application/json", "type": "text" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/marketing/projects/{{contract_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["marketing", "projects", "{{contract_id}}"]
+            },
+            "description": "Get full project details by contract ID (not marketing project id). Includes units, teams, developer_plan."
+          }
+        },
+        {
+          "name": "Get Recommended Employee",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Accept", "value": "application/json", "type": "text" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/marketing/projects/{{project_id}}/recommend-employee",
+              "host": ["{{base_url}}"],
+              "path": ["marketing", "projects", "{{project_id}}", "recommend-employee"]
+            },
+            "description": "Get recommended employee for client communication (performance + developer booking ratio). Uses marketing project_id."
+          }
+        },
+        {
+          "name": "Calculate Budget",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json", "type": "text" },
+              { "key": "Accept", "value": "application/json", "type": "text" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"contract_id\": {{contract_id}},\n  \"unit_price\": 1000000\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/marketing/projects/calculate-budget",
+              "host": ["{{base_url}}"],
+              "path": ["marketing", "projects", "calculate-budget"]
+            },
+            "description": "Commission value = unit_price × commission%; Marketing value = commission_value × marketing%. Returns commission_value, marketing_value, daily_budget, monthly_budget."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Developer Plans",
+      "item": [
+        {
+          "name": "Get Developer Plan by Contract",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Accept", "value": "application/json", "type": "text" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/marketing/plans/developer/{{contract_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["marketing", "plans", "developer", "{{contract_id}}"]
+            },
+            "description": "Get developer marketing plan for a contract (marketing_value, average_cpm, average_cpc, expected_impressions, expected_clicks)."
+          }
+        },
+        {
+          "name": "Create / Store Developer Plan",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json", "type": "text" },
+              { "key": "Accept", "value": "application/json", "type": "text" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"contract_id\": {{contract_id}},\n  \"marketing_value\": 35000,\n  \"average_cpm\": 25,\n  \"average_cpc\": 2.5\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/marketing/plans/developer",
+              "host": ["{{base_url}}"],
+              "path": ["marketing", "plans", "developer"]
+            },
+            "description": "Create or update developer plan. Expected impressions = (marketing_value / average_cpm) * 1000; Expected clicks = marketing_value / average_cpc."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Employee Plans",
+      "item": [
+        {
+          "name": "List Employee Plans",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Accept", "value": "application/json", "type": "text" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/marketing/plans/employee?project_id={{project_id}}&per_page=15&page=1",
+              "host": ["{{base_url}}"],
+              "path": ["marketing", "plans", "employee"],
+              "query": [
+                { "key": "project_id", "value": "{{project_id}}" },
+                { "key": "per_page", "value": "15" },
+                { "key": "page", "value": "1" }
+              ]
+            },
+            "description": "Paginated employee plans. Filter by project_id (marketing project id), user_id."
+          }
+        },
+        {
+          "name": "Get Employee Plan by ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Accept", "value": "application/json", "type": "text" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/marketing/employee-plans/{{plan_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["marketing", "employee-plans", "{{plan_id}}"]
+            },
+            "description": "Get single employee marketing plan by plan_id."
+          }
+        },
+        {
+          "name": "Create Employee Plan",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json", "type": "text" },
+              { "key": "Accept", "value": "application/json", "type": "text" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"marketing_project_id\": {{project_id}},\n  \"user_id\": 2,\n  \"platform_distribution\": {\n    \"TikTok\": 20,\n    \"Meta\": 30,\n    \"Snapchat\": 20,\n    \"YouTube\": 10,\n    \"LinkedIn\": 10,\n    \"X\": 10\n  },\n  \"campaign_distribution\": {\n    \"Direct Communication\": 30,\n    \"Hand Raise\": 30,\n    \"Impression\": 20,\n    \"Sales\": 20\n  }\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/marketing/plans/employee",
+              "host": ["{{base_url}}"],
+              "path": ["marketing", "plans", "employee"]
+            },
+            "description": "Create employee marketing plan. Platform keys: TikTok, Meta, Snapchat, YouTube, LinkedIn, X. Campaign keys: Direct Communication, Hand Raise, Impression, Sales. Distributions must sum to 100%."
+          }
+        },
+        {
+          "name": "Auto-Generate Employee Plan",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json", "type": "text" },
+              { "key": "Accept", "value": "application/json", "type": "text" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"marketing_project_id\": {{project_id}},\n  \"user_id\": 2\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/marketing/employee-plans/auto-generate",
+              "host": ["{{base_url}}"],
+              "path": ["marketing", "employee-plans", "auto-generate"]
+            },
+            "description": "Automatically generate employee marketing plan from project and user."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Expected Sales",
+      "item": [
+        {
+          "name": "List Expected Sales",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Accept", "value": "application/json", "type": "text" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/marketing/expected-sales?per_page=15&page=1",
+              "host": ["{{base_url}}"],
+              "path": ["marketing", "expected-sales"],
+              "query": [
+                { "key": "per_page", "value": "15" },
+                { "key": "page", "value": "1" },
+                { "key": "project_id", "value": "" },
+                { "key": "start_date", "value": "" },
+                { "key": "end_date", "value": "" }
+              ]
+            },
+            "description": "Paginated expected sales. Filters: project_id, start_date, end_date."
+          }
+        },
+        {
+          "name": "Create Expected Sale",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json", "type": "text" },
+              { "key": "Accept", "value": "application/json", "type": "text" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"project_id\": {{project_id}},\n  \"direct_communications\": 100,\n  \"hand_raises\": 50,\n  \"conversion_rate\": 1\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/marketing/expected-sales",
+              "host": ["{{base_url}}"],
+              "path": ["marketing", "expected-sales"]
+            },
+            "description": "Expected bookings = (direct_communications + hand_raises) × conversion_rate%. expected_booking_value and deposit_per_booking are computed by the API."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Tasks",
+      "item": [
+        {
+          "name": "List Marketing Tasks",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Accept", "value": "application/json", "type": "text" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/marketing/tasks?per_page=15&page=1",
+              "host": ["{{base_url}}"],
+              "path": ["marketing", "tasks"],
+              "query": [
+                { "key": "per_page", "value": "15" },
+                { "key": "page", "value": "1" }
+              ]
+            },
+            "description": "Daily tasks for the logged-in marketer. Optional query: date, status. Statuses: new, in_progress, completed."
+          }
+        },
+        {
+          "name": "Create Task",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json", "type": "text" },
+              { "key": "Accept", "value": "application/json", "type": "text" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"contract_id\": {{contract_id}},\n  \"task_name\": \"Social campaign Q1\",\n  \"design_description\": \"Run Meta + TikTok ads\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/marketing/tasks",
+              "host": ["{{base_url}}"],
+              "path": ["marketing", "tasks"]
+            },
+            "description": "Create marketing task. Requires contract_id, task_name; optional marketer_id, design_link, design_number, design_description, due_date."
+          }
+        },
+        {
+          "name": "Update Task",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json", "type": "text" },
+              { "key": "Accept", "value": "application/json", "type": "text" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"in_progress\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/marketing/tasks/{{task_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["marketing", "tasks", "{{task_id}}"]
+            },
+            "description": "Update task fields. status: new, in_progress, completed."
+          }
+        },
+        {
+          "name": "Update Task Status",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Content-Type", "value": "application/json", "type": "text" },
+              { "key": "Accept", "value": "application/json", "type": "text" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"in_progress\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/marketing/tasks/{{task_id}}/status",
+              "host": ["{{base_url}}"],
+              "path": ["marketing", "tasks", "{{task_id}}", "status"]
+            },
+            "description": "Update task status only. status: new, in_progress, completed."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Leads",
+      "item": [
+        {
+          "name": "List Leads",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Accept", "value": "application/json", "type": "text" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/marketing/leads?per_page=15&page=1",
+              "host": ["{{base_url}}"],
+              "path": ["marketing", "leads"],
+              "query": [
+                { "key": "per_page", "value": "15" },
+                { "key": "page", "value": "1" }
+              ]
+            },
+            "description": "Paginated leads."
+          }
+        },
+        {
+          "name": "Create Lead",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json", "type": "text" },
+              { "key": "Accept", "value": "application/json", "type": "text" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Ahmed\",\n  \"contact_info\": \"+966501234567\",\n  \"source\": \"Meta\",\n  \"project_id\": {{contract_id}}\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/marketing/leads",
+              "host": ["{{base_url}}"],
+              "path": ["marketing", "leads"]
+            },
+            "description": "Create lead. project_id in body is the contract ID (exists:contracts,id), not marketing project id."
+          }
+        },
+        {
+          "name": "Assign Lead",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json", "type": "text" },
+              { "key": "Accept", "value": "application/json", "type": "text" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"user_id\": 2\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/marketing/leads/{{lead_id}}/assign",
+              "host": ["{{base_url}}"],
+              "path": ["marketing", "leads", "{{lead_id}}", "assign"]
+            },
+            "description": "Assign lead to a user (assigned_to)."
+          }
+        },
+        {
+          "name": "Convert Lead",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json", "type": "text" },
+              { "key": "Accept", "value": "application/json", "type": "text" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{}"
+            },
+            "url": {
+              "raw": "{{base_url}}/marketing/leads/{{lead_id}}/convert",
+              "host": ["{{base_url}}"],
+              "path": ["marketing", "leads", "{{lead_id}}", "convert"]
+            },
+            "description": "Convert lead to contract/booking."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Teams",
+      "item": [
+        {
+          "name": "List Marketing Teams",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Accept", "value": "application/json", "type": "text" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/marketing/teams",
+              "host": ["{{base_url}}"],
+              "path": ["marketing", "teams"]
+            },
+            "description": "List teams (project_management teams)."
+          }
+        },
+        {
+          "name": "Assign Campaign to Team",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json", "type": "text" },
+              { "key": "Accept", "value": "application/json", "type": "text" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"team_id\": 1,\n  \"campaign_id\": {{campaign_id}}\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/marketing/teams/assign",
+              "host": ["{{base_url}}"],
+              "path": ["marketing", "teams", "assign"]
+            },
+            "description": "Assign a marketing campaign to a team. Requires team_id and campaign_id (marketing_campaigns.id), not contract_id."
+          }
+        },
+        {
+          "name": "Assign Team to Project",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json", "type": "text" },
+              { "key": "Accept", "value": "application/json", "type": "text" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"user_ids\": [1, 2, 3]\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/marketing/projects/{{project_id}}/team",
+              "host": ["{{base_url}}"],
+              "path": ["marketing", "projects", "{{project_id}}", "team"]
+            },
+            "description": "Assign marketers (user_ids) to a marketing project. Uses marketing project_id."
+          }
+        },
+        {
+          "name": "Get Project Team",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Accept", "value": "application/json", "type": "text" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/marketing/projects/{{project_id}}/team",
+              "host": ["{{base_url}}"],
+              "path": ["marketing", "projects", "{{project_id}}", "team"]
+            },
+            "description": "Get marketers assigned to a marketing project."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Reports",
+      "item": [
+        {
+          "name": "Project Performance Report",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Accept", "value": "application/json", "type": "text" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/marketing/reports/project/{{project_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["marketing", "reports", "project", "{{project_id}}"]
+            },
+            "description": "Project performance: project_name, total_leads, expected_bookings, conversion_rate. Path parameter project_id (marketing project id)."
+          }
+        },
+        {
+          "name": "Budget Report",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Accept", "value": "application/json", "type": "text" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/marketing/reports/budget",
+              "host": ["{{base_url}}"],
+              "path": ["marketing", "reports", "budget"]
+            },
+            "description": "Budget report: total_marketing_budget, by_project, by_plan_type (employee/developer)."
+          }
+        },
+        {
+          "name": "Expected Bookings Report",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Accept", "value": "application/json", "type": "text" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/marketing/reports/expected-bookings",
+              "host": ["{{base_url}}"],
+              "path": ["marketing", "reports", "expected-bookings"]
+            },
+            "description": "Expected bookings report: total_expected_bookings, total_expected_booking_value, total_campaign_budget, deposit_value_per_booking."
+          }
+        },
+        {
+          "name": "Employee Performance Report",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Accept", "value": "application/json", "type": "text" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/marketing/reports/employee/{{user_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["marketing", "reports", "employee", "{{user_id}}"]
+            },
+            "description": "Employee performance: name, total_plans, total_leads_assigned. Add user_id variable for target user."
+          }
+        },
+        {
+          "name": "Export Employee Plan",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Accept", "value": "application/json", "type": "text" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/marketing/reports/export/{{plan_id}}?format=pdf",
+              "host": ["{{base_url}}"],
+              "path": ["marketing", "reports", "export", "{{plan_id}}"],
+              "query": [
+                { "key": "format", "value": "pdf", "description": "pdf, excel, or csv" }
+              ]
+            },
+            "description": "Export employee marketing plan as PDF, Excel, or CSV."
+          }
+        },
+        {
+          "name": "Export Developer Plan",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Accept", "value": "application/json", "type": "text" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/marketing/reports/developer-plan/export/{{contract_id}}?format=pdf",
+              "host": ["{{base_url}}"],
+              "path": ["marketing", "reports", "developer-plan", "export", "{{contract_id}}"],
+              "query": [
+                { "key": "format", "value": "pdf", "description": "pdf, excel, or csv" }
+              ]
+            },
+            "description": "Export developer marketing plan by contract_id."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Budget Distributions",
+      "item": [
+        {
+          "name": "Get Budget Distribution by Project",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Accept", "value": "application/json", "type": "text" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/marketing/budget-distributions/{{project_id}}?plan_type=employee",
+              "host": ["{{base_url}}"],
+              "path": ["marketing", "budget-distributions", "{{project_id}}"],
+              "query": [
+                { "key": "plan_type", "value": "employee", "description": "employee or developer" }
+              ]
+            },
+            "description": "Get budget distribution for a marketing project. Optional plan_type filter."
+          }
+        },
+        {
+          "name": "Calculate Budget Distribution",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Accept", "value": "application/json", "type": "text" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/marketing/budget-distributions/{{distribution_id}}/calculate",
+              "host": ["{{base_url}}"],
+              "path": ["marketing", "budget-distributions", "{{distribution_id}}", "calculate"]
+            },
+            "description": "Recalculate budget distribution results. No body; uses existing distribution data."
+          }
+        },
+        {
+          "name": "Get Budget Distribution Results",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Accept", "value": "application/json", "type": "text" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/marketing/budget-distributions/{{distribution_id}}/results",
+              "host": ["{{base_url}}"],
+              "path": ["marketing", "budget-distributions", "{{distribution_id}}", "results"]
+            },
+            "description": "Returns platform budgets, leads, direct_contacts, expected_bookings, expected_revenue, cost_per_booking."
+          }
+        }
+      ]
+    }
+  ]
+}

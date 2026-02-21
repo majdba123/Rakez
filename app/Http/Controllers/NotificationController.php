@@ -1,0 +1,183 @@
+<?php
+
+namespace App\Http\Controllers;
+
+use App\Models\UserNotification;
+use App\Models\AdminNotification;
+use App\Events\UserNotificationEvent;
+use App\Events\PublicNotificationEvent;
+use App\Http\Resources\AdminNotificationResource;
+use App\Http\Resources\UserNotificationResource;
+use App\Http\Responses\ApiResponse;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Http\Request;
+use Illuminate\Http\JsonResponse;
+
+class NotificationController extends Controller
+{
+    // ==========================================
+    // ADMIN APIs
+    // ==========================================
+
+    /**
+     * Get admin's notifications
+     */
+    public function getAdminNotifications(Request $request): JsonResponse
+    {
+        $query = AdminNotification::where('user_id', $request->user()->id)
+            ->orderBy('created_at', 'desc');
+
+        return $this->paginateNotifications($query, $request, 'admin');
+    }
+
+    /**
+     * Paginate notifications query and return JSON response.
+     *
+     * @param Builder $query
+     * @param Request $request
+     * @param string $type 'admin'|'user'
+     */
+    private function paginateNotifications(Builder $query, Request $request, string $type = 'user'): JsonResponse
+    {
+        $perPage = ApiResponse::getPerPage($request);
+        $paginator = $query->paginate($perPage);
+
+        $resource = $type === 'admin'
+            ? AdminNotificationResource::class
+            : UserNotificationResource::class;
+
+        return ApiResponse::success(
+            $resource::collection($paginator->items())->resolve(),
+            'تمت العملية بنجاح',
+            200,
+            [
+                'pagination' => [
+                    'total' => $paginator->total(),
+                    'count' => $paginator->count(),
+                    'per_page' => $paginator->perPage(),
+                    'current_page' => $paginator->currentPage(),
+                    'total_pages' => $paginator->lastPage(),
+                    'has_more_pages' => $paginator->hasMorePages(),
+                ],
+            ]
+        );
+    }
+
+    /**
+     * Send notification to specific user
+     */
+    public function sendToUser(Request $request): JsonResponse
+    {
+        $request->validate([
+            'user_id' => 'required|exists:users,id',
+            'message' => 'required|string',
+        ]);
+
+        $notification = UserNotification::create([
+            'user_id' => $request->user_id,
+            'message' => $request->message,
+        ]);
+
+        event(new UserNotificationEvent($request->user_id, $request->message));
+
+        return ApiResponse::created(
+            (new UserNotificationResource($notification))->resolve(),
+            'Notification sent to user'
+        );
+    }
+
+    /**
+     * Send public notification
+     */
+    public function sendPublic(Request $request): JsonResponse
+    {
+        $request->validate([
+            'message' => 'required|string',
+        ]);
+
+        $notification = UserNotification::create([
+            'user_id' => null,
+            'message' => $request->message,
+        ]);
+
+        event(new PublicNotificationEvent($request->message));
+
+        return ApiResponse::created(
+            (new UserNotificationResource($notification))->resolve(),
+            'Public notification sent'
+        );
+    }
+
+    /**
+     * Get all notifications of specific user (admin view)
+     */
+    public function getUserNotificationsByAdmin($userId, Request $request): JsonResponse
+    {
+        $query = UserNotification::where('user_id', $userId)
+            ->orderBy('created_at', 'desc');
+
+        return $this->paginateNotifications($query, $request, 'user');
+    }
+
+    /**
+     * Get all public notifications (admin view)
+     */
+    public function getAllPublicNotifications(Request $request): JsonResponse
+    {
+        $query = UserNotification::whereNull('user_id')
+            ->orderBy('created_at', 'desc');
+
+        return $this->paginateNotifications($query, $request, 'user');
+    }
+
+    // ==========================================
+    // USER APIs
+    // ==========================================
+
+    /**
+     * Get user's private notifications only
+     */
+    public function getUserPrivateNotifications(Request $request): JsonResponse
+    {
+        $query = UserNotification::where('user_id', $request->user()->id)
+            ->orderBy('created_at', 'desc');
+
+        return $this->paginateNotifications($query, $request, 'user');
+    }
+
+    /**
+     * Get public notifications
+     */
+    public function getPublicNotifications(Request $request): JsonResponse
+    {
+        $query = UserNotification::whereNull('user_id')
+            ->orderBy('created_at', 'desc');
+
+        return $this->paginateNotifications($query, $request, 'user');
+    }
+
+    /**
+     * Mark all user notifications as read
+     */
+    public function userMarkAllAsRead(Request $request): JsonResponse
+    {
+        UserNotification::where('user_id', $request->user()->id)
+            ->where('status', 'pending')
+            ->update(['status' => 'read']);
+
+        return ApiResponse::success(null, 'All notifications marked as read');
+    }
+
+    /**
+     * Mark specific notification as read
+     */
+    public function userMarkAsRead(Request $request, $id): JsonResponse
+    {
+        $notification = UserNotification::where('user_id', $request->user()->id)
+            ->findOrFail($id);
+
+        $notification->update(['status' => 'read']);
+
+        return ApiResponse::success(null, 'Notification marked as read');
+    }
+}
