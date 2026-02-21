@@ -281,7 +281,6 @@ class SalesProjectTest extends TestCase
 =======
     }
 <<<<<<< HEAD
-<<<<<<< HEAD
 
     public function test_project_assignment_with_date_range()
     {
@@ -452,8 +451,6 @@ class SalesProjectTest extends TestCase
         $this->assertEquals($salesUser1->id, $reservations[0]['marketing_employee_id']);
 >>>>>>> parent of ad8e607 (Add Edits and Fixes)
     }
-=======
->>>>>>> parent of 29c197a (Add edits)
 =======
 >>>>>>> parent of 29c197a (Add edits)
 }

@@ -95,7 +95,16 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::post('/logout', [LoginController::class, 'logout']);
 
+<<<<<<< HEAD
+    // Notifications proxy: GET /api/notifications (dispatches to credit or accounting by role)
+    Route::get('notifications', [NotificationsProxyController::class, 'index']);
+    Route::post('notifications/{id}/read', [NotificationsProxyController::class, 'markAsRead']);
+    Route::post('notifications/read-all', [NotificationsProxyController::class, 'markAllAsRead']);
+
+    Route::prefix('ai')->middleware(['throttle:ai-assistant', 'permission:use-ai-assistant'])->group(function () {
+=======
     Route::prefix('ai')->middleware('throttle:ai-assistant')->group(function () {
+>>>>>>> parent of ad8e607 (Add Edits and Fixes)
         Route::post('/ask', [AIAssistantController::class, 'ask']);
         Route::post('/chat', [AIAssistantController::class, 'chat']);
         Route::get('/conversations', [AIAssistantController::class, 'conversations']);
@@ -471,6 +480,9 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('employee-plans', [EmployeeMarketingPlanController::class, 'store'])->middleware('permission:marketing.plans.create');
         Route::post('employee-plans/auto-generate', [EmployeeMarketingPlanController::class, 'autoGenerate'])->middleware('permission:marketing.plans.create');
 
+        // Expected Sales
+        Route::get('expected-sales/{projectId}', [ExpectedSalesController::class, 'calculate'])->middleware('permission:marketing.budgets.manage');
+        Route::put('settings/conversion-rate', [ExpectedSalesController::class, 'updateConversionRate'])->middleware('permission:marketing.budgets.manage');
 
         // Tasks
         Route::get('tasks', [MarketingModuleTaskController::class, 'index'])->middleware('permission:marketing.tasks.view');
@@ -478,6 +490,10 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::put('tasks/{taskId}', [MarketingModuleTaskController::class, 'update'])->middleware('permission:marketing.tasks.confirm');
         Route::patch('tasks/{taskId}/status', [MarketingModuleTaskController::class, 'updateStatus'])->middleware('permission:marketing.tasks.confirm');
 
+        // Team Management
+        Route::post('projects/{projectId}/team', [TeamManagementController::class, 'assignTeam'])->middleware('permission:marketing.projects.view');
+        Route::get('projects/{projectId}/team', [TeamManagementController::class, 'getTeam'])->middleware('permission:marketing.projects.view');
+        Route::get('projects/{projectId}/recommend-employee', [TeamManagementController::class, 'recommendEmployee'])->middleware('permission:marketing.projects.view');
 
         // Leads
         Route::get('leads', [LeadController::class, 'index'])->middleware('permission:marketing.projects.view');
@@ -660,6 +676,10 @@ Route::middleware('auth:sanctum')->group(function () {
         }
 
         return response()->file($filePath);
+<<<<<<< HEAD
+    })->where('path', '.*')->middleware('permission:contracts.view');
+});
+=======
     })->where('path', '.*');
     });
 
@@ -686,6 +706,7 @@ Route::middleware('auth:sanctum')->group(function () {
         // Dashboard route is defined in the first HR route group above (line ~357)
 
     });
+>>>>>>> parent of ad8e607 (Add Edits and Fixes)
 
 
 
