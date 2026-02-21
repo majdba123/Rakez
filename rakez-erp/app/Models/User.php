@@ -260,12 +260,8 @@ class User extends Authenticatable
             $roleName = 'sales_leader';
         }
 
-        // Verify role exists before assignment
         if (\Spatie\Permission\Models\Role::where('name', $roleName)->exists()) {
             $this->syncRoles([$roleName]);
-            
-            // Clear permission cache to ensure fresh permissions are loaded
-            app()[\Spatie\Permission\PermissionRegistrar::class]->forgetCachedPermissions();
         }
     }
 
