@@ -199,6 +199,7 @@ return [
             'marketing.teams.view',
             'marketing.teams.manage',
 <<<<<<< HEAD
+<<<<<<< HEAD
             'exclusive_projects.view',
 =======
 >>>>>>> parent of 29c197a (Add edits)
@@ -210,6 +211,8 @@ return [
 >>>>>>> parent of 29c197a (Add edits)
 =======
 >>>>>>> parent of 29c197a (Add edits)
+=======
+>>>>>>> parent of ad8e607 (Add Edits and Fixes)
             'exclusive_projects.request',
             'exclusive_projects.approve',
             'exclusive_projects.contract.complete',
@@ -411,6 +414,61 @@ return [
             'exclusive_projects.contract.export',
             'use-ai-assistant',
         ],
+<<<<<<< HEAD
+=======
+        'sales' => [
+            'sales.dashboard.view',
+            'sales.projects.view',
+            'sales.units.view',
+            'sales.units.book',
+            'sales.reservations.create',
+            'sales.reservations.view',
+            'sales.reservations.confirm',
+            'sales.reservations.cancel',
+            'sales.waiting_list.create',
+            'sales.goals.view',
+            'sales.schedule.view',
+            'sales.targets.view',
+            'sales.targets.update',
+            'sales.attendance.view',
+            'notifications.view',
+            'exclusive_projects.request',
+            'exclusive_projects.contract.complete',
+            'exclusive_projects.contract.export',
+            'use-ai-assistant',
+        ],
+        'sales_leader' => [
+            // Inherits all sales permissions
+            'sales.dashboard.view',
+            'sales.projects.view',
+            'sales.units.view',
+            'sales.units.book',
+            'sales.reservations.create',
+            'sales.reservations.view',
+            'sales.reservations.confirm',
+            'sales.reservations.cancel',
+            'sales.waiting_list.create',
+            'sales.waiting_list.convert',
+            'sales.goals.view',
+            'sales.goals.create',
+            'sales.schedule.view',
+            'sales.targets.view',
+            'sales.targets.update',
+            'sales.team.manage',
+            'sales.attendance.view',
+            'sales.attendance.manage',
+            'sales.tasks.manage',
+            'sales.tasks.create_for_marketing',
+            'sales.projects.allocate_shifts',
+            'sales.negotiation.approve',
+            'sales.payment-plan.manage',
+            'notifications.view',
+            'exclusive_projects.request',
+            'exclusive_projects.contract.complete',
+            'exclusive_projects.contract.export',
+            'use-ai-assistant',
+        ],
+>>>>>>> parent of ad8e607 (Add Edits and Fixes)
         'hr' => [
             'hr.dashboard.view',
             'hr.teams.manage',

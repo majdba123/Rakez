@@ -11,6 +11,7 @@ use App\Services\Marketing\TeamManagementService;
 <<<<<<< HEAD
 use App\Models\Team;
 <<<<<<< HEAD
+<<<<<<< HEAD
 use App\Http\Responses\ApiResponse;
 =======
 >>>>>>> parent of 29c197a (Add edits)
@@ -22,6 +23,8 @@ use App\Http\Responses\ApiResponse;
 >>>>>>> parent of 29c197a (Add edits)
 =======
 >>>>>>> parent of 29c197a (Add edits)
+=======
+>>>>>>> parent of ad8e607 (Add Edits and Fixes)
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -36,7 +39,11 @@ class TeamManagementController extends Controller
 <<<<<<< HEAD
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
     public function index(Request $request): JsonResponse
+=======
+    public function index(): JsonResponse
+>>>>>>> parent of ad8e607 (Add Edits and Fixes)
 =======
     public function index(): JsonResponse
 >>>>>>> parent of ad8e607 (Add Edits and Fixes)

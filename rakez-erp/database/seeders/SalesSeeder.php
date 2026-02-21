@@ -63,6 +63,7 @@ class SalesSeeder extends Seeder
                 $endDate = now()->addDays(fake()->numberBetween(90, 240))->toDateString();
             }
 <<<<<<< HEAD
+<<<<<<< HEAD
 
 =======
 >>>>>>> parent of 29c197a (Add edits)
@@ -75,6 +76,9 @@ class SalesSeeder extends Seeder
 >>>>>>> parent of 29c197a (Add edits)
 =======
 >>>>>>> parent of 29c197a (Add edits)
+=======
+            
+>>>>>>> parent of ad8e607 (Add Edits and Fixes)
             SalesProjectAssignment::firstOrCreate(
                 ['leader_id' => Arr::random($salesLeaders), 'contract_id' => $contractId],
                 ['assigned_by' => Arr::random($salesLeaders)]

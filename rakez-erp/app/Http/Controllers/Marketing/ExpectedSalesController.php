@@ -12,6 +12,7 @@ use App\Models\MarketingSetting;
 <<<<<<< HEAD
 use App\Models\ExpectedBooking;
 <<<<<<< HEAD
+<<<<<<< HEAD
 use App\Http\Responses\ApiResponse;
 =======
 >>>>>>> parent of 29c197a (Add edits)
@@ -23,6 +24,8 @@ use App\Http\Responses\ApiResponse;
 >>>>>>> parent of 29c197a (Add edits)
 =======
 >>>>>>> parent of 29c197a (Add edits)
+=======
+>>>>>>> parent of ad8e607 (Add Edits and Fixes)
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
