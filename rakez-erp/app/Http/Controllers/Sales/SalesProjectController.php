@@ -212,7 +212,6 @@ class SalesProjectController extends Controller
                 'message' => 'Failed to assign project: ' . $e->getMessage(),
 <<<<<<< HEAD
 <<<<<<< HEAD
-<<<<<<< HEAD
             ], $statusCode);
         }
     }
@@ -250,8 +249,6 @@ class SalesProjectController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to retrieve assignments: ' . $e->getMessage(),
-=======
->>>>>>> parent of 29c197a (Add edits)
 =======
 >>>>>>> parent of 29c197a (Add edits)
 =======
