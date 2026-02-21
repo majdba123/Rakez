@@ -32,6 +32,7 @@ class SalesProjectResource extends JsonResource
             'total_units' => $this->total_units ?? 0,
             'available_units' => $this->available_units ?? 0,
             'reserved_units' => $this->reserved_units ?? 0,
+            'remaining_days' => $this->remaining_days,
             'created_at' => $this->created_at?->toIso8601String(),
         ];
     }

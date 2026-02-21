@@ -120,6 +120,8 @@ return [
         'marketing.tasks.view' => 'View marketing tasks and achievement rates.',
         'marketing.tasks.confirm' => 'Confirm daily task execution.',
         'marketing.reports.view' => 'View performance and budget reports.',
+        'marketing.teams.view' => 'View marketing teams.',
+        'marketing.teams.manage' => 'Manage marketing teams and assign campaigns.',
 
         // Exclusive Projects
         'exclusive_projects.view' => 'View exclusive project requests.',
@@ -227,12 +229,9 @@ return [
             'marketing.tasks.view',
             'marketing.tasks.confirm',
             'marketing.reports.view',
-<<<<<<< HEAD
             'marketing.teams.view',
             'marketing.teams.manage',
             'exclusive_projects.view',
-=======
->>>>>>> parent of 29c197a (Add edits)
             'exclusive_projects.request',
             'exclusive_projects.approve',
             'exclusive_projects.contract.complete',
@@ -315,6 +314,8 @@ return [
             'marketing.tasks.view',
             'marketing.tasks.confirm',
             'marketing.reports.view',
+            'marketing.teams.view',
+            'marketing.teams.manage',
             'notifications.view',
             'exclusive_projects.request',
             'exclusive_projects.contract.complete',

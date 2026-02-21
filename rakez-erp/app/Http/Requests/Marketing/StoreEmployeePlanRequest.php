@@ -9,7 +9,7 @@ class StoreEmployeePlanRequest extends FormRequest
     private const PLATFORMS = [
         'TikTok',
         'Meta',
-        'Snap',
+        'Snapchat',
         'YouTube',
         'LinkedIn',
         'X',

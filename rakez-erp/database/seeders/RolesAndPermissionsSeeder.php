@@ -19,8 +19,11 @@ class RolesAndPermissionsSeeder extends Seeder
         // Reset cached roles and permissions
         app()[PermissionRegistrar::class]->forgetCachedPermissions();
 
-        // Disable foreign key checks to prevent deadlocks
-        \DB::statement('SET FOREIGN_KEY_CHECKS=0;');
+        // Disable foreign key checks to prevent deadlocks (MySQL only)
+        $driver = \DB::getDriverName();
+        if ($driver === 'mysql') {
+            \DB::statement('SET FOREIGN_KEY_CHECKS=0;');
+        }
 
         try {
             // 1. Create Permissions from config definitions
@@ -70,8 +73,10 @@ class RolesAndPermissionsSeeder extends Seeder
                 usleep(20000); // 20ms
             }
         } finally {
-            // Re-enable foreign key checks
-            \DB::statement('SET FOREIGN_KEY_CHECKS=1;');
+            // Re-enable foreign key checks (MySQL only)
+            if ($driver === 'mysql') {
+                \DB::statement('SET FOREIGN_KEY_CHECKS=1;');
+            }
         }
 
         // 3. Assign Roles to Existing Users based on their 'type' column

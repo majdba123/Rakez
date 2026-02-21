@@ -4,12 +4,10 @@ namespace App\Http\Controllers\Marketing;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Marketing\AssignTeamRequest;
+use App\Http\Requests\Marketing\AssignCampaignRequest;
 use App\Services\Marketing\TeamManagementService;
-<<<<<<< HEAD
 use App\Models\Team;
 use App\Http\Responses\ApiResponse;
-=======
->>>>>>> parent of 29c197a (Add edits)
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -19,7 +17,6 @@ class TeamManagementController extends Controller
         private TeamManagementService $teamService
     ) {}
 
-<<<<<<< HEAD
     public function index(Request $request): JsonResponse
     {
         $this->authorize('marketing.teams.view');
@@ -73,8 +70,6 @@ class TeamManagementController extends Controller
         ]);
     }
 
-=======
->>>>>>> parent of 29c197a (Add edits)
     public function assignTeam(int $projectId, AssignTeamRequest $request): JsonResponse
     {
         $assignments = $this->teamService->assignTeamToProject(

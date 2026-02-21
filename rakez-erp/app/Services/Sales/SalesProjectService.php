@@ -49,6 +49,7 @@ class SalesProjectService
             $contract->total_units = $contract->secondPartyData->contractUnits()->count() ?? 0;
             $contract->available_units = $this->getAvailableUnitsCount($contract);
             $contract->reserved_units = $this->getReservedUnitsCount($contract);
+            $contract->remaining_days = $this->getProjectRemainingDays($contract);
             return $contract;
         });
 
@@ -79,6 +80,7 @@ class SalesProjectService
         $contract->total_units = $contract->secondPartyData->contractUnits()->count() ?? 0;
         $contract->available_units = $this->getAvailableUnitsCount($contract);
         $contract->reserved_units = $this->getReservedUnitsCount($contract);
+        $contract->remaining_days = $this->getProjectRemainingDays($contract);
 
         return $contract;
     }
@@ -295,10 +297,11 @@ class SalesProjectService
      */
     protected function applyScopeFilter($query, string $scope, User $user): void
     {
-        // If user is sales_leader, strictly restrict to assigned projects
+        // If user is sales_leader, strictly restrict to assigned projects (active assignments only)
         if ($user->hasRole('sales_leader')) {
             $query->whereHas('salesProjectAssignments', function ($q) use ($user) {
-                $q->where('leader_id', $user->id);
+                $q->where('leader_id', $user->id)
+                  ->active();
             });
             return;
         }
@@ -306,14 +309,16 @@ class SalesProjectService
         // For other roles, apply existing logic
         if ($scope === 'me' && $user->isSalesLeader()) {
             $query->whereHas('salesProjectAssignments', function ($q) use ($user) {
-                $q->where('leader_id', $user->id);
+                $q->where('leader_id', $user->id)
+                  ->active();
             });
         } elseif ($scope === 'team' && $user->team) {
             $teamLeaderIds = User::where('team', $user->team)
                 ->where('is_manager', true)
                 ->pluck('id');
             $query->whereHas('salesProjectAssignments', function ($q) use ($teamLeaderIds) {
-                $q->whereIn('leader_id', $teamLeaderIds);
+                $q->whereIn('leader_id', $teamLeaderIds)
+                  ->active();
             });
         }
         // 'all' scope has no filter
@@ -324,9 +329,8 @@ class SalesProjectService
      */
     public function getTeamProjects(User $leader): \Illuminate\Database\Eloquent\Collection
     {
-        // Strictly restrict to assigned projects for leaders
+        // Strictly restrict to assigned projects for leaders (active assignments only)
         return Contract::whereHas('salesProjectAssignments', function ($q) use ($leader) {
-<<<<<<< HEAD
             $q->where('leader_id', $leader->id)
               ->active();
         })->with(['secondPartyData.contractUnits', 'salesProjectAssignments.leader', 'user'])->get();
@@ -359,10 +363,6 @@ class SalesProjectService
         });
 
         return $projects;
-=======
-            $q->where('leader_id', $leader->id);
-        })->with('secondPartyData.contractUnits')->get();
->>>>>>> parent of 29c197a (Add edits)
     }
 
     /**
@@ -405,6 +405,7 @@ class SalesProjectService
             $contract->total_units = $contract->secondPartyData->contractUnits()->count() ?? 0;
             $contract->available_units = $this->getAvailableUnitsCount($contract);
             $contract->reserved_units = $this->getReservedUnitsCount($contract);
+            $contract->remaining_days = $this->getProjectRemainingDays($contract);
             return $contract;
         });
 
@@ -412,26 +413,43 @@ class SalesProjectService
     }
 
     /**
-     * Assign a project to a leader.
+     * Assign a project to a leader with optional date range.
      */
-    public function assignProjectToLeader(int $leaderId, int $contractId, int $assignerId): \App\Models\SalesProjectAssignment
+    public function assignProjectToLeader(int $leaderId, int $contractId, int $assignerId, ?string $startDate = null, ?string $endDate = null): \App\Models\SalesProjectAssignment
     {
-        // First, check if assignment already exists
-        $existing = \App\Models\SalesProjectAssignment::where('leader_id', $leaderId)
-            ->where('contract_id', $contractId)
-            ->first();
-            
-        if ($existing) {
-            return $existing;
+        // Validate date range
+        if ($startDate && $endDate && $startDate > $endDate) {
+            throw new \Exception('تاريخ البداية يجب أن يكون قبل تاريخ النهاية');
         }
 
+        // Create a temporary assignment object to check for overlaps
+        $newAssignment = new \App\Models\SalesProjectAssignment([
+            'leader_id' => $leaderId,
+            'contract_id' => $contractId,
+            'start_date' => $startDate,
+            'end_date' => $endDate,
+        ]);
+
+        // Check for overlapping assignments for the same leader
+        $existingAssignments = \App\Models\SalesProjectAssignment::where('leader_id', $leaderId)
+            ->where('id', '!=', $newAssignment->id ?? 0)
+            ->get();
+
+        foreach ($existingAssignments as $existing) {
+            if ($newAssignment->overlapsWith($existing)) {
+                throw new \Exception('يوجد تعيين نشط آخر للمسوق في نفس الفترة الزمنية');
+            }
+        }
+
+        // Create the assignment
         return \App\Models\SalesProjectAssignment::create([
             'leader_id' => $leaderId,
             'contract_id' => $contractId,
             'assigned_by' => $assignerId,
+            'start_date' => $startDate,
+            'end_date' => $endDate,
         ]);
     }
-<<<<<<< HEAD
 
     /**
      * Get active assignment for a leader on a specific date.
@@ -485,6 +503,4 @@ class SalesProjectService
             })
             ->count();
     }
-=======
->>>>>>> parent of 29c197a (Add edits)
 }

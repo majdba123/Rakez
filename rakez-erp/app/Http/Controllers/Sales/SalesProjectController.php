@@ -205,12 +205,16 @@ class SalesProjectController extends Controller
             $validated = $request->validate([
                 'leader_id' => 'required|exists:users,id',
                 'contract_id' => 'required|exists:contracts,id',
+                'start_date' => 'nullable|date',
+                'end_date' => 'nullable|date|after_or_equal:start_date',
             ]);
 
             $assignment = $this->projectService->assignProjectToLeader(
                 $validated['leader_id'],
                 $validated['contract_id'],
-                $request->user()->id
+                $request->user()->id,
+                $validated['start_date'] ?? null,
+                $validated['end_date'] ?? null
             );
 
             return response()->json([
@@ -219,10 +223,13 @@ class SalesProjectController extends Controller
                 'data' => $assignment,
             ], 201);
         } catch (\Exception $e) {
+            $statusCode = 500;
+            if (str_contains($e->getMessage(), 'تاريخ') || str_contains($e->getMessage(), 'تعيين')) {
+                $statusCode = 400;
+            }
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to assign project: ' . $e->getMessage(),
-<<<<<<< HEAD
             ], $statusCode);
         }
     }
@@ -273,8 +280,6 @@ class SalesProjectController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to retrieve assignments: ' . $e->getMessage(),
-=======
->>>>>>> parent of 29c197a (Add edits)
             ], 500);
         }
     }

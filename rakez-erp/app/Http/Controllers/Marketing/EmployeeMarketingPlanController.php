@@ -15,9 +15,8 @@ class EmployeeMarketingPlanController extends Controller
         private EmployeeMarketingPlanService $planService
     ) {}
 
-    public function index(int $projectId): JsonResponse
+    public function index(Request $request, ?int $projectId = null): JsonResponse
     {
-<<<<<<< HEAD
         $query = EmployeeMarketingPlan::with('user');
 
         // Support both route parameter and query parameter for backward compatibility
@@ -36,13 +35,6 @@ class EmployeeMarketingPlanController extends Controller
         $plans = $query->orderBy('created_at', 'desc')->paginate($perPage);
 
         return ApiResponse::paginated($plans, 'تم جلب قائمة خطط التسويق بنجاح');
-=======
-        $plans = EmployeeMarketingPlan::where('marketing_project_id', $projectId)->with('user')->get();
-        return response()->json([
-            'success' => true,
-            'data' => $plans
-        ]);
->>>>>>> parent of 29c197a (Add edits)
     }
 
     public function show(int $planId): JsonResponse
