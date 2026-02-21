@@ -277,7 +277,6 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::get('/show/{contractId}', [ContractUnitController::class, 'indexByContract'])->middleware('permission:units.view');
         });
 
-        // NOTE: locations moved under /inventory/contracts/locations (GET/POST) above.
     });
 
     // ==========================================
@@ -401,9 +400,7 @@ Route::middleware('auth:sanctum')->group(function () {
             });
         });
 
-    // ==========================================
-    // EXCLUSIVE PROJECT ROUTES (All except HR)
-    // ==========================================
+
     Route::prefix('exclusive-projects')->middleware(['auth:sanctum'])->group(function () {
         Route::get('/', [ExclusiveProjectController::class, 'index'])->middleware('permission:exclusive_projects.view');
         Route::get('/{id}', [ExclusiveProjectController::class, 'show'])->middleware('permission:exclusive_projects.view');
@@ -414,12 +411,10 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/{id}/export', [ExclusiveProjectController::class, 'exportContract'])->middleware('permission:exclusive_projects.contract.export');
     });
 
-    // ==========================================
-    // HR DEPARTMENT ROUTES
-    // ==========================================
+
+
     Route::prefix('hr')->middleware(['auth:sanctum', 'role:hr|admin'])->group(function () {
 
-        // Dashboard
         Route::get('dashboard', [HrDashboardController::class, 'index'])->middleware('permission:hr.dashboard.view');
         Route::post('dashboard/refresh', [HrDashboardController::class, 'refresh'])->middleware('permission:hr.dashboard.view');
 
@@ -719,7 +714,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
         return response()->file($filePath);
     })->where('path', '.*')->middleware('permission:contracts.view');
-    });
+});
 
 
 
