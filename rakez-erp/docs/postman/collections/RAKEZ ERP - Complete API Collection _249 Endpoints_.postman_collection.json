@@ -2972,11 +2972,14 @@
                   {
                     "key": "Accept",
                     "value": "application/json"
+<<<<<<< HEAD
 >>>>>>> parent of ad8e607 (Add Edits and Fixes)
                   },
                   {
                     "key": "Authorization",
                     "value": "Bearer {{auth_token}}"
+=======
+>>>>>>> parent of 29c197a (Add edits)
                   }
 <<<<<<< HEAD
 =======
@@ -5896,8 +5899,12 @@
                 ],
                 "body": {
                   "mode": "raw",
+<<<<<<< HEAD
                   "raw": "{\n    \"leader_id\": 1,\n    \"contract_id\": 1,\n    \"start_date\": \"2026-02-01\",\n    \"end_date\": \"2026-08-01\"\n}",
 >>>>>>> parent of ad8e607 (Add Edits and Fixes)
+=======
+                  "raw": "{\n    \"contract_id\": 1,\n    \"team_id\": 1,\n    \"assigned_date\": \"2026-02-04\"\n}",
+>>>>>>> parent of 29c197a (Add edits)
                   "options": {
                     "raw": {
                       "language": "json"
@@ -5915,6 +5922,7 @@
                     "project-assignments"
                   ]
                 },
+<<<<<<< HEAD
 <<<<<<< HEAD
                 "description": "Assign project to sales team.\n\n**Roles**: admin\n**Permissions**: sales.team.manage"
 =======
@@ -5951,6 +5959,9 @@
                 },
                 "description": "Get all project assignments for the current sales leader.\n\n**Roles**: sales_leader, sales\n**Permissions**: sales.projects.view\n\n**Response includes:**\n- Assignment ID\n- Contract/Project details\n- Start and end dates\n- Active status\n- Assigned by information"
 >>>>>>> parent of ad8e607 (Add Edits and Fixes)
+=======
+                "description": "Assign project to sales team.\n\n**Roles**: admin\n**Permissions**: sales.team.manage"
+>>>>>>> parent of 29c197a (Add edits)
               },
               "response": []
             }
@@ -7857,16 +7868,21 @@
                 ],
                 "url": {
 <<<<<<< HEAD
+<<<<<<< HEAD
                   "raw": "{{base_url}}/marketing/plans/developer",
 =======
                   "raw": "{{base_url}}/marketing/plans/developer/{{contract_id}}",
 >>>>>>> parent of ad8e607 (Add Edits and Fixes)
+=======
+                  "raw": "{{base_url}}/marketing/plans/developer",
+>>>>>>> parent of 29c197a (Add edits)
                   "host": [
                     "{{base_url}}"
                   ],
                   "path": [
                     "marketing",
                     "plans",
+<<<<<<< HEAD
 <<<<<<< HEAD
                     "developer"
                   ]
@@ -7879,6 +7895,12 @@
                 },
                 "description": "Get developer marketing plan for a contract.\n\n**Roles**: marketing, admin\n**Permissions**: marketing.plans.create"
 >>>>>>> parent of ad8e607 (Add Edits and Fixes)
+=======
+                    "developer"
+                  ]
+                },
+                "description": "Get developer marketing plans.\n\n**Roles**: marketing, admin\n**Permissions**: marketing.plans.manage"
+>>>>>>> parent of 29c197a (Add edits)
               },
               "response": []
             },
@@ -7896,10 +7918,14 @@
                 "body": {
                   "mode": "raw",
 <<<<<<< HEAD
+<<<<<<< HEAD
                   "raw": "{\n    \"developer_id\": 1,\n    \"campaign_name\": \"Summer Launch 2026\",\n    \"budget\": 500000,\n    \"start_date\": \"2026-06-01\",\n    \"end_date\": \"2026-08-31\"\n}",
 =======
                   "raw": "{\n    \"contract_id\": 1,\n    \"average_cpm\": 10.5,\n    \"average_cpc\": 2.5,\n    \"marketing_value\": 50000,\n    \"expected_impressions\": 1000000,\n    \"expected_clicks\": 50000\n}",
 >>>>>>> parent of ad8e607 (Add Edits and Fixes)
+=======
+                  "raw": "{\n    \"developer_id\": 1,\n    \"campaign_name\": \"Summer Launch 2026\",\n    \"budget\": 500000,\n    \"start_date\": \"2026-06-01\",\n    \"end_date\": \"2026-08-31\"\n}",
+>>>>>>> parent of 29c197a (Add edits)
                   "options": {
                     "raw": {
                       "language": "json"
@@ -7918,10 +7944,14 @@
                   ]
                 },
 <<<<<<< HEAD
+<<<<<<< HEAD
                 "description": "Create developer marketing plan.\n\n**Roles**: marketing, admin\n**Permissions**: marketing.plans.manage"
 =======
                 "description": "Create or update developer marketing plan.\n\n**Roles**: marketing, admin\n**Permissions**: marketing.plans.create"
 >>>>>>> parent of ad8e607 (Add Edits and Fixes)
+=======
+                "description": "Create developer marketing plan.\n\n**Roles**: marketing, admin\n**Permissions**: marketing.plans.manage"
+>>>>>>> parent of 29c197a (Add edits)
               },
               "response": []
             },
@@ -7948,10 +7978,14 @@
                   ]
                 },
 <<<<<<< HEAD
+<<<<<<< HEAD
                 "description": "Get employee marketing plans.\n\n**Roles**: marketing, admin\n**Permissions**: marketing.plans.manage"
 =======
                 "description": "Get employee marketing plans. Can filter by project_id query parameter.\n\n**Roles**: marketing, admin\n**Permissions**: marketing.plans.create"
 >>>>>>> parent of ad8e607 (Add Edits and Fixes)
+=======
+                "description": "Get employee marketing plans.\n\n**Roles**: marketing, admin\n**Permissions**: marketing.plans.manage"
+>>>>>>> parent of 29c197a (Add edits)
               },
               "response": []
             },
@@ -7969,10 +8003,14 @@
                 "body": {
                   "mode": "raw",
 <<<<<<< HEAD
+<<<<<<< HEAD
                   "raw": "{\n    \"user_id\": 10,\n    \"project_id\": 5,\n    \"target_units\": 20,\n    \"period\": \"Q2 2026\"\n}",
 =======
                   "raw": "{\n    \"marketing_project_id\": 5,\n    \"user_id\": 10,\n    \"commission_value\": 20000,\n    \"marketing_value\": 2000,\n    \"platform_distribution\": {\n        \"TikTok\": 20,\n        \"Meta\": 20,\n        \"Snap\": 20,\n        \"YouTube\": 20,\n        \"LinkedIn\": 10,\n        \"X\": 10\n    },\n    \"campaign_distribution\": {\n        \"Direct Communication\": 30,\n        \"Hand Raise\": 30,\n        \"Impression\": 20,\n        \"Sales\": 20\n    }\n}",
 >>>>>>> parent of ad8e607 (Add Edits and Fixes)
+=======
+                  "raw": "{\n    \"user_id\": 10,\n    \"project_id\": 5,\n    \"target_units\": 20,\n    \"period\": \"Q2 2026\"\n}",
+>>>>>>> parent of 29c197a (Add edits)
                   "options": {
                     "raw": {
                       "language": "json"
@@ -7990,6 +8028,7 @@
                     "employee"
                   ]
                 },
+<<<<<<< HEAD
 <<<<<<< HEAD
                 "description": "Create employee marketing plan.\n\n**Roles**: marketing, admin\n**Permissions**: marketing.plans.manage"
 =======
@@ -8022,6 +8061,9 @@
                 },
                 "description": "Get employee marketing plan by ID.\n\n**Roles**: marketing, admin\n**Permissions**: marketing.plans.create"
 >>>>>>> parent of ad8e607 (Add Edits and Fixes)
+=======
+                "description": "Create employee marketing plan.\n\n**Roles**: marketing, admin\n**Permissions**: marketing.plans.manage"
+>>>>>>> parent of 29c197a (Add edits)
               },
               "response": []
             }
@@ -8053,10 +8095,14 @@
                   ]
                 },
 <<<<<<< HEAD
+<<<<<<< HEAD
                 "description": "Get expected sales forecast.\n\n**Roles**: marketing, admin\n**Permissions**: marketing.analytics.view"
 =======
                 "description": "List expected sales. Can filter by project_id, start_date, end_date query parameters.\n\n**Roles**: marketing, admin\n**Permissions**: marketing.budgets.manage"
 >>>>>>> parent of ad8e607 (Add Edits and Fixes)
+=======
+                "description": "Get expected sales forecast.\n\n**Roles**: marketing, admin\n**Permissions**: marketing.analytics.view"
+>>>>>>> parent of 29c197a (Add edits)
               },
               "response": []
             },
@@ -8074,10 +8120,14 @@
                 "body": {
                   "mode": "raw",
 <<<<<<< HEAD
+<<<<<<< HEAD
                   "raw": "{\n    \"project_id\": 5,\n    \"expected_units\": 15,\n    \"expected_revenue\": 25000000,\n    \"period\": \"2026-Q3\"\n}",
 =======
                   "raw": "{\n    \"project_id\": 5,\n    \"direct_communications\": 100,\n    \"hand_raises\": 50,\n    \"conversion_rate\": 2.5\n}",
 >>>>>>> parent of ad8e607 (Add Edits and Fixes)
+=======
+                  "raw": "{\n    \"project_id\": 5,\n    \"expected_units\": 15,\n    \"expected_revenue\": 25000000,\n    \"period\": \"2026-Q3\"\n}",
+>>>>>>> parent of 29c197a (Add edits)
                   "options": {
                     "raw": {
                       "language": "json"
@@ -8095,10 +8145,14 @@
                   ]
                 },
 <<<<<<< HEAD
+<<<<<<< HEAD
                 "description": "Create expected sales forecast.\n\n**Roles**: marketing, admin\n**Permissions**: marketing.analytics.manage"
 =======
                 "description": "Create or update expected sales forecast.\n\n**Roles**: marketing, admin\n**Permissions**: marketing.budgets.manage"
 >>>>>>> parent of ad8e607 (Add Edits and Fixes)
+=======
+                "description": "Create expected sales forecast.\n\n**Roles**: marketing, admin\n**Permissions**: marketing.analytics.manage"
+>>>>>>> parent of 29c197a (Add edits)
               },
               "response": []
             }
@@ -8366,10 +8420,14 @@
                   ]
                 },
 <<<<<<< HEAD
+<<<<<<< HEAD
                 "description": "Assign lead to sales agent.\n\n**Roles**: marketing, sales, admin\n**Permissions**: marketing.leads.manage"
 =======
                 "description": "Assign lead to a user.\n\n**Roles**: marketing, admin\n**Permissions**: marketing.projects.view"
 >>>>>>> parent of ad8e607 (Add Edits and Fixes)
+=======
+                "description": "Assign lead to sales agent.\n\n**Roles**: marketing, sales, admin\n**Permissions**: marketing.leads.manage"
+>>>>>>> parent of 29c197a (Add edits)
               },
               "response": []
             },
@@ -8387,10 +8445,14 @@
                 "body": {
                   "mode": "raw",
 <<<<<<< HEAD
+<<<<<<< HEAD
                   "raw": "{\n    \"contract_id\": 100\n}",
 =======
                   "raw": "{\n    \"reservation_id\": null,\n    \"notes\": \"Lead converted successfully\"\n}",
 >>>>>>> parent of ad8e607 (Add Edits and Fixes)
+=======
+                  "raw": "{\n    \"contract_id\": 100\n}",
+>>>>>>> parent of 29c197a (Add edits)
                   "options": {
                     "raw": {
                       "language": "json"
@@ -8410,10 +8472,14 @@
                   ]
                 },
 <<<<<<< HEAD
+<<<<<<< HEAD
                 "description": "Convert lead to contract.\n\n**Roles**: sales, admin\n**Permissions**: marketing.leads.manage"
 =======
                 "description": "Convert lead to converted status.\n\n**Roles**: marketing, admin\n**Permissions**: marketing.projects.view"
 >>>>>>> parent of ad8e607 (Add Edits and Fixes)
+=======
+                "description": "Convert lead to contract.\n\n**Roles**: sales, admin\n**Permissions**: marketing.leads.manage"
+>>>>>>> parent of 29c197a (Add edits)
               },
               "response": []
             }

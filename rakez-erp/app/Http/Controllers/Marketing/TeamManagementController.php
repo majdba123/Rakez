@@ -7,6 +7,7 @@ use App\Http\Requests\Marketing\AssignTeamRequest;
 use App\Services\Marketing\TeamManagementService;
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
 use App\Models\Team;
 <<<<<<< HEAD
 use App\Http\Responses\ApiResponse;
@@ -16,6 +17,8 @@ use App\Http\Responses\ApiResponse;
 >>>>>>> parent of 29c197a (Add edits)
 =======
 >>>>>>> parent of ad8e607 (Add Edits and Fixes)
+=======
+>>>>>>> parent of 29c197a (Add edits)
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -25,6 +28,7 @@ class TeamManagementController extends Controller
         private TeamManagementService $teamService
     ) {}
 
+<<<<<<< HEAD
 <<<<<<< HEAD
 <<<<<<< HEAD
 <<<<<<< HEAD
@@ -84,6 +88,8 @@ class TeamManagementController extends Controller
         ]);
     }
 
+=======
+>>>>>>> parent of 29c197a (Add edits)
 =======
 >>>>>>> parent of 29c197a (Add edits)
 =======

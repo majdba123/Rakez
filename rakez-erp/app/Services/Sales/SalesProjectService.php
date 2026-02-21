@@ -318,6 +318,7 @@ class SalesProjectService
         return Contract::whereHas('salesProjectAssignments', function ($q) use ($leader) {
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
             $q->where('leader_id', $leader->id)
               ->active();
 <<<<<<< HEAD
@@ -352,6 +353,8 @@ class SalesProjectService
 
         return $projects;
 =======
+=======
+>>>>>>> parent of 29c197a (Add edits)
 =======
 >>>>>>> parent of 29c197a (Add edits)
             $q->where('leader_id', $leader->id);
@@ -430,6 +433,7 @@ class SalesProjectService
     }
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
 
     /**
      * Get active assignment for a leader on a specific date.
@@ -490,4 +494,6 @@ class SalesProjectService
 >>>>>>> parent of 29c197a (Add edits)
 =======
 >>>>>>> parent of ad8e607 (Add Edits and Fixes)
+=======
+>>>>>>> parent of 29c197a (Add edits)
 }
