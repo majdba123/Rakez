@@ -28,6 +28,22 @@ class ReservationContextResource extends JsonResource
                 'name' => $request->user()->name,
                 'team' => $request->user()->team,
             ],
+            'readonly_project_unit_snapshot' => [
+                'project_name' => $this->contract->project_name ?? 'N/A',
+                'unit_number' => $this->unit_number,
+                'unit_type' => $this->unit_type,
+                'district' => $this->contract->district ?? 'N/A',
+                'location' => trim(($this->contract->city ?? '') . ', ' . ($this->contract->district ?? ''), ', '),
+                'area_m2' => (float) $this->area,
+                'total_unit_price' => (float) $this->price,
+                'marketing_employee_name' => $request->user()->name,
+                'marketing_team' => $request->user()->team,
+            ],
+            'flags' => [
+                'is_off_plan' => (bool) ($this->contract->is_off_plan ?? false),
+                'can_create_payment_plan' => (bool) ($this->contract->is_off_plan ?? false),
+                'requires_separate_title_transfer_date' => (bool) ($this->contract->is_off_plan ?? false),
+            ],
             'lookups' => [
                 'reservation_types' => [
                     ['value' => 'confirmed_reservation', 'label' => 'Confirmed Reservation'],

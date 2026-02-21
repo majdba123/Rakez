@@ -23,14 +23,11 @@ class RolesAndPermissionsSeeder extends Seeder
         \DB::statement('SET FOREIGN_KEY_CHECKS=0;');
 
         try {
-            // 1. Create Permissions
+            // 1. Create Permissions from config definitions
             $definitions = config('ai_capabilities.definitions', []);
             foreach ($definitions as $name => $description) {
                 Permission::firstOrCreate(['name' => $name, 'guard_name' => 'web']);
             }
-
-            // Ensure contracts.delete is created if not in config yet (though we just added it)
-            Permission::firstOrCreate(['name' => 'contracts.delete', 'guard_name' => 'web']);
 
             // 2. Create Roles and Assign Permissions
             $allPermissions = array_keys($definitions);
@@ -42,7 +39,7 @@ class RolesAndPermissionsSeeder extends Seeder
 
             foreach ($roleMap as $roleName => $permissions) {
                 $role = Role::firstOrCreate(['name' => $roleName, 'guard_name' => 'web']);
-                
+
                 // Use DB transaction for each role to avoid deadlocks
                 $retries = 3;
                 while ($retries > 0) {
@@ -52,7 +49,7 @@ class RolesAndPermissionsSeeder extends Seeder
                             \DB::table('role_has_permissions')
                                 ->where('role_id', $role->id)
                                 ->delete();
-                            
+
                             // Then sync new permissions
                             $role->syncPermissions($permissions);
                         });
@@ -68,7 +65,7 @@ class RolesAndPermissionsSeeder extends Seeder
                         }
                     }
                 }
-                
+
                 // Small delay to prevent concurrent lock conflicts
                 usleep(20000); // 20ms
             }

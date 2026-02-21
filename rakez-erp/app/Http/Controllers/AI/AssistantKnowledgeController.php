@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\AI\StoreKnowledgeRequest;
 use App\Http\Requests\AI\UpdateKnowledgeRequest;
 use App\Models\AssistantKnowledgeEntry;
+use App\Http\Responses\ApiResponse;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -47,27 +48,23 @@ class AssistantKnowledgeController extends Controller
             });
         }
 
-        $perPage = min((int) $request->input('per_page', 15), 100);
-        $page = max((int) $request->input('page', 1), 1);
-        
-        // Get total count first
-        $total = (clone $query)->count();
-        
-        // Then get paginated items
+        $perPage = ApiResponse::getPerPage($request, 15, 100);
         $items = $query->orderBy('priority', 'asc')
             ->orderBy('updated_at', 'desc')
-            ->limit($perPage)
-            ->offset(($page - 1) * $perPage)
-            ->get();
+            ->paginate($perPage);
 
         return response()->json([
             'success' => true,
-            'data' => $items->toArray(),
+            'data' => $items->items(),
             'meta' => [
-                'current_page' => $page,
-                'last_page' => $total > 0 ? (int) ceil($total / $perPage) : 1,
-                'per_page' => $perPage,
-                'total' => $total,
+                'pagination' => [
+                    'total' => $items->total(),
+                    'count' => $items->count(),
+                    'per_page' => $items->perPage(),
+                    'current_page' => $items->currentPage(),
+                    'total_pages' => $items->lastPage(),
+                    'has_more_pages' => $items->hasMorePages(),
+                ],
             ],
         ]);
     }

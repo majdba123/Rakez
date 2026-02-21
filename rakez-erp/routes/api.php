@@ -38,6 +38,7 @@ use App\Http\Controllers\Sales\MarketingTaskController;
 use App\Http\Controllers\Sales\WaitingListController;
 use App\Http\Controllers\Sales\NegotiationApprovalController;
 use App\Http\Controllers\Sales\PaymentPlanController;
+use App\Http\Controllers\Sales\SalesInsightsController;
 use App\Http\Controllers\ExclusiveProjectController;
 use App\Http\Middleware\CheckDynamicPermission;
 
@@ -59,6 +60,7 @@ use App\Http\Controllers\Marketing\TeamManagementController;
 use App\Http\Controllers\Marketing\LeadController;
 use App\Http\Controllers\Marketing\MarketingReportController;
 use App\Http\Controllers\Marketing\MarketingSettingsController;
+use App\Http\Controllers\Marketing\MarketingBudgetDistributionController;
 use App\Http\Controllers\Credit\CreditDashboardController;
 use App\Http\Controllers\Credit\CreditBookingController;
 use App\Http\Controllers\Credit\CreditFinancingController;
@@ -95,16 +97,12 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::post('/logout', [LoginController::class, 'logout']);
 
-<<<<<<< HEAD
     // Notifications proxy: GET /api/notifications (dispatches to credit or accounting by role)
     Route::get('notifications', [NotificationsProxyController::class, 'index']);
     Route::post('notifications/{id}/read', [NotificationsProxyController::class, 'markAsRead']);
     Route::post('notifications/read-all', [NotificationsProxyController::class, 'markAllAsRead']);
 
     Route::prefix('ai')->middleware(['throttle:ai-assistant', 'permission:use-ai-assistant'])->group(function () {
-=======
-    Route::prefix('ai')->middleware('throttle:ai-assistant')->group(function () {
->>>>>>> parent of ad8e607 (Add Edits and Fixes)
         Route::post('/ask', [AIAssistantController::class, 'ask']);
         Route::post('/chat', [AIAssistantController::class, 'chat']);
         Route::get('/conversations', [AIAssistantController::class, 'conversations']);
@@ -114,8 +112,8 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // AI Help Assistant (Knowledge-based)
     Route::prefix('ai/assistant')->group(function () {
-        // Chat endpoint - requires use-ai-assistant permission (checked in controller)
-        Route::post('/chat', [AssistantChatController::class, 'chat']);
+        // Chat endpoint - requires use-ai-assistant permission
+        Route::post('/chat', [AssistantChatController::class, 'chat'])->middleware('permission:use-ai-assistant');
 
         // Knowledge CRUD - requires manage-ai-knowledge permission
         Route::middleware('permission:manage-ai-knowledge')->group(function () {
@@ -195,7 +193,7 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::get('show/{contractId}', [PhotographyDepartmentController::class, 'show'])->middleware('permission:departments.photography.view');
             Route::post('store/{contractId}', [PhotographyDepartmentController::class, 'store'])->middleware('permission:departments.photography.edit');
             Route::put('update/{contractId}', [PhotographyDepartmentController::class, 'update'])->middleware('permission:departments.photography.edit');
-            Route::patch('approve/{contractId}', [PhotographyDepartmentController::class, 'approve']);
+            Route::patch('approve/{contractId}', [PhotographyDepartmentController::class, 'approve'])->middleware('permission:departments.photography.edit');
 
         });
 
@@ -212,19 +210,19 @@ Route::middleware('auth:sanctum')->group(function () {
 
             Route::prefix('teams')->group(function () {
 
-                Route::get('/index', [TeamController::class, 'index']);
-                Route::post('/store', [TeamController::class, 'store']);
-                Route::put('/update/{id}', [TeamController::class, 'update']);
-                Route::delete('/delete/{id}', [TeamController::class, 'destroy']);
-                Route::get('/show/{id}', [TeamController::class, 'show']);
+                Route::get('/index', [TeamController::class, 'index'])->middleware('permission:projects.view');
+                Route::post('/store', [TeamController::class, 'store'])->middleware('permission:projects.team.create');
+                Route::put('/update/{id}', [TeamController::class, 'update'])->middleware('permission:projects.team.create');
+                Route::delete('/delete/{id}', [TeamController::class, 'destroy'])->middleware('permission:projects.team.create');
+                Route::get('/show/{id}', [TeamController::class, 'show'])->middleware('permission:projects.view');
 
-                Route::get('/index/{contractId}', [ContractController::class, 'getTeamsForContract_HR']);
-                Route::get('/contracts/{teamId}', [TeamController::class, 'contracts'])->whereNumber('teamId');
+                Route::get('/index/{contractId}', [ContractController::class, 'getTeamsForContract_HR'])->middleware('permission:projects.view');
+                Route::get('/contracts/{teamId}', [TeamController::class, 'contracts'])->whereNumber('teamId')->middleware('permission:projects.view');
 
-                Route::post('/add/{contractId}', [ContractController::class, 'addTeamsToContract']);
-                Route::post('/remove/{contractId}', [ContractController::class, 'removeTeamsFromContract']);
+                Route::post('/add/{contractId}', [ContractController::class, 'addTeamsToContract'])->middleware('permission:projects.team.allocate');
+                Route::post('/remove/{contractId}', [ContractController::class, 'removeTeamsFromContract'])->middleware('permission:projects.team.allocate');
 
-                Route::get('/contracts/locations/{teamId}', [TeamController::class, 'contractLocations'])->whereNumber('teamId');
+                Route::get('/contracts/locations/{teamId}', [TeamController::class, 'contractLocations'])->whereNumber('teamId')->middleware('permission:projects.view');
 
             });
 
@@ -288,6 +286,10 @@ Route::middleware('auth:sanctum')->group(function () {
 
         // Dashboard
         Route::get('dashboard', [SalesDashboardController::class, 'index'])->middleware('permission:sales.dashboard.view');
+        Route::get('sold-units', [SalesInsightsController::class, 'soldUnits'])->middleware('permission:sales.dashboard.view');
+        Route::get('sold-units/{unitId}/commission-summary', [SalesInsightsController::class, 'soldUnitCommissionSummary'])->middleware('permission:sales.dashboard.view');
+        Route::get('deposits/management', [SalesInsightsController::class, 'depositsManagement'])->middleware('permission:sales.dashboard.view');
+        Route::get('deposits/follow-up', [SalesInsightsController::class, 'depositsFollowUp'])->middleware('permission:sales.dashboard.view');
 
         // Projects
         Route::get('projects', [SalesProjectController::class, 'index'])->middleware('permission:sales.projects.view');
@@ -397,8 +399,8 @@ Route::middleware('auth:sanctum')->group(function () {
 
 
     Route::prefix('exclusive-projects')->middleware(['auth:sanctum'])->group(function () {
-        Route::get('/', [ExclusiveProjectController::class, 'index']);
-        Route::get('/{id}', [ExclusiveProjectController::class, 'show']);
+        Route::get('/', [ExclusiveProjectController::class, 'index'])->middleware('permission:exclusive_projects.view');
+        Route::get('/{id}', [ExclusiveProjectController::class, 'show'])->middleware('permission:exclusive_projects.view');
         Route::post('/', [ExclusiveProjectController::class, 'store'])->middleware('permission:exclusive_projects.request');
         Route::post('/{id}/approve', [ExclusiveProjectController::class, 'approve'])->middleware('permission:exclusive_projects.approve');
         Route::post('/{id}/reject', [ExclusiveProjectController::class, 'reject'])->middleware('permission:exclusive_projects.approve');
@@ -455,6 +457,14 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('reports/marketer-performance', [HrReportController::class, 'marketerPerformance'])->middleware('permission:hr.reports.view');
         Route::get('reports/employee-count', [HrReportController::class, 'employeeCount'])->middleware('permission:hr.reports.view');
         Route::get('reports/expiring-contracts', [HrReportController::class, 'expiringContracts'])->middleware('permission:hr.reports.view');
+
+        // Additional Teams Routes (merged from duplicate HR group)
+        Route::prefix('teams')->group(function () {
+            Route::get('contracts/{teamId}', [TeamController::class, 'contracts'])->whereNumber('teamId')->middleware('permission:hr.teams.manage');
+            Route::get('contracts/locations/{teamId}', [TeamController::class, 'contractLocations'])->whereNumber('teamId')->middleware('permission:hr.teams.manage');
+            Route::get('sales-average/{teamId}', [TeamController::class, 'salesAverage'])->whereNumber('teamId')->middleware('permission:hr.teams.manage');
+            Route::get('getTeamsForContract/{contractId}', [ContractController::class, 'getTeamsForContract'])->middleware('permission:hr.teams.manage');
+        });
     });
 
     // ==========================================
@@ -483,6 +493,16 @@ Route::middleware('auth:sanctum')->group(function () {
         // Expected Sales
         Route::get('expected-sales/{projectId}', [ExpectedSalesController::class, 'calculate'])->middleware('permission:marketing.budgets.manage');
         Route::put('settings/conversion-rate', [ExpectedSalesController::class, 'updateConversionRate'])->middleware('permission:marketing.budgets.manage');
+
+        // Budget Distributions
+        Route::post('budget-distributions', [MarketingBudgetDistributionController::class, 'store'])
+            ->middleware('permission:marketing.budgets.manage');
+        Route::get('budget-distributions/{projectId}', [MarketingBudgetDistributionController::class, 'show'])
+            ->middleware('permission:marketing.budgets.manage');
+        Route::post('budget-distributions/{distributionId}/calculate', [MarketingBudgetDistributionController::class, 'recalculate'])
+            ->middleware('permission:marketing.budgets.manage');
+        Route::get('budget-distributions/{distributionId}/results', [MarketingBudgetDistributionController::class, 'results'])
+            ->middleware('permission:marketing.budgets.manage');
 
         // Tasks
         Route::get('tasks', [MarketingModuleTaskController::class, 'index'])->middleware('permission:marketing.tasks.view');
@@ -616,11 +636,11 @@ Route::middleware('auth:sanctum')->group(function () {
     // ==========================================
     Route::prefix('sales')->middleware(['auth:sanctum'])->group(function () {
         // Analytics Dashboard
-        Route::get('analytics/dashboard', [\App\Http\Controllers\Api\SalesAnalyticsController::class, 'dashboard']);
-        Route::get('analytics/sold-units', [\App\Http\Controllers\Api\SalesAnalyticsController::class, 'soldUnits']);
-        Route::get('analytics/deposits/stats/project/{contractId}', [\App\Http\Controllers\Api\SalesAnalyticsController::class, 'depositStatsByProject']);
-        Route::get('analytics/commissions/stats/employee/{userId}', [\App\Http\Controllers\Api\SalesAnalyticsController::class, 'commissionStatsByEmployee']);
-        Route::get('analytics/commissions/monthly-report', [\App\Http\Controllers\Api\SalesAnalyticsController::class, 'monthlyCommissionReport']);
+        Route::get('analytics/dashboard', [\App\Http\Controllers\Api\SalesAnalyticsController::class, 'dashboard'])->middleware('permission:sales.dashboard.view');
+        Route::get('analytics/sold-units', [\App\Http\Controllers\Api\SalesAnalyticsController::class, 'soldUnits'])->middleware('permission:sales.dashboard.view');
+        Route::get('analytics/deposits/stats/project/{contractId}', [\App\Http\Controllers\Api\SalesAnalyticsController::class, 'depositStatsByProject'])->middleware('permission:sales.dashboard.view');
+        Route::get('analytics/commissions/stats/employee/{userId}', [\App\Http\Controllers\Api\SalesAnalyticsController::class, 'commissionStatsByEmployee'])->middleware('permission:sales.dashboard.view');
+        Route::get('analytics/commissions/monthly-report', [\App\Http\Controllers\Api\SalesAnalyticsController::class, 'monthlyCommissionReport'])->middleware('permission:sales.dashboard.view');
 
         // Commissions
         Route::prefix('commissions')->group(function () {
@@ -648,7 +668,8 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::prefix('deposits')->group(function () {
             Route::get('/', [\App\Http\Controllers\Api\DepositController::class, 'index']);
             Route::post('/', [\App\Http\Controllers\Api\DepositController::class, 'store']);
-            Route::get('/follow-up', [\App\Http\Controllers\Api\DepositController::class, 'followUp']);
+            // Legacy alias to avoid collision with Sales-facing follow-up tab endpoint.
+            Route::get('/legacy-follow-up', [\App\Http\Controllers\Api\DepositController::class, 'followUp']);
             Route::get('/{deposit}', [\App\Http\Controllers\Api\DepositController::class, 'show']);
             Route::put('/{deposit}', [\App\Http\Controllers\Api\DepositController::class, 'update']);
             Route::post('/{deposit}/confirm-receipt', [\App\Http\Controllers\Api\DepositController::class, 'confirmReceipt']);
@@ -676,37 +697,8 @@ Route::middleware('auth:sanctum')->group(function () {
         }
 
         return response()->file($filePath);
-<<<<<<< HEAD
     })->where('path', '.*')->middleware('permission:contracts.view');
 });
-=======
-    })->where('path', '.*');
-    });
-
-
-    Route::prefix('hr')->middleware(['auth:sanctum', 'hr'])->group(function () {
-
-
-        Route::post('/add_employee', [RegisterController::class, 'add_employee']);
-        Route::get('/list_employees', [RegisterController::class, 'list_employees']);
-        Route::get('/show_employee/{id}', [RegisterController::class, 'show_employee']);
-        Route::put('/update_employee/{id}', [RegisterController::class, 'update_employee']);
-        Route::delete('/delete_employee/{id}', [RegisterController::class, 'delete_employee']);
-
-
-        Route::prefix('teams')->group(function () {
-
-
-            Route::get('/contracts/{teamId}', [TeamController::class, 'contracts'])->whereNumber('teamId');
-            Route::get('/contracts/locations/{teamId}', [TeamController::class, 'contractLocations'])->whereNumber('teamId');
-            Route::get('/sales-average/{teamId}', [TeamController::class, 'salesAverage'])->whereNumber('teamId');
-            Route::get('/getTeamsForContract/{contractId}', [ContractController::class, 'getTeamsForContract']);
-        });
-
-        // Dashboard route is defined in the first HR route group above (line ~357)
-
-    });
->>>>>>> parent of ad8e607 (Add Edits and Fixes)
 
 
 
@@ -714,9 +706,9 @@ Route::middleware('auth:sanctum')->group(function () {
 
 
 
-    Route::prefix('teams')->middleware(['auth:sanctum'])->group(function () {
 
+
+    Route::prefix('teams')->middleware(['auth:sanctum', 'permission:projects.view'])->group(function () {
             Route::get('/index', [TeamController::class, 'index']);
             Route::get('/show/{id}', [TeamController::class, 'show']);
         });
-

@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\MarketingProject;
 use App\Models\EmployeeMarketingPlan;
 use App\Models\ExpectedBooking;
+use App\Models\MarketingBudgetDistribution;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -44,10 +45,17 @@ class MarketingReportController extends Controller
     public function expectedBookingsReport(): JsonResponse
     {
         $totalExpected = ExpectedBooking::sum('expected_bookings_count');
+        $totalExpectedValue = ExpectedBooking::sum('expected_booking_value');
+        $totalCampaignBudget = MarketingBudgetDistribution::sum('total_budget');
+        $depositValuePerBooking = $totalExpected > 0 ? ($totalCampaignBudget / $totalExpected) : 0;
+
         return response()->json([
             'success' => true,
             'data' => [
                 'total_expected_bookings' => $totalExpected,
+                'total_expected_booking_value' => round((float) $totalExpectedValue, 2),
+                'total_campaign_budget' => round((float) $totalCampaignBudget, 2),
+                'deposit_value_per_booking' => round((float) $depositValuePerBooking, 2),
             ]
         ]);
     }
@@ -97,6 +105,14 @@ class MarketingReportController extends Controller
                 fputcsv($output, ['Campaign Distribution']);
                 foreach (($plan->campaign_distribution ?? []) as $campaign => $percentage) {
                     fputcsv($output, [$campaign, $percentage]);
+                }
+                fputcsv($output, []);
+                fputcsv($output, ['Campaign Distribution By Platform']);
+                foreach (($plan->campaign_distribution_by_platform ?? []) as $platform => $distribution) {
+                    fputcsv($output, [$platform]);
+                    foreach ((array) $distribution as $campaign => $percentage) {
+                        fputcsv($output, ['', $campaign, $percentage]);
+                    }
                 }
                 fclose($output);
             }, "marketing_plan_{$planId}.csv", $headers);

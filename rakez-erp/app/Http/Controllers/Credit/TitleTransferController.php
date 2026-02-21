@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Credit;
 
 use App\Http\Controllers\Controller;
 use App\Services\Credit\TitleTransferService;
+use App\Http\Responses\ApiResponse;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Exception;
@@ -131,22 +132,32 @@ class TitleTransferController extends Controller
                 'contract_id' => $request->input('contract_id'),
             ];
 
-            $projects = $this->transferService->getSoldProjects($filters);
+            $perPage = ApiResponse::getPerPage($request);
+            $projects = $this->transferService->getSoldProjects($filters, $perPage);
+
+            $projectsData = $projects->getCollection()->map(fn($t) => [
+                'transfer_id' => $t->id,
+                'reservation_id' => $t->sales_reservation_id,
+                'project_name' => $t->reservation?->contract?->project_name,
+                'unit_number' => $t->reservation?->contractUnit?->unit_number,
+                'client_name' => $t->reservation?->client_name,
+                'completed_date' => $t->completed_date,
+                'processed_by' => $t->processedBy?->name,
+            ]);
 
             return response()->json([
                 'success' => true,
                 'message' => 'تم جلب المشاريع المباعة بنجاح',
-                'data' => $projects->map(fn($t) => [
-                    'transfer_id' => $t->id,
-                    'reservation_id' => $t->sales_reservation_id,
-                    'project_name' => $t->reservation?->contract?->project_name,
-                    'unit_number' => $t->reservation?->contractUnit?->unit_number,
-                    'client_name' => $t->reservation?->client_name,
-                    'completed_date' => $t->completed_date,
-                    'processed_by' => $t->processedBy?->name,
-                ]),
+                'data' => $projectsData->values()->all(),
                 'meta' => [
-                    'total' => $projects->count(),
+                    'pagination' => [
+                        'total' => $projects->total(),
+                        'count' => $projects->count(),
+                        'per_page' => $projects->perPage(),
+                        'current_page' => $projects->currentPage(),
+                        'total_pages' => $projects->lastPage(),
+                        'has_more_pages' => $projects->hasMorePages(),
+                    ],
                 ],
             ], 200);
         } catch (Exception $e) {

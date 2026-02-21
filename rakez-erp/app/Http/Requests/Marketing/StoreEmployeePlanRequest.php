@@ -40,6 +40,9 @@ class StoreEmployeePlanRequest extends FormRequest
             'campaign_distribution' => ['nullable', 'array', function ($attribute, $value, $fail) {
                 $this->validateDistribution($attribute, $value, self::CAMPAIGNS, $fail);
             }],
+            'campaign_distribution_by_platform' => ['nullable', 'array', function ($attribute, $value, $fail) {
+                $this->validateCampaignDistributionByPlatform($attribute, $value, $fail);
+            }],
         ];
     }
 
@@ -73,6 +76,29 @@ class StoreEmployeePlanRequest extends FormRequest
 
         if (round($total, 2) !== 100.0) {
             $fail($attribute . ' percentages must total 100.');
+        }
+    }
+
+    private function validateCampaignDistributionByPlatform(string $attribute, ?array $value, callable $fail): void
+    {
+        if (!$value) {
+            return;
+        }
+
+        $platformKeys = array_keys($value);
+        $invalidPlatforms = array_diff($platformKeys, self::PLATFORMS);
+        if (!empty($invalidPlatforms)) {
+            $fail($attribute . ' has invalid platform keys: ' . implode(', ', $invalidPlatforms));
+            return;
+        }
+
+        foreach ($value as $platform => $distribution) {
+            if (!is_array($distribution)) {
+                $fail($attribute . ' for ' . $platform . ' must be an array.');
+                return;
+            }
+
+            $this->validateDistribution($attribute . '.' . $platform, $distribution, self::CAMPAIGNS, $fail);
         }
     }
 }

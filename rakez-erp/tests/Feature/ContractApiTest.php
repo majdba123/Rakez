@@ -175,4 +175,46 @@ class ContractApiTest extends TestCase
         $response->assertStatus(200)
             ->assertJsonPath('data.status', 'ready');
     }
+
+    public function test_user_can_update_contract_to_mark_as_off_plan()
+    {
+        $user = User::factory()->create();
+        $contract = Contract::factory()->create([
+            'user_id' => $user->id,
+            'status' => 'pending',
+            'is_off_plan' => false
+        ]);
+
+        $response = $this->actingAs($user)->putJson("/api/contracts/update/{$contract->id}", [
+            'is_off_plan' => true
+        ]);
+
+        $response->assertStatus(200);
+        
+        $this->assertDatabaseHas('contracts', [
+            'id' => $contract->id,
+            'is_off_plan' => true
+        ]);
+    }
+
+    public function test_user_can_update_contract_to_unmark_as_off_plan()
+    {
+        $user = User::factory()->create();
+        $contract = Contract::factory()->create([
+            'user_id' => $user->id,
+            'status' => 'pending',
+            'is_off_plan' => true
+        ]);
+
+        $response = $this->actingAs($user)->putJson("/api/contracts/update/{$contract->id}", [
+            'is_off_plan' => false
+        ]);
+
+        $response->assertStatus(200);
+        
+        $this->assertDatabaseHas('contracts', [
+            'id' => $contract->id,
+            'is_off_plan' => false
+        ]);
+    }
 }

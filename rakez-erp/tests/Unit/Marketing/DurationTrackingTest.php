@@ -63,4 +63,21 @@ class DurationTrackingTest extends TestCase
         $this->assertEquals('green', $result['status']);
         $this->assertGreaterThan(90, $result['days']);
     }
+
+    #[Test]
+    public function it_returns_green_status_for_exactly_90_days()
+    {
+        Carbon::setTestNow(Carbon::parse('2026-02-01 00:00:00'));
+
+        $info = ContractInfo::factory()->create([
+            'agreement_duration_days' => 120,
+            'created_at' => Carbon::now()->subDays(30) // 90 days remaining
+        ]);
+
+        $result = $this->service->getContractDurationStatus($info->contract_id);
+
+        $this->assertEquals('green', $result['status']);
+        $this->assertEquals(90, $result['days']);
+        Carbon::setTestNow();
+    }
 }

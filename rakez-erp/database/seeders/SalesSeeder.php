@@ -41,12 +41,12 @@ class SalesSeeder extends Seeder
 <<<<<<< HEAD
 <<<<<<< HEAD
             $leaderId = Arr::random($salesLeaders);
-            
+
             // Create assignments with date ranges (some active, some past, some future)
             $dateType = fake()->numberBetween(0, 2);
             $startDate = null;
             $endDate = null;
-            
+
             if ($dateType === 0) {
                 // Active assignment (started in past, ends in future)
                 $startDate = now()->subDays(fake()->numberBetween(10, 60))->toDateString();
@@ -60,15 +60,11 @@ class SalesSeeder extends Seeder
                 $startDate = now()->addDays(fake()->numberBetween(10, 60))->toDateString();
                 $endDate = now()->addDays(fake()->numberBetween(90, 240))->toDateString();
             }
-<<<<<<< HEAD
 
 =======
 >>>>>>> parent of 29c197a (Add edits)
 =======
 >>>>>>> parent of 29c197a (Add edits)
-=======
-            
->>>>>>> parent of ad8e607 (Add Edits and Fixes)
             SalesProjectAssignment::firstOrCreate(
                 ['leader_id' => Arr::random($salesLeaders), 'contract_id' => $contractId],
                 ['assigned_by' => Arr::random($salesLeaders)]
@@ -107,11 +103,23 @@ class SalesSeeder extends Seeder
                 continue;
             }
             $unitId = Arr::random($contractToUnits[$contractId]);
-            SalesWaitingList::factory()->create([
+            $waitingListStatuses = ['waiting', 'converted', 'cancelled', 'expired'];
+            $waitingListStatus = $waitingListStatuses[$i % 4];
+
+            $factory = SalesWaitingList::factory();
+            if ($waitingListStatus === 'converted') {
+                $factory = $factory->converted();
+            } elseif ($waitingListStatus === 'cancelled') {
+                $factory = $factory->cancelled();
+            } elseif ($waitingListStatus === 'expired') {
+                $factory = $factory->expired();
+            }
+
+            $factory->create([
                 'contract_id' => $contractId,
                 'contract_unit_id' => $unitId,
                 'sales_staff_id' => Arr::random($salesUsers),
-                'status' => $i % 4 === 0 ? 'converted' : 'waiting',
+                'status' => $waitingListStatus,
             ]);
         }
 

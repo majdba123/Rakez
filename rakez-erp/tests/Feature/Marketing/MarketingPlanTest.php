@@ -105,4 +105,53 @@ class MarketingPlanTest extends TestCase
             'user_id' => $this->marketingUser->id,
         ]);
     }
+
+    #[Test]
+    public function it_can_store_campaign_distribution_by_platform()
+    {
+        $contract = Contract::factory()->create();
+        $project = MarketingProject::create(['contract_id' => $contract->id]);
+
+        $response = $this->actingAs($this->marketingUser, 'sanctum')
+            ->postJson('/api/marketing/employee-plans', [
+                'marketing_project_id' => $project->id,
+                'user_id' => $this->marketingUser->id,
+                'commission_value' => 20000,
+                'marketing_value' => 2000,
+                'platform_distribution' => [
+                    'TikTok' => 20,
+                    'Meta' => 20,
+                    'Snapchat' => 20,
+                    'YouTube' => 20,
+                    'LinkedIn' => 10,
+                    'X' => 10,
+                ],
+                'campaign_distribution' => [
+                    'Direct Communication' => 30,
+                    'Hand Raise' => 30,
+                    'Impression' => 20,
+                    'Sales' => 20,
+                ],
+                'campaign_distribution_by_platform' => [
+                    'Meta' => [
+                        'Direct Communication' => 40,
+                        'Hand Raise' => 30,
+                        'Impression' => 20,
+                        'Sales' => 10,
+                    ],
+                    'TikTok' => [
+                        'Direct Communication' => 25,
+                        'Hand Raise' => 25,
+                        'Impression' => 25,
+                        'Sales' => 25,
+                    ],
+                ],
+            ]);
+
+        $response->assertStatus(200)
+            ->assertJsonPath('success', true);
+
+        $byPlatform = $response->json('data.campaign_distribution_by_platform');
+        $this->assertEquals(40, $byPlatform['Meta']['Direct Communication']);
+    }
 }

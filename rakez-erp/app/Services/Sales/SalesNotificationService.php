@@ -27,17 +27,22 @@ class SalesNotificationService
         $message = "Unit {$reservation->contractUnit->unit_number} in project {$reservation->contract->project_name} has been reserved by {$reservation->client_name}.";
 
         // Notify the marketing employee
-        UserNotification::create([
-            'user_id' => $reservation->marketing_employee_id,
-            'message' => $message,
-            'status' => 'pending',
-        ]);
+        $this->createNotification(
+            $reservation->marketing_employee_id,
+            $message,
+            'unit_reserved',
+            [
+                'reservation_id' => $reservation->id,
+                'unit_id' => $reservation->contract_unit_id,
+                'contract_id' => $reservation->contract_id,
+            ]
+        );
 
         // Notify all admins
         AdminNotification::notifyAllAdmins($message);
 
         // Notify sales managers
-        $this->notifySalesManagers($message);
+        $this->notifySalesManagers($message, 'unit_reserved');
 
         // Notify accounting department
         $this->accountingNotificationService->notifyUnitReserved($reservation);
@@ -52,18 +57,23 @@ class SalesNotificationService
 
         // Notify the marketing employee who made the reservation
         if ($deposit->salesReservation && $deposit->salesReservation->marketing_employee_id) {
-            UserNotification::create([
-                'user_id' => $deposit->salesReservation->marketing_employee_id,
-                'message' => $message,
-                'status' => 'pending',
-            ]);
+            $this->createNotification(
+                $deposit->salesReservation->marketing_employee_id,
+                $message,
+                'deposit_received',
+                [
+                    'deposit_id' => $deposit->id,
+                    'reservation_id' => $deposit->sales_reservation_id,
+                    'unit_id' => $deposit->contract_unit_id,
+                ]
+            );
         }
 
         // Notify all admins
         AdminNotification::notifyAllAdmins($message);
 
         // Notify accountants
-        $this->notifyAccountants($message);
+        $this->notifyAccountants($message, 'deposit_received');
 
         // Notify accounting department
         $this->accountingNotificationService->notifyDepositReceived($deposit);
@@ -77,17 +87,22 @@ class SalesNotificationService
         $message = "Unit {$reservation->contractUnit->unit_number} in project {$reservation->contract->project_name} has been vacated.";
 
         // Notify the marketing employee
-        UserNotification::create([
-            'user_id' => $reservation->marketing_employee_id,
-            'message' => $message,
-            'status' => 'pending',
-        ]);
+        $this->createNotification(
+            $reservation->marketing_employee_id,
+            $message,
+            'unit_vacated',
+            [
+                'reservation_id' => $reservation->id,
+                'unit_id' => $reservation->contract_unit_id,
+                'contract_id' => $reservation->contract_id,
+            ]
+        );
 
         // Notify all admins
         AdminNotification::notifyAllAdmins($message);
 
         // Notify sales managers
-        $this->notifySalesManagers($message);
+        $this->notifySalesManagers($message, 'unit_vacated');
 
         // Notify accounting department
         $this->accountingNotificationService->notifyUnitVacated($reservation);
@@ -101,17 +116,22 @@ class SalesNotificationService
         $message = "Reservation for unit {$reservation->contractUnit->unit_number} in project {$reservation->contract->project_name} has been canceled.";
 
         // Notify the marketing employee
-        UserNotification::create([
-            'user_id' => $reservation->marketing_employee_id,
-            'message' => $message,
-            'status' => 'pending',
-        ]);
+        $this->createNotification(
+            $reservation->marketing_employee_id,
+            $message,
+            'reservation_canceled',
+            [
+                'reservation_id' => $reservation->id,
+                'unit_id' => $reservation->contract_unit_id,
+                'contract_id' => $reservation->contract_id,
+            ]
+        );
 
         // Notify all admins
         AdminNotification::notifyAllAdmins($message);
 
         // Notify sales managers
-        $this->notifySalesManagers($message);
+        $this->notifySalesManagers($message, 'reservation_canceled');
 
         // Notify accounting department
         $this->accountingNotificationService->notifyReservationCancelled($reservation);
@@ -137,11 +157,16 @@ class SalesNotificationService
 
             $userMessage = "Your commission of {$distribution->amount} SAR for unit {$commission->contractUnit->unit_number} has been confirmed.";
 
-            UserNotification::create([
-                'user_id' => $userId,
-                'message' => $userMessage,
-                'status' => 'pending',
-            ]);
+            $this->createNotification(
+                $userId,
+                $userMessage,
+                'commission_confirmed',
+                [
+                    'commission_id' => $commission->id,
+                    'unit_id' => $commission->contract_unit_id,
+                    'distribution_id' => $distribution?->id,
+                ]
+            );
         }
 
         // Notify all admins
@@ -171,18 +196,23 @@ class SalesNotificationService
 
             $userMessage = "Commission payment of {$distribution->amount} SAR for unit {$commission->contractUnit->unit_number} has been received and will be processed.";
 
-            UserNotification::create([
-                'user_id' => $userId,
-                'message' => $userMessage,
-                'status' => 'pending',
-            ]);
+            $this->createNotification(
+                $userId,
+                $userMessage,
+                'commission_received_from_owner',
+                [
+                    'commission_id' => $commission->id,
+                    'unit_id' => $commission->contract_unit_id,
+                    'distribution_id' => $distribution?->id,
+                ]
+            );
         }
 
         // Notify all admins
         AdminNotification::notifyAllAdmins($message);
 
         // Notify accountants
-        $this->notifyAccountants($message);
+        $this->notifyAccountants($message, 'commission_received_from_owner');
 
         // Notify accounting department
         $this->accountingNotificationService->notifyCommissionReceivedFromOwner($commission);
@@ -196,11 +226,16 @@ class SalesNotificationService
         if ($distribution->user_id) {
             $message = "Your commission distribution of {$distribution->amount} SAR ({$distribution->type}) has been approved.";
 
-            UserNotification::create([
-                'user_id' => $distribution->user_id,
-                'message' => $message,
-                'status' => 'pending',
-            ]);
+            $this->createNotification(
+                $distribution->user_id,
+                $message,
+                'commission_distribution_approved',
+                [
+                    'distribution_id' => $distribution->id,
+                    'commission_id' => $distribution->commission_id,
+                    'type' => $distribution->type,
+                ]
+            );
         }
     }
 
@@ -213,11 +248,16 @@ class SalesNotificationService
             $reason = $distribution->notes ? " Reason: {$distribution->notes}" : '';
             $message = "Your commission distribution of {$distribution->amount} SAR ({$distribution->type}) has been rejected.{$reason}";
 
-            UserNotification::create([
-                'user_id' => $distribution->user_id,
-                'message' => $message,
-                'status' => 'pending',
-            ]);
+            $this->createNotification(
+                $distribution->user_id,
+                $message,
+                'commission_distribution_rejected',
+                [
+                    'distribution_id' => $distribution->id,
+                    'commission_id' => $distribution->commission_id,
+                    'type' => $distribution->type,
+                ]
+            );
         }
     }
 
@@ -230,18 +270,23 @@ class SalesNotificationService
 
         // Notify the marketing employee who made the reservation
         if ($deposit->salesReservation && $deposit->salesReservation->marketing_employee_id) {
-            UserNotification::create([
-                'user_id' => $deposit->salesReservation->marketing_employee_id,
-                'message' => $message,
-                'status' => 'pending',
-            ]);
+            $this->createNotification(
+                $deposit->salesReservation->marketing_employee_id,
+                $message,
+                'deposit_refunded',
+                [
+                    'deposit_id' => $deposit->id,
+                    'reservation_id' => $deposit->sales_reservation_id,
+                    'unit_id' => $deposit->contract_unit_id,
+                ]
+            );
         }
 
         // Notify all admins
         AdminNotification::notifyAllAdmins($message);
 
         // Notify accountants
-        $this->notifyAccountants($message);
+        $this->notifyAccountants($message, 'deposit_refunded');
     }
 
     /**
@@ -253,11 +298,16 @@ class SalesNotificationService
 
         // Notify the marketing employee who made the reservation
         if ($deposit->salesReservation && $deposit->salesReservation->marketing_employee_id) {
-            UserNotification::create([
-                'user_id' => $deposit->salesReservation->marketing_employee_id,
-                'message' => $message,
-                'status' => 'pending',
-            ]);
+            $this->createNotification(
+                $deposit->salesReservation->marketing_employee_id,
+                $message,
+                'deposit_confirmed',
+                [
+                    'deposit_id' => $deposit->id,
+                    'reservation_id' => $deposit->sales_reservation_id,
+                    'unit_id' => $deposit->contract_unit_id,
+                ]
+            );
         }
 
         // Notify all admins
@@ -267,53 +317,52 @@ class SalesNotificationService
     /**
      * Notify sales managers.
      */
-    protected function notifySalesManagers(string $message): void
+    protected function notifySalesManagers(string $message, string $eventType = 'sales_event', array $context = []): void
     {
         $salesManagers = User::where('type', 'sales')
             ->where('is_manager', true)
             ->get();
 
         foreach ($salesManagers as $manager) {
-            UserNotification::create([
-                'user_id' => $manager->id,
-                'message' => $message,
-                'status' => 'pending',
-            ]);
+            $this->createNotification($manager->id, $message, $eventType, $context);
         }
     }
 
     /**
      * Notify accountants.
      */
-    protected function notifyAccountants(string $message): void
+    protected function notifyAccountants(string $message, string $eventType = 'accounting_event', array $context = []): void
     {
         // Support both 'accountant' and 'accounting' types for backward compatibility
         $accountants = User::whereIn('type', ['accountant', 'accounting'])->get();
 
         foreach ($accountants as $accountant) {
-            UserNotification::create([
-                'user_id' => $accountant->id,
-                'message' => $message,
-                'status' => 'pending',
-            ]);
+            $this->createNotification($accountant->id, $message, $eventType, $context);
         }
     }
 
     /**
      * Notify project management managers.
      */
-    protected function notifyProjectManagers(string $message): void
+    protected function notifyProjectManagers(string $message, string $eventType = 'project_event', array $context = []): void
     {
         $projectManagers = User::where('type', 'project_management')
             ->where('is_manager', true)
             ->get();
 
         foreach ($projectManagers as $manager) {
-            UserNotification::create([
-                'user_id' => $manager->id,
-                'message' => $message,
-                'status' => 'pending',
-            ]);
+            $this->createNotification($manager->id, $message, $eventType, $context);
         }
+    }
+
+    protected function createNotification(int $userId, string $message, string $eventType, array $context = []): void
+    {
+        UserNotification::create([
+            'user_id' => $userId,
+            'message' => $message,
+            'status' => 'pending',
+            'event_type' => $eventType,
+            'context' => $context ?: null,
+        ]);
     }
 }

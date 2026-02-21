@@ -13,6 +13,7 @@ class SalesAttendanceResource extends JsonResource
             'schedule_id' => $this->id,
             'user_name' => $this->user->name ?? 'N/A',
             'schedule_date' => $this->schedule_date->format('Y-m-d'),
+            'day_of_week' => $this->schedule_date->format('l'),
             'start_time' => $this->start_time,
             'end_time' => $this->end_time,
             'project_name' => $this->contract->project_name ?? 'N/A',

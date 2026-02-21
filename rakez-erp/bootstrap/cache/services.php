@@ -37,6 +37,7 @@
     33 => 'OpenAI\\Laravel\\ServiceProvider',
     34 => 'Spatie\\Permission\\PermissionServiceProvider',
     35 => 'App\\Providers\\AppServiceProvider',
+    36 => 'App\\Providers\\EventServiceProvider',
   ),
   'eager' => 
   array (
@@ -59,6 +60,7 @@
     16 => 'Termwind\\Laravel\\TermwindServiceProvider',
     17 => 'Spatie\\Permission\\PermissionServiceProvider',
     18 => 'App\\Providers\\AppServiceProvider',
+    19 => 'App\\Providers\\EventServiceProvider',
   ),
   'deferred' => 
   array (

@@ -17,6 +17,7 @@ class EmployeeMarketingPlanResource extends JsonResource
             'marketing_value' => $this->marketing_value,
             'platform_distribution' => $this->platform_distribution,
             'campaign_distribution' => $this->campaign_distribution,
+            'campaign_distribution_by_platform' => $this->campaign_distribution_by_platform,
             'campaigns' => $this->whenLoaded('campaigns'),
         ];
     }

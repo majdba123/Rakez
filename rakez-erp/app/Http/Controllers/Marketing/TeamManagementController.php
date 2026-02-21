@@ -8,14 +8,11 @@ use App\Services\Marketing\TeamManagementService;
 <<<<<<< HEAD
 <<<<<<< HEAD
 use App\Models\Team;
-<<<<<<< HEAD
 use App\Http\Responses\ApiResponse;
 =======
 >>>>>>> parent of 29c197a (Add edits)
 =======
 >>>>>>> parent of 29c197a (Add edits)
-=======
->>>>>>> parent of ad8e607 (Add Edits and Fixes)
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -27,20 +24,16 @@ class TeamManagementController extends Controller
 
 <<<<<<< HEAD
 <<<<<<< HEAD
-<<<<<<< HEAD
     public function index(Request $request): JsonResponse
-=======
-    public function index(): JsonResponse
->>>>>>> parent of ad8e607 (Add Edits and Fixes)
     {
         $this->authorize('marketing.teams.view');
 
-        $teams = Team::with(['members', 'creator'])->get();
+        $perPage = ApiResponse::getPerPage($request);
+        $teams = Team::with(['members', 'creator'])
+            ->orderBy('created_at', 'desc')
+            ->paginate($perPage);
 
-        return response()->json([
-            'success' => true,
-            'data' => $teams
-        ]);
+        return ApiResponse::paginated($teams, 'تم جلب قائمة الفرق بنجاح');
     }
 
     public function assignCampaign(AssignCampaignRequest $request): JsonResponse
