@@ -35,7 +35,6 @@ class EmployeeMarketingPlanController extends Controller
         }
 
 <<<<<<< HEAD
-<<<<<<< HEAD
         $perPage = ApiResponse::getPerPage($request);
         $plans = $query->orderBy('created_at', 'desc')->paginate($perPage);
 
@@ -54,19 +53,12 @@ class EmployeeMarketingPlanController extends Controller
 =======
         $plans = EmployeeMarketingPlan::where('marketing_project_id', $projectId)->with('user')->get();
 >>>>>>> parent of 29c197a (Add edits)
-=======
-        $plans = $query->get();
-        
->>>>>>> parent of ad8e607 (Add Edits and Fixes)
         return response()->json([
             'success' => true,
             'data' => $plans
         ]);
 <<<<<<< HEAD
-<<<<<<< HEAD
 >>>>>>> parent of 29c197a (Add edits)
-=======
->>>>>>> parent of ad8e607 (Add Edits and Fixes)
 =======
 >>>>>>> parent of ad8e607 (Add Edits and Fixes)
     }

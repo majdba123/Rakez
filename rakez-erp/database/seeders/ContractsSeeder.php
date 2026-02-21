@@ -102,7 +102,6 @@ class ContractsSeeder extends Seeder
             ]);
 
 <<<<<<< HEAD
-<<<<<<< HEAD
             // Seed contract units with all possible statuses
             $unitsPerContract = $counts['units_per_contract'];
             $unitStatuses = array_merge(
@@ -119,11 +118,6 @@ class ContractsSeeder extends Seeder
                     'status' => $unitStatuses[$u] ?? 'available',
                 ]);
             }
-=======
-            ContractUnit::factory()
-                ->count($counts['units_per_contract'])
-                ->create(['second_party_data_id' => $secondParty->id]);
->>>>>>> parent of ad8e607 (Add Edits and Fixes)
 =======
             ContractUnit::factory()
                 ->count($counts['units_per_contract'])

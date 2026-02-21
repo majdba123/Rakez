@@ -20,7 +20,6 @@ class CreditSeeder extends Seeder
         }
 
 <<<<<<< HEAD
-<<<<<<< HEAD
         // Only bank-financing reservations get credit workflow (tracker, title transfer).
         $bankConfirmed = $confirmed->filter(fn ($r) => in_array($r->purchase_mechanism, ['supported_bank', 'unsupported_bank'], true));
         $bankIds = $bankConfirmed->pluck('id')->all();
@@ -44,8 +43,6 @@ class CreditSeeder extends Seeder
         $soldIds = array_slice($bankIds, $pendingCount + $inProgressCount + $titleTransferCount, $soldCount);
         $rejectedIds = array_slice($bankIds, $pendingCount + $inProgressCount + $titleTransferCount + $soldCount, $rejectedCount);
 =======
-=======
->>>>>>> parent of ad8e607 (Add Edits and Fixes)
         $pendingCount = (int) round(count($confirmed) * 0.4);
         $inProgressCount = (int) round(count($confirmed) * 0.3);
         $titleTransferCount = (int) round(count($confirmed) * 0.2);
@@ -55,16 +52,12 @@ class CreditSeeder extends Seeder
         $inProgressIds = array_slice($confirmed, $pendingCount, $inProgressCount);
         $titleTransferIds = array_slice($confirmed, $pendingCount + $inProgressCount, $titleTransferCount);
         $soldIds = array_slice($confirmed, $pendingCount + $inProgressCount + $titleTransferCount, $soldCount);
-<<<<<<< HEAD
->>>>>>> parent of ad8e607 (Add Edits and Fixes)
-=======
 >>>>>>> parent of ad8e607 (Add Edits and Fixes)
 
         SalesReservation::whereIn('id', $pendingIds)->update(['credit_status' => 'pending']);
         SalesReservation::whereIn('id', $inProgressIds)->update(['credit_status' => 'in_progress']);
         SalesReservation::whereIn('id', $titleTransferIds)->update(['credit_status' => 'title_transfer']);
         SalesReservation::whereIn('id', $soldIds)->update(['credit_status' => 'sold']);
-<<<<<<< HEAD
 <<<<<<< HEAD
         // Rejected by bank: set down_payment_confirmed so dashboard "rejected with paid down payment" is testable
         SalesReservation::whereIn('id', $rejectedIds)->update([
@@ -78,8 +71,6 @@ class CreditSeeder extends Seeder
         SalesReservation::whereIn('id', $cashConfirmed->pluck('id')->all())->update(['credit_status' => 'pending']);
 =======
 >>>>>>> parent of ad8e607 (Add Edits and Fixes)
-=======
->>>>>>> parent of ad8e607 (Add Edits and Fixes)
 
         $creditUsers = User::where('type', 'credit')->pluck('id')->all();
         $admins = User::where('type', 'admin')->pluck('id')->all();
@@ -88,7 +79,6 @@ class CreditSeeder extends Seeder
             $creditPool = User::limit(1)->pluck('id')->all();
         }
 
-<<<<<<< HEAD
 <<<<<<< HEAD
         $reservationsWithTrackers = array_merge($inProgressIds, $titleTransferIds, $soldIds, $rejectedIds);
 
@@ -181,38 +171,10 @@ class CreditSeeder extends Seeder
                 ['sales_reservation_id' => $reservationId],
                 [
                     'processed_by' => Arr::random($creditPool),
-=======
-        foreach (array_merge($inProgressIds, $titleTransferIds, $soldIds) as $reservationId) {
-            $status = in_array($reservationId, $soldIds, true) ? 'completed' : 'in_progress';
-            CreditFinancingTracker::firstOrCreate(
-                ['sales_reservation_id' => $reservationId],
-                [
-                    'assigned_to' => Arr::random($creditPool),
-                    'overall_status' => $status,
-                    'stage_1_status' => $status === 'completed' ? 'completed' : 'in_progress',
-                    'stage_2_status' => $status === 'completed' ? 'completed' : 'pending',
-                    'stage_3_status' => $status === 'completed' ? 'completed' : 'pending',
-                    'stage_4_status' => $status === 'completed' ? 'completed' : 'pending',
-                    'stage_5_status' => $status === 'completed' ? 'completed' : 'pending',
-                    'completed_at' => $status === 'completed' ? now()->subDays(1) : null,
-                ]
-            );
-        }
-
-        foreach (array_merge($titleTransferIds, $soldIds) as $reservationId) {
-            $isSold = in_array($reservationId, $soldIds, true);
-            TitleTransfer::firstOrCreate(
-                ['sales_reservation_id' => $reservationId],
-                [
-                    'processed_by' => Arr::random($creditPool),
->>>>>>> parent of ad8e607 (Add Edits and Fixes)
                     'status' => $isSold ? 'completed' : 'scheduled',
                     'scheduled_date' => now()->addDays(fake()->numberBetween(3, 14))->format('Y-m-d'),
                     'completed_date' => $isSold ? now()->subDays(1)->format('Y-m-d') : null,
                     'notes' => $isSold ? 'Completed title transfer' : null,
-<<<<<<< HEAD
->>>>>>> parent of ad8e607 (Add Edits and Fixes)
-=======
 >>>>>>> parent of ad8e607 (Add Edits and Fixes)
                 ]
             );

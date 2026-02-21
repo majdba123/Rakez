@@ -323,7 +323,6 @@ class SalesProjectService
             $q->where('leader_id', $leader->id)
               ->active();
 <<<<<<< HEAD
-<<<<<<< HEAD
         })->with(['secondPartyData.contractUnits', 'salesProjectAssignments.leader', 'user'])->get();
     }
 
@@ -364,9 +363,6 @@ class SalesProjectService
             $q->where('leader_id', $leader->id);
         })->with('secondPartyData.contractUnits')->get();
 >>>>>>> parent of 29c197a (Add edits)
-=======
-        })->with('secondPartyData.contractUnits')->get();
->>>>>>> parent of ad8e607 (Add Edits and Fixes)
 =======
         })->with('secondPartyData.contractUnits')->get();
 >>>>>>> parent of ad8e607 (Add Edits and Fixes)
@@ -475,7 +471,6 @@ class SalesProjectService
         return $remainingDays >= 0 ? $remainingDays : null;
     }
 <<<<<<< HEAD
-<<<<<<< HEAD
 
     /**
      * Count projects currently under marketing based on sales availability logic.
@@ -507,6 +502,4 @@ class SalesProjectService
 >>>>>>> parent of 29c197a (Add edits)
 =======
 >>>>>>> parent of 29c197a (Add edits)
-=======
->>>>>>> parent of ad8e607 (Add Edits and Fixes)
 }

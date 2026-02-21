@@ -471,14 +471,6 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('employee-plans', [EmployeeMarketingPlanController::class, 'store'])->middleware('permission:marketing.plans.create');
         Route::post('employee-plans/auto-generate', [EmployeeMarketingPlanController::class, 'autoGenerate'])->middleware('permission:marketing.plans.create');
 
-<<<<<<< HEAD
-=======
-        // Expected Sales - Add POST method and GET without projectId first (before parameterized route)
-        Route::post('expected-sales', [ExpectedSalesController::class, 'store'])->middleware('permission:marketing.budgets.manage');
-        Route::get('expected-sales', [ExpectedSalesController::class, 'index'])->middleware('permission:marketing.budgets.manage');
-        Route::get('expected-sales/{projectId}', [ExpectedSalesController::class, 'calculate'])->middleware('permission:marketing.budgets.manage');
-        Route::put('settings/conversion-rate', [ExpectedSalesController::class, 'updateConversionRate'])->middleware('permission:marketing.budgets.manage');
->>>>>>> parent of ad8e607 (Add Edits and Fixes)
 
         // Tasks
         Route::get('tasks', [MarketingModuleTaskController::class, 'index'])->middleware('permission:marketing.tasks.view');

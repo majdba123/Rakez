@@ -274,14 +274,11 @@ class SalesProjectTest extends TestCase
             ]);
 <<<<<<< HEAD
 <<<<<<< HEAD
-<<<<<<< HEAD
 
         $response->assertJsonPath('data.flags.is_off_plan', false);
 =======
 >>>>>>> parent of 29c197a (Add edits)
 =======
-=======
->>>>>>> parent of ad8e607 (Add Edits and Fixes)
     }
 <<<<<<< HEAD
 <<<<<<< HEAD

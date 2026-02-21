@@ -344,7 +344,6 @@ class SalesReservationService
             UserNotification::create([
                 'user_id' => $manager->id,
                 'message' => $message,
-<<<<<<< HEAD
             ]);
 
             event(new UserNotificationEvent($manager->id, $message));
@@ -362,8 +361,6 @@ class SalesReservationService
                     'contract_id' => $reservation->contract_id,
                     'unit_id' => $unit->id,
                 ],
-=======
->>>>>>> parent of ad8e607 (Add Edits and Fixes)
             ]);
             event(new UserNotificationEvent($user->id, $message));
         }

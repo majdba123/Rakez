@@ -47,13 +47,10 @@ class AccountingSeeder extends Seeder
 
         if ($confirmedReservations->isNotEmpty()) {
 <<<<<<< HEAD
-<<<<<<< HEAD
             $this->seedDeposits($confirmedReservations, $accountingPool, $counts['deposits']);
             $commissionIds = $this->seedCommissions($confirmedReservations, $accountingPool, $counts['commissions']);
             $this->seedCommissionDistributions($commissionIds, $accountingPool);
 =======
-=======
->>>>>>> parent of ad8e607 (Add Edits and Fixes)
             foreach ($confirmedReservations as $reservation) {
                 $depositStatus = Arr::random(['received', 'confirmed', 'refunded']);
                 Deposit::create([

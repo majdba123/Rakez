@@ -75,9 +75,6 @@ class MarketingTaskTest extends TestCase
 <<<<<<< HEAD
 <<<<<<< HEAD
 <<<<<<< HEAD
-<<<<<<< HEAD
-=======
->>>>>>> parent of ad8e607 (Add Edits and Fixes)
 
     #[Test]
     public function it_returns_422_when_required_fields_are_missing()
