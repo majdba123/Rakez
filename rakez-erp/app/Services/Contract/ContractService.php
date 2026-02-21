@@ -236,6 +236,7 @@ class ContractService
         }
     }
 
+
     /**
      * Inventory/Admin: contract list with only agency_date + location fields and adminIndex-like filters.
      * Returns lightweight rows (no eager-loading).

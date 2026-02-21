@@ -394,7 +394,39 @@ Route::middleware('auth:sanctum')->group(function () {
 
 
 
+        Route::prefix('inventory')->middleware(['auth:sanctum', 'inventory'])->group(function () {
 
+            // Contracts
+            Route::prefix('contracts')->group(function () {
+                Route::get('/show/{id}', [ContractController::class, 'show']);
+                Route::get('/admin-index', [ContractController::class, 'adminIndex'])->middleware('permission:contracts.view_all');
+            });
+
+            // Second party data
+            Route::prefix('second-party-data')->group(function () {
+                Route::get('/show/{id}', [SecondPartyDataController::class, 'show'])->middleware('permission:second_party.view');
+            });
+
+            // Contract units
+            Route::prefix('contracts/units')->group(function () {
+                Route::get('/show/{contractId}', [ContractUnitController::class, 'indexByContract'])->middleware('permission:units.view');
+            });
+
+            // Team contract locations
+            Route::get('/contracts/locations', [ContractController::class, 'locations'])->middleware('permission:contracts.view_all');
+        });
+
+
+                // Chat Routes
+        Route::prefix('chat')->group(function () {
+            Route::get('/conversations', [ChatController::class, 'index']);
+            Route::get('/conversations/{userId}', [ChatController::class, 'getOrCreateConversation']);
+            Route::get('/conversations/{conversationId}/messages', [ChatController::class, 'getMessages']);
+            Route::post('/conversations/{conversationId}/messages', [ChatController::class, 'sendMessage']);
+            Route::patch('/conversations/{conversationId}/read', [ChatController::class, 'markAsRead']);
+            Route::delete('/messages/{messageId}', [ChatController::class, 'deleteMessage']);
+            Route::get('/unread-count', [ChatController::class, 'getUnreadCount']);
+        });
 
 
     Route::prefix('teams')->middleware(['auth:sanctum'])->group(function () {
