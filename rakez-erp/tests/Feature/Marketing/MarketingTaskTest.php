@@ -74,6 +74,7 @@ class MarketingTaskTest extends TestCase
 <<<<<<< HEAD
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
 
     #[Test]
     public function it_returns_422_when_required_fields_are_missing()
@@ -141,6 +142,8 @@ class MarketingTaskTest extends TestCase
         $response->assertStatus(422)
             ->assertJsonValidationErrors(['marketer_id']);
     }
+=======
+>>>>>>> parent of 29c197a (Add edits)
 =======
 >>>>>>> parent of 29c197a (Add edits)
 =======

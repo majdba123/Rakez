@@ -195,6 +195,7 @@ return [
 <<<<<<< HEAD
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
             'marketing.teams.view',
             'marketing.teams.manage',
 <<<<<<< HEAD
@@ -205,6 +206,8 @@ return [
 >>>>>>> parent of 29c197a (Add edits)
 =======
 >>>>>>> parent of ad8e607 (Add Edits and Fixes)
+=======
+>>>>>>> parent of 29c197a (Add edits)
 =======
 >>>>>>> parent of 29c197a (Add edits)
             'exclusive_projects.request',
@@ -291,6 +294,7 @@ return [
             'marketing.reports.view',
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
             'notifications.view',
             'exclusive_projects.request',
@@ -344,6 +348,8 @@ return [
             'sales.projects.allocate_shifts',
             'sales.negotiation.approve',
             'sales.payment-plan.manage',
+>>>>>>> parent of 29c197a (Add edits)
+=======
 >>>>>>> parent of 29c197a (Add edits)
 =======
 >>>>>>> parent of 29c197a (Add edits)

@@ -19,6 +19,7 @@ class EmployeeMarketingPlanController extends Controller
 <<<<<<< HEAD
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
         $query = EmployeeMarketingPlan::with('user');
 
         // Support both route parameter and query parameter for backward compatibility
@@ -46,6 +47,9 @@ class EmployeeMarketingPlanController extends Controller
         $plans = $query->get();
         
 >>>>>>> parent of ad8e607 (Add Edits and Fixes)
+=======
+        $plans = EmployeeMarketingPlan::where('marketing_project_id', $projectId)->with('user')->get();
+>>>>>>> parent of 29c197a (Add edits)
 =======
         $plans = EmployeeMarketingPlan::where('marketing_project_id', $projectId)->with('user')->get();
 >>>>>>> parent of 29c197a (Add edits)

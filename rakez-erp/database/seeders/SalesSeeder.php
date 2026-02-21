@@ -41,6 +41,7 @@ class SalesSeeder extends Seeder
 <<<<<<< HEAD
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
             $leaderId = Arr::random($salesLeaders);
             
             // Create assignments with date ranges (some active, some past, some future)
@@ -70,6 +71,8 @@ class SalesSeeder extends Seeder
 =======
             
 >>>>>>> parent of ad8e607 (Add Edits and Fixes)
+=======
+>>>>>>> parent of 29c197a (Add edits)
 =======
 >>>>>>> parent of 29c197a (Add edits)
             SalesProjectAssignment::firstOrCreate(

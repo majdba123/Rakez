@@ -9,6 +9,7 @@ use App\Models\MarketingSetting;
 <<<<<<< HEAD
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
 use App\Models\ExpectedBooking;
 <<<<<<< HEAD
 use App\Http\Responses\ApiResponse;
@@ -18,6 +19,8 @@ use App\Http\Responses\ApiResponse;
 >>>>>>> parent of 29c197a (Add edits)
 =======
 >>>>>>> parent of ad8e607 (Add Edits and Fixes)
+=======
+>>>>>>> parent of 29c197a (Add edits)
 =======
 >>>>>>> parent of 29c197a (Add edits)
 use Illuminate\Http\JsonResponse;
@@ -38,6 +41,7 @@ class ExpectedSalesController extends Controller
         ]);
     }
 
+<<<<<<< HEAD
 <<<<<<< HEAD
 <<<<<<< HEAD
 <<<<<<< HEAD
@@ -87,6 +91,8 @@ class ExpectedSalesController extends Controller
         ]);
     }
 
+=======
+>>>>>>> parent of 29c197a (Add edits)
 =======
 >>>>>>> parent of 29c197a (Add edits)
 =======
