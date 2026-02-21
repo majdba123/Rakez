@@ -19,8 +19,10 @@ return [
     'allowed_methods' => ['*'],
 
     'allowed_origins' => [
-        
+
         'https://www.rakez.com.sa',
+
+        'www.rakez.com.sa',
 
         'http://localhost:3000',
         'http://127.0.0.1:3000',
