@@ -22,7 +22,7 @@ return [
 
         'https://www.rakez.com.sa',
 
-        'www.rakez.com.sa',
+        'rakez.com.sa',
 
         'http://localhost:3000',
         'http://127.0.0.1:3000',
