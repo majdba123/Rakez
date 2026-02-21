@@ -6,11 +6,8 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Marketing\AssignTeamRequest;
 use App\Services\Marketing\TeamManagementService;
 <<<<<<< HEAD
-<<<<<<< HEAD
 use App\Models\Team;
 use App\Http\Responses\ApiResponse;
-=======
->>>>>>> parent of 29c197a (Add edits)
 =======
 >>>>>>> parent of 29c197a (Add edits)
 use Illuminate\Http\JsonResponse;
@@ -22,7 +19,6 @@ class TeamManagementController extends Controller
         private TeamManagementService $teamService
     ) {}
 
-<<<<<<< HEAD
 <<<<<<< HEAD
     public function index(Request $request): JsonResponse
     {
@@ -77,8 +73,6 @@ class TeamManagementController extends Controller
         ]);
     }
 
-=======
->>>>>>> parent of 29c197a (Add edits)
 =======
 >>>>>>> parent of 29c197a (Add edits)
     public function assignTeam(int $projectId, AssignTeamRequest $request): JsonResponse

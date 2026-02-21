@@ -327,7 +327,6 @@ class SalesProjectService
         // Strictly restrict to assigned projects for leaders
         return Contract::whereHas('salesProjectAssignments', function ($q) use ($leader) {
 <<<<<<< HEAD
-<<<<<<< HEAD
             $q->where('leader_id', $leader->id)
               ->active();
         })->with(['secondPartyData.contractUnits', 'salesProjectAssignments.leader', 'user'])->get();
@@ -361,8 +360,6 @@ class SalesProjectService
 
         return $projects;
 =======
-=======
->>>>>>> parent of 29c197a (Add edits)
             $q->where('leader_id', $leader->id);
         })->with('secondPartyData.contractUnits')->get();
 >>>>>>> parent of 29c197a (Add edits)
@@ -435,7 +432,6 @@ class SalesProjectService
         ]);
     }
 <<<<<<< HEAD
-<<<<<<< HEAD
 
     /**
      * Get active assignment for a leader on a specific date.
@@ -489,8 +485,6 @@ class SalesProjectService
             })
             ->count();
     }
-=======
->>>>>>> parent of 29c197a (Add edits)
 =======
 >>>>>>> parent of 29c197a (Add edits)
 }
