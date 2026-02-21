@@ -18,6 +18,7 @@ class EmployeeMarketingPlanController extends Controller
     public function index(int $projectId): JsonResponse
     {
 <<<<<<< HEAD
+<<<<<<< HEAD
         $query = EmployeeMarketingPlan::with('user');
 
         // Support both route parameter and query parameter for backward compatibility
@@ -37,6 +38,8 @@ class EmployeeMarketingPlanController extends Controller
 
         return ApiResponse::paginated($plans, 'تم جلب قائمة خطط التسويق بنجاح');
 =======
+=======
+>>>>>>> parent of 29c197a (Add edits)
         $plans = EmployeeMarketingPlan::where('marketing_project_id', $projectId)->with('user')->get();
         return response()->json([
             'success' => true,
