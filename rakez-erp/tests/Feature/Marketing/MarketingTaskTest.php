@@ -71,6 +71,7 @@ class MarketingTaskTest extends TestCase
         $response->assertStatus(200);
         $this->assertEquals('completed', $task->fresh()->status);
     }
+<<<<<<< HEAD
 
     #[Test]
     public function it_rejects_cancelled_status_to_match_database_enum()
@@ -160,4 +161,6 @@ class MarketingTaskTest extends TestCase
         $response->assertStatus(422)
             ->assertJsonValidationErrors(['marketer_id']);
     }
+=======
+>>>>>>> parent of 29c197a (Add edits)
 }

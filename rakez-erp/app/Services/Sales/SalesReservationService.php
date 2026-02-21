@@ -243,12 +243,8 @@ class SalesReservationService
     {
         $query = SalesReservation::with(['contract', 'contractUnit', 'marketingEmployee']);
 
-        // Auto-filter for sales users: show only their own reservations
-        // Admins and managers can see all reservations (unless mine filter is explicitly set)
-        if ($user->type === 'sales' && !$user->hasRole('admin')) {
-            $query->where('marketing_employee_id', $user->id);
-        } elseif (!empty($filters['mine'])) {
-            // For other users, apply mine filter if provided
+        // Filter by mine
+        if (!empty($filters['mine'])) {
             $query->where('marketing_employee_id', $user->id);
         }
 

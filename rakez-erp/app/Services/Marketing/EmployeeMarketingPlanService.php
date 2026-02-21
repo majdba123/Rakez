@@ -13,7 +13,7 @@ class EmployeeMarketingPlanService
     public const PLATFORMS = [
         'TikTok',
         'Meta',
-        'Snapchat',
+        'Snap',
         'YouTube',
         'LinkedIn',
         'X',

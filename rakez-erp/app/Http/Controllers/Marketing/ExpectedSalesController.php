@@ -6,8 +6,11 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Marketing\CalculateExpectedSalesRequest;
 use App\Services\Marketing\ExpectedSalesService;
 use App\Models\MarketingSetting;
+<<<<<<< HEAD
 use App\Models\ExpectedBooking;
 use App\Http\Responses\ApiResponse;
+=======
+>>>>>>> parent of 29c197a (Add edits)
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -26,6 +29,7 @@ class ExpectedSalesController extends Controller
         ]);
     }
 
+<<<<<<< HEAD
     public function store(Request $request): JsonResponse
     {
         $request->validate([
@@ -70,6 +74,8 @@ class ExpectedSalesController extends Controller
         return ApiResponse::paginated($expectedSales, 'تم جلب قائمة المبيعات المتوقعة بنجاح');
     }
 
+=======
+>>>>>>> parent of 29c197a (Add edits)
     public function updateConversionRate(Request $request): JsonResponse
     {
         $this->authorize('update', new MarketingSetting());

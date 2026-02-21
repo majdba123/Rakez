@@ -16,8 +16,6 @@ class SalesReservationResource extends JsonResource
             'client_name' => $this->client_name,
             'status' => $this->status,
             'reservation_type' => $this->reservation_type,
-            'marketing_employee_id' => $this->marketing_employee_id,
-            'marketing_employee_name' => $this->marketingEmployee->name ?? 'N/A',
             'down_payment_amount' => (float) $this->down_payment_amount,
             'contract_date' => $this->contract_date->format('Y-m-d'),
             'created_at' => $this->created_at?->toIso8601String(),

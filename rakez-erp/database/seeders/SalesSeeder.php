@@ -38,6 +38,7 @@ class SalesSeeder extends Seeder
         $salesLeaders = $salesLeaders ?: $salesUsers;
 
         foreach ($readyContracts as $contractId) {
+<<<<<<< HEAD
             $leaderId = Arr::random($salesLeaders);
 
             // Create assignments with date ranges (some active, some past, some future)
@@ -59,13 +60,10 @@ class SalesSeeder extends Seeder
                 $endDate = now()->addDays(fake()->numberBetween(90, 240))->toDateString();
             }
 
+=======
+>>>>>>> parent of 29c197a (Add edits)
             SalesProjectAssignment::firstOrCreate(
-                [
-                    'leader_id' => $leaderId,
-                    'contract_id' => $contractId,
-                    'start_date' => $startDate,
-                    'end_date' => $endDate,
-                ],
+                ['leader_id' => Arr::random($salesLeaders), 'contract_id' => $contractId],
                 ['assigned_by' => Arr::random($salesLeaders)]
             );
         }

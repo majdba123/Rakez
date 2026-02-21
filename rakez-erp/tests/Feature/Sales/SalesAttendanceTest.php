@@ -82,7 +82,7 @@ class SalesAttendanceTest extends TestCase
             'contract_id' => $this->contract->id,
             'user_id' => $this->employee->id,
             'created_by' => $this->leader->id,
-            'schedule_date' => '2025-01-25 00:00:00',
+            'schedule_date' => '2025-01-25',
         ]);
     }
 
