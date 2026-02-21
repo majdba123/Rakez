@@ -4,8 +4,6 @@ namespace Tests\Feature\Sales;
 
 use App\Models\Contract;
 use App\Models\ContractUnit;
-use App\Models\Commission;
-use App\Models\Deposit;
 use App\Models\SalesReservation;
 use App\Models\SecondPartyData;
 use App\Models\User;
@@ -80,8 +78,6 @@ class SalesDashboardTest extends TestCase
             ->assertJsonStructure([
                 'success',
                 'data' => [
-                    'kpi_version',
-                    'definitions',
                     'reserved_units',
                     'available_units',
                     'projects_under_marketing',
@@ -90,11 +86,6 @@ class SalesDashboardTest extends TestCase
                     'percent_confirmed',
                     'total_reservations',
                     'negotiation_ratio',
-                    'sold_units_count',
-                    'total_received_deposits',
-                    'total_refunded_deposits',
-                    'total_received_projects_value',
-                    'total_sales_value',
                 ],
             ]);
             
@@ -304,89 +295,5 @@ class SalesDashboardTest extends TestCase
             ->getJson('/api/sales/dashboard');
         
         $response->assertStatus(403);
-    }
-
-    public function test_projects_under_marketing_counts_only_sales_available_projects()
-    {
-        $availableContract = Contract::factory()->create(['status' => 'ready']);
-        $availableSecondParty = SecondPartyData::factory()->create(['contract_id' => $availableContract->id]);
-        ContractUnit::factory()->create([
-            'second_party_data_id' => $availableSecondParty->id,
-            'price' => 400000,
-            'status' => 'available',
-        ]);
-
-        $pendingContract = Contract::factory()->create(['status' => 'ready']);
-        $pendingSecondParty = SecondPartyData::factory()->create(['contract_id' => $pendingContract->id]);
-        ContractUnit::factory()->create([
-            'second_party_data_id' => $pendingSecondParty->id,
-            'price' => 0,
-            'status' => 'available',
-        ]);
-
-        $response = $this->actingAs($this->salesUser, 'sanctum')
-            ->getJson('/api/sales/dashboard?scope=all');
-
-        $response->assertStatus(200);
-        $this->assertEquals(1, $response->json('data.projects_under_marketing'));
-    }
-
-    public function test_dashboard_returns_financial_kpis()
-    {
-        $contract = Contract::factory()->create(['status' => 'ready']);
-        $secondPartyData = SecondPartyData::factory()->create(['contract_id' => $contract->id]);
-        $unit = ContractUnit::factory()->create([
-            'second_party_data_id' => $secondPartyData->id,
-            'status' => 'sold',
-            'price' => 700000,
-        ]);
-
-        $reservation = SalesReservation::factory()->create([
-            'contract_id' => $contract->id,
-            'contract_unit_id' => $unit->id,
-            'marketing_employee_id' => $this->salesUser->id,
-            'status' => 'confirmed',
-        ]);
-
-        Commission::factory()->create([
-            'contract_unit_id' => $unit->id,
-            'sales_reservation_id' => $reservation->id,
-            'final_selling_price' => 750000,
-            'commission_percentage' => 2.5,
-            'total_amount' => 18750,
-            'vat' => 2812.5,
-            'net_amount' => 15000,
-            'status' => 'approved',
-        ]);
-
-        Deposit::factory()->create([
-            'sales_reservation_id' => $reservation->id,
-            'contract_id' => $contract->id,
-            'contract_unit_id' => $unit->id,
-            'amount' => 50000,
-            'status' => 'confirmed',
-            'commission_source' => 'owner',
-        ]);
-
-        Deposit::factory()->create([
-            'sales_reservation_id' => $reservation->id,
-            'contract_id' => $contract->id,
-            'contract_unit_id' => $unit->id,
-            'amount' => 10000,
-            'status' => 'refunded',
-            'commission_source' => 'owner',
-        ]);
-
-        $response = $this->actingAs($this->salesUser, 'sanctum')
-            ->getJson('/api/sales/dashboard?scope=me');
-
-        $response->assertStatus(200);
-        $data = $response->json('data');
-
-        $this->assertEquals(1, $data['sold_units_count']);
-        $this->assertEquals(50000.0, (float) $data['total_received_deposits']);
-        $this->assertEquals(10000.0, (float) $data['total_refunded_deposits']);
-        $this->assertEquals(700000.0, (float) $data['total_received_projects_value']);
-        $this->assertEquals(750000.0, (float) $data['total_sales_value']);
     }
 }

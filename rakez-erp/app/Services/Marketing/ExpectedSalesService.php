@@ -4,6 +4,7 @@ namespace App\Services\Marketing;
 
 use App\Models\ExpectedBooking;
 use App\Models\MarketingProject;
+use App\Models\EmployeeMarketingPlan;
 
 class ExpectedSalesService
 {
@@ -13,16 +14,13 @@ class ExpectedSalesService
         return ($directCommunications + $handRaises) * ($rate / 100);
     }
 
-    public function calculateExpectedBookingValue($projectId, $expectedBookingsCount = null)
+    public function calculateExpectedBookingValue($projectId)
     {
         $project = MarketingProject::with('contract.info')->findOrFail($projectId);
         $avgValue = $project->contract->info->avg_property_value ?? 0;
 
-        $count = $expectedBookingsCount;
-        if ($count === null) {
-            $expectedBooking = ExpectedBooking::where('marketing_project_id', $projectId)->first();
-            $count = $expectedBooking ? $expectedBooking->expected_bookings_count : 0;
-        }
+        $expectedBooking = ExpectedBooking::where('marketing_project_id', $projectId)->first();
+        $count = $expectedBooking ? $expectedBooking->expected_bookings_count : 0;
 
         return $count * $avgValue;
     }
@@ -46,8 +44,6 @@ class ExpectedSalesService
             $conversionRate
         );
 
-        $expectedBookingValue = $this->calculateExpectedBookingValue($projectId, $expectedCount);
-
         return ExpectedBooking::updateOrCreate(
             ['marketing_project_id' => $projectId],
             [
@@ -55,7 +51,7 @@ class ExpectedSalesService
                 'hand_raises' => $data['hand_raises'] ?? 0,
                 'expected_bookings_count' => $expectedCount,
                 'conversion_rate' => $conversionRate,
-                'expected_booking_value' => $expectedBookingValue,
+                'expected_booking_value' => $this->calculateExpectedBookingValue($projectId)
             ]
         );
     }

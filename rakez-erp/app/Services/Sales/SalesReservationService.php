@@ -319,12 +319,6 @@ class SalesReservationService
             UserNotification::create([
                 'user_id' => $user->id,
                 'message' => $message,
-                'event_type' => 'unit_reserved',
-                'context' => [
-                    'reservation_id' => $reservation->id,
-                    'contract_id' => $contract->id,
-                    'unit_id' => $unit->id,
-                ],
             ]);
 
             event(new UserNotificationEvent($user->id, $message));
@@ -350,12 +344,6 @@ class SalesReservationService
             UserNotification::create([
                 'user_id' => $manager->id,
                 'message' => $message,
-                'event_type' => 'negotiation_requested',
-                'context' => [
-                    'reservation_id' => $reservation->id,
-                    'contract_id' => $reservation->contract_id,
-                    'unit_id' => $unit->id,
-                ],
             ]);
 
             event(new UserNotificationEvent($manager->id, $message));

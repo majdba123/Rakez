@@ -5,7 +5,6 @@ namespace App\Http\Controllers\HR;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Models\EmployeeWarning;
-use App\Http\Responses\ApiResponse;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Exception;
@@ -33,36 +32,26 @@ class EmployeeWarningController extends Controller
                 $query->where('type', $request->input('type'));
             }
 
-            $perPage = ApiResponse::getPerPage($request);
-            $warnings = $query->orderBy('warning_date', 'desc')->paginate($perPage);
-
-            $warningsData = $warnings->getCollection()->map(fn($w) => [
-                'id' => $w->id,
-                'type' => $w->type,
-                'reason' => $w->reason,
-                'details' => $w->details,
-                'is_auto_generated' => $w->is_auto_generated,
-                'warning_date' => $w->warning_date,
-                'issued_by' => $w->issuer ? [
-                    'id' => $w->issuer->id,
-                    'name' => $w->issuer->name,
-                ] : null,
-                'created_at' => $w->created_at,
-            ]);
+            $warnings = $query->orderBy('warning_date', 'desc')->get();
 
             return response()->json([
                 'success' => true,
                 'message' => 'تم جلب قائمة التحذيرات بنجاح',
-                'data' => $warningsData->values()->all(),
+                'data' => $warnings->map(fn($w) => [
+                    'id' => $w->id,
+                    'type' => $w->type,
+                    'reason' => $w->reason,
+                    'details' => $w->details,
+                    'is_auto_generated' => $w->is_auto_generated,
+                    'warning_date' => $w->warning_date,
+                    'issued_by' => $w->issuer ? [
+                        'id' => $w->issuer->id,
+                        'name' => $w->issuer->name,
+                    ] : null,
+                    'created_at' => $w->created_at,
+                ]),
                 'meta' => [
-                    'pagination' => [
-                        'total' => $warnings->total(),
-                        'count' => $warnings->count(),
-                        'per_page' => $warnings->perPage(),
-                        'current_page' => $warnings->currentPage(),
-                        'total_pages' => $warnings->lastPage(),
-                        'has_more_pages' => $warnings->hasMorePages(),
-                    ],
+                    'total' => $warnings->count(),
                     'employee' => [
                         'id' => $user->id,
                         'name' => $user->name,

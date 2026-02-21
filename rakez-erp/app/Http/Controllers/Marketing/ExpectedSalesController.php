@@ -9,11 +9,14 @@ use App\Models\MarketingSetting;
 <<<<<<< HEAD
 <<<<<<< HEAD
 use App\Models\ExpectedBooking;
+<<<<<<< HEAD
 use App\Http\Responses\ApiResponse;
 =======
 >>>>>>> parent of 29c197a (Add edits)
 =======
 >>>>>>> parent of 29c197a (Add edits)
+=======
+>>>>>>> parent of ad8e607 (Add Edits and Fixes)
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -72,10 +75,12 @@ class ExpectedSalesController extends Controller
             $query->whereDate('created_at', '<=', $request->input('end_date'));
         }
 
-        $perPage = ApiResponse::getPerPage($request);
-        $expectedSales = $query->orderBy('created_at', 'desc')->paginate($perPage);
+        $expectedSales = $query->get();
 
-        return ApiResponse::paginated($expectedSales, 'تم جلب قائمة المبيعات المتوقعة بنجاح');
+        return response()->json([
+            'success' => true,
+            'data' => $expectedSales
+        ]);
     }
 
 =======

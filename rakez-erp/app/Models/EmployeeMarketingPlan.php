@@ -14,21 +14,15 @@ class EmployeeMarketingPlan extends Model
         'user_id',
         'commission_value',
         'marketing_value',
-        'marketing_percent',
-        'direct_contact_percent',
         'platform_distribution',
         'campaign_distribution',
-        'campaign_distribution_by_platform',
     ];
 
     protected $casts = [
         'commission_value' => 'decimal:2',
         'marketing_value' => 'decimal:2',
-        'marketing_percent' => 'decimal:2',
-        'direct_contact_percent' => 'decimal:2',
         'platform_distribution' => 'json',
         'campaign_distribution' => 'json',
-        'campaign_distribution_by_platform' => 'json',
     ];
 
     public function marketingProject()
@@ -44,10 +38,5 @@ class EmployeeMarketingPlan extends Model
     public function campaigns()
     {
         return $this->hasMany(MarketingCampaign::class);
-    }
-
-    public function budgetDistribution()
-    {
-        return $this->hasOne(MarketingBudgetDistribution::class);
     }
 }

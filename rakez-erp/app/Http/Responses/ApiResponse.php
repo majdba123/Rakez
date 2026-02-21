@@ -3,7 +3,6 @@
 namespace App\Http\Responses;
 
 use Illuminate\Http\JsonResponse;
-use Illuminate\Http\Request;
 
 class ApiResponse
 {
@@ -121,20 +120,6 @@ class ApiResponse
         string $message = 'خطأ في الخادم'
     ): JsonResponse {
         return self::error($message, 500, 'SERVER_ERROR');
-    }
-
-    /**
-     * Get validated per_page from request (default 15, max 100).
-     *
-     * @param \Illuminate\Http\Request $request
-     * @param int $default
-     * @param int $max
-     * @return int
-     */
-    public static function getPerPage(Request $request, int $default = 15, int $max = 100): int
-    {
-        $perPage = (int) $request->input('per_page', $default);
-        return min(max($perPage, 1), $max);
     }
 
     /**

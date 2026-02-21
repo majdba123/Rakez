@@ -5,24 +5,16 @@ namespace App\Services\Sales;
 use App\Models\Contract;
 use App\Models\ContractUnit;
 use App\Models\User;
-use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Pagination\LengthAwarePaginator;
 
 class SalesProjectService
 {
-    public const SALES_STATUS_PENDING = 'pending';
-    public const SALES_STATUS_AVAILABLE = 'available';
     /**
      * Get projects with sales status computation.
      */
     public function getProjects(array $filters, User $user): LengthAwarePaginator
     {
-        $query = Contract::with([
-            'secondPartyData.contractUnits',
-            'montageDepartment',
-            'salesProjectAssignments.leader',
-            'user'
-        ]);
+        $query = Contract::with(['secondPartyData.contractUnits', 'montageDepartment']);
 
         // Apply filters
         if (!empty($filters['q'])) {
@@ -70,9 +62,7 @@ class SalesProjectService
         $contract = Contract::with([
             'secondPartyData.contractUnits',
             'montageDepartment',
-            'info',
-            'salesProjectAssignments.leader',
-            'user'
+            'info'
         ])->findOrFail($contractId);
 
         $contract->sales_status = $this->computeProjectSalesStatus($contract);
@@ -172,7 +162,7 @@ class SalesProjectService
     {
         // Check if contract status is ready OR approved (for tests)
         if ($contract->status !== 'ready' && $contract->status !== 'approved') {
-            return self::SALES_STATUS_PENDING;
+            return 'pending';
         }
 
         // Check if SecondPartyData exists
@@ -182,7 +172,7 @@ class SalesProjectService
             $contract->load('secondPartyData.contractUnits');
             $secondPartyData = $contract->secondPartyData;
             if (!$secondPartyData) {
-                return self::SALES_STATUS_PENDING;
+                return 'pending';
             }
         }
 
@@ -203,7 +193,7 @@ class SalesProjectService
                     if ($secondPartyData->contractUnits->isNotEmpty()) {
                         $unitsQuery = $secondPartyData->contractUnits;
                     } else {
-                        return self::SALES_STATUS_PENDING;
+                        return 'pending';
                     }
                 } else {
                     $unitsQuery = $freshSecondPartyData->contractUnits();
@@ -223,10 +213,10 @@ class SalesProjectService
         }
 
         if ($hasUnpricedUnits) {
-            return self::SALES_STATUS_PENDING;
+            return 'pending';
         }
 
-        return self::SALES_STATUS_AVAILABLE;
+        return 'available';
     }
 
     /**
@@ -235,7 +225,7 @@ class SalesProjectService
     protected function computeUnitAvailability(ContractUnit $unit, string $projectSalesStatus): array
     {
         // If project is not available, unit is pending
-        if ($projectSalesStatus !== self::SALES_STATUS_AVAILABLE) {
+        if ($projectSalesStatus !== 'available') {
             return ['status' => 'pending', 'can_reserve' => false];
         }
 
@@ -330,6 +320,7 @@ class SalesProjectService
 <<<<<<< HEAD
             $q->where('leader_id', $leader->id)
               ->active();
+<<<<<<< HEAD
         })->with(['secondPartyData.contractUnits', 'salesProjectAssignments.leader', 'user'])->get();
     }
 
@@ -366,6 +357,9 @@ class SalesProjectService
             $q->where('leader_id', $leader->id);
         })->with('secondPartyData.contractUnits')->get();
 >>>>>>> parent of 29c197a (Add edits)
+=======
+        })->with('secondPartyData.contractUnits')->get();
+>>>>>>> parent of ad8e607 (Add Edits and Fixes)
     }
 
     /**
@@ -468,6 +462,7 @@ class SalesProjectService
         // Return null if expired (negative days)
         return $remainingDays >= 0 ? $remainingDays : null;
     }
+<<<<<<< HEAD
 
     /**
      * Count projects currently under marketing based on sales availability logic.
@@ -493,4 +488,6 @@ class SalesProjectService
 >>>>>>> parent of 29c197a (Add edits)
 =======
 >>>>>>> parent of 29c197a (Add edits)
+=======
+>>>>>>> parent of ad8e607 (Add Edits and Fixes)
 }

@@ -21,8 +21,6 @@ class ContractInfoFactory extends Factory
             'second_party_name' => $this->faker->name,
             'second_party_email' => $this->faker->email,
             'second_party_phone' => $this->faker->phoneNumber,
-            'agreement_duration_days' => 90,
-            'agreement_duration_months' => 3,
         ];
     }
 }

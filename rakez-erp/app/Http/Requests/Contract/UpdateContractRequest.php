@@ -64,7 +64,6 @@ class UpdateContractRequest extends FormRequest
             'district' => 'sometimes|string|max:255',
             'developer_requiment' => 'sometimes|string',
             'notes' => 'nullable|string',
-            'is_off_plan' => 'sometimes|boolean',
             // Units array validation
             'units' => 'sometimes|array|min:1',
             'units.*.type' => 'required_with:units|string|max:255',

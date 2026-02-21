@@ -32,14 +32,6 @@ class PaymentPlanService
             throw new Exception('Payment plans can only be created when down payment is non-refundable');
         }
 
-        // Validate: For bank transfers/electronic payments, down payment must be confirmed by Accounting
-        // Cash payments do not require accounting confirmation (per SRS)
-        if (in_array($reservation->payment_method, ['bank_transfer', 'bank_financing'])) {
-            if (!$reservation->down_payment_confirmed) {
-                throw new Exception('Payment plans can only be created after down payment is confirmed by Accounting (required for bank transfers/electronic payments)');
-            }
-        }
-
         // Validate: no existing payment plan
         if ($reservation->hasPaymentPlan()) {
             throw new Exception('A payment plan already exists for this reservation');

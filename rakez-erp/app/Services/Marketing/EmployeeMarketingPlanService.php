@@ -39,9 +39,6 @@ class EmployeeMarketingPlanService
             $inputs['campaign_distribution'] ?? $this->buildEqualDistribution(self::CAMPAIGNS),
             self::CAMPAIGNS
         );
-        $campaignDistributionByPlatform = $this->normalizeCampaignDistributionByPlatform(
-            $inputs['campaign_distribution_by_platform'] ?? null
-        );
 
         $plan = EmployeeMarketingPlan::create([
             'marketing_project_id' => $marketingProjectId,
@@ -50,7 +47,6 @@ class EmployeeMarketingPlanService
             'marketing_value' => $marketingValue,
             'platform_distribution' => $platformDistribution,
             'campaign_distribution' => $campaignDistribution,
-            'campaign_distribution_by_platform' => $campaignDistributionByPlatform,
         ]);
 
         if (isset($inputs['campaigns'])) {
@@ -102,17 +98,12 @@ class EmployeeMarketingPlanService
 
         $platformDistribution = $this->buildEqualDistribution(self::PLATFORMS);
         $campaignDistribution = $this->buildEqualDistribution(self::CAMPAIGNS);
-        $campaignDistributionByPlatform = [];
-        foreach (self::PLATFORMS as $platform) {
-            $campaignDistributionByPlatform[$platform] = $campaignDistribution;
-        }
 
         return $this->createPlan($marketingProjectId, $userId, [
             'commission_value' => $commissionValue,
             'marketing_value' => $marketingValue,
             'platform_distribution' => $platformDistribution,
-            'campaign_distribution' => $campaignDistribution,
-            'campaign_distribution_by_platform' => $campaignDistributionByPlatform,
+            'campaign_distribution' => $campaignDistribution
         ]);
     }
 
@@ -140,20 +131,5 @@ class EmployeeMarketingPlanService
             $normalized[$key] = isset($input[$key]) ? (float) $input[$key] : 0.0;
         }
         return $normalized;
-    }
-
-    private function normalizeCampaignDistributionByPlatform(?array $input): array
-    {
-        $distribution = [];
-        $defaultCampaignDistribution = $this->buildEqualDistribution(self::CAMPAIGNS);
-
-        foreach (self::PLATFORMS as $platform) {
-            $distribution[$platform] = $this->normalizeDistribution(
-                $input[$platform] ?? $defaultCampaignDistribution,
-                self::CAMPAIGNS
-            );
-        }
-
-        return $distribution;
     }
 }

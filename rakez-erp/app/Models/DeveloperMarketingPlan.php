@@ -14,8 +14,6 @@ class DeveloperMarketingPlan extends Model
         'average_cpm',
         'average_cpc',
         'marketing_value',
-        'marketing_percent',
-        'direct_contact_percent',
         'expected_impressions',
         'expected_clicks',
     ];
@@ -24,8 +22,6 @@ class DeveloperMarketingPlan extends Model
         'average_cpm' => 'decimal:2',
         'average_cpc' => 'decimal:2',
         'marketing_value' => 'decimal:2',
-        'marketing_percent' => 'decimal:2',
-        'direct_contact_percent' => 'decimal:2',
         'expected_impressions' => 'integer',
         'expected_clicks' => 'integer',
     ];
@@ -33,10 +29,5 @@ class DeveloperMarketingPlan extends Model
     public function contract()
     {
         return $this->belongsTo(Contract::class);
-    }
-
-    public function budgetDistribution()
-    {
-        return $this->hasOne(MarketingBudgetDistribution::class);
     }
 }

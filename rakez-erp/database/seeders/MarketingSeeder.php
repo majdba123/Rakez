@@ -76,27 +76,21 @@ class MarketingSeeder extends Seeder
             }
 
             for ($t = 0; $t < $counts['marketing_tasks_per_contract']; $t++) {
-                $taskStatuses = ['new', 'in_progress', 'completed'];
-                $taskStatus = $taskStatuses[$t % 3];
                 MarketingTask::factory()->create([
                     'contract_id' => $contractId,
                     'marketing_project_id' => $project->id,
                     'marketer_id' => Arr::random($marketingUsers),
                     'created_by' => Arr::random($leaderPool),
-                    'status' => $taskStatus,
-                    'due_date' => $taskStatus === 'completed' 
-                        ? now()->subDays(fake()->numberBetween(1, 14))->format('Y-m-d')
-                        : now()->addDays(fake()->numberBetween(1, 14))->format('Y-m-d'),
+                    'status' => $t % 2 === 0 ? 'new' : 'in_progress',
+                    'due_date' => now()->addDays(fake()->numberBetween(1, 14))->format('Y-m-d'),
                 ]);
             }
 
             for ($l = 0; $l < $counts['leads_per_contract']; $l++) {
-                $leadStatuses = ['new', 'contacted', 'qualified', 'lost', 'converted'];
-                $leadStatus = $leadStatuses[$l % 5];
                 Lead::factory()->create([
                     'project_id' => $contractId,
                     'assigned_to' => Arr::random($marketingUsers),
-                    'status' => $leadStatus,
+                    'status' => $l % 2 === 0 ? 'new' : 'contacted',
                 ]);
             }
 

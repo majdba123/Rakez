@@ -6,22 +6,18 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Marketing\StoreLeadRequest;
 use App\Http\Requests\Marketing\UpdateLeadRequest;
 use App\Models\Lead;
-use App\Http\Responses\ApiResponse;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Http\Request;
 
 class LeadController extends Controller
 {
-    public function index(Request $request): JsonResponse
+    public function index(): JsonResponse
     {
         $this->authorize('viewAny', Lead::class);
 
-        $perPage = ApiResponse::getPerPage($request);
-        $leads = Lead::with(['project', 'assignedTo'])
-            ->orderBy('created_at', 'desc')
-            ->paginate($perPage);
-
-        return ApiResponse::paginated($leads, 'تم جلب قائمة العملاء المحتملين بنجاح');
+        return response()->json([
+            'success' => true,
+            'data' => Lead::with(['project', 'assignedTo'])->get()
+        ]);
     }
 
     public function store(StoreLeadRequest $request): JsonResponse

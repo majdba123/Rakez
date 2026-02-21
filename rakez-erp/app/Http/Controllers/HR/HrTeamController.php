@@ -6,7 +6,6 @@ use App\Http\Controllers\Controller;
 use App\Models\Team;
 use App\Models\User;
 use App\Services\Team\TeamService;
-use App\Http\Responses\ApiResponse;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -30,13 +29,10 @@ class HrTeamController extends Controller
         try {
             $year = (int) $request->input('year', now()->year);
             $month = (int) $request->input('month', now()->month);
-            $perPage = ApiResponse::getPerPage($request);
 
-            $teams = Team::with(['members', 'contracts'])
-                ->orderBy('created_at', 'desc')
-                ->paginate($perPage);
+            $teams = Team::with(['members', 'contracts'])->get();
 
-            $teamsData = $teams->getCollection()->map(function ($team) use ($year, $month) {
+            $teamsData = $teams->map(function ($team) use ($year, $month) {
                 return [
                     'id' => $team->id,
                     'name' => $team->name,
@@ -53,21 +49,12 @@ class HrTeamController extends Controller
                 ];
             });
 
-            $teams->setCollection($teamsData);
-
             return response()->json([
                 'success' => true,
                 'message' => 'تم جلب قائمة الفرق بنجاح',
-                'data' => $teams->items(),
+                'data' => $teamsData,
                 'meta' => [
-                    'pagination' => [
-                        'total' => $teams->total(),
-                        'count' => $teams->count(),
-                        'per_page' => $teams->perPage(),
-                        'current_page' => $teams->currentPage(),
-                        'total_pages' => $teams->lastPage(),
-                        'has_more_pages' => $teams->hasMorePages(),
-                    ],
+                    'total' => $teams->count(),
                     'period' => [
                         'year' => $year,
                         'month' => $month,

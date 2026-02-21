@@ -7,7 +7,6 @@ use App\Http\Requests\Marketing\StoreMarketingTaskRequest;
 use App\Http\Requests\Marketing\UpdateMarketingTaskRequest;
 use App\Services\Marketing\MarketingTaskService;
 use App\Models\MarketingTask;
-use App\Http\Responses\ApiResponse;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -21,15 +20,16 @@ class MarketingTaskController extends Controller
     {
         $this->authorize('viewAny', \App\Models\MarketingTask::class);
 
-        $perPage = ApiResponse::getPerPage($request);
         $tasks = $this->taskService->getDailyTasks(
             $request->user()->id,
             $request->query('date'),
-            $request->query('status'),
-            $perPage
+            $request->query('status')
         );
 
-        return ApiResponse::paginated($tasks, 'تم جلب قائمة المهام بنجاح');
+        return response()->json([
+            'success' => true,
+            'data' => $tasks
+        ]);
     }
 
     public function store(StoreMarketingTaskRequest $request): JsonResponse
@@ -63,7 +63,7 @@ class MarketingTaskController extends Controller
         $task = \App\Models\MarketingTask::findOrFail($taskId);
         $this->authorize('update', $task);
 
-        $request->validate(['status' => 'required|string|in:new,in_progress,completed']);
+        $request->validate(['status' => 'required|string|in:new,in_progress,completed,cancelled']);
 
         $task = $this->taskService->updateTaskStatus($taskId, $request->input('status'));
 

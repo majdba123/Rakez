@@ -6,7 +6,6 @@ use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Models\EmployeeContract;
 use App\Services\HR\EmployeeContractService;
-use App\Http\Responses\ApiResponse;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
@@ -25,37 +24,27 @@ class EmployeeContractController extends Controller
      * List contracts for an employee.
      * GET /hr/users/{id}/contracts
      */
-    public function index(Request $request, int $id): JsonResponse
+    public function index(int $id): JsonResponse
     {
         try {
             $user = User::findOrFail($id);
-            $perPage = ApiResponse::getPerPage($request);
-            $contracts = $this->contractService->getUserContracts($id, $perPage);
-
-            $contractsData = $contracts->getCollection()->map(fn($c) => [
-                'id' => $c->id,
-                'start_date' => $c->start_date,
-                'end_date' => $c->end_date,
-                'status' => $c->status,
-                'has_pdf' => !empty($c->pdf_path),
-                'days_remaining' => $c->getRemainingDays(),
-                'is_expiring_soon' => $c->isExpiringWithin(30),
-                'created_at' => $c->created_at,
-            ]);
+            $contracts = $this->contractService->getUserContracts($id);
 
             return response()->json([
                 'success' => true,
                 'message' => 'تم جلب قائمة العقود بنجاح',
-                'data' => $contractsData->values()->all(),
+                'data' => $contracts->map(fn($c) => [
+                    'id' => $c->id,
+                    'start_date' => $c->start_date,
+                    'end_date' => $c->end_date,
+                    'status' => $c->status,
+                    'has_pdf' => !empty($c->pdf_path),
+                    'days_remaining' => $c->getRemainingDays(),
+                    'is_expiring_soon' => $c->isExpiringWithin(30),
+                    'created_at' => $c->created_at,
+                ]),
                 'meta' => [
-                    'pagination' => [
-                        'total' => $contracts->total(),
-                        'count' => $contracts->count(),
-                        'per_page' => $contracts->perPage(),
-                        'current_page' => $contracts->currentPage(),
-                        'total_pages' => $contracts->lastPage(),
-                        'has_more_pages' => $contracts->hasMorePages(),
-                    ],
+                    'total' => $contracts->count(),
                     'employee' => [
                         'id' => $user->id,
                         'name' => $user->name,

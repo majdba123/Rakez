@@ -5,7 +5,6 @@ namespace App\Http\Controllers\Marketing;
 use App\Http\Controllers\Controller;
 use App\Services\Marketing\EmployeeMarketingPlanService;
 use App\Models\EmployeeMarketingPlan;
-use App\Http\Responses\ApiResponse;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -33,6 +32,7 @@ class EmployeeMarketingPlanController extends Controller
             $query->where('user_id', $request->input('user_id'));
         }
 
+<<<<<<< HEAD
         $perPage = ApiResponse::getPerPage($request);
         $plans = $query->orderBy('created_at', 'desc')->paginate($perPage);
 
@@ -41,11 +41,18 @@ class EmployeeMarketingPlanController extends Controller
 =======
 >>>>>>> parent of 29c197a (Add edits)
         $plans = EmployeeMarketingPlan::where('marketing_project_id', $projectId)->with('user')->get();
+=======
+        $plans = $query->get();
+        
+>>>>>>> parent of ad8e607 (Add Edits and Fixes)
         return response()->json([
             'success' => true,
             'data' => $plans
         ]);
+<<<<<<< HEAD
 >>>>>>> parent of 29c197a (Add edits)
+=======
+>>>>>>> parent of ad8e607 (Add Edits and Fixes)
     }
 
     public function show(int $planId): JsonResponse

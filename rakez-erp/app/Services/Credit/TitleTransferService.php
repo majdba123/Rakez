@@ -162,13 +162,9 @@ class TitleTransferService
     }
 
     /**
-     * Get sold projects (completed title transfers) - paginated.
-     *
-     * @param array $filters
-     * @param int $perPage
-     * @return \Illuminate\Contracts\Pagination\LengthAwarePaginator
+     * Get sold projects (completed title transfers).
      */
-    public function getSoldProjects(array $filters = [], int $perPage = 15)
+    public function getSoldProjects(array $filters = []): Collection
     {
         $query = TitleTransfer::with(['reservation.contract', 'reservation.contractUnit', 'processedBy'])
             ->completed();
@@ -188,7 +184,7 @@ class TitleTransferService
             });
         }
 
-        return $query->orderBy('completed_date', 'desc')->paginate($perPage);
+        return $query->orderBy('completed_date', 'desc')->get();
     }
 
     /**

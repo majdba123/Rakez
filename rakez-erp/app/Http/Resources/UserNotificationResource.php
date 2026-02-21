@@ -13,8 +13,6 @@ class UserNotificationResource extends JsonResource
             'id' => $this->id,
             'user_id' => $this->user_id,
             'message' => $this->message,
-            'event_type' => $this->event_type,
-            'context' => $this->context,
             'status' => $this->status,
             'is_public' => $this->user_id === null,
             'created_at' => $this->created_at->format('Y-m-d H:i:s'),

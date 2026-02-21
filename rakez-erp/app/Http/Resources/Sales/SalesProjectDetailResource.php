@@ -9,16 +9,6 @@ class SalesProjectDetailResource extends JsonResource
 {
     public function toArray(Request $request): array
     {
-        $activeAssignment = $this->salesProjectAssignments
-            ? $this->salesProjectAssignments->first(fn($a) => $a->isActive())
-            : null;
-
-        $teamName = $activeAssignment?->leader?->team
-            ?? $this->user?->team
-            ?? 'N/A';
-
-        $status = $this->sales_status ?? 'pending';
-
         return [
             'contract_id' => $this->id,
             'project_name' => $this->project_name,
@@ -27,9 +17,7 @@ class SalesProjectDetailResource extends JsonResource
             'city' => $this->city,
             'district' => $this->district,
             'project_image_url' => $this->project_image_url,
-            'sales_status' => $status,
-            'project_status_label_ar' => $status === 'available' ? 'متاح' : 'قيد الانتظار',
-            'team_name' => $teamName,
+            'sales_status' => $this->sales_status ?? 'pending',
             'emergency_contact_number' => $this->emergency_contact_number,
             'security_guard_number' => $this->security_guard_number,
             'total_units' => $this->total_units ?? 0,

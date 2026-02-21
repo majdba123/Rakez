@@ -8,8 +8,6 @@ use App\Events\UserNotificationEvent;
 use App\Events\PublicNotificationEvent;
 use App\Http\Resources\AdminNotificationResource;
 use App\Http\Resources\UserNotificationResource;
-use App\Http\Responses\ApiResponse;
-use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 
@@ -24,40 +22,13 @@ class NotificationController extends Controller
      */
     public function getAdminNotifications(Request $request): JsonResponse
     {
-        $query = AdminNotification::where('user_id', $request->user()->id)
-            ->orderBy('created_at', 'desc');
-
-        return $this->paginateNotifications($query, $request, 'admin');
-    }
-
-    /**
-     * Paginate notifications query and return JSON response.
-     *
-     * @param Builder $query
-     * @param Request $request
-     * @param string $type 'admin'|'user'
-     */
-    private function paginateNotifications(Builder $query, Request $request, string $type = 'user'): JsonResponse
-    {
-        $perPage = ApiResponse::getPerPage($request);
-        $paginator = $query->paginate($perPage);
-
-        $resource = $type === 'admin'
-            ? AdminNotificationResource::class
-            : UserNotificationResource::class;
+        $notifications = AdminNotification::where('user_id', $request->user()->id)
+            ->orderBy('created_at', 'desc')
+            ->get();
 
         return response()->json([
-            'data' => $resource::collection($paginator->items()),
-            'meta' => [
-                'pagination' => [
-                    'total' => $paginator->total(),
-                    'count' => $paginator->count(),
-                    'per_page' => $paginator->perPage(),
-                    'current_page' => $paginator->currentPage(),
-                    'total_pages' => $paginator->lastPage(),
-                    'has_more_pages' => $paginator->hasMorePages(),
-                ],
-            ],
+            'data' => AdminNotificationResource::collection($notifications),
+            'count' => $notifications->count(),
         ]);
     }
 
@@ -109,23 +80,31 @@ class NotificationController extends Controller
     /**
      * Get all notifications of specific user (admin view)
      */
-    public function getUserNotificationsByAdmin($userId, Request $request): JsonResponse
+    public function getUserNotificationsByAdmin($userId): JsonResponse
     {
-        $query = UserNotification::where('user_id', $userId)
-            ->orderBy('created_at', 'desc');
+        $notifications = UserNotification::where('user_id', $userId)
+            ->orderBy('created_at', 'desc')
+            ->get();
 
-        return $this->paginateNotifications($query, $request, 'user');
+        return response()->json([
+            'data' => UserNotificationResource::collection($notifications),
+            'count' => $notifications->count(),
+        ]);
     }
 
     /**
      * Get all public notifications (admin view)
      */
-    public function getAllPublicNotifications(Request $request): JsonResponse
+    public function getAllPublicNotifications(): JsonResponse
     {
-        $query = UserNotification::whereNull('user_id')
-            ->orderBy('created_at', 'desc');
+        $notifications = UserNotification::whereNull('user_id')
+            ->orderBy('created_at', 'desc')
+            ->get();
 
-        return $this->paginateNotifications($query, $request, 'user');
+        return response()->json([
+            'data' => UserNotificationResource::collection($notifications),
+            'count' => $notifications->count(),
+        ]);
     }
 
     // ==========================================
@@ -137,21 +116,29 @@ class NotificationController extends Controller
      */
     public function getUserPrivateNotifications(Request $request): JsonResponse
     {
-        $query = UserNotification::where('user_id', $request->user()->id)
-            ->orderBy('created_at', 'desc');
+        $notifications = UserNotification::where('user_id', $request->user()->id)
+            ->orderBy('created_at', 'desc')
+            ->get();
 
-        return $this->paginateNotifications($query, $request, 'user');
+        return response()->json([
+            'data' => UserNotificationResource::collection($notifications),
+            'count' => $notifications->count(),
+        ]);
     }
 
     /**
      * Get public notifications
      */
-    public function getPublicNotifications(Request $request): JsonResponse
+    public function getPublicNotifications(): JsonResponse
     {
-        $query = UserNotification::whereNull('user_id')
-            ->orderBy('created_at', 'desc');
+        $notifications = UserNotification::whereNull('user_id')
+            ->orderBy('created_at', 'desc')
+            ->get();
 
-        return $this->paginateNotifications($query, $request, 'user');
+        return response()->json([
+            'data' => UserNotificationResource::collection($notifications),
+            'count' => $notifications->count(),
+        ]);
     }
 
     /**

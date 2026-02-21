@@ -1,39 +1,5 @@
 <?php
 
-$salesBasePermissions = [
-    'sales.dashboard.view',
-    'sales.projects.view',
-    'sales.units.view',
-    'sales.units.book',
-    'sales.reservations.create',
-    'sales.reservations.view',
-    'sales.reservations.confirm',
-    'sales.reservations.cancel',
-    'sales.waiting_list.create',
-    'sales.goals.view',
-    'sales.schedule.view',
-    'sales.targets.view',
-    'sales.targets.update',
-    'sales.attendance.view',
-    'notifications.view',
-    'exclusive_projects.request',
-    'exclusive_projects.contract.complete',
-    'exclusive_projects.contract.export',
-    'use-ai-assistant',
-];
-
-$salesLeaderExtraPermissions = [
-    'sales.waiting_list.convert',
-    'sales.goals.create',
-    'sales.team.manage',
-    'sales.attendance.manage',
-    'sales.tasks.manage',
-    'sales.tasks.create_for_marketing',
-    'sales.projects.allocate_shifts',
-    'sales.negotiation.approve',
-    'sales.payment-plan.manage',
-];
-
 return [
     'behavior_rules' => [
         'Always allowed to explain general workflows',
@@ -122,7 +88,6 @@ return [
         'marketing.reports.view' => 'View performance and budget reports.',
 
         // Exclusive Projects
-        'exclusive_projects.view' => 'View exclusive project requests.',
         'exclusive_projects.request' => 'Request exclusive project (all except HR).',
         'exclusive_projects.approve' => 'Approve exclusive project requests (PM Manager only).',
         'exclusive_projects.contract.complete' => 'Complete contract after approval.',
@@ -231,11 +196,14 @@ return [
 <<<<<<< HEAD
             'marketing.teams.view',
             'marketing.teams.manage',
+<<<<<<< HEAD
             'exclusive_projects.view',
 =======
 >>>>>>> parent of 29c197a (Add edits)
 =======
 >>>>>>> parent of 29c197a (Add edits)
+=======
+>>>>>>> parent of ad8e607 (Add Edits and Fixes)
             'exclusive_projects.request',
             'exclusive_projects.approve',
             'exclusive_projects.contract.complete',
@@ -379,11 +347,58 @@ return [
             'exclusive_projects.contract.export',
             'use-ai-assistant',
         ],
-        'sales' => $salesBasePermissions,
-        'sales_leader' => array_values(array_unique(array_merge(
-            $salesBasePermissions,
-            $salesLeaderExtraPermissions
-        ))),
+        'sales' => [
+            'sales.dashboard.view',
+            'sales.projects.view',
+            'sales.units.view',
+            'sales.units.book',
+            'sales.reservations.create',
+            'sales.reservations.view',
+            'sales.reservations.confirm',
+            'sales.reservations.cancel',
+            'sales.waiting_list.create',
+            'sales.goals.view',
+            'sales.schedule.view',
+            'sales.targets.view',
+            'sales.targets.update',
+            'sales.attendance.view',
+            'notifications.view',
+            'exclusive_projects.request',
+            'exclusive_projects.contract.complete',
+            'exclusive_projects.contract.export',
+            'use-ai-assistant',
+        ],
+        'sales_leader' => [
+            // Inherits all sales permissions
+            'sales.dashboard.view',
+            'sales.projects.view',
+            'sales.units.view',
+            'sales.units.book',
+            'sales.reservations.create',
+            'sales.reservations.view',
+            'sales.reservations.confirm',
+            'sales.reservations.cancel',
+            'sales.waiting_list.create',
+            'sales.waiting_list.convert',
+            'sales.goals.view',
+            'sales.goals.create',
+            'sales.schedule.view',
+            'sales.targets.view',
+            'sales.targets.update',
+            'sales.team.manage',
+            'sales.attendance.view',
+            'sales.attendance.manage',
+            'sales.tasks.manage',
+            'sales.tasks.create_for_marketing',
+            'sales.projects.allocate_shifts',
+            'sales.negotiation.approve',
+            'sales.payment-plan.manage',
+            'notifications.view',
+            'exclusive_projects.request',
+            'exclusive_projects.contract.complete',
+            'exclusive_projects.contract.export',
+            'use-ai-assistant',
+        ],
         'hr' => [
             'hr.dashboard.view',
             'hr.teams.manage',

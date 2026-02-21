@@ -20,7 +20,6 @@ class EmployeeMarketingPlanFactory extends Factory
             'marketing_value' => $this->faker->randomFloat(2, 10000, 100000),
             'platform_distribution' => null,
             'campaign_distribution' => null,
-            'campaign_distribution_by_platform' => null,
         ];
     }
 }

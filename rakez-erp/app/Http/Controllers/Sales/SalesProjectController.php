@@ -10,7 +10,6 @@ use App\Http\Resources\Sales\SalesUnitResource;
 use App\Models\Contract;
 use App\Models\User;
 use App\Services\Sales\SalesProjectService;
-use App\Http\Responses\ApiResponse;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -115,22 +114,11 @@ class SalesProjectController extends Controller
     public function teamProjects(Request $request): JsonResponse
     {
         try {
-            $perPage = ApiResponse::getPerPage($request);
-            $projects = $this->projectService->listTeamProjectsPaginated($request->user(), $perPage);
+            $projects = $this->projectService->listTeamProjects($request->user());
 
             return response()->json([
                 'success' => true,
-                'data' => SalesProjectResource::collection($projects->items()),
-                'meta' => [
-                    'pagination' => [
-                        'total' => $projects->total(),
-                        'count' => $projects->count(),
-                        'per_page' => $projects->perPage(),
-                        'current_page' => $projects->currentPage(),
-                        'total_pages' => $projects->lastPage(),
-                        'has_more_pages' => $projects->hasMorePages(),
-                    ],
-                ],
+                'data' => SalesProjectResource::collection($projects),
             ]);
         } catch (\Exception $e) {
             return response()->json([
@@ -235,40 +223,27 @@ class SalesProjectController extends Controller
     {
         try {
             $user = $request->user();
-            $perPage = ApiResponse::getPerPage($request);
-
+            
             $assignments = \App\Models\SalesProjectAssignment::where('leader_id', $user->id)
                 ->with(['contract', 'assignedBy'])
                 ->orderBy('start_date', 'desc')
                 ->orderBy('created_at', 'desc')
-                ->paginate($perPage);
-
-            $assignmentsData = $assignments->getCollection()->map(function ($assignment) {
-                return [
-                    'id' => $assignment->id,
-                    'contract_id' => $assignment->contract_id,
-                    'project_name' => $assignment->contract->project_name ?? 'N/A',
-                    'start_date' => $assignment->start_date?->toDateString(),
-                    'end_date' => $assignment->end_date?->toDateString(),
-                    'is_active' => $assignment->isActive(),
-                    'assigned_by' => $assignment->assignedBy->name ?? 'N/A',
-                    'created_at' => $assignment->created_at?->toIso8601String(),
-                ];
-            });
+                ->get();
 
             return response()->json([
                 'success' => true,
-                'data' => $assignmentsData->values()->all(),
-                'meta' => [
-                    'pagination' => [
-                        'total' => $assignments->total(),
-                        'count' => $assignments->count(),
-                        'per_page' => $assignments->perPage(),
-                        'current_page' => $assignments->currentPage(),
-                        'total_pages' => $assignments->lastPage(),
-                        'has_more_pages' => $assignments->hasMorePages(),
-                    ],
-                ],
+                'data' => $assignments->map(function ($assignment) {
+                    return [
+                        'id' => $assignment->id,
+                        'contract_id' => $assignment->contract_id,
+                        'project_name' => $assignment->contract->project_name ?? 'N/A',
+                        'start_date' => $assignment->start_date?->toDateString(),
+                        'end_date' => $assignment->end_date?->toDateString(),
+                        'is_active' => $assignment->isActive(),
+                        'assigned_by' => $assignment->assignedBy->name ?? 'N/A',
+                        'created_at' => $assignment->created_at?->toIso8601String(),
+                    ];
+                }),
             ]);
         } catch (\Exception $e) {
             return response()->json([

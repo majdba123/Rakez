@@ -16,14 +16,13 @@ class HRSeeder extends Seeder
         $nonAdminUsers = User::where('type', '!=', 'admin')->get();
 
         foreach ($nonAdminUsers as $index => $user) {
-            $contractStatuses = ['draft', 'active', 'expired', 'terminated'];
-            $status = $contractStatuses[$index % 4];
+            $status = $index % 3 === 0 ? 'draft' : ($index % 5 === 0 ? 'expired' : 'active');
             $startDate = now()->subDays(fake()->numberBetween(0, 365))->toDateString();
 
             $endDate = null;
             if ($status === 'active') {
                 $endDate = now()->addDays(fake()->numberBetween(30, 365 * 2))->toDateString();
-            } elseif (in_array($status, ['expired', 'terminated'])) {
+            } elseif ($status === 'expired') {
                 $endDate = now()->subDays(fake()->numberBetween(1, 365))->toDateString();
             }
 
