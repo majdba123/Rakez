@@ -21,25 +21,14 @@ class EmployeeRoleTest extends TestCase
     {
         parent::setUp();
 
-        // Create permissions
-        Permission::firstOrCreate(['name' => 'employees.manage', 'guard_name' => 'web']);
+        $this->artisan('db:seed', ['--class' => 'RolesAndPermissionsSeeder']);
 
-        // Create roles
-        $adminRole = Role::firstOrCreate(['name' => 'admin', 'guard_name' => 'web']);
-        $salesRole = Role::firstOrCreate(['name' => 'sales', 'guard_name' => 'web']);
-        $marketingRole = Role::firstOrCreate(['name' => 'marketing', 'guard_name' => 'web']);
-
-        // Assign permissions to admin role
-        $adminRole->givePermissionTo('employees.manage');
-
-        // Create admin user
         $this->admin = User::factory()->create([
             'type' => 'admin',
             'email' => 'admin@test.com',
         ]);
         $this->admin->assignRole('admin');
 
-        // Create a team for testing
         $this->team = Team::factory()->create();
     }
 
@@ -47,7 +36,7 @@ class EmployeeRoleTest extends TestCase
     public function admin_can_list_all_roles()
     {
         $response = $this->actingAs($this->admin, 'sanctum')
-            ->getJson('/api/admin/employees/roles');
+            ->getJson('/api/hr/users/roles');
 
         $response->assertStatus(200)
             ->assertJsonStructure([
@@ -68,7 +57,7 @@ class EmployeeRoleTest extends TestCase
         $user->assignRole('sales');
 
         $response = $this->actingAs($user, 'sanctum')
-            ->getJson('/api/admin/employees/roles');
+            ->getJson('/api/hr/users/roles');
 
         $response->assertStatus(403);
     }
@@ -83,11 +72,11 @@ class EmployeeRoleTest extends TestCase
             'password' => 'password123',
             'type' => 5, // sales type
             'role' => 'sales',
-            'team' => $this->team->id,
+            'team_id' => $this->team->id,
         ];
 
         $response = $this->actingAs($this->admin, 'sanctum')
-            ->postJson('/api/admin/employees/add_employee', $employeeData);
+            ->postJson('/api/hr/users', $employeeData);
 
         $response->assertStatus(201)
             ->assertJsonStructure([
@@ -109,11 +98,11 @@ class EmployeeRoleTest extends TestCase
             'phone' => '1234567891',
             'password' => 'password123',
             'type' => 5, // sales type
-            'team' => $this->team->id,
+            'team_id' => $this->team->id,
         ];
 
         $response = $this->actingAs($this->admin, 'sanctum')
-            ->postJson('/api/admin/employees/add_employee', $employeeData);
+            ->postJson('/api/hr/users', $employeeData);
 
         $response->assertStatus(201);
 
@@ -132,11 +121,11 @@ class EmployeeRoleTest extends TestCase
             'password' => 'password123',
             'type' => 5,
             'role' => 'nonexistent_role',
-            'team' => $this->team->id,
+            'team_id' => $this->team->id,
         ];
 
         $response = $this->actingAs($this->admin, 'sanctum')
-            ->postJson('/api/admin/employees/add_employee', $employeeData);
+            ->postJson('/api/hr/users', $employeeData);
 
         $response->assertStatus(422)
             ->assertJsonValidationErrors(['role']);
@@ -160,7 +149,7 @@ class EmployeeRoleTest extends TestCase
         ];
 
         $response = $this->actingAs($this->admin, 'sanctum')
-            ->putJson("/api/admin/employees/update_employee/{$employee->id}", $updateData);
+            ->putJson("/api/hr/users/{$employee->id}", $updateData);
 
         $response->assertStatus(200);
 
@@ -186,7 +175,7 @@ class EmployeeRoleTest extends TestCase
         ];
 
         $response = $this->actingAs($this->admin, 'sanctum')
-            ->putJson("/api/admin/employees/update_employee/{$employee->id}", $updateData);
+            ->putJson("/api/hr/users/{$employee->id}", $updateData);
 
         $response->assertStatus(200);
 
@@ -208,7 +197,7 @@ class EmployeeRoleTest extends TestCase
         ];
 
         $response = $this->actingAs($this->admin, 'sanctum')
-            ->putJson("/api/admin/employees/update_employee/{$employee->id}", $updateData);
+            ->putJson("/api/hr/users/{$employee->id}", $updateData);
 
         $response->assertStatus(422)
             ->assertJsonValidationErrors(['role']);
@@ -225,11 +214,11 @@ class EmployeeRoleTest extends TestCase
             'password' => 'password123',
             'type' => 5, // sales type
             'role' => 'marketing', // but marketing role
-            'team' => $this->team->id,
+            'team_id' => $this->team->id,
         ];
 
         $response = $this->actingAs($this->admin, 'sanctum')
-            ->postJson('/api/admin/employees/add_employee', $employeeData);
+            ->postJson('/api/hr/users', $employeeData);
 
         $response->assertStatus(201);
 
@@ -248,7 +237,7 @@ class EmployeeRoleTest extends TestCase
         Role::firstOrCreate(['name' => 'hr', 'guard_name' => 'web']);
 
         $response = $this->actingAs($this->admin, 'sanctum')
-            ->getJson('/api/admin/employees/roles');
+            ->getJson('/api/hr/users/roles');
 
         $response->assertStatus(200);
 

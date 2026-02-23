@@ -60,7 +60,7 @@ class SalesMarketingTaskTest extends TestCase
         $response->assertStatus(201)
             ->assertJson([
                 'success' => true,
-                'message' => 'Marketing task created successfully'
+                'message' => 'تم إنشاء المهمة التسويقية بنجاح'
             ]);
 
         $this->assertDatabaseHas('marketing_tasks', [
@@ -85,7 +85,7 @@ class SalesMarketingTaskTest extends TestCase
         $response->assertStatus(200)
             ->assertJson([
                 'success' => true,
-                'message' => 'Task status updated successfully'
+                'message' => 'تم تحديث حالة المهمة بنجاح'
             ]);
 
         $this->assertDatabaseHas('marketing_tasks', [

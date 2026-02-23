@@ -60,7 +60,7 @@ class SalesAuthorizationTest extends TestCase
             'second_party_data_id' => $secondPartyData->id,
             'price' => 500000,
         ]);
-        
+
         // Assign leader to project for tests that require it
         \App\Models\SalesProjectAssignment::create([
             'leader_id' => $this->salesLeader->id,
@@ -409,9 +409,17 @@ class SalesAuthorizationTest extends TestCase
 
     public function test_admin_can_assign_projects_to_leaders()
     {
+        $otherLeader = User::factory()->create([
+            'type' => 'sales',
+            'is_manager' => true,
+            'team' => 'Team Beta',
+        ]);
+        $otherLeader->assignRole('sales_leader');
+
+        $otherContract = Contract::factory()->create(['status' => 'ready']);
         $data = [
-            'leader_id' => $this->salesLeader->id,
-            'contract_id' => $this->contract->id,
+            'leader_id' => $otherLeader->id,
+            'contract_id' => $otherContract->id,
         ];
 
         $response = $this->actingAs($this->admin, 'sanctum')

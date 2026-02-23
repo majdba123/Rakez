@@ -22,32 +22,19 @@ class SalesTargetController extends Controller
      */
     public function my(Request $request): JsonResponse
     {
-        try {
-            $filters = [
-                'from' => $request->query('from'),
-                'to' => $request->query('to'),
-                'status' => $request->query('status'),
-                'per_page' => ApiResponse::getPerPage($request, 15, 100),
-            ];
-
-            $targets = $this->targetService->getMyTargets($request->user(), $filters);
-
-            return response()->json([
-                'success' => true,
-                'data' => SalesTargetResource::collection($targets->items()),
-                'meta' => [
-                    'current_page' => $targets->currentPage(),
-                    'last_page' => $targets->lastPage(),
-                    'per_page' => $targets->perPage(),
-                    'total' => $targets->total(),
-                ],
-            ]);
-        } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to retrieve targets: ' . $e->getMessage(),
-            ], 500);
-        }
+        $filters = [
+            'from' => $request->query('from'),
+            'to' => $request->query('to'),
+            'status' => $request->query('status'),
+            'per_page' => ApiResponse::getPerPage($request, 15, 100),
+        ];
+        $targets = $this->targetService->getMyTargets($request->user(), $filters);
+        return ApiResponse::success(
+            SalesTargetResource::collection($targets->items()),
+            'تم جلب الأهداف بنجاح',
+            200,
+            ['pagination' => ApiResponse::paginationMeta($targets)]
+        );
     }
 
     /**
@@ -57,26 +44,13 @@ class SalesTargetController extends Controller
     {
         try {
             $target = $this->targetService->getTarget($id, request()->user());
-
-            return response()->json([
-                'success' => true,
-                'data' => new SalesTargetResource($target),
-            ]);
+            return ApiResponse::success(new SalesTargetResource($target), 'تم جلب الهدف بنجاح');
         } catch (\Illuminate\Auth\Access\AuthorizationException $e) {
-            return response()->json([
-                'success' => false,
-                'message' => $e->getMessage(),
-            ], 403);
+            return ApiResponse::forbidden($e->getMessage());
         } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Target not found',
-            ], 404);
+            return ApiResponse::notFound('الهدف غير موجود');
         } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to retrieve target: ' . $e->getMessage(),
-            ], 500);
+            return ApiResponse::serverError($e->getMessage());
         }
     }
 
@@ -85,33 +59,20 @@ class SalesTargetController extends Controller
      */
     public function team(Request $request): JsonResponse
     {
-        try {
-            $filters = [
-                'from' => $request->query('from'),
-                'to' => $request->query('to'),
-                'status' => $request->query('status'),
-                'marketer_id' => $request->query('marketer_id'),
-                'per_page' => ApiResponse::getPerPage($request, 15, 100),
-            ];
-
-            $targets = $this->targetService->getTeamTargets($request->user(), $filters);
-
-            return response()->json([
-                'success' => true,
-                'data' => SalesTargetResource::collection($targets->items()),
-                'meta' => [
-                    'current_page' => $targets->currentPage(),
-                    'last_page' => $targets->lastPage(),
-                    'per_page' => $targets->perPage(),
-                    'total' => $targets->total(),
-                ],
-            ]);
-        } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to retrieve team targets: ' . $e->getMessage(),
-            ], 500);
-        }
+        $filters = [
+            'from' => $request->query('from'),
+            'to' => $request->query('to'),
+            'status' => $request->query('status'),
+            'marketer_id' => $request->query('marketer_id'),
+            'per_page' => ApiResponse::getPerPage($request, 15, 100),
+        ];
+        $targets = $this->targetService->getTeamTargets($request->user(), $filters);
+        return ApiResponse::success(
+            SalesTargetResource::collection($targets->items()),
+            'تم جلب أهداف الفريق بنجاح',
+            200,
+            ['pagination' => ApiResponse::paginationMeta($targets)]
+        );
     }
 
     /**
@@ -124,17 +85,9 @@ class SalesTargetController extends Controller
                 $request->validated(),
                 $request->user()
             );
-
-            return response()->json([
-                'success' => true,
-                'message' => 'Target created successfully',
-                'data' => new SalesTargetResource($target),
-            ], 201);
+            return ApiResponse::created(new SalesTargetResource($target), 'تم إنشاء الهدف بنجاح');
         } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to create target: ' . $e->getMessage(),
-            ], 400);
+            return ApiResponse::error($e->getMessage(), 400);
         }
     }
 
@@ -149,18 +102,10 @@ class SalesTargetController extends Controller
                 $request->validated(),
                 $request->user()
             );
-
-            return response()->json([
-                'success' => true,
-                'message' => 'Target updated successfully',
-                'data' => new SalesTargetResource($target),
-            ]);
+            return ApiResponse::success(new SalesTargetResource($target), 'تم تحديث الهدف بنجاح');
         } catch (\Exception $e) {
             $statusCode = $e->getMessage() === 'Unauthorized to update this target' ? 403 : 400;
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to update target: ' . $e->getMessage(),
-            ], $statusCode);
+            return ApiResponse::error($e->getMessage(), $statusCode);
         }
     }
 }

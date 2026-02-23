@@ -153,6 +153,7 @@ class HrUserController extends Controller
             'phone' => 'required|string|max:20',
             'password' => 'required|string|min:8',
             'type' => 'required|integer|between:0,7',
+            'role' => 'nullable|string|exists:roles,name',
             'is_manager' => 'nullable|boolean',
             'team_id' => 'nullable|integer|exists:teams,id',
             'identity_number' => 'nullable|string|max:20',
@@ -233,10 +234,16 @@ class HrUserController extends Controller
             'logo_usage_approval' => 'nullable|boolean',
             'contract_end_date' => 'nullable|date',
             'is_manager' => 'nullable|boolean',
+            'role' => 'nullable|string|exists:roles,name',
         ]);
 
         try {
+            $role = $validated['role'] ?? null;
+            unset($validated['role']);
             $user->update($validated);
+            if ($role !== null) {
+                $user->syncRoles([$role]);
+            }
 
             return ApiResponse::success([
                 'id' => $user->id,

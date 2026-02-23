@@ -33,6 +33,7 @@ class KpiSalesTool implements ToolContract
                 'date_from' => $dateFrom,
                 'date_to' => $dateTo,
                 'scope' => $scope,
+                'inputs' => ['date_from' => $dateFrom, 'date_to' => $dateTo, 'group_by' => $groupBy],
             ],
             'source_refs' => [['type' => 'tool', 'title' => 'Sales KPIs', 'ref' => 'tool_kpi_sales']],
         ];

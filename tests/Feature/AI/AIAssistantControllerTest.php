@@ -223,10 +223,12 @@ class AIAssistantControllerTest extends TestCase
             'success',
             'data',
             'meta' => [
-                'current_page',
-                'last_page',
-                'per_page',
-                'total',
+                'pagination' => [
+                    'current_page',
+                    'total_pages',
+                    'per_page',
+                    'total',
+                ],
             ],
         ]);
     }

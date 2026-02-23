@@ -33,6 +33,7 @@ class GetContractStatusTool implements ToolContract
                 'project_name' => $contract->project_name ?? '—',
                 'created_at' => $contract->created_at?->toIso8601String(),
                 'updated_at' => $contract->updated_at?->toIso8601String(),
+                'inputs' => ['contract_id' => $contractId],
             ],
             'source_refs' => [['type' => 'record', 'title' => 'Contract: '.($contract->project_name ?? $contract->id), 'ref' => "contract/{$contract->id}"]],
         ];

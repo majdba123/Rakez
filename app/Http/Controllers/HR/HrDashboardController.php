@@ -24,6 +24,9 @@ class HrDashboardController extends Controller
      */
     public function index(Request $request): JsonResponse
     {
+        if (!$request->user()) {
+            return ApiResponse::unauthorized();
+        }
         try {
             $year = (int) $request->input('year', now()->year);
             $month = (int) $request->input('month', now()->month);

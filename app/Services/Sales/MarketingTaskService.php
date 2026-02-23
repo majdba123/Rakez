@@ -168,14 +168,6 @@ class MarketingTaskService
     }
 
     /**
-     * Alias for getTaskProjects (used by controller).
-     */
-    public function listTaskProjects(User $leader): Collection
-    {
-        return $this->getTaskProjects($leader);
-    }
-
-    /**
      * Update task (used by controller).
      */
     public function updateTask(int $taskId, array $data, User $leader): MarketingTask

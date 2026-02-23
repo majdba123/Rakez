@@ -185,4 +185,64 @@ return [
             'What is the status of task Z?',
         ],
     ],
+    'sales' => [
+        'label' => 'Sales',
+        'required_capabilities' => ['sales.dashboard.view'],
+        'allowed_context_params' => [],
+        'suggestions' => [
+            'كيف أحسن نسبة الإغلاق؟',
+            'وش أفضل طريقة أتابع العملاء؟',
+            'كيف أحسب العمولة؟',
+        ],
+    ],
+    'hr' => [
+        'label' => 'Human Resources',
+        'required_capabilities' => ['hr.dashboard.view'],
+        'allowed_context_params' => [],
+        'suggestions' => [
+            'وش المهارات المطلوبة لمستشار مبيعات؟',
+            'كيف أقيّم أداء الموظف؟',
+            'كم التكلفة الشهرية للموظف؟',
+        ],
+    ],
+    'credit' => [
+        'label' => 'Credit & Financing',
+        'required_capabilities' => ['credit.dashboard.view'],
+        'allowed_context_params' => [],
+        'suggestions' => [
+            'كيف أحسب القسط الشهري للتمويل؟',
+            'وش مراحل التمويل البنكي؟',
+            'كم الحد الأدنى للراتب للتمويل؟',
+        ],
+    ],
+    'accounting' => [
+        'label' => 'Accounting',
+        'required_capabilities' => ['accounting.dashboard.view'],
+        'allowed_context_params' => [],
+        'suggestions' => [
+            'كيف أوزع العمولات على الفريق؟',
+            'كيف أتابع الإيداعات؟',
+            'وش حالة الرواتب هالشهر؟',
+        ],
+    ],
+    'campaign_advisor' => [
+        'label' => 'Campaign Advisor',
+        'required_capabilities' => ['marketing.dashboard.view'],
+        'allowed_context_params' => [],
+        'suggestions' => [
+            'عندي ميزانية 50 ألف، وش أفضل توزيع؟',
+            'كم ليد أتوقع من 30 ألف بسناب شات؟',
+            'قارن لي بين القنوات الإعلانية.',
+        ],
+    ],
+    'hiring_advisor' => [
+        'label' => 'Hiring Advisor',
+        'required_capabilities' => ['hr.employees.manage'],
+        'allowed_context_params' => [],
+        'suggestions' => [
+            'وش الأسئلة المهمة بمقابلة مستشار مبيعات؟',
+            'كيف أبني فريق تسويق لـ 3 مشاريع؟',
+            'كم تكلفة موظف التسويق الشهرية؟',
+        ],
+    ],
 ];

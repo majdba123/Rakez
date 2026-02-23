@@ -1,0 +1,25 @@
+{
+    "role": "admin",
+    "allowed_sections": ["general", "contracts", "units", "units_csv", "second_party", "departments_boards", "departments_photography", "departments_montage", "notifications", "dashboard", "marketing_dashboard", "marketing_projects", "marketing_tasks", "sales", "hr", "credit", "accounting", "campaign_advisor", "hiring_advisor"],
+    "denied_sections": [],
+    "allowed_tools": ["tool_campaign_advisor", "tool_hiring_advisor", "tool_finance_calculator", "tool_marketing_analytics", "tool_sales_advisor", "tool_search_records", "tool_kpi_sales", "tool_rag_search"],
+    "expected_access": {
+        "Q1": "allowed",
+        "Q2": "allowed",
+        "Q3": "allowed",
+        "Q4": "allowed",
+        "Q5": "allowed",
+        "Q6": "allowed",
+        "Q7": "allowed",
+        "Q8": "allowed",
+        "Q9": "allowed",
+        "Q10": "allowed",
+        "Q11": "allowed",
+        "Q12": "allowed",
+        "Q13": "allowed",
+        "Q14": "allowed",
+        "Q15": "allowed",
+        "Q16": "allowed",
+        "Q17": "allowed"
+    }
+}

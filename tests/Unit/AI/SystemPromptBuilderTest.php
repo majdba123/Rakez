@@ -24,9 +24,8 @@ class SystemPromptBuilderTest extends TestCase
         $user = User::factory()->create();
         $prompt = $this->builder->build($user, [], null, []);
 
-        $this->assertStringContainsString('Rakez ERP assistant', $prompt);
-        $this->assertStringContainsString('help users understand', $prompt);
-        $this->assertStringContainsString('Respond in the same language', $prompt);
+        $this->assertStringContainsString('راكز', $prompt);
+        $this->assertStringContainsString('ERP', $prompt);
     }
 
     public function test_build_includes_behavior_rules(): void
@@ -41,7 +40,7 @@ class SystemPromptBuilderTest extends TestCase
         $user = User::factory()->create();
         $prompt = $this->builder->build($user, [], null, []);
 
-        $this->assertStringContainsString('Behavior rules:', $prompt);
+        $this->assertStringContainsString('قواعد السلوك', $prompt);
         $this->assertStringContainsString('Always allowed to explain general workflows', $prompt);
         $this->assertStringContainsString('Never show data or steps', $prompt);
     }
@@ -53,7 +52,7 @@ class SystemPromptBuilderTest extends TestCase
 
         $prompt = $this->builder->build($user, [], $section, []);
 
-        $this->assertStringContainsString('Current section: Contracts', $prompt);
+        $this->assertStringContainsString('القسم الحالي: Contracts', $prompt);
     }
 
     public function test_build_handles_missing_section(): void
@@ -61,7 +60,7 @@ class SystemPromptBuilderTest extends TestCase
         $user = User::factory()->create();
         $prompt = $this->builder->build($user, [], null, []);
 
-        $this->assertStringContainsString('If the question is unclear, ask which section they are in', $prompt);
+        $this->assertStringContainsString('اسأل المستخدم عن القسم', $prompt);
     }
 
     public function test_build_includes_capabilities(): void
@@ -78,7 +77,7 @@ class SystemPromptBuilderTest extends TestCase
 
         $prompt = $this->builder->build($user, $capabilities, null, []);
 
-        $this->assertStringContainsString('User capabilities:', $prompt);
+        $this->assertStringContainsString('صلاحيات المستخدم', $prompt);
         $this->assertStringContainsString('contracts.view: View contract lists and details', $prompt);
         $this->assertStringContainsString('units.view: View contract units', $prompt);
     }
@@ -88,7 +87,7 @@ class SystemPromptBuilderTest extends TestCase
         $user = User::factory()->create();
         $prompt = $this->builder->build($user, [], null, []);
 
-        $this->assertStringContainsString('User capabilities: none specified', $prompt);
+        $this->assertStringContainsString('صلاحيات المستخدم: غير محددة', $prompt);
     }
 
     public function test_build_handles_missing_capability_definitions(): void
@@ -100,7 +99,7 @@ class SystemPromptBuilderTest extends TestCase
 
         $prompt = $this->builder->build($user, $capabilities, null, []);
 
-        $this->assertStringContainsString('User capabilities:', $prompt);
+        $this->assertStringContainsString('صلاحيات المستخدم', $prompt);
         $this->assertStringNotContainsString('unknown.capability', $prompt);
     }
 
@@ -114,7 +113,7 @@ class SystemPromptBuilderTest extends TestCase
 
         $prompt = $this->builder->build($user, [], null, $context);
 
-        $this->assertStringContainsString('Context summary (safe, minimal):', $prompt);
+        $this->assertStringContainsString('ملخص السياق', $prompt);
         $this->assertStringContainsString('"id":1', $prompt);
         $this->assertStringContainsString('"name":"Test User"', $prompt);
     }
@@ -124,7 +123,7 @@ class SystemPromptBuilderTest extends TestCase
         $user = User::factory()->create();
         $prompt = $this->builder->build($user, [], null, []);
 
-        $this->assertStringNotContainsString('Context summary', $prompt);
+        $this->assertStringNotContainsString('ملخص السياق', $prompt);
     }
 
     public function test_build_json_encodes_context(): void
@@ -145,7 +144,7 @@ class SystemPromptBuilderTest extends TestCase
         $user = User::factory()->create();
         $prompt = $this->builder->build($user, [], null, []);
 
-        $this->assertStringNotContainsString('Behavior rules:', $prompt);
+        $this->assertStringNotContainsString('قواعد السلوك:', $prompt);
     }
 
     public function test_build_handles_empty_behavior_rules(): void
@@ -155,7 +154,7 @@ class SystemPromptBuilderTest extends TestCase
         $user = User::factory()->create();
         $prompt = $this->builder->build($user, [], null, []);
 
-        $this->assertStringNotContainsString('Behavior rules:', $prompt);
+        $this->assertStringNotContainsString('قواعد السلوك:', $prompt);
     }
 
     public function test_build_handles_section_without_label(): void
@@ -165,6 +164,6 @@ class SystemPromptBuilderTest extends TestCase
 
         $prompt = $this->builder->build($user, [], $section, []);
 
-        $this->assertStringContainsString('Current section: Unknown', $prompt);
+        $this->assertStringContainsString('القسم الحالي: عام', $prompt);
     }
 }

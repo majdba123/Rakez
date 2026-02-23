@@ -306,7 +306,7 @@ php artisan route:list --path=sales
 
 # Test specific endpoint
 php artisan tinker
->>> app('App\Http\Controllers\Api\SalesAnalyticsController')->dashboard(request());
+>>> app('App\Http\Controllers\Sales\SalesAnalyticsController')->dashboard(request());
 ```
 
 ---

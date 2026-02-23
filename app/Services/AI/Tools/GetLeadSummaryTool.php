@@ -35,7 +35,7 @@ class GetLeadSummaryTool implements ToolContract
         );
 
         return [
-            'result' => ['summary' => $summary, 'lead_id' => $lead->id, 'name' => $lead->name, 'status' => $lead->status],
+            'result' => ['summary' => $summary, 'lead_id' => $lead->id, 'name' => $lead->name, 'status' => $lead->status, 'inputs' => ['lead_id' => $leadId]],
             'source_refs' => [['type' => 'record', 'title' => 'Lead: '.$lead->name, 'ref' => "lead/{$lead->id}"]],
         ];
     }

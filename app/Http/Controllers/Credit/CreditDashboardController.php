@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Responses\ApiResponse;
 use App\Services\Credit\CreditDashboardService;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 use Exception;
 
 class CreditDashboardController extends Controller
@@ -21,8 +22,11 @@ class CreditDashboardController extends Controller
      * Get Credit dashboard KPIs.
      * GET /credit/dashboard
      */
-    public function index(): JsonResponse
+    public function index(Request $request): JsonResponse
     {
+        if (!$request->user()) {
+            return ApiResponse::unauthorized();
+        }
         try {
             $kpis = $this->dashboardService->getKpis();
             $stageBreakdown = $this->dashboardService->getStageBreakdown();

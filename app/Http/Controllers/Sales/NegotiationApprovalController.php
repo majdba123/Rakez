@@ -35,14 +35,7 @@ class NegotiationApprovalController extends Controller
         $approvals = $this->approvalService->getPendingApprovals($filters);
 
         return ApiResponse::success($approvals->items(), 'تمت العملية بنجاح', 200, [
-            'pagination' => [
-                'total' => $approvals->total(),
-                'count' => $approvals->count(),
-                'per_page' => $approvals->perPage(),
-                'current_page' => $approvals->currentPage(),
-                'total_pages' => $approvals->lastPage(),
-                'has_more_pages' => $approvals->hasMorePages(),
-            ],
+            'pagination' => ApiResponse::paginationMeta($approvals),
         ]);
     }
 

@@ -41,6 +41,7 @@ class GetProjectSummaryTool implements ToolContract
                 'project_name' => $contract->project_name,
                 'developer_name' => $contract->developer_name,
                 'status' => $contract->status,
+                'inputs' => ['project_id' => $projectId],
             ],
             'source_refs' => [['type' => 'record', 'title' => 'Project: '.($contract->project_name ?? $contract->id), 'ref' => "contract/{$contract->id}"]],
         ];

@@ -1,0 +1,618 @@
+<!DOCTYPE html>
+<html lang="en">
+ <head>
+  <meta charset="UTF-8">
+  <title>Dashboard for C:\Users\Yusuf\OneDrive\Desktop\Rakez - Copy\rakez-erp\app\Services\AI</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link href="../../_css/bootstrap.min.css?v=11.0.11" rel="stylesheet" type="text/css">
+  <link href="../../_css/nv.d3.min.css?v=11.0.11" rel="stylesheet" type="text/css">
+  <link href="../../_css/style.css?v=11.0.11" rel="stylesheet" type="text/css">
+  <link href="../../_css/custom.css" rel="stylesheet" type="text/css">
+ </head>
+ <body>
+  <header>
+   <div class="container-fluid">
+    <div class="row">
+     <div class="col-md-12">
+      <nav aria-label="breadcrumb">
+       <ol class="breadcrumb">
+         <li class="breadcrumb-item"><a href="../../index.html">C:\Users\Yusuf\OneDrive\Desktop\Rakez - Copy\rakez-erp\app</a></li>
+         <li class="breadcrumb-item"><a href="../index.html">Services</a></li>
+         <li class="breadcrumb-item"><a href="index.html">AI</a></li>
+         <li class="breadcrumb-item active">(Dashboard)</li>
+
+       </ol>
+      </nav>
+     </div>
+    </div>
+   </div>
+  </header>
+  <div class="container-fluid">
+   <div class="row">
+    <div class="col-md-12">
+     <h2>Classes</h2>
+    </div>
+   </div>
+   <div class="row">
+    <div class="col-md-6">
+     <h3>Coverage Distribution</h3>
+     <div id="classCoverageDistribution" style="height: 300px;">
+       <svg></svg>
+     </div>
+    </div>
+    <div class="col-md-6">
+     <h3>Complexity</h3>
+     <div id="classComplexity" style="height: 300px;">
+       <svg></svg>
+     </div>
+    </div>
+   </div>
+   <div class="row">
+    <div class="col-md-6">
+     <h3>Insufficient Coverage</h3>
+     <div class="scrollbox">
+      <table class="table">
+       <thead>
+        <tr>
+         <th>Class</th>
+         <th class="text-right">Coverage</th>
+        </tr>
+       </thead>
+       <tbody>
+       <tr><td><a href="AIAssistantService.php.html#17">App\Services\AI\AIAssistantService</a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="AccessExplanationEngine.php.html#12">App\Services\AI\AccessExplanationEngine</a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="AssistantLLMService.php.html#8">App\Services\AI\AssistantLLMService</a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="CapabilityResolver.php.html#7">App\Services\AI\CapabilityResolver</a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="ContextBuilder.php.html#16">App\Services\AI\ContextBuilder</a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="ContextValidator.php.html#7">App\Services\AI\ContextValidator</a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="DenyTemplateBuilder.php.html#5">App\Services\AI\DenyTemplateBuilder</a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="Exceptions/AiAssistantDisabledException.php.html#5">App\Services\AI\Exceptions\AiAssistantDisabledException</a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="Exceptions/AiAssistantException.php.html#7">App\Services\AI\Exceptions\AiAssistantException</a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="Exceptions/AiBudgetExceededException.php.html#5">App\Services\AI\Exceptions\AiBudgetExceededException</a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="Exceptions/AiUnauthorizedSectionException.php.html#5">App\Services\AI\Exceptions\AiUnauthorizedSectionException</a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="GuardrailResult.php.html#5">App\Services\AI\GuardrailResult</a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="NumericGuardrails.php.html#5">App\Services\AI\NumericGuardrails</a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="OpenAIEmbeddingClient.php.html#9">App\Services\AI\OpenAIEmbeddingClient</a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="OpenAIResponsesClient.php.html#11">App\Services\AI\OpenAIResponsesClient</a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="SectionRegistry.php.html#5">App\Services\AI\SectionRegistry</a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="SystemPromptBuilder.php.html#7">App\Services\AI\SystemPromptBuilder</a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="Tools/CampaignAdvisorTool.php.html#8">App\Services\AI\Tools\CampaignAdvisorTool</a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="Tools/ExplainAccessTool.php.html#9">App\Services\AI\Tools\ExplainAccessTool</a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="Tools/FinanceCalculatorTool.php.html#8">App\Services\AI\Tools\FinanceCalculatorTool</a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="Tools/GetContractStatusTool.php.html#10">App\Services\AI\Tools\GetContractStatusTool</a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="Tools/GetLeadSummaryTool.php.html#10">App\Services\AI\Tools\GetLeadSummaryTool</a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="Tools/GetProjectSummaryTool.php.html#10">App\Services\AI\Tools\GetProjectSummaryTool</a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="Tools/HiringAdvisorTool.php.html#7">App\Services\AI\Tools\HiringAdvisorTool</a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="Tools/KpiSalesTool.php.html#9">App\Services\AI\Tools\KpiSalesTool</a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="Tools/MarketingAnalyticsTool.php.html#12">App\Services\AI\Tools\MarketingAnalyticsTool</a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="Tools/RagSearchTool.php.html#9">App\Services\AI\Tools\RagSearchTool</a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="Tools/SalesAdvisorTool.php.html#8">App\Services\AI\Tools\SalesAdvisorTool</a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="Tools/SearchRecordsTool.php.html#12">App\Services\AI\Tools\SearchRecordsTool</a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="Tools/ToolResponse.php.html#7">App\Services\AI\Tools\ToolResponse</a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="VectorStore/DisabledVectorStore.php.html#8">App\Services\AI\VectorStore\DisabledVectorStore</a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="VectorStore/JsonVectorStore.php.html#12">App\Services\AI\VectorStore\JsonVectorStore</a></td><td class="text-right">2%</td></tr>
+       <tr><td><a href="AiRagService.php.html#9">App\Services\AI\AiRagService</a></td><td class="text-right">2%</td></tr>
+       <tr><td><a href="CatalogService.php.html#7">App\Services\AI\CatalogService</a></td><td class="text-right">3%</td></tr>
+       <tr><td><a href="AiIndexingService.php.html#10">App\Services\AI\AiIndexingService</a></td><td class="text-right">5%</td></tr>
+       <tr><td><a href="ToolRegistry.php.html#9">App\Services\AI\ToolRegistry</a></td><td class="text-right">50%</td></tr>
+       <tr><td><a href="RakizAiOrchestrator.php.html#11">App\Services\AI\RakizAiOrchestrator</a></td><td class="text-right">75%</td></tr>
+
+       </tbody>
+      </table>
+     </div>
+    </div>
+    <div class="col-md-6">
+     <h3>Project Risks</h3>
+     <div class="scrollbox">
+      <table class="table">
+       <thead>
+        <tr>
+         <th>Class</th>
+         <th class="text-right"><abbr title="Change Risk Anti-Patterns (CRAP) Index">CRAP</abbr></th>
+        </tr>
+       </thead>
+       <tbody>
+       <tr><td><a href="AIAssistantService.php.html#17">App\Services\AI\AIAssistantService</a></td><td class="text-right">2352</td></tr>
+       <tr><td><a href="AccessExplanationEngine.php.html#12">App\Services\AI\AccessExplanationEngine</a></td><td class="text-right">2352</td></tr>
+       <tr><td><a href="ContextBuilder.php.html#16">App\Services\AI\ContextBuilder</a></td><td class="text-right">1722</td></tr>
+       <tr><td><a href="Tools/FinanceCalculatorTool.php.html#8">App\Services\AI\Tools\FinanceCalculatorTool</a></td><td class="text-right">702</td></tr>
+       <tr><td><a href="OpenAIEmbeddingClient.php.html#9">App\Services\AI\OpenAIEmbeddingClient</a></td><td class="text-right">380</td></tr>
+       <tr><td><a href="OpenAIResponsesClient.php.html#11">App\Services\AI\OpenAIResponsesClient</a></td><td class="text-right">380</td></tr>
+       <tr><td><a href="SectionRegistry.php.html#5">App\Services\AI\SectionRegistry</a></td><td class="text-right">380</td></tr>
+       <tr><td><a href="SystemPromptBuilder.php.html#7">App\Services\AI\SystemPromptBuilder</a></td><td class="text-right">380</td></tr>
+       <tr><td><a href="AiIndexingService.php.html#10">App\Services\AI\AiIndexingService</a></td><td class="text-right">353</td></tr>
+       <tr><td><a href="Tools/CampaignAdvisorTool.php.html#8">App\Services\AI\Tools\CampaignAdvisorTool</a></td><td class="text-right">342</td></tr>
+       <tr><td><a href="Tools/SalesAdvisorTool.php.html#8">App\Services\AI\Tools\SalesAdvisorTool</a></td><td class="text-right">342</td></tr>
+       <tr><td><a href="CatalogService.php.html#7">App\Services\AI\CatalogService</a></td><td class="text-right">307</td></tr>
+       <tr><td><a href="AiRagService.php.html#9">App\Services\AI\AiRagService</a></td><td class="text-right">283</td></tr>
+       <tr><td><a href="AssistantLLMService.php.html#8">App\Services\AI\AssistantLLMService</a></td><td class="text-right">272</td></tr>
+       <tr><td><a href="Tools/MarketingAnalyticsTool.php.html#12">App\Services\AI\Tools\MarketingAnalyticsTool</a></td><td class="text-right">272</td></tr>
+       <tr><td><a href="Tools/HiringAdvisorTool.php.html#7">App\Services\AI\Tools\HiringAdvisorTool</a></td><td class="text-right">210</td></tr>
+       <tr><td><a href="Tools/SearchRecordsTool.php.html#12">App\Services\AI\Tools\SearchRecordsTool</a></td><td class="text-right">182</td></tr>
+       <tr><td><a href="VectorStore/JsonVectorStore.php.html#12">App\Services\AI\VectorStore\JsonVectorStore</a></td><td class="text-right">145</td></tr>
+       <tr><td><a href="RakizAiOrchestrator.php.html#11">App\Services\AI\RakizAiOrchestrator</a></td><td class="text-right">136</td></tr>
+       <tr><td><a href="NumericGuardrails.php.html#5">App\Services\AI\NumericGuardrails</a></td><td class="text-right">132</td></tr>
+       <tr><td><a href="CapabilityResolver.php.html#7">App\Services\AI\CapabilityResolver</a></td><td class="text-right">110</td></tr>
+       <tr><td><a href="ContextValidator.php.html#7">App\Services\AI\ContextValidator</a></td><td class="text-right">72</td></tr>
+       <tr><td><a href="Tools/ExplainAccessTool.php.html#9">App\Services\AI\Tools\ExplainAccessTool</a></td><td class="text-right">30</td></tr>
+       <tr><td><a href="GuardrailResult.php.html#5">App\Services\AI\GuardrailResult</a></td><td class="text-right">20</td></tr>
+       <tr><td><a href="Tools/GetContractStatusTool.php.html#10">App\Services\AI\Tools\GetContractStatusTool</a></td><td class="text-right">20</td></tr>
+       <tr><td><a href="Tools/GetLeadSummaryTool.php.html#10">App\Services\AI\Tools\GetLeadSummaryTool</a></td><td class="text-right">20</td></tr>
+       <tr><td><a href="Tools/GetProjectSummaryTool.php.html#10">App\Services\AI\Tools\GetProjectSummaryTool</a></td><td class="text-right">20</td></tr>
+       <tr><td><a href="Tools/KpiSalesTool.php.html#9">App\Services\AI\Tools\KpiSalesTool</a></td><td class="text-right">20</td></tr>
+       <tr><td><a href="Tools/RagSearchTool.php.html#9">App\Services\AI\Tools\RagSearchTool</a></td><td class="text-right">20</td></tr>
+       <tr><td><a href="Tools/ToolResponse.php.html#7">App\Services\AI\Tools\ToolResponse</a></td><td class="text-right">20</td></tr>
+       <tr><td><a href="ToolRegistry.php.html#9">App\Services\AI\ToolRegistry</a></td><td class="text-right">16</td></tr>
+       <tr><td><a href="DenyTemplateBuilder.php.html#5">App\Services\AI\DenyTemplateBuilder</a></td><td class="text-right">12</td></tr>
+       <tr><td><a href="Exceptions/AiUnauthorizedSectionException.php.html#5">App\Services\AI\Exceptions\AiUnauthorizedSectionException</a></td><td class="text-right">6</td></tr>
+
+       </tbody>
+      </table>
+     </div>
+    </div>
+   </div>
+   <div class="row">
+    <div class="col-md-12">
+     <h2>Methods</h2>
+    </div>
+   </div>
+   <div class="row">
+    <div class="col-md-6">
+     <h3>Coverage Distribution</h3>
+     <div id="methodCoverageDistribution" style="height: 300px;">
+       <svg></svg>
+     </div>
+    </div>
+    <div class="col-md-6">
+     <h3>Complexity</h3>
+     <div id="methodComplexity" style="height: 300px;">
+       <svg></svg>
+     </div>
+    </div>
+   </div>
+   <div class="row">
+    <div class="col-md-6">
+     <h3>Insufficient Coverage</h3>
+     <div class="scrollbox">
+      <table class="table">
+       <thead>
+        <tr>
+         <th>Method</th>
+         <th class="text-right">Coverage</th>
+        </tr>
+       </thead>
+       <tbody>
+       <tr><td><a href="AIAssistantService.php.html#19"><abbr title="App\Services\AI\AIAssistantService::__construct">__construct</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="AIAssistantService.php.html#29"><abbr title="App\Services\AI\AIAssistantService::ask">ask</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="AIAssistantService.php.html#87"><abbr title="App\Services\AI\AIAssistantService::chat">chat</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="AIAssistantService.php.html#173"><abbr title="App\Services\AI\AIAssistantService::listSessions">listSessions</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="AIAssistantService.php.html#188"><abbr title="App\Services\AI\AIAssistantService::deleteSession">deleteSession</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="AIAssistantService.php.html#219"><abbr title="App\Services\AI\AIAssistantService::extractAssistantReply">extractAssistantReply</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="AIAssistantService.php.html#238"><abbr title="App\Services\AI\AIAssistantService::availableSections">availableSections</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="AIAssistantService.php.html#246"><abbr title="App\Services\AI\AIAssistantService::suggestions">suggestions</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="AIAssistantService.php.html#251"><abbr title="App\Services\AI\AIAssistantService::isSectionAvailable">isSectionAvailable</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="AIAssistantService.php.html#266"><abbr title="App\Services\AI\AIAssistantService::storeMessage">storeMessage</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="AIAssistantService.php.html#278"><abbr title="App\Services\AI\AIAssistantService::storeAssistantMessage">storeAssistantMessage</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="AIAssistantService.php.html#301"><abbr title="App\Services\AI\AIAssistantService::logResponse">logResponse</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="AIAssistantService.php.html#316"><abbr title="App\Services\AI\AIAssistantService::filterContext">filterContext</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="AIAssistantService.php.html#337"><abbr title="App\Services\AI\AIAssistantService::summarizeConversationIfNeeded">summarizeConversationIfNeeded</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="AIAssistantService.php.html#395"><abbr title="App\Services\AI\AIAssistantService::ensureEnabled">ensureEnabled</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="AIAssistantService.php.html#402"><abbr title="App\Services\AI\AIAssistantService::ensureWithinBudget">ensureWithinBudget</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="AIAssistantService.php.html#421"><abbr title="App\Services\AI\AIAssistantService::buildExplanationResponse">buildExplanationResponse</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="AccessExplanationEngine.php.html#30"><abbr title="App\Services\AI\AccessExplanationEngine::explainAccess">explainAccess</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="AccessExplanationEngine.php.html#67"><abbr title="App\Services\AI\AccessExplanationEngine::getPermissionsForModel">getPermissionsForModel</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="AccessExplanationEngine.php.html#84"><abbr title="App\Services\AI\AccessExplanationEngine::getSuggestedRoutesForUser">getSuggestedRoutesForUser</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="AccessExplanationEngine.php.html#112"><abbr title="App\Services\AI\AccessExplanationEngine::explain">explain</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="AccessExplanationEngine.php.html#145"><abbr title="App\Services\AI\AccessExplanationEngine::isAccessIntent">isAccessIntent</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="AccessExplanationEngine.php.html#168"><abbr title="App\Services\AI\AccessExplanationEngine::parseMessage">parseMessage</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="AccessExplanationEngine.php.html#204"><abbr title="App\Services\AI\AccessExplanationEngine::runAuthChecks">runAuthChecks</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="AccessExplanationEngine.php.html#257"><abbr title="App\Services\AI\AccessExplanationEngine::hasTypeLevelAccess">hasTypeLevelAccess</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="AccessExplanationEngine.php.html#284"><abbr title="App\Services\AI\AccessExplanationEngine::isOwnershipMismatch">isOwnershipMismatch</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="AccessExplanationEngine.php.html#302"><abbr title="App\Services\AI\AccessExplanationEngine::buildResult">buildResult</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="AiIndexingService.php.html#20"><abbr title="App\Services\AI\AiIndexingService::approximateTokens">approximateTokens</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="AiIndexingService.php.html#30"><abbr title="App\Services\AI\AiIndexingService::chunkText">chunkText</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="AiIndexingService.php.html#83"><abbr title="App\Services\AI\AiIndexingService::indexRecordSummary">indexRecordSummary</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="AiIndexingService.php.html#153"><abbr title="App\Services\AI\AiIndexingService::indexDocument">indexDocument</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="AiIndexingService.php.html#197"><abbr title="App\Services\AI\AiIndexingService::markRecordDeleted">markRecordDeleted</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="AiRagService.php.html#21"><abbr title="App\Services\AI\AiRagService::search">search</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="AssistantLLMService.php.html#10"><abbr title="App\Services\AI\AssistantLLMService::__construct">__construct</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="AssistantLLMService.php.html#23"><abbr title="App\Services\AI\AssistantLLMService::generateAnswer">generateAnswer</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="AssistantLLMService.php.html#71"><abbr title="App\Services\AI\AssistantLLMService::buildInstructions">buildInstructions</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="AssistantLLMService.php.html#104"><abbr title="App\Services\AI\AssistantLLMService::extractAnswer">extractAnswer</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="CapabilityResolver.php.html#12"><abbr title="App\Services\AI\CapabilityResolver::resolve">resolve</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="CapabilityResolver.php.html#41"><abbr title="App\Services\AI\CapabilityResolver::has">has</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="CapabilityResolver.php.html#52"><abbr title="App\Services\AI\CapabilityResolver::clearCache">clearCache</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="CatalogService.php.html#18"><abbr title="App\Services\AI\CatalogService::catalog">catalog</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="CatalogService.php.html#28"><abbr title="App\Services\AI\CatalogService::sections">sections</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="CatalogService.php.html#34"><abbr title="App\Services\AI\CatalogService::sectionKeys">sectionKeys</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="CatalogService.php.html#40"><abbr title="App\Services\AI\CatalogService::sectionsForRole">sectionsForRole</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="CatalogService.php.html#54"><abbr title="App\Services\AI\CatalogService::sectionsForUser">sectionsForUser</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="CatalogService.php.html#71"><abbr title="App\Services\AI\CatalogService::permissionsForRole">permissionsForRole</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="CatalogService.php.html#77"><abbr title="App\Services\AI\CatalogService::roleMap">roleMap</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="CatalogService.php.html#83"><abbr title="App\Services\AI\CatalogService::roleNames">roleNames</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="CatalogService.php.html#89"><abbr title="App\Services\AI\CatalogService::isPermissionValid">isPermissionValid</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="CatalogService.php.html#95"><abbr title="App\Services\AI\CatalogService::isSectionValid">isSectionValid</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="CatalogService.php.html#101"><abbr title="App\Services\AI\CatalogService::marketReferences">marketReferences</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="CatalogService.php.html#107"><abbr title="App\Services\AI\CatalogService::flush">flush</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="ContextBuilder.php.html#18"><abbr title="App\Services\AI\ContextBuilder::__construct">__construct</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="ContextBuilder.php.html#27"><abbr title="App\Services\AI\ContextBuilder::build">build</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="ContextBuilder.php.html#82"><abbr title="App\Services\AI\ContextBuilder::checkContextPolicies">checkContextPolicies</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="ContextBuilder.php.html#129"><abbr title="App\Services\AI\ContextBuilder::buildContractsSummary">buildContractsSummary</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="ContextBuilder.php.html#154"><abbr title="App\Services\AI\ContextBuilder::buildContractDetails">buildContractDetails</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="ContextBuilder.php.html#178"><abbr title="App\Services\AI\ContextBuilder::buildNotificationsSummary">buildNotificationsSummary</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="ContextBuilder.php.html#216"><abbr title="App\Services\AI\ContextBuilder::sanitizeText">sanitizeText</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="ContextValidator.php.html#9"><abbr title="App\Services\AI\ContextValidator::__construct">__construct</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="ContextValidator.php.html#13"><abbr title="App\Services\AI\ContextValidator::validate">validate</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="ContextValidator.php.html#35"><abbr title="App\Services\AI\ContextValidator::parseRule">parseRule</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="DenyTemplateBuilder.php.html#14"><abbr title="App\Services\AI\DenyTemplateBuilder::build">build</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="DenyTemplateBuilder.php.html#28"><abbr title="App\Services\AI\DenyTemplateBuilder::response">response</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="Exceptions/AiAssistantDisabledException.php.html#7"><abbr title="App\Services\AI\Exceptions\AiAssistantDisabledException::__construct">__construct</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="Exceptions/AiAssistantException.php.html#9"><abbr title="App\Services\AI\Exceptions\AiAssistantException::__construct">__construct</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="Exceptions/AiAssistantException.php.html#17"><abbr title="App\Services\AI\Exceptions\AiAssistantException::errorCode">errorCode</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="Exceptions/AiAssistantException.php.html#22"><abbr title="App\Services\AI\Exceptions\AiAssistantException::statusCode">statusCode</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="Exceptions/AiBudgetExceededException.php.html#7"><abbr title="App\Services\AI\Exceptions\AiBudgetExceededException::__construct">__construct</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="Exceptions/AiUnauthorizedSectionException.php.html#7"><abbr title="App\Services\AI\Exceptions\AiUnauthorizedSectionException::__construct">__construct</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="GuardrailResult.php.html#21"><abbr title="App\Services\AI\GuardrailResult::__construct">__construct</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="GuardrailResult.php.html#40"><abbr title="App\Services\AI\GuardrailResult::toArray">toArray</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="NumericGuardrails.php.html#8"><abbr title="App\Services\AI\NumericGuardrails::validateCPL">validateCPL</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="NumericGuardrails.php.html#31"><abbr title="App\Services\AI\NumericGuardrails::validateCloseRate">validateCloseRate</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="NumericGuardrails.php.html#48"><abbr title="App\Services\AI\NumericGuardrails::validateROI">validateROI</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="NumericGuardrails.php.html#69"><abbr title="App\Services\AI\NumericGuardrails::calculateMortgage">calculateMortgage</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="NumericGuardrails.php.html#101"><abbr title="App\Services\AI\NumericGuardrails::validateRange">validateRange</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="OpenAIEmbeddingClient.php.html#11"><abbr title="App\Services\AI\OpenAIEmbeddingClient::embed">embed</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="OpenAIEmbeddingClient.php.html#43"><abbr title="App\Services\AI\OpenAIEmbeddingClient::embedMany">embedMany</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="OpenAIEmbeddingClient.php.html#70"><abbr title="App\Services\AI\OpenAIEmbeddingClient::redactSecrets">redactSecrets</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="OpenAIEmbeddingClient.php.html#83"><abbr title="App\Services\AI\OpenAIEmbeddingClient::withRetry">withRetry</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="OpenAIResponsesClient.php.html#13"><abbr title="App\Services\AI\OpenAIResponsesClient::createResponse">createResponse</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="OpenAIResponsesClient.php.html#76"><abbr title="App\Services\AI\OpenAIResponsesClient::makeSafetyIdentifier">makeSafetyIdentifier</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="OpenAIResponsesClient.php.html#94"><abbr title="App\Services\AI\OpenAIResponsesClient::withRetry">withRetry</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="RakizAiOrchestrator.php.html#521"><abbr title="App\Services\AI\RakizAiOrchestrator::executeTool">executeTool</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="RakizAiOrchestrator.php.html#554"><abbr title="App\Services\AI\RakizAiOrchestrator::answerFromCatalog">answerFromCatalog</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="RakizAiOrchestrator.php.html#589"><abbr title="App\Services\AI\RakizAiOrchestrator::applyPostToolGuardrails">applyPostToolGuardrails</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="RakizAiOrchestrator.php.html#636"><abbr title="App\Services\AI\RakizAiOrchestrator::stripHallucinatedSections">stripHallucinatedSections</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="SectionRegistry.php.html#9"><abbr title="App\Services\AI\SectionRegistry::__construct">__construct</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="SectionRegistry.php.html#14"><abbr title="App\Services\AI\SectionRegistry::all">all</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="SectionRegistry.php.html#27"><abbr title="App\Services\AI\SectionRegistry::find">find</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="SectionRegistry.php.html#37"><abbr title="App\Services\AI\SectionRegistry::isValid">isValid</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="SectionRegistry.php.html#46"><abbr title="App\Services\AI\SectionRegistry::availableFor">availableFor</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="SectionRegistry.php.html#54"><abbr title="App\Services\AI\SectionRegistry::allowedContextParams">allowedContextParams</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="SectionRegistry.php.html#65"><abbr title="App\Services\AI\SectionRegistry::suggestions">suggestions</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="SectionRegistry.php.html#84"><abbr title="App\Services\AI\SectionRegistry::contextSchema">contextSchema</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="SectionRegistry.php.html#95"><abbr title="App\Services\AI\SectionRegistry::contextPolicy">contextPolicy</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="SectionRegistry.php.html#106"><abbr title="App\Services\AI\SectionRegistry::parent">parent</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="SystemPromptBuilder.php.html#11"><abbr title="App\Services\AI\SystemPromptBuilder::__construct">__construct</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="SystemPromptBuilder.php.html#16"><abbr title="App\Services\AI\SystemPromptBuilder::build">build</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="SystemPromptBuilder.php.html#68"><abbr title="App\Services\AI\SystemPromptBuilder::buildIdentity">buildIdentity</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="SystemPromptBuilder.php.html#79"><abbr title="App\Services\AI\SystemPromptBuilder::buildExpertise">buildExpertise</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="SystemPromptBuilder.php.html#132"><abbr title="App\Services\AI\SystemPromptBuilder::buildSafetyRules">buildSafetyRules</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="SystemPromptBuilder.php.html#147"><abbr title="App\Services\AI\SystemPromptBuilder::buildGuardrailReminder">buildGuardrailReminder</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="SystemPromptBuilder.php.html#164"><abbr title="App\Services\AI\SystemPromptBuilder::buildAnswerTemplate">buildAnswerTemplate</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="SystemPromptBuilder.php.html#178"><abbr title="App\Services\AI\SystemPromptBuilder::buildCatalogContext">buildCatalogContext</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="SystemPromptBuilder.php.html#193"><abbr title="App\Services\AI\SystemPromptBuilder::buildSectionExpertise">buildSectionExpertise</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="ToolRegistry.php.html#46"><abbr title="App\Services\AI\ToolRegistry::execute">execute</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="ToolRegistry.php.html#70"><abbr title="App\Services\AI\ToolRegistry::registeredNames">registeredNames</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="Tools/CampaignAdvisorTool.php.html#10"><abbr title="App\Services\AI\Tools\CampaignAdvisorTool::__construct">__construct</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="Tools/CampaignAdvisorTool.php.html#14"><abbr title="App\Services\AI\Tools\CampaignAdvisorTool::__invoke">__invoke</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="Tools/CampaignAdvisorTool.php.html#60"><abbr title="App\Services\AI\Tools\CampaignAdvisorTool::getMarketBenchmarks">getMarketBenchmarks</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="Tools/CampaignAdvisorTool.php.html#94"><abbr title="App\Services\AI\Tools\CampaignAdvisorTool::generateRecommendations">generateRecommendations</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="Tools/CampaignAdvisorTool.php.html#124"><abbr title="App\Services\AI\Tools\CampaignAdvisorTool::suggestBudgetDistribution">suggestBudgetDistribution</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="Tools/ExplainAccessTool.php.html#11"><abbr title="App\Services\AI\Tools\ExplainAccessTool::__construct">__construct</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="Tools/ExplainAccessTool.php.html#15"><abbr title="App\Services\AI\Tools\ExplainAccessTool::__invoke">__invoke</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="Tools/FinanceCalculatorTool.php.html#10"><abbr title="App\Services\AI\Tools\FinanceCalculatorTool::__construct">__construct</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="Tools/FinanceCalculatorTool.php.html#14"><abbr title="App\Services\AI\Tools\FinanceCalculatorTool::__invoke">__invoke</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="Tools/FinanceCalculatorTool.php.html#36"><abbr title="App\Services\AI\Tools\FinanceCalculatorTool::calculateMortgage">calculateMortgage</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="Tools/FinanceCalculatorTool.php.html#71"><abbr title="App\Services\AI\Tools\FinanceCalculatorTool::calculateCommission">calculateCommission</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="Tools/FinanceCalculatorTool.php.html#103"><abbr title="App\Services\AI\Tools\FinanceCalculatorTool::calculateROMI">calculateROMI</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="Tools/FinanceCalculatorTool.php.html#135"><abbr title="App\Services\AI\Tools\FinanceCalculatorTool::calculateProjectROI">calculateProjectROI</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="Tools/FinanceCalculatorTool.php.html#178"><abbr title="App\Services\AI\Tools\FinanceCalculatorTool::calculatePaymentPlan">calculatePaymentPlan</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="Tools/GetContractStatusTool.php.html#12"><abbr title="App\Services\AI\Tools\GetContractStatusTool::__invoke">__invoke</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="Tools/GetLeadSummaryTool.php.html#12"><abbr title="App\Services\AI\Tools\GetLeadSummaryTool::__invoke">__invoke</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="Tools/GetProjectSummaryTool.php.html#12"><abbr title="App\Services\AI\Tools\GetProjectSummaryTool::__invoke">__invoke</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="Tools/HiringAdvisorTool.php.html#9"><abbr title="App\Services\AI\Tools\HiringAdvisorTool::__invoke">__invoke</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="Tools/HiringAdvisorTool.php.html#44"><abbr title="App\Services\AI\Tools\HiringAdvisorTool::getIdealProfile">getIdealProfile</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="Tools/HiringAdvisorTool.php.html#80"><abbr title="App\Services\AI\Tools\HiringAdvisorTool::getInterviewQuestions">getInterviewQuestions</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="Tools/HiringAdvisorTool.php.html#116"><abbr title="App\Services\AI\Tools\HiringAdvisorTool::estimateEmployeeCost">estimateEmployeeCost</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="Tools/HiringAdvisorTool.php.html#128"><abbr title="App\Services\AI\Tools\HiringAdvisorTool::suggestTeamStructure">suggestTeamStructure</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="Tools/HiringAdvisorTool.php.html#154"><abbr title="App\Services\AI\Tools\HiringAdvisorTool::getSuggestedKPIs">getSuggestedKPIs</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="Tools/HiringAdvisorTool.php.html#176"><abbr title="App\Services\AI\Tools\HiringAdvisorTool::getRetentionTips">getRetentionTips</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="Tools/KpiSalesTool.php.html#11"><abbr title="App\Services\AI\Tools\KpiSalesTool::__construct">__construct</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="Tools/KpiSalesTool.php.html#15"><abbr title="App\Services\AI\Tools\KpiSalesTool::__invoke">__invoke</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="Tools/MarketingAnalyticsTool.php.html#14"><abbr title="App\Services\AI\Tools\MarketingAnalyticsTool::__invoke">__invoke</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="Tools/MarketingAnalyticsTool.php.html#30"><abbr title="App\Services\AI\Tools\MarketingAnalyticsTool::overview">overview</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="Tools/MarketingAnalyticsTool.php.html#75"><abbr title="App\Services\AI\Tools\MarketingAnalyticsTool::channelComparison">channelComparison</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="Tools/MarketingAnalyticsTool.php.html#95"><abbr title="App\Services\AI\Tools\MarketingAnalyticsTool::teamPerformance">teamPerformance</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="Tools/MarketingAnalyticsTool.php.html#131"><abbr title="App\Services\AI\Tools\MarketingAnalyticsTool::leadQualityAnalysis">leadQualityAnalysis</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="Tools/RagSearchTool.php.html#11"><abbr title="App\Services\AI\Tools\RagSearchTool::__construct">__construct</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="Tools/RagSearchTool.php.html#15"><abbr title="App\Services\AI\Tools\RagSearchTool::__invoke">__invoke</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="Tools/SalesAdvisorTool.php.html#10"><abbr title="App\Services\AI\Tools\SalesAdvisorTool::__construct">__construct</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="Tools/SalesAdvisorTool.php.html#14"><abbr title="App\Services\AI\Tools\SalesAdvisorTool::__invoke">__invoke</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="Tools/SalesAdvisorTool.php.html#32"><abbr title="App\Services\AI\Tools\SalesAdvisorTool::closingTips">closingTips</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="Tools/SalesAdvisorTool.php.html#69"><abbr title="App\Services\AI\Tools\SalesAdvisorTool::objectionHandling">objectionHandling</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="Tools/SalesAdvisorTool.php.html#108"><abbr title="App\Services\AI\Tools\SalesAdvisorTool::followUpStrategy">followUpStrategy</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="Tools/SalesAdvisorTool.php.html#147"><abbr title="App\Services\AI\Tools\SalesAdvisorTool::negotiationTips">negotiationTips</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="Tools/SalesAdvisorTool.php.html#173"><abbr title="App\Services\AI\Tools\SalesAdvisorTool::performanceDiagnosis">performanceDiagnosis</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="Tools/SearchRecordsTool.php.html#14"><abbr title="App\Services\AI\Tools\SearchRecordsTool::__invoke">__invoke</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="Tools/ToolResponse.php.html#12"><abbr title="App\Services\AI\Tools\ToolResponse::success">success</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="Tools/ToolResponse.php.html#31"><abbr title="App\Services\AI\Tools\ToolResponse::denied">denied</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="Tools/ToolResponse.php.html#46"><abbr title="App\Services\AI\Tools\ToolResponse::withGuardrails">withGuardrails</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="VectorStore/DisabledVectorStore.php.html#13"><abbr title="App\Services\AI\VectorStore\DisabledVectorStore::search">search</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="VectorStore/DisabledVectorStore.php.html#21"><abbr title="App\Services\AI\VectorStore\DisabledVectorStore::upsertChunks">upsertChunks</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="VectorStore/JsonVectorStore.php.html#21"><abbr title="App\Services\AI\VectorStore\JsonVectorStore::search">search</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="VectorStore/JsonVectorStore.php.html#57"><abbr title="App\Services\AI\VectorStore\JsonVectorStore::upsertChunks">upsertChunks</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="VectorStore/JsonVectorStore.php.html#66"><abbr title="App\Services\AI\VectorStore\JsonVectorStore::cosineSimilarity">cosineSimilarity</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="RakizAiOrchestrator.php.html#662"><abbr title="App\Services\AI\RakizAiOrchestrator::parseAndValidateOutput">parseAndValidateOutput</abbr></a></td><td class="text-right">29%</td></tr>
+       <tr><td><a href="RakizAiOrchestrator.php.html#732"><abbr title="App\Services\AI\RakizAiOrchestrator::withRetry">withRetry</abbr></a></td><td class="text-right">38%</td></tr>
+       <tr><td><a href="RakizAiOrchestrator.php.html#32"><abbr title="App\Services\AI\RakizAiOrchestrator::chat">chat</abbr></a></td><td class="text-right">62%</td></tr>
+       <tr><td><a href="RakizAiOrchestrator.php.html#15"><abbr title="App\Services\AI\RakizAiOrchestrator::__construct">__construct</abbr></a></td><td class="text-right">66%</td></tr>
+       <tr><td><a href="IntentClassifier.php.html#20"><abbr title="App\Services\AI\IntentClassifier::classify">classify</abbr></a></td><td class="text-right">71%</td></tr>
+       <tr><td><a href="RakizAiOrchestrator.php.html#507"><abbr title="App\Services\AI\RakizAiOrchestrator::extractFunctionToolCalls">extractFunctionToolCalls</abbr></a></td><td class="text-right">80%</td></tr>
+
+       </tbody>
+      </table>
+     </div>
+    </div>
+    <div class="col-md-6">
+     <h3>Project Risks</h3>
+     <div class="scrollbox">
+      <table class="table">
+       <thead>
+        <tr>
+         <th>Method</th>
+         <th class="text-right"><abbr title="Change Risk Anti-Patterns (CRAP) Index">CRAP</abbr></th>
+        </tr>
+       </thead>
+       <tbody>
+       <tr><td><a href="AiRagService.php.html#21"><abbr title="App\Services\AI\AiRagService::search">search</abbr></a></td><td class="text-right">272</td></tr>
+       <tr><td><a href="ContextBuilder.php.html#27"><abbr title="App\Services\AI\ContextBuilder::build">build</abbr></a></td><td class="text-right">240</td></tr>
+       <tr><td><a href="ContextBuilder.php.html#82"><abbr title="App\Services\AI\ContextBuilder::checkContextPolicies">checkContextPolicies</abbr></a></td><td class="text-right">240</td></tr>
+       <tr><td><a href="RakizAiOrchestrator.php.html#589"><abbr title="App\Services\AI\RakizAiOrchestrator::applyPostToolGuardrails">applyPostToolGuardrails</abbr></a></td><td class="text-right">210</td></tr>
+       <tr><td><a href="Tools/SearchRecordsTool.php.html#14"><abbr title="App\Services\AI\Tools\SearchRecordsTool::__invoke">__invoke</abbr></a></td><td class="text-right">182</td></tr>
+       <tr><td><a href="Tools/FinanceCalculatorTool.php.html#14"><abbr title="App\Services\AI\Tools\FinanceCalculatorTool::__invoke">__invoke</abbr></a></td><td class="text-right">132</td></tr>
+       <tr><td><a href="AIAssistantService.php.html#219"><abbr title="App\Services\AI\AIAssistantService::extractAssistantReply">extractAssistantReply</abbr></a></td><td class="text-right">110</td></tr>
+       <tr><td><a href="AccessExplanationEngine.php.html#30"><abbr title="App\Services\AI\AccessExplanationEngine::explainAccess">explainAccess</abbr></a></td><td class="text-right">110</td></tr>
+       <tr><td><a href="AssistantLLMService.php.html#104"><abbr title="App\Services\AI\AssistantLLMService::extractAnswer">extractAnswer</abbr></a></td><td class="text-right">110</td></tr>
+       <tr><td><a href="OpenAIResponsesClient.php.html#94"><abbr title="App\Services\AI\OpenAIResponsesClient::withRetry">withRetry</abbr></a></td><td class="text-right">110</td></tr>
+       <tr><td><a href="SystemPromptBuilder.php.html#16"><abbr title="App\Services\AI\SystemPromptBuilder::build">build</abbr></a></td><td class="text-right">90</td></tr>
+       <tr><td><a href="AccessExplanationEngine.php.html#84"><abbr title="App\Services\AI\AccessExplanationEngine::getSuggestedRoutesForUser">getSuggestedRoutesForUser</abbr></a></td><td class="text-right">72</td></tr>
+       <tr><td><a href="OpenAIEmbeddingClient.php.html#83"><abbr title="App\Services\AI\OpenAIEmbeddingClient::withRetry">withRetry</abbr></a></td><td class="text-right">72</td></tr>
+       <tr><td><a href="Tools/CampaignAdvisorTool.php.html#94"><abbr title="App\Services\AI\Tools\CampaignAdvisorTool::generateRecommendations">generateRecommendations</abbr></a></td><td class="text-right">72</td></tr>
+       <tr><td><a href="Tools/SalesAdvisorTool.php.html#14"><abbr title="App\Services\AI\Tools\SalesAdvisorTool::__invoke">__invoke</abbr></a></td><td class="text-right">72</td></tr>
+       <tr><td><a href="AIAssistantService.php.html#87"><abbr title="App\Services\AI\AIAssistantService::chat">chat</abbr></a></td><td class="text-right">56</td></tr>
+       <tr><td><a href="CapabilityResolver.php.html#12"><abbr title="App\Services\AI\CapabilityResolver::resolve">resolve</abbr></a></td><td class="text-right">56</td></tr>
+       <tr><td><a href="OpenAIResponsesClient.php.html#13"><abbr title="App\Services\AI\OpenAIResponsesClient::createResponse">createResponse</abbr></a></td><td class="text-right">56</td></tr>
+       <tr><td><a href="RakizAiOrchestrator.php.html#521"><abbr title="App\Services\AI\RakizAiOrchestrator::executeTool">executeTool</abbr></a></td><td class="text-right">56</td></tr>
+       <tr><td><a href="Tools/MarketingAnalyticsTool.php.html#14"><abbr title="App\Services\AI\Tools\MarketingAnalyticsTool::__invoke">__invoke</abbr></a></td><td class="text-right">56</td></tr>
+       <tr><td><a href="AccessExplanationEngine.php.html#168"><abbr title="App\Services\AI\AccessExplanationEngine::parseMessage">parseMessage</abbr></a></td><td class="text-right">42</td></tr>
+       <tr><td><a href="AiIndexingService.php.html#83"><abbr title="App\Services\AI\AiIndexingService::indexRecordSummary">indexRecordSummary</abbr></a></td><td class="text-right">42</td></tr>
+       <tr><td><a href="RakizAiOrchestrator.php.html#662"><abbr title="App\Services\AI\RakizAiOrchestrator::parseAndValidateOutput">parseAndValidateOutput</abbr></a></td><td class="text-right">30</td></tr>
+       <tr><td><a href="AIAssistantService.php.html#29"><abbr title="App\Services\AI\AIAssistantService::ask">ask</abbr></a></td><td class="text-right">30</td></tr>
+       <tr><td><a href="AccessExplanationEngine.php.html#112"><abbr title="App\Services\AI\AccessExplanationEngine::explain">explain</abbr></a></td><td class="text-right">30</td></tr>
+       <tr><td><a href="AccessExplanationEngine.php.html#204"><abbr title="App\Services\AI\AccessExplanationEngine::runAuthChecks">runAuthChecks</abbr></a></td><td class="text-right">30</td></tr>
+       <tr><td><a href="AccessExplanationEngine.php.html#284"><abbr title="App\Services\AI\AccessExplanationEngine::isOwnershipMismatch">isOwnershipMismatch</abbr></a></td><td class="text-right">30</td></tr>
+       <tr><td><a href="OpenAIEmbeddingClient.php.html#43"><abbr title="App\Services\AI\OpenAIEmbeddingClient::embedMany">embedMany</abbr></a></td><td class="text-right">30</td></tr>
+       <tr><td><a href="RakizAiOrchestrator.php.html#636"><abbr title="App\Services\AI\RakizAiOrchestrator::stripHallucinatedSections">stripHallucinatedSections</abbr></a></td><td class="text-right">30</td></tr>
+       <tr><td><a href="Tools/CampaignAdvisorTool.php.html#14"><abbr title="App\Services\AI\Tools\CampaignAdvisorTool::__invoke">__invoke</abbr></a></td><td class="text-right">30</td></tr>
+       <tr><td><a href="Tools/FinanceCalculatorTool.php.html#178"><abbr title="App\Services\AI\Tools\FinanceCalculatorTool::calculatePaymentPlan">calculatePaymentPlan</abbr></a></td><td class="text-right">30</td></tr>
+       <tr><td><a href="Tools/HiringAdvisorTool.php.html#128"><abbr title="App\Services\AI\Tools\HiringAdvisorTool::suggestTeamStructure">suggestTeamStructure</abbr></a></td><td class="text-right">30</td></tr>
+       <tr><td><a href="Tools/MarketingAnalyticsTool.php.html#30"><abbr title="App\Services\AI\Tools\MarketingAnalyticsTool::overview">overview</abbr></a></td><td class="text-right">30</td></tr>
+       <tr><td><a href="Tools/SalesAdvisorTool.php.html#173"><abbr title="App\Services\AI\Tools\SalesAdvisorTool::performanceDiagnosis">performanceDiagnosis</abbr></a></td><td class="text-right">30</td></tr>
+       <tr><td><a href="VectorStore/JsonVectorStore.php.html#66"><abbr title="App\Services\AI\VectorStore\JsonVectorStore::cosineSimilarity">cosineSimilarity</abbr></a></td><td class="text-right">30</td></tr>
+       <tr><td><a href="AccessExplanationEngine.php.html#257"><abbr title="App\Services\AI\AccessExplanationEngine::hasTypeLevelAccess">hasTypeLevelAccess</abbr></a></td><td class="text-right">20</td></tr>
+       <tr><td><a href="AiIndexingService.php.html#153"><abbr title="App\Services\AI\AiIndexingService::indexDocument">indexDocument</abbr></a></td><td class="text-right">20</td></tr>
+       <tr><td><a href="CatalogService.php.html#54"><abbr title="App\Services\AI\CatalogService::sectionsForUser">sectionsForUser</abbr></a></td><td class="text-right">20</td></tr>
+       <tr><td><a href="ContextBuilder.php.html#154"><abbr title="App\Services\AI\ContextBuilder::buildContractDetails">buildContractDetails</abbr></a></td><td class="text-right">20</td></tr>
+       <tr><td><a href="ContextValidator.php.html#13"><abbr title="App\Services\AI\ContextValidator::validate">validate</abbr></a></td><td class="text-right">20</td></tr>
+       <tr><td><a href="NumericGuardrails.php.html#69"><abbr title="App\Services\AI\NumericGuardrails::calculateMortgage">calculateMortgage</abbr></a></td><td class="text-right">20</td></tr>
+       <tr><td><a href="OpenAIEmbeddingClient.php.html#11"><abbr title="App\Services\AI\OpenAIEmbeddingClient::embed">embed</abbr></a></td><td class="text-right">20</td></tr>
+       <tr><td><a href="ToolRegistry.php.html#46"><abbr title="App\Services\AI\ToolRegistry::execute">execute</abbr></a></td><td class="text-right">20</td></tr>
+       <tr><td><a href="Tools/ExplainAccessTool.php.html#15"><abbr title="App\Services\AI\Tools\ExplainAccessTool::__invoke">__invoke</abbr></a></td><td class="text-right">20</td></tr>
+       <tr><td><a href="Tools/FinanceCalculatorTool.php.html#135"><abbr title="App\Services\AI\Tools\FinanceCalculatorTool::calculateProjectROI">calculateProjectROI</abbr></a></td><td class="text-right">20</td></tr>
+       <tr><td><a href="Tools/GetContractStatusTool.php.html#12"><abbr title="App\Services\AI\Tools\GetContractStatusTool::__invoke">__invoke</abbr></a></td><td class="text-right">20</td></tr>
+       <tr><td><a href="Tools/GetLeadSummaryTool.php.html#12"><abbr title="App\Services\AI\Tools\GetLeadSummaryTool::__invoke">__invoke</abbr></a></td><td class="text-right">20</td></tr>
+       <tr><td><a href="Tools/GetProjectSummaryTool.php.html#12"><abbr title="App\Services\AI\Tools\GetProjectSummaryTool::__invoke">__invoke</abbr></a></td><td class="text-right">20</td></tr>
+       <tr><td><a href="Tools/HiringAdvisorTool.php.html#9"><abbr title="App\Services\AI\Tools\HiringAdvisorTool::__invoke">__invoke</abbr></a></td><td class="text-right">20</td></tr>
+       <tr><td><a href="VectorStore/JsonVectorStore.php.html#21"><abbr title="App\Services\AI\VectorStore\JsonVectorStore::search">search</abbr></a></td><td class="text-right">20</td></tr>
+       <tr><td><a href="RakizAiOrchestrator.php.html#732"><abbr title="App\Services\AI\RakizAiOrchestrator::withRetry">withRetry</abbr></a></td><td class="text-right">18</td></tr>
+       <tr><td><a href="RakizAiOrchestrator.php.html#32"><abbr title="App\Services\AI\RakizAiOrchestrator::chat">chat</abbr></a></td><td class="text-right">17</td></tr>
+       <tr><td><a href="AIAssistantService.php.html#188"><abbr title="App\Services\AI\AIAssistantService::deleteSession">deleteSession</abbr></a></td><td class="text-right">12</td></tr>
+       <tr><td><a href="AIAssistantService.php.html#251"><abbr title="App\Services\AI\AIAssistantService::isSectionAvailable">isSectionAvailable</abbr></a></td><td class="text-right">12</td></tr>
+       <tr><td><a href="AIAssistantService.php.html#316"><abbr title="App\Services\AI\AIAssistantService::filterContext">filterContext</abbr></a></td><td class="text-right">12</td></tr>
+       <tr><td><a href="AIAssistantService.php.html#337"><abbr title="App\Services\AI\AIAssistantService::summarizeConversationIfNeeded">summarizeConversationIfNeeded</abbr></a></td><td class="text-right">12</td></tr>
+       <tr><td><a href="AIAssistantService.php.html#402"><abbr title="App\Services\AI\AIAssistantService::ensureWithinBudget">ensureWithinBudget</abbr></a></td><td class="text-right">12</td></tr>
+       <tr><td><a href="AccessExplanationEngine.php.html#145"><abbr title="App\Services\AI\AccessExplanationEngine::isAccessIntent">isAccessIntent</abbr></a></td><td class="text-right">12</td></tr>
+       <tr><td><a href="AiIndexingService.php.html#30"><abbr title="App\Services\AI\AiIndexingService::chunkText">chunkText</abbr></a></td><td class="text-right">12</td></tr>
+       <tr><td><a href="AiIndexingService.php.html#197"><abbr title="App\Services\AI\AiIndexingService::markRecordDeleted">markRecordDeleted</abbr></a></td><td class="text-right">12</td></tr>
+       <tr><td><a href="AssistantLLMService.php.html#71"><abbr title="App\Services\AI\AssistantLLMService::buildInstructions">buildInstructions</abbr></a></td><td class="text-right">12</td></tr>
+       <tr><td><a href="ContextValidator.php.html#35"><abbr title="App\Services\AI\ContextValidator::parseRule">parseRule</abbr></a></td><td class="text-right">12</td></tr>
+       <tr><td><a href="GuardrailResult.php.html#21"><abbr title="App\Services\AI\GuardrailResult::__construct">__construct</abbr></a></td><td class="text-right">12</td></tr>
+       <tr><td><a href="NumericGuardrails.php.html#48"><abbr title="App\Services\AI\NumericGuardrails::validateROI">validateROI</abbr></a></td><td class="text-right">12</td></tr>
+       <tr><td><a href="RakizAiOrchestrator.php.html#554"><abbr title="App\Services\AI\RakizAiOrchestrator::answerFromCatalog">answerFromCatalog</abbr></a></td><td class="text-right">12</td></tr>
+       <tr><td><a href="SectionRegistry.php.html#65"><abbr title="App\Services\AI\SectionRegistry::suggestions">suggestions</abbr></a></td><td class="text-right">12</td></tr>
+       <tr><td><a href="SystemPromptBuilder.php.html#178"><abbr title="App\Services\AI\SystemPromptBuilder::buildCatalogContext">buildCatalogContext</abbr></a></td><td class="text-right">12</td></tr>
+       <tr><td><a href="Tools/CampaignAdvisorTool.php.html#124"><abbr title="App\Services\AI\Tools\CampaignAdvisorTool::suggestBudgetDistribution">suggestBudgetDistribution</abbr></a></td><td class="text-right">12</td></tr>
+       <tr><td><a href="Tools/KpiSalesTool.php.html#15"><abbr title="App\Services\AI\Tools\KpiSalesTool::__invoke">__invoke</abbr></a></td><td class="text-right">12</td></tr>
+       <tr><td><a href="Tools/RagSearchTool.php.html#15"><abbr title="App\Services\AI\Tools\RagSearchTool::__invoke">__invoke</abbr></a></td><td class="text-right">12</td></tr>
+       <tr><td><a href="AIAssistantService.php.html#395"><abbr title="App\Services\AI\AIAssistantService::ensureEnabled">ensureEnabled</abbr></a></td><td class="text-right">6</td></tr>
+       <tr><td><a href="AIAssistantService.php.html#421"><abbr title="App\Services\AI\AIAssistantService::buildExplanationResponse">buildExplanationResponse</abbr></a></td><td class="text-right">6</td></tr>
+       <tr><td><a href="AssistantLLMService.php.html#23"><abbr title="App\Services\AI\AssistantLLMService::generateAnswer">generateAnswer</abbr></a></td><td class="text-right">6</td></tr>
+       <tr><td><a href="CapabilityResolver.php.html#52"><abbr title="App\Services\AI\CapabilityResolver::clearCache">clearCache</abbr></a></td><td class="text-right">6</td></tr>
+       <tr><td><a href="CatalogService.php.html#18"><abbr title="App\Services\AI\CatalogService::catalog">catalog</abbr></a></td><td class="text-right">6</td></tr>
+       <tr><td><a href="CatalogService.php.html#40"><abbr title="App\Services\AI\CatalogService::sectionsForRole">sectionsForRole</abbr></a></td><td class="text-right">6</td></tr>
+       <tr><td><a href="ContextBuilder.php.html#129"><abbr title="App\Services\AI\ContextBuilder::buildContractsSummary">buildContractsSummary</abbr></a></td><td class="text-right">6</td></tr>
+       <tr><td><a href="ContextBuilder.php.html#178"><abbr title="App\Services\AI\ContextBuilder::buildNotificationsSummary">buildNotificationsSummary</abbr></a></td><td class="text-right">6</td></tr>
+       <tr><td><a href="ContextBuilder.php.html#216"><abbr title="App\Services\AI\ContextBuilder::sanitizeText">sanitizeText</abbr></a></td><td class="text-right">6</td></tr>
+       <tr><td><a href="DenyTemplateBuilder.php.html#14"><abbr title="App\Services\AI\DenyTemplateBuilder::build">build</abbr></a></td><td class="text-right">6</td></tr>
+       <tr><td><a href="Exceptions/AiUnauthorizedSectionException.php.html#7"><abbr title="App\Services\AI\Exceptions\AiUnauthorizedSectionException::__construct">__construct</abbr></a></td><td class="text-right">6</td></tr>
+       <tr><td><a href="NumericGuardrails.php.html#8"><abbr title="App\Services\AI\NumericGuardrails::validateCPL">validateCPL</abbr></a></td><td class="text-right">6</td></tr>
+       <tr><td><a href="OpenAIEmbeddingClient.php.html#70"><abbr title="App\Services\AI\OpenAIEmbeddingClient::redactSecrets">redactSecrets</abbr></a></td><td class="text-right">6</td></tr>
+       <tr><td><a href="OpenAIResponsesClient.php.html#76"><abbr title="App\Services\AI\OpenAIResponsesClient::makeSafetyIdentifier">makeSafetyIdentifier</abbr></a></td><td class="text-right">6</td></tr>
+       <tr><td><a href="SectionRegistry.php.html#14"><abbr title="App\Services\AI\SectionRegistry::all">all</abbr></a></td><td class="text-right">6</td></tr>
+       <tr><td><a href="SectionRegistry.php.html#27"><abbr title="App\Services\AI\SectionRegistry::find">find</abbr></a></td><td class="text-right">6</td></tr>
+       <tr><td><a href="SectionRegistry.php.html#37"><abbr title="App\Services\AI\SectionRegistry::isValid">isValid</abbr></a></td><td class="text-right">6</td></tr>
+       <tr><td><a href="SectionRegistry.php.html#54"><abbr title="App\Services\AI\SectionRegistry::allowedContextParams">allowedContextParams</abbr></a></td><td class="text-right">6</td></tr>
+       <tr><td><a href="SectionRegistry.php.html#84"><abbr title="App\Services\AI\SectionRegistry::contextSchema">contextSchema</abbr></a></td><td class="text-right">6</td></tr>
+       <tr><td><a href="SectionRegistry.php.html#95"><abbr title="App\Services\AI\SectionRegistry::contextPolicy">contextPolicy</abbr></a></td><td class="text-right">6</td></tr>
+       <tr><td><a href="SectionRegistry.php.html#106"><abbr title="App\Services\AI\SectionRegistry::parent">parent</abbr></a></td><td class="text-right">6</td></tr>
+       <tr><td><a href="Tools/FinanceCalculatorTool.php.html#71"><abbr title="App\Services\AI\Tools\FinanceCalculatorTool::calculateCommission">calculateCommission</abbr></a></td><td class="text-right">6</td></tr>
+       <tr><td><a href="Tools/FinanceCalculatorTool.php.html#103"><abbr title="App\Services\AI\Tools\FinanceCalculatorTool::calculateROMI">calculateROMI</abbr></a></td><td class="text-right">6</td></tr>
+       <tr><td><a href="Tools/MarketingAnalyticsTool.php.html#95"><abbr title="App\Services\AI\Tools\MarketingAnalyticsTool::teamPerformance">teamPerformance</abbr></a></td><td class="text-right">6</td></tr>
+       <tr><td><a href="Tools/ToolResponse.php.html#46"><abbr title="App\Services\AI\Tools\ToolResponse::withGuardrails">withGuardrails</abbr></a></td><td class="text-right">6</td></tr>
+       <tr><td><a href="VectorStore/JsonVectorStore.php.html#57"><abbr title="App\Services\AI\VectorStore\JsonVectorStore::upsertChunks">upsertChunks</abbr></a></td><td class="text-right">6</td></tr>
+       <tr><td><a href="IntentClassifier.php.html#20"><abbr title="App\Services\AI\IntentClassifier::classify">classify</abbr></a></td><td class="text-right">3</td></tr>
+       <tr><td><a href="RakizAiOrchestrator.php.html#507"><abbr title="App\Services\AI\RakizAiOrchestrator::extractFunctionToolCalls">extractFunctionToolCalls</abbr></a></td><td class="text-right">3</td></tr>
+       <tr><td><a href="RakizAiOrchestrator.php.html#15"><abbr title="App\Services\AI\RakizAiOrchestrator::__construct">__construct</abbr></a></td><td class="text-right">2</td></tr>
+
+       </tbody>
+      </table>
+     </div>
+    </div>
+   </div>
+   <footer>
+    <hr/>
+    <p>
+     <small>Generated by <a href="https://github.com/sebastianbergmann/php-code-coverage" target="_top">php-code-coverage 11.0.11</a> using <a href="https://www.php.net/" target="_top">PHP 8.2.12</a> and <a href="https://phpunit.de/">PHPUnit 11.5.43</a> at Mon Feb 23 3:01:13 UTC 2026.</small>
+    </p>
+   </footer>
+  </div>
+  <script src="../../_js/jquery.min.js?v=11.0.11" type="text/javascript"></script>
+  <script src="../../_js/d3.min.js?v=11.0.11" type="text/javascript"></script>
+  <script src="../../_js/nv.d3.min.js?v=11.0.11" type="text/javascript"></script>
+  <script type="text/javascript">
+$(document).ready(function() {
+  nv.addGraph(function() {
+    var chart = nv.models.multiBarChart();
+    chart.tooltips(false)
+      .showControls(false)
+      .showLegend(false)
+      .reduceXTicks(false)
+      .staggerLabels(true)
+      .yAxis.tickFormat(d3.format('d'));
+
+    d3.select('#classCoverageDistribution svg')
+      .datum(getCoverageDistributionData([31,4,0,0,0,0,1,0,1,0,1,0], "Class Coverage"))
+      .transition().duration(500).call(chart);
+
+    nv.utils.windowResize(chart.update);
+
+    return chart;
+  });
+
+  nv.addGraph(function() {
+    var chart = nv.models.multiBarChart();
+    chart.tooltips(false)
+      .showControls(false)
+      .showLegend(false)
+      .reduceXTicks(false)
+      .staggerLabels(true)
+      .yAxis.tickFormat(d3.format('d'));
+
+    d3.select('#methodCoverageDistribution svg')
+      .datum(getCoverageDistributionData([158,0,0,1,1,0,0,2,1,1,2,16], "Method Coverage"))
+      .transition().duration(500).call(chart);
+
+    nv.utils.windowResize(chart.update);
+
+    return chart;
+  });
+
+  function getCoverageDistributionData(data, label) {
+    var labels = [
+      '0%',
+      '0-10%',
+      '10-20%',
+      '20-30%',
+      '30-40%',
+      '40-50%',
+      '50-60%',
+      '60-70%',
+      '70-80%',
+      '80-90%',
+      '90-100%',
+      '100%'
+    ];
+    var values = [];
+    $.each(labels, function(key) {
+      values.push({x: labels[key], y: data[key]});
+    });
+
+    return [
+      {
+        key: label,
+        values: values,
+        color: "#4572A7"
+      }
+    ];
+  }
+  nv.addGraph(function() {
+    var chart = nv.models.scatterChart()
+      .showDistX(true)
+      .showDistY(true)
+      .showLegend(false)
+      .forceX([0, 100]);
+    chart.tooltipContent(function(graph) {
+      return '<p>' + graph.point.class + '</p>';
+    });
+
+    chart.xAxis.axisLabel('Code Coverage (in percent)');
+    chart.yAxis.axisLabel('Cyclomatic Complexity');
+
+    d3.select('#classComplexity svg')
+      .datum(getComplexityData([[0,48,"<a href=\"AIAssistantService.php.html#17\">App\\Services\\AI\\AIAssistantService<\/a>"],[0,48,"<a href=\"AccessExplanationEngine.php.html#12\">App\\Services\\AI\\AccessExplanationEngine<\/a>"],[5.9259259259259265,20,"<a href=\"AiIndexingService.php.html#10\">App\\Services\\AI\\AiIndexingService<\/a>"],[2.631578947368421,17,"<a href=\"AiRagService.php.html#9\">App\\Services\\AI\\AiRagService<\/a>"],[0,16,"<a href=\"AssistantLLMService.php.html#8\">App\\Services\\AI\\AssistantLLMService<\/a>"],[0,10,"<a href=\"CapabilityResolver.php.html#7\">App\\Services\\AI\\CapabilityResolver<\/a>"],[3.7037037037037033,18,"<a href=\"CatalogService.php.html#7\">App\\Services\\AI\\CatalogService<\/a>"],[0,41,"<a href=\"ContextBuilder.php.html#16\">App\\Services\\AI\\ContextBuilder<\/a>"],[0,8,"<a href=\"ContextValidator.php.html#7\">App\\Services\\AI\\ContextValidator<\/a>"],[0,3,"<a href=\"DenyTemplateBuilder.php.html#5\">App\\Services\\AI\\DenyTemplateBuilder<\/a>"],[0,1,"<a href=\"Exceptions\/AiAssistantDisabledException.php.html#5\">App\\Services\\AI\\Exceptions\\AiAssistantDisabledException<\/a>"],[0,3,"<a href=\"Exceptions\/AiAssistantException.php.html#7\">App\\Services\\AI\\Exceptions\\AiAssistantException<\/a>"],[0,1,"<a href=\"Exceptions\/AiBudgetExceededException.php.html#5\">App\\Services\\AI\\Exceptions\\AiBudgetExceededException<\/a>"],[0,2,"<a href=\"Exceptions\/AiUnauthorizedSectionException.php.html#5\">App\\Services\\AI\\Exceptions\\AiUnauthorizedSectionException<\/a>"],[0,4,"<a href=\"GuardrailResult.php.html#5\">App\\Services\\AI\\GuardrailResult<\/a>"],[91.11111111111111,11,"<a href=\"IntentClassifier.php.html#5\">App\\Services\\AI\\IntentClassifier<\/a>"],[0,11,"<a href=\"NumericGuardrails.php.html#5\">App\\Services\\AI\\NumericGuardrails<\/a>"],[0,19,"<a href=\"OpenAIEmbeddingClient.php.html#9\">App\\Services\\AI\\OpenAIEmbeddingClient<\/a>"],[0,19,"<a href=\"OpenAIResponsesClient.php.html#11\">App\\Services\\AI\\OpenAIResponsesClient<\/a>"],[75.8555133079848,69,"<a href=\"RakizAiOrchestrator.php.html#11\">App\\Services\\AI\\RakizAiOrchestrator<\/a>"],[0,19,"<a href=\"SectionRegistry.php.html#5\">App\\Services\\AI\\SectionRegistry<\/a>"],[0,19,"<a href=\"SystemPromptBuilder.php.html#7\">App\\Services\\AI\\SystemPromptBuilder<\/a>"],[50,8,"<a href=\"ToolRegistry.php.html#9\">App\\Services\\AI\\ToolRegistry<\/a>"],[0,18,"<a href=\"Tools\/CampaignAdvisorTool.php.html#8\">App\\Services\\AI\\Tools\\CampaignAdvisorTool<\/a>"],[0,5,"<a href=\"Tools\/ExplainAccessTool.php.html#9\">App\\Services\\AI\\Tools\\ExplainAccessTool<\/a>"],[0,26,"<a href=\"Tools\/FinanceCalculatorTool.php.html#8\">App\\Services\\AI\\Tools\\FinanceCalculatorTool<\/a>"],[0,4,"<a href=\"Tools\/GetContractStatusTool.php.html#10\">App\\Services\\AI\\Tools\\GetContractStatusTool<\/a>"],[0,4,"<a href=\"Tools\/GetLeadSummaryTool.php.html#10\">App\\Services\\AI\\Tools\\GetLeadSummaryTool<\/a>"],[0,4,"<a href=\"Tools\/GetProjectSummaryTool.php.html#10\">App\\Services\\AI\\Tools\\GetProjectSummaryTool<\/a>"],[0,14,"<a href=\"Tools\/HiringAdvisorTool.php.html#7\">App\\Services\\AI\\Tools\\HiringAdvisorTool<\/a>"],[0,4,"<a href=\"Tools\/KpiSalesTool.php.html#9\">App\\Services\\AI\\Tools\\KpiSalesTool<\/a>"],[0,16,"<a href=\"Tools\/MarketingAnalyticsTool.php.html#12\">App\\Services\\AI\\Tools\\MarketingAnalyticsTool<\/a>"],[0,4,"<a href=\"Tools\/RagSearchTool.php.html#9\">App\\Services\\AI\\Tools\\RagSearchTool<\/a>"],[0,18,"<a href=\"Tools\/SalesAdvisorTool.php.html#8\">App\\Services\\AI\\Tools\\SalesAdvisorTool<\/a>"],[0,13,"<a href=\"Tools\/SearchRecordsTool.php.html#12\">App\\Services\\AI\\Tools\\SearchRecordsTool<\/a>"],[0,4,"<a href=\"Tools\/ToolResponse.php.html#7\">App\\Services\\AI\\Tools\\ToolResponse<\/a>"],[0,2,"<a href=\"VectorStore\/DisabledVectorStore.php.html#8\">App\\Services\\AI\\VectorStore\\DisabledVectorStore<\/a>"],[2.380952380952381,12,"<a href=\"VectorStore\/JsonVectorStore.php.html#12\">App\\Services\\AI\\VectorStore\\JsonVectorStore<\/a>"]], 'Class Complexity'))
+      .transition()
+      .duration(500)
+      .call(chart);
+
+    nv.utils.windowResize(chart.update);
+
+    return chart;
+  });
+
+  nv.addGraph(function() {
+    var chart = nv.models.scatterChart()
+      .showDistX(true)
+      .showDistY(true)
+      .showLegend(false)
+      .forceX([0, 100]);
+    chart.tooltipContent(function(graph) {
+      return '<p>' + graph.point.class + '</p>';
+    });
+
+    chart.xAxis.axisLabel('Code Coverage (in percent)');
+    chart.yAxis.axisLabel('Method Complexity');
+
+    d3.select('#methodComplexity svg')
+      .datum(getComplexityData([[0,1,"<a href=\"AIAssistantService.php.html#19\">App\\Services\\AI\\AIAssistantService::__construct<\/a>"],[0,5,"<a href=\"AIAssistantService.php.html#29\">App\\Services\\AI\\AIAssistantService::ask<\/a>"],[0,7,"<a href=\"AIAssistantService.php.html#87\">App\\Services\\AI\\AIAssistantService::chat<\/a>"],[0,1,"<a href=\"AIAssistantService.php.html#173\">App\\Services\\AI\\AIAssistantService::listSessions<\/a>"],[0,3,"<a href=\"AIAssistantService.php.html#188\">App\\Services\\AI\\AIAssistantService::deleteSession<\/a>"],[0,10,"<a href=\"AIAssistantService.php.html#219\">App\\Services\\AI\\AIAssistantService::extractAssistantReply<\/a>"],[0,1,"<a href=\"AIAssistantService.php.html#238\">App\\Services\\AI\\AIAssistantService::availableSections<\/a>"],[0,1,"<a href=\"AIAssistantService.php.html#246\">App\\Services\\AI\\AIAssistantService::suggestions<\/a>"],[0,3,"<a href=\"AIAssistantService.php.html#251\">App\\Services\\AI\\AIAssistantService::isSectionAvailable<\/a>"],[0,1,"<a href=\"AIAssistantService.php.html#266\">App\\Services\\AI\\AIAssistantService::storeMessage<\/a>"],[0,1,"<a href=\"AIAssistantService.php.html#278\">App\\Services\\AI\\AIAssistantService::storeAssistantMessage<\/a>"],[0,1,"<a href=\"AIAssistantService.php.html#301\">App\\Services\\AI\\AIAssistantService::logResponse<\/a>"],[0,3,"<a href=\"AIAssistantService.php.html#316\">App\\Services\\AI\\AIAssistantService::filterContext<\/a>"],[0,3,"<a href=\"AIAssistantService.php.html#337\">App\\Services\\AI\\AIAssistantService::summarizeConversationIfNeeded<\/a>"],[0,2,"<a href=\"AIAssistantService.php.html#395\">App\\Services\\AI\\AIAssistantService::ensureEnabled<\/a>"],[0,3,"<a href=\"AIAssistantService.php.html#402\">App\\Services\\AI\\AIAssistantService::ensureWithinBudget<\/a>"],[0,2,"<a href=\"AIAssistantService.php.html#421\">App\\Services\\AI\\AIAssistantService::buildExplanationResponse<\/a>"],[0,10,"<a href=\"AccessExplanationEngine.php.html#30\">App\\Services\\AI\\AccessExplanationEngine::explainAccess<\/a>"],[0,1,"<a href=\"AccessExplanationEngine.php.html#67\">App\\Services\\AI\\AccessExplanationEngine::getPermissionsForModel<\/a>"],[0,8,"<a href=\"AccessExplanationEngine.php.html#84\">App\\Services\\AI\\AccessExplanationEngine::getSuggestedRoutesForUser<\/a>"],[0,5,"<a href=\"AccessExplanationEngine.php.html#112\">App\\Services\\AI\\AccessExplanationEngine::explain<\/a>"],[0,3,"<a href=\"AccessExplanationEngine.php.html#145\">App\\Services\\AI\\AccessExplanationEngine::isAccessIntent<\/a>"],[0,6,"<a href=\"AccessExplanationEngine.php.html#168\">App\\Services\\AI\\AccessExplanationEngine::parseMessage<\/a>"],[0,5,"<a href=\"AccessExplanationEngine.php.html#204\">App\\Services\\AI\\AccessExplanationEngine::runAuthChecks<\/a>"],[0,4,"<a href=\"AccessExplanationEngine.php.html#257\">App\\Services\\AI\\AccessExplanationEngine::hasTypeLevelAccess<\/a>"],[0,5,"<a href=\"AccessExplanationEngine.php.html#284\">App\\Services\\AI\\AccessExplanationEngine::isOwnershipMismatch<\/a>"],[0,1,"<a href=\"AccessExplanationEngine.php.html#302\">App\\Services\\AI\\AccessExplanationEngine::buildResult<\/a>"],[100,1,"<a href=\"AiIndexingService.php.html#12\">App\\Services\\AI\\AiIndexingService::__construct<\/a>"],[0,1,"<a href=\"AiIndexingService.php.html#20\">App\\Services\\AI\\AiIndexingService::approximateTokens<\/a>"],[0,3,"<a href=\"AiIndexingService.php.html#30\">App\\Services\\AI\\AiIndexingService::chunkText<\/a>"],[100,2,"<a href=\"AiIndexingService.php.html#67\">App\\Services\\AI\\AiIndexingService::redactSecrets<\/a>"],[0,6,"<a href=\"AiIndexingService.php.html#83\">App\\Services\\AI\\AiIndexingService::indexRecordSummary<\/a>"],[0,4,"<a href=\"AiIndexingService.php.html#153\">App\\Services\\AI\\AiIndexingService::indexDocument<\/a>"],[0,3,"<a href=\"AiIndexingService.php.html#197\">App\\Services\\AI\\AiIndexingService::markRecordDeleted<\/a>"],[100,1,"<a href=\"AiRagService.php.html#11\">App\\Services\\AI\\AiRagService::__construct<\/a>"],[0,16,"<a href=\"AiRagService.php.html#21\">App\\Services\\AI\\AiRagService::search<\/a>"],[0,1,"<a href=\"AssistantLLMService.php.html#10\">App\\Services\\AI\\AssistantLLMService::__construct<\/a>"],[0,2,"<a href=\"AssistantLLMService.php.html#23\">App\\Services\\AI\\AssistantLLMService::generateAnswer<\/a>"],[0,3,"<a href=\"AssistantLLMService.php.html#71\">App\\Services\\AI\\AssistantLLMService::buildInstructions<\/a>"],[0,10,"<a href=\"AssistantLLMService.php.html#104\">App\\Services\\AI\\AssistantLLMService::extractAnswer<\/a>"],[0,7,"<a href=\"CapabilityResolver.php.html#12\">App\\Services\\AI\\CapabilityResolver::resolve<\/a>"],[0,1,"<a href=\"CapabilityResolver.php.html#41\">App\\Services\\AI\\CapabilityResolver::has<\/a>"],[0,2,"<a href=\"CapabilityResolver.php.html#52\">App\\Services\\AI\\CapabilityResolver::clearCache<\/a>"],[100,1,"<a href=\"CatalogService.php.html#13\">App\\Services\\AI\\CatalogService::__construct<\/a>"],[0,2,"<a href=\"CatalogService.php.html#18\">App\\Services\\AI\\CatalogService::catalog<\/a>"],[0,1,"<a href=\"CatalogService.php.html#28\">App\\Services\\AI\\CatalogService::sections<\/a>"],[0,1,"<a href=\"CatalogService.php.html#34\">App\\Services\\AI\\CatalogService::sectionKeys<\/a>"],[0,2,"<a href=\"CatalogService.php.html#40\">App\\Services\\AI\\CatalogService::sectionsForRole<\/a>"],[0,4,"<a href=\"CatalogService.php.html#54\">App\\Services\\AI\\CatalogService::sectionsForUser<\/a>"],[0,1,"<a href=\"CatalogService.php.html#71\">App\\Services\\AI\\CatalogService::permissionsForRole<\/a>"],[0,1,"<a href=\"CatalogService.php.html#77\">App\\Services\\AI\\CatalogService::roleMap<\/a>"],[0,1,"<a href=\"CatalogService.php.html#83\">App\\Services\\AI\\CatalogService::roleNames<\/a>"],[0,1,"<a href=\"CatalogService.php.html#89\">App\\Services\\AI\\CatalogService::isPermissionValid<\/a>"],[0,1,"<a href=\"CatalogService.php.html#95\">App\\Services\\AI\\CatalogService::isSectionValid<\/a>"],[0,1,"<a href=\"CatalogService.php.html#101\">App\\Services\\AI\\CatalogService::marketReferences<\/a>"],[0,1,"<a href=\"CatalogService.php.html#107\">App\\Services\\AI\\CatalogService::flush<\/a>"],[0,1,"<a href=\"ContextBuilder.php.html#18\">App\\Services\\AI\\ContextBuilder::__construct<\/a>"],[0,15,"<a href=\"ContextBuilder.php.html#27\">App\\Services\\AI\\ContextBuilder::build<\/a>"],[0,15,"<a href=\"ContextBuilder.php.html#82\">App\\Services\\AI\\ContextBuilder::checkContextPolicies<\/a>"],[0,2,"<a href=\"ContextBuilder.php.html#129\">App\\Services\\AI\\ContextBuilder::buildContractsSummary<\/a>"],[0,4,"<a href=\"ContextBuilder.php.html#154\">App\\Services\\AI\\ContextBuilder::buildContractDetails<\/a>"],[0,2,"<a href=\"ContextBuilder.php.html#178\">App\\Services\\AI\\ContextBuilder::buildNotificationsSummary<\/a>"],[0,2,"<a href=\"ContextBuilder.php.html#216\">App\\Services\\AI\\ContextBuilder::sanitizeText<\/a>"],[0,1,"<a href=\"ContextValidator.php.html#9\">App\\Services\\AI\\ContextValidator::__construct<\/a>"],[0,4,"<a href=\"ContextValidator.php.html#13\">App\\Services\\AI\\ContextValidator::validate<\/a>"],[0,3,"<a href=\"ContextValidator.php.html#35\">App\\Services\\AI\\ContextValidator::parseRule<\/a>"],[0,2,"<a href=\"DenyTemplateBuilder.php.html#14\">App\\Services\\AI\\DenyTemplateBuilder::build<\/a>"],[0,1,"<a href=\"DenyTemplateBuilder.php.html#28\">App\\Services\\AI\\DenyTemplateBuilder::response<\/a>"],[0,1,"<a href=\"Exceptions\/AiAssistantDisabledException.php.html#7\">App\\Services\\AI\\Exceptions\\AiAssistantDisabledException::__construct<\/a>"],[0,1,"<a href=\"Exceptions\/AiAssistantException.php.html#9\">App\\Services\\AI\\Exceptions\\AiAssistantException::__construct<\/a>"],[0,1,"<a href=\"Exceptions\/AiAssistantException.php.html#17\">App\\Services\\AI\\Exceptions\\AiAssistantException::errorCode<\/a>"],[0,1,"<a href=\"Exceptions\/AiAssistantException.php.html#22\">App\\Services\\AI\\Exceptions\\AiAssistantException::statusCode<\/a>"],[0,1,"<a href=\"Exceptions\/AiBudgetExceededException.php.html#7\">App\\Services\\AI\\Exceptions\\AiBudgetExceededException::__construct<\/a>"],[0,2,"<a href=\"Exceptions\/AiUnauthorizedSectionException.php.html#7\">App\\Services\\AI\\Exceptions\\AiUnauthorizedSectionException::__construct<\/a>"],[0,3,"<a href=\"GuardrailResult.php.html#21\">App\\Services\\AI\\GuardrailResult::__construct<\/a>"],[0,1,"<a href=\"GuardrailResult.php.html#40\">App\\Services\\AI\\GuardrailResult::toArray<\/a>"],[100,1,"<a href=\"IntentClassifier.php.html#9\">App\\Services\\AI\\IntentClassifier::__construct<\/a>"],[71.42857142857143,3,"<a href=\"IntentClassifier.php.html#20\">App\\Services\\AI\\IntentClassifier::classify<\/a>"],[95.65217391304348,3,"<a href=\"IntentClassifier.php.html#37\">App\\Services\\AI\\IntentClassifier::isCatalogQuery<\/a>"],[92.85714285714286,4,"<a href=\"IntentClassifier.php.html#69\">App\\Services\\AI\\IntentClassifier::detectToolHint<\/a>"],[0,2,"<a href=\"NumericGuardrails.php.html#8\">App\\Services\\AI\\NumericGuardrails::validateCPL<\/a>"],[0,1,"<a href=\"NumericGuardrails.php.html#31\">App\\Services\\AI\\NumericGuardrails::validateCloseRate<\/a>"],[0,3,"<a href=\"NumericGuardrails.php.html#48\">App\\Services\\AI\\NumericGuardrails::validateROI<\/a>"],[0,4,"<a href=\"NumericGuardrails.php.html#69\">App\\Services\\AI\\NumericGuardrails::calculateMortgage<\/a>"],[0,1,"<a href=\"NumericGuardrails.php.html#101\">App\\Services\\AI\\NumericGuardrails::validateRange<\/a>"],[0,4,"<a href=\"OpenAIEmbeddingClient.php.html#11\">App\\Services\\AI\\OpenAIEmbeddingClient::embed<\/a>"],[0,5,"<a href=\"OpenAIEmbeddingClient.php.html#43\">App\\Services\\AI\\OpenAIEmbeddingClient::embedMany<\/a>"],[0,2,"<a href=\"OpenAIEmbeddingClient.php.html#70\">App\\Services\\AI\\OpenAIEmbeddingClient::redactSecrets<\/a>"],[0,8,"<a href=\"OpenAIEmbeddingClient.php.html#83\">App\\Services\\AI\\OpenAIEmbeddingClient::withRetry<\/a>"],[0,7,"<a href=\"OpenAIResponsesClient.php.html#13\">App\\Services\\AI\\OpenAIResponsesClient::createResponse<\/a>"],[0,2,"<a href=\"OpenAIResponsesClient.php.html#76\">App\\Services\\AI\\OpenAIResponsesClient::makeSafetyIdentifier<\/a>"],[0,10,"<a href=\"OpenAIResponsesClient.php.html#94\">App\\Services\\AI\\OpenAIResponsesClient::withRetry<\/a>"],[66.66666666666666,2,"<a href=\"RakizAiOrchestrator.php.html#15\">App\\Services\\AI\\RakizAiOrchestrator::__construct<\/a>"],[62.121212121212125,11,"<a href=\"RakizAiOrchestrator.php.html#32\">App\\Services\\AI\\RakizAiOrchestrator::chat<\/a>"],[100,1,"<a href=\"RakizAiOrchestrator.php.html#120\">App\\Services\\AI\\RakizAiOrchestrator::buildInstructions<\/a>"],[100,1,"<a href=\"RakizAiOrchestrator.php.html#183\">App\\Services\\AI\\RakizAiOrchestrator::buildInitialInput<\/a>"],[100,1,"<a href=\"RakizAiOrchestrator.php.html#201\">App\\Services\\AI\\RakizAiOrchestrator::getToolDefinitions<\/a>"],[100,1,"<a href=\"RakizAiOrchestrator.php.html#428\">App\\Services\\AI\\RakizAiOrchestrator::getOutputJsonSchema<\/a>"],[80,3,"<a href=\"RakizAiOrchestrator.php.html#507\">App\\Services\\AI\\RakizAiOrchestrator::extractFunctionToolCalls<\/a>"],[0,7,"<a href=\"RakizAiOrchestrator.php.html#521\">App\\Services\\AI\\RakizAiOrchestrator::executeTool<\/a>"],[0,3,"<a href=\"RakizAiOrchestrator.php.html#554\">App\\Services\\AI\\RakizAiOrchestrator::answerFromCatalog<\/a>"],[0,14,"<a href=\"RakizAiOrchestrator.php.html#589\">App\\Services\\AI\\RakizAiOrchestrator::applyPostToolGuardrails<\/a>"],[0,5,"<a href=\"RakizAiOrchestrator.php.html#636\">App\\Services\\AI\\RakizAiOrchestrator::stripHallucinatedSections<\/a>"],[29.411764705882355,8,"<a href=\"RakizAiOrchestrator.php.html#662\">App\\Services\\AI\\RakizAiOrchestrator::parseAndValidateOutput<\/a>"],[100,1,"<a href=\"RakizAiOrchestrator.php.html#689\">App\\Services\\AI\\RakizAiOrchestrator::fallbackOutput<\/a>"],[100,1,"<a href=\"RakizAiOrchestrator.php.html#705\">App\\Services\\AI\\RakizAiOrchestrator::redactSecrets<\/a>"],[100,3,"<a href=\"RakizAiOrchestrator.php.html#713\">App\\Services\\AI\\RakizAiOrchestrator::logRequest<\/a>"],[38.46153846153847,7,"<a href=\"RakizAiOrchestrator.php.html#732\">App\\Services\\AI\\RakizAiOrchestrator::withRetry<\/a>"],[0,1,"<a href=\"SectionRegistry.php.html#9\">App\\Services\\AI\\SectionRegistry::__construct<\/a>"],[0,2,"<a href=\"SectionRegistry.php.html#14\">App\\Services\\AI\\SectionRegistry::all<\/a>"],[0,2,"<a href=\"SectionRegistry.php.html#27\">App\\Services\\AI\\SectionRegistry::find<\/a>"],[0,2,"<a href=\"SectionRegistry.php.html#37\">App\\Services\\AI\\SectionRegistry::isValid<\/a>"],[0,1,"<a href=\"SectionRegistry.php.html#46\">App\\Services\\AI\\SectionRegistry::availableFor<\/a>"],[0,2,"<a href=\"SectionRegistry.php.html#54\">App\\Services\\AI\\SectionRegistry::allowedContextParams<\/a>"],[0,3,"<a href=\"SectionRegistry.php.html#65\">App\\Services\\AI\\SectionRegistry::suggestions<\/a>"],[0,2,"<a href=\"SectionRegistry.php.html#84\">App\\Services\\AI\\SectionRegistry::contextSchema<\/a>"],[0,2,"<a href=\"SectionRegistry.php.html#95\">App\\Services\\AI\\SectionRegistry::contextPolicy<\/a>"],[0,2,"<a href=\"SectionRegistry.php.html#106\">App\\Services\\AI\\SectionRegistry::parent<\/a>"],[0,1,"<a href=\"SystemPromptBuilder.php.html#11\">App\\Services\\AI\\SystemPromptBuilder::__construct<\/a>"],[0,9,"<a href=\"SystemPromptBuilder.php.html#16\">App\\Services\\AI\\SystemPromptBuilder::build<\/a>"],[0,1,"<a href=\"SystemPromptBuilder.php.html#68\">App\\Services\\AI\\SystemPromptBuilder::buildIdentity<\/a>"],[0,1,"<a href=\"SystemPromptBuilder.php.html#79\">App\\Services\\AI\\SystemPromptBuilder::buildExpertise<\/a>"],[0,1,"<a href=\"SystemPromptBuilder.php.html#132\">App\\Services\\AI\\SystemPromptBuilder::buildSafetyRules<\/a>"],[0,1,"<a href=\"SystemPromptBuilder.php.html#147\">App\\Services\\AI\\SystemPromptBuilder::buildGuardrailReminder<\/a>"],[0,1,"<a href=\"SystemPromptBuilder.php.html#164\">App\\Services\\AI\\SystemPromptBuilder::buildAnswerTemplate<\/a>"],[0,3,"<a href=\"SystemPromptBuilder.php.html#178\">App\\Services\\AI\\SystemPromptBuilder::buildCatalogContext<\/a>"],[0,1,"<a href=\"SystemPromptBuilder.php.html#193\">App\\Services\\AI\\SystemPromptBuilder::buildSectionExpertise<\/a>"],[100,1,"<a href=\"ToolRegistry.php.html#14\">App\\Services\\AI\\ToolRegistry::__construct<\/a>"],[100,1,"<a href=\"ToolRegistry.php.html#19\">App\\Services\\AI\\ToolRegistry::registerDefaultTools<\/a>"],[100,1,"<a href=\"ToolRegistry.php.html#35\">App\\Services\\AI\\ToolRegistry::register<\/a>"],[0,4,"<a href=\"ToolRegistry.php.html#46\">App\\Services\\AI\\ToolRegistry::execute<\/a>"],[0,1,"<a href=\"ToolRegistry.php.html#70\">App\\Services\\AI\\ToolRegistry::registeredNames<\/a>"],[0,1,"<a href=\"Tools\/CampaignAdvisorTool.php.html#10\">App\\Services\\AI\\Tools\\CampaignAdvisorTool::__construct<\/a>"],[0,5,"<a href=\"Tools\/CampaignAdvisorTool.php.html#14\">App\\Services\\AI\\Tools\\CampaignAdvisorTool::__invoke<\/a>"],[0,1,"<a href=\"Tools\/CampaignAdvisorTool.php.html#60\">App\\Services\\AI\\Tools\\CampaignAdvisorTool::getMarketBenchmarks<\/a>"],[0,8,"<a href=\"Tools\/CampaignAdvisorTool.php.html#94\">App\\Services\\AI\\Tools\\CampaignAdvisorTool::generateRecommendations<\/a>"],[0,3,"<a href=\"Tools\/CampaignAdvisorTool.php.html#124\">App\\Services\\AI\\Tools\\CampaignAdvisorTool::suggestBudgetDistribution<\/a>"],[0,1,"<a href=\"Tools\/ExplainAccessTool.php.html#11\">App\\Services\\AI\\Tools\\ExplainAccessTool::__construct<\/a>"],[0,4,"<a href=\"Tools\/ExplainAccessTool.php.html#15\">App\\Services\\AI\\Tools\\ExplainAccessTool::__invoke<\/a>"],[0,1,"<a href=\"Tools\/FinanceCalculatorTool.php.html#10\">App\\Services\\AI\\Tools\\FinanceCalculatorTool::__construct<\/a>"],[0,11,"<a href=\"Tools\/FinanceCalculatorTool.php.html#14\">App\\Services\\AI\\Tools\\FinanceCalculatorTool::__invoke<\/a>"],[0,1,"<a href=\"Tools\/FinanceCalculatorTool.php.html#36\">App\\Services\\AI\\Tools\\FinanceCalculatorTool::calculateMortgage<\/a>"],[0,2,"<a href=\"Tools\/FinanceCalculatorTool.php.html#71\">App\\Services\\AI\\Tools\\FinanceCalculatorTool::calculateCommission<\/a>"],[0,2,"<a href=\"Tools\/FinanceCalculatorTool.php.html#103\">App\\Services\\AI\\Tools\\FinanceCalculatorTool::calculateROMI<\/a>"],[0,4,"<a href=\"Tools\/FinanceCalculatorTool.php.html#135\">App\\Services\\AI\\Tools\\FinanceCalculatorTool::calculateProjectROI<\/a>"],[0,5,"<a href=\"Tools\/FinanceCalculatorTool.php.html#178\">App\\Services\\AI\\Tools\\FinanceCalculatorTool::calculatePaymentPlan<\/a>"],[0,4,"<a href=\"Tools\/GetContractStatusTool.php.html#12\">App\\Services\\AI\\Tools\\GetContractStatusTool::__invoke<\/a>"],[0,4,"<a href=\"Tools\/GetLeadSummaryTool.php.html#12\">App\\Services\\AI\\Tools\\GetLeadSummaryTool::__invoke<\/a>"],[0,4,"<a href=\"Tools\/GetProjectSummaryTool.php.html#12\">App\\Services\\AI\\Tools\\GetProjectSummaryTool::__invoke<\/a>"],[0,4,"<a href=\"Tools\/HiringAdvisorTool.php.html#9\">App\\Services\\AI\\Tools\\HiringAdvisorTool::__invoke<\/a>"],[0,1,"<a href=\"Tools\/HiringAdvisorTool.php.html#44\">App\\Services\\AI\\Tools\\HiringAdvisorTool::getIdealProfile<\/a>"],[0,1,"<a href=\"Tools\/HiringAdvisorTool.php.html#80\">App\\Services\\AI\\Tools\\HiringAdvisorTool::getInterviewQuestions<\/a>"],[0,1,"<a href=\"Tools\/HiringAdvisorTool.php.html#116\">App\\Services\\AI\\Tools\\HiringAdvisorTool::estimateEmployeeCost<\/a>"],[0,5,"<a href=\"Tools\/HiringAdvisorTool.php.html#128\">App\\Services\\AI\\Tools\\HiringAdvisorTool::suggestTeamStructure<\/a>"],[0,1,"<a href=\"Tools\/HiringAdvisorTool.php.html#154\">App\\Services\\AI\\Tools\\HiringAdvisorTool::getSuggestedKPIs<\/a>"],[0,1,"<a href=\"Tools\/HiringAdvisorTool.php.html#176\">App\\Services\\AI\\Tools\\HiringAdvisorTool::getRetentionTips<\/a>"],[0,1,"<a href=\"Tools\/KpiSalesTool.php.html#11\">App\\Services\\AI\\Tools\\KpiSalesTool::__construct<\/a>"],[0,3,"<a href=\"Tools\/KpiSalesTool.php.html#15\">App\\Services\\AI\\Tools\\KpiSalesTool::__invoke<\/a>"],[0,7,"<a href=\"Tools\/MarketingAnalyticsTool.php.html#14\">App\\Services\\AI\\Tools\\MarketingAnalyticsTool::__invoke<\/a>"],[0,5,"<a href=\"Tools\/MarketingAnalyticsTool.php.html#30\">App\\Services\\AI\\Tools\\MarketingAnalyticsTool::overview<\/a>"],[0,1,"<a href=\"Tools\/MarketingAnalyticsTool.php.html#75\">App\\Services\\AI\\Tools\\MarketingAnalyticsTool::channelComparison<\/a>"],[0,2,"<a href=\"Tools\/MarketingAnalyticsTool.php.html#95\">App\\Services\\AI\\Tools\\MarketingAnalyticsTool::teamPerformance<\/a>"],[0,1,"<a href=\"Tools\/MarketingAnalyticsTool.php.html#131\">App\\Services\\AI\\Tools\\MarketingAnalyticsTool::leadQualityAnalysis<\/a>"],[0,1,"<a href=\"Tools\/RagSearchTool.php.html#11\">App\\Services\\AI\\Tools\\RagSearchTool::__construct<\/a>"],[0,3,"<a href=\"Tools\/RagSearchTool.php.html#15\">App\\Services\\AI\\Tools\\RagSearchTool::__invoke<\/a>"],[0,1,"<a href=\"Tools\/SalesAdvisorTool.php.html#10\">App\\Services\\AI\\Tools\\SalesAdvisorTool::__construct<\/a>"],[0,8,"<a href=\"Tools\/SalesAdvisorTool.php.html#14\">App\\Services\\AI\\Tools\\SalesAdvisorTool::__invoke<\/a>"],[0,1,"<a href=\"Tools\/SalesAdvisorTool.php.html#32\">App\\Services\\AI\\Tools\\SalesAdvisorTool::closingTips<\/a>"],[0,1,"<a href=\"Tools\/SalesAdvisorTool.php.html#69\">App\\Services\\AI\\Tools\\SalesAdvisorTool::objectionHandling<\/a>"],[0,1,"<a href=\"Tools\/SalesAdvisorTool.php.html#108\">App\\Services\\AI\\Tools\\SalesAdvisorTool::followUpStrategy<\/a>"],[0,1,"<a href=\"Tools\/SalesAdvisorTool.php.html#147\">App\\Services\\AI\\Tools\\SalesAdvisorTool::negotiationTips<\/a>"],[0,5,"<a href=\"Tools\/SalesAdvisorTool.php.html#173\">App\\Services\\AI\\Tools\\SalesAdvisorTool::performanceDiagnosis<\/a>"],[0,13,"<a href=\"Tools\/SearchRecordsTool.php.html#14\">App\\Services\\AI\\Tools\\SearchRecordsTool::__invoke<\/a>"],[0,1,"<a href=\"Tools\/ToolResponse.php.html#12\">App\\Services\\AI\\Tools\\ToolResponse::success<\/a>"],[0,1,"<a href=\"Tools\/ToolResponse.php.html#31\">App\\Services\\AI\\Tools\\ToolResponse::denied<\/a>"],[0,2,"<a href=\"Tools\/ToolResponse.php.html#46\">App\\Services\\AI\\Tools\\ToolResponse::withGuardrails<\/a>"],[0,1,"<a href=\"VectorStore\/DisabledVectorStore.php.html#13\">App\\Services\\AI\\VectorStore\\DisabledVectorStore::search<\/a>"],[0,1,"<a href=\"VectorStore\/DisabledVectorStore.php.html#21\">App\\Services\\AI\\VectorStore\\DisabledVectorStore::upsertChunks<\/a>"],[100,1,"<a href=\"VectorStore\/JsonVectorStore.php.html#14\">App\\Services\\AI\\VectorStore\\JsonVectorStore::__construct<\/a>"],[0,4,"<a href=\"VectorStore\/JsonVectorStore.php.html#21\">App\\Services\\AI\\VectorStore\\JsonVectorStore::search<\/a>"],[0,2,"<a href=\"VectorStore\/JsonVectorStore.php.html#57\">App\\Services\\AI\\VectorStore\\JsonVectorStore::upsertChunks<\/a>"],[0,5,"<a href=\"VectorStore\/JsonVectorStore.php.html#66\">App\\Services\\AI\\VectorStore\\JsonVectorStore::cosineSimilarity<\/a>"]], 'Method Complexity'))
+      .transition()
+      .duration(500)
+      .call(chart);
+
+    nv.utils.windowResize(chart.update);
+
+    return chart;
+  });
+
+  function getComplexityData(data, label) {
+    var values = [];
+    $.each(data, function(key) {
+      var value = Math.round(data[key][0]*100) / 100;
+      values.push({
+        x: value,
+        y: data[key][1],
+        class: data[key][2],
+        size: 0.05,
+        shape: 'diamond'
+      });
+    });
+
+    return [
+      {
+        key: label,
+        values: values,
+        color: "#4572A7"
+      }
+    ];
+  }
+});
+  </script>
+ </body>
+</html>

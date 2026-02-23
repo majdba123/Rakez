@@ -24,6 +24,9 @@ class TaskController extends Controller
      */
     public function store(StoreTaskRequest $request): JsonResponse
     {
+        if (!$request->user()) {
+            return ApiResponse::unauthorized();
+        }
         $data = $request->validated();
         $task = $this->taskService->create($data, $request->user());
 
@@ -39,6 +42,9 @@ class TaskController extends Controller
      */
     public function myTasks(Request $request): JsonResponse
     {
+        if (!$request->user()) {
+            return ApiResponse::unauthorized();
+        }
         $tasks = $this->taskService->listForUser($request->user(), $request);
 
         return ApiResponse::success(

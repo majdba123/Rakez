@@ -98,7 +98,7 @@ class SalesEdgeCasesTest extends TestCase
     {
         $otherLeader = User::factory()->create(['type' => 'sales', 'is_manager' => true]);
         $otherLeader->assignRole('sales_leader');
-        
+
         Sanctum::actingAs($otherLeader);
 
         $response = $this->patchJson("/api/sales/projects/{$this->contract->id}/emergency-contacts", [
@@ -127,6 +127,6 @@ class SalesEdgeCasesTest extends TestCase
         $reservation->update(['voucher_pdf_path' => 'nonexistent.pdf']);
         $this->getJson("/api/sales/reservations/{$reservation->id}/voucher")
             ->assertStatus(404)
-            ->assertJsonPath('message', 'Voucher file not found');
+            ->assertJsonPath('message', 'Voucher file is missing');
     }
 }

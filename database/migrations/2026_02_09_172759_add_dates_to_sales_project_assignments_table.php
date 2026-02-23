@@ -22,15 +22,16 @@ return new class extends Migration
                 $table->date('end_date')->nullable()->after('start_date');
             }
         });
-        
-        // Try to drop unique constraint if it exists
-        try {
-            DB::statement('ALTER TABLE `sales_project_assignments` DROP INDEX `unique_leader_contract`');
-        } catch (\Exception $e) {
-            // Ignore if it doesn't exist or can't be dropped (may be used by FK)
-            Log::debug('Migration add_dates_to_sales_project_assignments: could not drop unique_leader_contract index', ['exception' => $e->getMessage()]);
+
+        // Try to drop unique constraint if it exists (MySQL/MariaDB only; SQLite does not support DROP INDEX this way)
+        if (DB::getDriverName() !== 'sqlite') {
+            try {
+                DB::statement('ALTER TABLE `sales_project_assignments` DROP INDEX `unique_leader_contract`');
+            } catch (\Exception $e) {
+                Log::debug('Migration add_dates_to_sales_project_assignments: could not drop unique_leader_contract index', ['exception' => $e->getMessage()]);
+            }
         }
-        
+
         // Add index for better query performance if it doesn't exist
         Schema::table('sales_project_assignments', function (Blueprint $table) {
             if (!Schema::hasIndex('sales_project_assignments', 'idx_leader_dates')) {
@@ -47,10 +48,10 @@ return new class extends Migration
         Schema::table('sales_project_assignments', function (Blueprint $table) {
             // Drop index
             $table->dropIndex('idx_leader_dates');
-            
+
             // Drop date fields
             $table->dropColumn(['start_date', 'end_date']);
-            
+
             // Restore unique constraint
             $table->unique(['leader_id', 'contract_id'], 'unique_leader_contract');
         });

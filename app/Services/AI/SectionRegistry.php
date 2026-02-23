@@ -4,6 +4,13 @@ namespace App\Services\AI;
 
 class SectionRegistry
 {
+    private ?CatalogService $catalog;
+
+    public function __construct(?CatalogService $catalog = null)
+    {
+        $this->catalog = $catalog;
+    }
+
     public function all(): array
     {
         $sections = config('ai_sections', []);
@@ -24,6 +31,16 @@ class SectionRegistry
         }
 
         return $this->all()[$key] ?? null;
+    }
+
+    /** Validate a section key against the catalog. */
+    public function isValid(string $key): bool
+    {
+        if ($this->catalog) {
+            return $this->catalog->isSectionValid($key);
+        }
+
+        return array_key_exists($key, $this->all());
     }
 
     public function availableFor(array $capabilities): array

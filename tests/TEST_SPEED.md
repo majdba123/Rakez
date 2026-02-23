@@ -64,3 +64,54 @@ php artisan test --filter=Deposit
 ## Optional: LazilyRefreshDatabase
 
 For more speed in the future, you can switch from `RefreshDatabase` to `LazilyRefreshDatabase` in test classes. The database is then migrated only when a test in that class first touches the DB. This can reduce migration runs for classes that use the DB sparingly. Change only after verifying tests still pass.
+
+---
+
+## Real OpenAI API tests
+
+The `AIAssistantRealOpenAITest` class contains E2E tests that hit the live OpenAI API. They are **skipped by default** and only run when two conditions are met:
+
+1. A real `OPENAI_API_KEY` is set in `.env` (not the phpunit.xml placeholder).
+2. `AI_REAL_TESTS=true` is set in `.env`.
+
+### Local setup
+
+```bash
+# In your .env file:
+OPENAI_API_KEY=sk-your-real-key-here
+AI_REAL_TESTS=true
+```
+
+### Running the tests
+
+```bash
+# Run only the real-key tests
+php artisan test --filter=AIAssistantRealOpenAI
+
+# Run within the Integration suite
+php artisan test --testsuite=Integration --filter=AIAssistantRealOpenAI
+```
+
+### What they cover
+
+| Test | Endpoint | Validates |
+|---|---|---|
+| `test_real_ask_endpoint_returns_ai_response` | POST `/api/ai/ask` | HTTP 200, JSON contract, DB persistence (user + assistant rows, model/tokens/request_id) |
+| `test_real_chat_continuity_in_same_session` | POST `/api/ai/chat` x2 | Session continuity, conversation history, 4+ DB rows |
+| `test_real_v2_chat_returns_strict_json_schema` | POST `/api/ai/v2/chat` | Strict JSON schema (answer_markdown, confidence, sources, links, access_notes) |
+
+### Cost
+
+Each run makes ~3 API calls with short prompts and capped `max_output_tokens`. Estimated cost per run: **< $0.01**.
+
+### CI setup
+
+Add these as secrets/environment variables in your CI pipeline:
+
+```yaml
+env:
+  OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+  AI_REAL_TESTS: "true"
+```
+
+When `OPENAI_API_KEY` is missing or `AI_REAL_TESTS` is not `true`, the tests skip gracefully — they will not fail the build.

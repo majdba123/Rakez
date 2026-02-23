@@ -58,7 +58,7 @@ class MarketingProjectService
     {
         $contract->loadMissing(['info', 'units']);
         $info = $contract->info;
-        $units = $contract->units ?? collect();
+        $units = collect($contract->units ?? []);
         $availableUnits = $units->where('status', 'available');
         $pendingUnits = $units->where('status', 'pending');
 

@@ -60,7 +60,11 @@ class SearchRecordsTool implements ToolContract
         }
 
         return [
-            'result' => ['hits' => array_slice($hits, 0, $limit), 'count' => count($hits)],
+            'result' => [
+                'hits' => array_slice($hits, 0, $limit),
+                'count' => count($hits),
+                'inputs' => ['query' => $query, 'modules' => $modules, 'limit' => $limit],
+            ],
             'source_refs' => $sourceRefs,
         ];
     }

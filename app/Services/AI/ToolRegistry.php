@@ -25,6 +25,11 @@ class ToolRegistry
         $this->register('tool_kpi_sales', \App\Services\AI\Tools\KpiSalesTool::class);
         $this->register('tool_explain_access', \App\Services\AI\Tools\ExplainAccessTool::class);
         $this->register('tool_rag_search', \App\Services\AI\Tools\RagSearchTool::class);
+        $this->register('tool_campaign_advisor', \App\Services\AI\Tools\CampaignAdvisorTool::class);
+        $this->register('tool_hiring_advisor', \App\Services\AI\Tools\HiringAdvisorTool::class);
+        $this->register('tool_finance_calculator', \App\Services\AI\Tools\FinanceCalculatorTool::class);
+        $this->register('tool_marketing_analytics', \App\Services\AI\Tools\MarketingAnalyticsTool::class);
+        $this->register('tool_sales_advisor', \App\Services\AI\Tools\SalesAdvisorTool::class);
     }
 
     public function register(string $name, string $handlerClass): void

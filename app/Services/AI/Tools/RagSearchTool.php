@@ -33,7 +33,7 @@ class RagSearchTool implements ToolContract
         }
 
         return [
-            'result' => ['sources' => $sources, 'count' => count($sources)],
+            'result' => ['sources' => $sources, 'count' => count($sources), 'inputs' => ['query' => $query, 'limit' => $limit]],
             'source_refs' => $sourceRefs,
         ];
     }

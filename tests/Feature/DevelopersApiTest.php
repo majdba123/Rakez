@@ -69,9 +69,11 @@ class DevelopersApiTest extends TestCase
                         'teams',
                     ],
                 ],
-                'meta' => ['total', 'per_page', 'current_page', 'last_page'],
+                'meta' => [
+                    'pagination' => ['total', 'per_page', 'current_page', 'total_pages'],
+                ],
             ])
-            ->assertJsonPath('meta.total', 2);
+            ->assertJsonPath('meta.pagination.total', 2);
     }
 
     public function test_developer_list_empty_returns_arabic_message(): void

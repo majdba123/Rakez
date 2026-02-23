@@ -1,0 +1,781 @@
+{
+  "info": {
+    "_postman_id": "rakez-erp-ai-api-collection",
+    "name": "Rakez ERP - AI Module (14 Endpoints)",
+    "description": "## Rakez ERP - AI Module API Collection\n\n**13 endpoints** across 4 route groups covering the full AI subsystem.\n\n### Auth\n- Method: **Laravel Sanctum** (Bearer token)\n- Login: `POST /api/login` → use token from main collection or set `auth_token` manually\n\n### Route Groups\n1. **AI Assistant V1** (`/api/ai`) — Ask, Chat, Conversations, Sections\n2. **Rakiz AI V2** (`/api/ai/v2`) — Chat, RAG Search, Explain Access\n3. **Help Assistant** (`/api/ai/assistant`) — Context-aware Chat\n4. **Knowledge Management** (`/api/ai/assistant/knowledge`) — CRUD for knowledge entries\n\n### Middleware\n- All routes require `auth:sanctum`\n- V1 routes: `throttle:ai-assistant` + `permission:use-ai-assistant`\n- V2 routes: `throttle:ai-assistant` + `permission:use-ai-assistant`\n- Help Assistant Chat: `permission:use-ai-assistant`\n- Knowledge CRUD: `permission:manage-ai-knowledge`\n\n### Quick Start\n1. Import this collection + `Rakez.local.postman_environment.json`\n2. Set `auth_token` variable (from Login endpoint in main collection)\n3. Test any endpoint\n\nGenerated: 2026-02-23",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{auth_token}}",
+        "type": "string"
+      }
+    ]
+  },
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "pm.globals.set('timestamp', Date.now());"
+        ]
+      }
+    },
+    {
+      "listen": "test",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "pm.test('Response time < 5s', function () {",
+          "    pm.expect(pm.response.responseTime).to.be.below(5000);",
+          "});"
+        ]
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:8000/api"
+    }
+  ],
+  "item": [
+    {
+      "name": "01 - AI Assistant V1",
+      "description": "Core AI assistant endpoints (V1).\n\nPrefix: `/api/ai`\nMiddleware: `auth:sanctum`, `throttle:ai-assistant`, `permission:use-ai-assistant`",
+      "item": [
+        {
+          "name": "Ask Question",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"question\": \"ما هي العقود النشطة حالياً؟\",\n  \"section\": null,\n  \"context\": {}\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/ai/ask",
+              "host": ["{{base_url}}"],
+              "path": ["ai", "ask"]
+            },
+            "description": "Ask a one-off question to the AI assistant. Returns an answer and follow-up suggestions.\n\n**Permission:** `use-ai-assistant`\n\n**Body Parameters:**\n| Field | Type | Required | Max | Description |\n|-------|------|----------|-----|-------------|\n| `question` | string | Yes | 2000 | The question to ask |\n| `section` | string | No | — | AI section key (from config) |\n| `context` | object | No | — | Section-specific context data |"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Has success field', () => {",
+                  "    const json = pm.response.json();",
+                  "    pm.expect(json.success).to.be.true;",
+                  "});",
+                  "pm.test('Has data.answer', () => {",
+                  "    const json = pm.response.json();",
+                  "    pm.expect(json.data).to.have.property('answer');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Chat (Conversational)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"message\": \"أريد معرفة تفاصيل العقد رقم 100\",\n  \"session_id\": null,\n  \"section\": null,\n  \"context\": {}\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/ai/chat",
+              "host": ["{{base_url}}"],
+              "path": ["ai", "chat"]
+            },
+            "description": "Send a message in a conversational AI session. Supports session continuity via `session_id`.\n\n**Permission:** `use-ai-assistant`\n\n**Body Parameters:**\n| Field | Type | Required | Max | Description |\n|-------|------|----------|-----|-------------|\n| `message` | string | Yes | 2000 | The chat message |\n| `session_id` | uuid | No | — | Existing session ID to continue a conversation |\n| `section` | string | No | — | AI section key (from config) |\n| `context` | object | No | — | Section-specific context data |\n\n**Tip:** Save `session_id` from the response to continue the conversation."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Has success field', () => {",
+                  "    const json = pm.response.json();",
+                  "    pm.expect(json.success).to.be.true;",
+                  "});",
+                  "pm.test('Has data.answer', () => {",
+                  "    const json = pm.response.json();",
+                  "    pm.expect(json.data).to.have.property('answer');",
+                  "});",
+                  "",
+                  "// Auto-save session_id for follow-up requests",
+                  "const data = pm.response.json().data;",
+                  "if (data && data.session_id) {",
+                  "    pm.environment.set('session_id', data.session_id);",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "List Conversations",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/ai/conversations?per_page=20&section=",
+              "host": ["{{base_url}}"],
+              "path": ["ai", "conversations"],
+              "query": [
+                {
+                  "key": "per_page",
+                  "value": "20",
+                  "description": "Items per page (max 100)"
+                },
+                {
+                  "key": "section",
+                  "value": "",
+                  "description": "Filter by AI section key (optional)",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "List the authenticated user's AI conversation sessions with pagination.\n\n**Permission:** `use-ai-assistant`\n\n**Query Parameters:**\n| Param | Type | Default | Description |\n|-------|------|---------|-------------|\n| `per_page` | int | 20 | Results per page (max 100) |\n| `section` | string | — | Filter by section key |"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Has pagination', () => {",
+                  "    const json = pm.response.json();",
+                  "    pm.expect(json).to.have.property('pagination');",
+                  "    pm.expect(json.pagination).to.have.property('total');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Delete Conversation",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/ai/conversations/{{session_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["ai", "conversations", "{{session_id}}"]
+            },
+            "description": "Delete a specific AI conversation session by its session ID.\n\n**Permission:** `use-ai-assistant`\n\n**Path Parameters:**\n| Param | Type | Description |\n|-------|------|-------------|\n| `session_id` | string | The session UUID to delete |"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Deleted flag true', () => {",
+                  "    const json = pm.response.json();",
+                  "    pm.expect(json.data.deleted).to.be.true;",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get Available Sections",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/ai/sections",
+              "host": ["{{base_url}}"],
+              "path": ["ai", "sections"]
+            },
+            "description": "Retrieve the list of AI sections available to the authenticated user based on their roles and permissions.\n\n**Permission:** `use-ai-assistant`"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Data is array', () => {",
+                  "    const json = pm.response.json();",
+                  "    pm.expect(json.data).to.be.an('array');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "02 - Rakiz AI V2",
+      "description": "Rakiz AI V2 orchestrated endpoints with RAG and access explanation.\n\nPrefix: `/api/ai/v2`\nMiddleware: `auth:sanctum`, `throttle:ai-assistant`, `permission:use-ai-assistant`",
+      "item": [
+        {
+          "name": "V2 Chat",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"message\": \"كم عدد العقود المنتهية هذا الشهر؟\",\n  \"session_id\": null,\n  \"page_context\": {\n    \"route\": \"contracts.index\",\n    \"entity_id\": null,\n    \"entity_type\": null,\n    \"filters\": {}\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/ai/v2/chat",
+              "host": ["{{base_url}}"],
+              "path": ["ai", "v2", "chat"]
+            },
+            "description": "Main orchestrated chat endpoint for Rakiz AI V2. Supports session persistence and page context awareness. Returns strict JSON response.\n\n**Permission:** `use-ai-assistant`\n**Feature flag:** `ai_assistant.v2.enabled` must be `true` (503 if disabled)\n\n**Body Parameters:**\n| Field | Type | Required | Max | Description |\n|-------|------|----------|-----|-------------|\n| `message` | string | Yes | 8000 | The chat message |\n| `session_id` | string | No | 128 | Session ID to continue conversation |\n| `page_context` | object | No | — | Current page context |\n| `page_context.route` | string | No | 255 | Current route name |\n| `page_context.entity_id` | int | No | — | Entity ID being viewed |\n| `page_context.entity_type` | string | No | 64 | Entity type being viewed |\n| `page_context.filters` | object | No | — | Active page filters |"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Has success field', () => {",
+                  "    const json = pm.response.json();",
+                  "    pm.expect(json.success).to.be.true;",
+                  "});",
+                  "pm.test('Has data', () => {",
+                  "    const json = pm.response.json();",
+                  "    pm.expect(json).to.have.property('data');",
+                  "});",
+                  "",
+                  "// Auto-save session_id for follow-up requests",
+                  "const data = pm.response.json().data;",
+                  "if (data && data.session_id) {",
+                  "    pm.environment.set('session_id', data.session_id);",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "V2 Chat Stream (SSE)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "text/event-stream",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"message\": \"كم عدد العقود المنتهية هذا الشهر؟\",\n  \"session_id\": null,\n  \"page_context\": {\n    \"route\": \"contracts.index\",\n    \"entity_id\": null,\n    \"entity_type\": null,\n    \"filters\": {}\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/ai/v2/chat/stream",
+              "host": ["{{base_url}}"],
+              "path": ["ai", "v2", "chat", "stream"]
+            },
+            "description": "SSE streaming version of V2 Chat. Returns Server-Sent Events for real-time UI updates.\n\n**Permission:** `use-ai-assistant`\n**Feature flag:** `ai_assistant.v2.enabled` must be `true` (503 if disabled)\n\n**SSE Event Sequence:**\n| Event | Payload | Description |\n|-------|---------|-------------|\n| `start` | `{ session_id, status }` | Stream started |\n| `delta` | `{ chunk }` | Partial markdown text |\n| `sources` | `{ sources[] }` | Knowledge sources used |\n| `done` | `{ success, data }` | Full structured response |\n| `error` | `{ message }` | Error occurred |\n\n**Body Parameters:** Same as V2 Chat.\n\n**Note:** Postman has limited SSE support. Use curl for testing:\n```\ncurl -N -H \"Authorization: Bearer TOKEN\" \\\n  -H \"Content-Type: application/json\" \\\n  -H \"Accept: text/event-stream\" \\\n  -d '{\"message\":\"test\"}' \\\n  http://localhost:8000/api/ai/v2/chat/stream\n```"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Content-Type is SSE', () => {",
+                  "    pm.expect(pm.response.headers.get('Content-Type')).to.include('text/event-stream');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "RAG Search",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"query\": \"سياسة الإلغاء للعقود\",\n  \"filters\": {}\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/ai/v2/search",
+              "host": ["{{base_url}}"],
+              "path": ["ai", "v2", "search"]
+            },
+            "description": "Retrieval-Augmented Generation (RAG) search endpoint. Returns knowledge sources matching the query without generating an LLM answer. Max 20 results.\n\n**Permission:** `use-ai-assistant`\n**Feature flag:** `ai_assistant.v2.enabled` must be `true` (503 if disabled)\n\n**Body Parameters:**\n| Field | Type | Required | Max | Description |\n|-------|------|----------|-----|-------------|\n| `query` | string | Yes | 500 | Search query |\n| `filters` | object | No | — | Optional filters to narrow results |"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Has success field', () => {",
+                  "    const json = pm.response.json();",
+                  "    pm.expect(json.success).to.be.true;",
+                  "});",
+                  "pm.test('Has sources array', () => {",
+                  "    const json = pm.response.json();",
+                  "    pm.expect(json.data.sources).to.be.an('array');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Explain Access",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"route\": \"contracts.show\",\n  \"entity_type\": \"contract\",\n  \"entity_id\": 1\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/ai/v2/explain-access",
+              "host": ["{{base_url}}"],
+              "path": ["ai", "v2", "explain-access"]
+            },
+            "description": "Explains user access permissions for a specific route or entity. Returns a human-readable explanation of why access is granted or denied.\n\n**Permission:** `use-ai-assistant`\n\n**Body Parameters:**\n| Field | Type | Required | Max | Description |\n|-------|------|----------|-----|-------------|\n| `route` | string | Yes | 255 | Route name to check access for |\n| `entity_type` | string | No | 64 | Entity type (e.g., `contract`, `unit`) |\n| `entity_id` | int | No | — | Specific entity ID to check |"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Has success field', () => {",
+                  "    const json = pm.response.json();",
+                  "    pm.expect(json.success).to.be.true;",
+                  "});",
+                  "pm.test('Has data', () => {",
+                  "    const json = pm.response.json();",
+                  "    pm.expect(json).to.have.property('data');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "03 - Help Assistant",
+      "description": "Context-aware help assistant with knowledge-base integration.\n\nPrefix: `/api/ai/assistant`\nMiddleware: `auth:sanctum`, `permission:use-ai-assistant`",
+      "item": [
+        {
+          "name": "Assistant Chat",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"message\": \"كيف أضيف عقد جديد؟\",\n  \"module\": \"contracts\",\n  \"page_key\": \"contracts.create\",\n  \"language\": \"ar\",\n  \"conversation_id\": null\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/ai/assistant/chat",
+              "host": ["{{base_url}}"],
+              "path": ["ai", "assistant", "chat"]
+            },
+            "description": "Context-aware help assistant chat. Uses knowledge entries matching the current module/page context to generate answers. Maintains conversation history.\n\n**Permission:** `use-ai-assistant`\n\n**Body Parameters:**\n| Field | Type | Required | Max | Description |\n|-------|------|----------|-----|-------------|\n| `message` | string | Yes | 6000 | The user's message |\n| `module` | string | No | 120 | Current module context (e.g., `contracts`, `hr`) |\n| `page_key` | string | No | 180 | Current page key (e.g., `contracts.create`) |\n| `language` | string | No | 10 | Language: `ar` or `en` (default: `ar`) |\n| `conversation_id` | int | No | — | Existing conversation ID to continue |\n\n**Tip:** Save `conversation_id` from the response to continue the conversation."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Has success field', () => {",
+                  "    const json = pm.response.json();",
+                  "    pm.expect(json.success).to.be.true;",
+                  "});",
+                  "pm.test('Has reply', () => {",
+                  "    const json = pm.response.json();",
+                  "    pm.expect(json.data).to.have.property('reply');",
+                  "});",
+                  "pm.test('Has conversation_id', () => {",
+                  "    const json = pm.response.json();",
+                  "    pm.expect(json.data).to.have.property('conversation_id');",
+                  "});",
+                  "",
+                  "// Auto-save conversation_id for follow-up requests",
+                  "const data = pm.response.json().data;",
+                  "if (data && data.conversation_id) {",
+                  "    pm.environment.set('conversation_id', data.conversation_id);",
+                  "}"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "04 - Knowledge Management",
+      "description": "CRUD operations for AI assistant knowledge entries.\n\nPrefix: `/api/ai/assistant/knowledge`\nMiddleware: `auth:sanctum`, `permission:manage-ai-knowledge`",
+      "item": [
+        {
+          "name": "List Knowledge Entries",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/ai/assistant/knowledge?per_page=15&module=&page_key=&language=&is_active=&search=",
+              "host": ["{{base_url}}"],
+              "path": ["ai", "assistant", "knowledge"],
+              "query": [
+                {
+                  "key": "per_page",
+                  "value": "15",
+                  "description": "Items per page (max 100)"
+                },
+                {
+                  "key": "module",
+                  "value": "",
+                  "description": "Filter by module (e.g., contracts, hr)",
+                  "disabled": true
+                },
+                {
+                  "key": "page_key",
+                  "value": "",
+                  "description": "Filter by page key",
+                  "disabled": true
+                },
+                {
+                  "key": "language",
+                  "value": "",
+                  "description": "Filter by language (ar, en)",
+                  "disabled": true
+                },
+                {
+                  "key": "is_active",
+                  "value": "",
+                  "description": "Filter by active status (true/false)",
+                  "disabled": true
+                },
+                {
+                  "key": "search",
+                  "value": "",
+                  "description": "Search in title and content",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "List all knowledge entries with filtering, search, and pagination. Results ordered by priority (asc) then updated_at (desc).\n\n**Permission:** `manage-ai-knowledge`\n\n**Query Parameters:**\n| Param | Type | Default | Description |\n|-------|------|---------|-------------|\n| `per_page` | int | 15 | Results per page (max 100) |\n| `module` | string | — | Filter by module |\n| `page_key` | string | — | Filter by page key |\n| `language` | string | — | Filter by language (`ar`, `en`) |\n| `is_active` | bool | — | Filter by active status |\n| `search` | string | — | Search in title and content |"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Has pagination', () => {",
+                  "    const json = pm.response.json();",
+                  "    pm.expect(json).to.have.property('pagination');",
+                  "    pm.expect(json.pagination).to.have.property('total');",
+                  "});",
+                  "pm.test('Data is array', () => {",
+                  "    const json = pm.response.json();",
+                  "    pm.expect(json.data).to.be.an('array');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Create Knowledge Entry",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"module\": \"contracts\",\n  \"page_key\": \"contracts.create\",\n  \"title\": \"كيفية إنشاء عقد جديد\",\n  \"content_md\": \"# إنشاء عقد جديد\\n\\nلإنشاء عقد جديد اتبع الخطوات التالية:\\n1. اذهب إلى صفحة العقود\\n2. اضغط على زر إضافة عقد\\n3. املأ البيانات المطلوبة\",\n  \"tags\": [\"contracts\", \"create\", \"guide\"],\n  \"roles\": [\"admin\", \"sales\"],\n  \"permissions\": [\"create-contracts\"],\n  \"language\": \"ar\",\n  \"is_active\": true,\n  \"priority\": 100\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/ai/assistant/knowledge",
+              "host": ["{{base_url}}"],
+              "path": ["ai", "assistant", "knowledge"]
+            },
+            "description": "Create a new knowledge entry for the AI assistant. Knowledge entries are used to provide context-aware help.\n\n**Permission:** `manage-ai-knowledge`\n\n**Body Parameters:**\n| Field | Type | Required | Max | Description |\n|-------|------|----------|-----|-------------|\n| `module` | string | Yes | 120 | Module name (e.g., `contracts`) |\n| `page_key` | string | No | 180 | Page key (e.g., `contracts.create`) |\n| `title` | string | Yes | 255 | Entry title |\n| `content_md` | string | Yes | — | Markdown content |\n| `tags` | array | No | — | Array of tag strings (each max 100 chars) |\n| `roles` | array | No | — | Roles that can see this entry |\n| `permissions` | array | No | — | Permissions that can see this entry |\n| `language` | string | Yes | 10 | Language: `ar` or `en` |\n| `is_active` | bool | No | — | Active status (default: true) |\n| `priority` | int | No | 0-65535 | Display priority (default: 100, lower = higher) |"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 201', () => pm.response.to.have.status(201));",
+                  "pm.test('Has data with id', () => {",
+                  "    const json = pm.response.json();",
+                  "    pm.expect(json.data).to.have.property('id');",
+                  "});",
+                  "",
+                  "// Auto-save knowledge_id for update/delete requests",
+                  "const data = pm.response.json().data;",
+                  "if (data && data.id) {",
+                  "    pm.environment.set('knowledge_id', data.id);",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Update Knowledge Entry",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"كيفية إنشاء عقد جديد (محدّث)\",\n  \"content_md\": \"# إنشاء عقد جديد\\n\\nتم تحديث هذا الدليل.\\n\\n1. اذهب إلى صفحة العقود\\n2. اضغط على زر إضافة عقد\\n3. املأ البيانات المطلوبة\\n4. راجع البيانات واضغط حفظ\",\n  \"is_active\": true,\n  \"priority\": 50\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/ai/assistant/knowledge/{{knowledge_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["ai", "assistant", "knowledge", "{{knowledge_id}}"]
+            },
+            "description": "Update an existing knowledge entry. Only provided fields are updated (partial update).\n\n**Permission:** `manage-ai-knowledge`\n\n**Path Parameters:**\n| Param | Type | Description |\n|-------|------|-------------|\n| `id` | int | Knowledge entry ID |\n\n**Body Parameters:** (all optional — send only fields to update)\n| Field | Type | Max | Description |\n|-------|------|-----|-------------|\n| `module` | string | 120 | Module name |\n| `page_key` | string | 180 | Page key |\n| `title` | string | 255 | Entry title |\n| `content_md` | string | — | Markdown content |\n| `tags` | array | — | Array of tag strings |\n| `roles` | array | — | Visible to these roles |\n| `permissions` | array | — | Visible with these permissions |\n| `language` | string | 10 | Language: `ar` or `en` |\n| `is_active` | bool | — | Active status |\n| `priority` | int | 0-65535 | Display priority |"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Has success field', () => {",
+                  "    const json = pm.response.json();",
+                  "    pm.expect(json.success).to.be.true;",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Delete Knowledge Entry",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/ai/assistant/knowledge/{{knowledge_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["ai", "assistant", "knowledge", "{{knowledge_id}}"]
+            },
+            "description": "Soft-delete a knowledge entry.\n\n**Permission:** `manage-ai-knowledge`\n\n**Path Parameters:**\n| Param | Type | Description |\n|-------|------|-------------|\n| `id` | int | Knowledge entry ID to delete |"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Has success field', () => {",
+                  "    const json = pm.response.json();",
+                  "    pm.expect(json.success).to.be.true;",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

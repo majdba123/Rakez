@@ -1,0 +1,18 @@
+{
+    "role": "hr",
+    "allowed_sections": ["general", "notifications", "hr", "hiring_advisor"],
+    "denied_sections": ["sales", "credit", "accounting", "marketing_dashboard", "campaign_advisor", "dashboard"],
+    "allowed_tools": ["tool_hiring_advisor"],
+    "expected_access": {
+        "Q1": "allowed",
+        "Q2": "denied",
+        "Q3": "allowed",
+        "Q4": "denied",
+        "Q5": "denied",
+        "Q6": "denied",
+        "Q7": "denied",
+        "Q8": "allowed",
+        "Q9": "allowed",
+        "Q13": "allowed"
+    }
+}

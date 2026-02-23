@@ -36,13 +36,22 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {
-        // For API requests, ensure 5xx and unhandled exceptions return JSON (no stack trace in production)
+        // For API requests, return consistent JSON via ApiResponse
         $exceptions->render(function (\Throwable $e, $request) {
             if (!$request->is('api/*') && !$request->expectsJson()) {
                 return null;
             }
             if ($e instanceof \Illuminate\Validation\ValidationException) {
                 return null; // Let Laravel handle validation
+            }
+            if ($e instanceof \Illuminate\Auth\AuthenticationException) {
+                return \App\Http\Responses\ApiResponse::unauthorized($e->getMessage() ?: 'Unauthenticated.');
+            }
+            if ($e instanceof \Illuminate\Database\Eloquent\ModelNotFoundException) {
+                return \App\Http\Responses\ApiResponse::notFound('غير موجود');
+            }
+            if ($e instanceof \Illuminate\Auth\Access\AuthorizationException) {
+                return \App\Http\Responses\ApiResponse::forbidden($e->getMessage());
             }
             $statusCode = method_exists($e, 'getStatusCode') ? $e->getStatusCode() : 500;
             $message = $e->getMessage() ?: 'An error occurred';

@@ -23,6 +23,9 @@ class SalesDashboardController extends Controller
     public function index(Request $request): JsonResponse
     {
         $user = $request->user();
+        if (!$user) {
+            return ApiResponse::unauthorized();
+        }
         if (!$user->hasAnyRole(['sales', 'sales_leader', 'admin'])) {
             return ApiResponse::forbidden('Unauthorized. Sales role required.');
         }

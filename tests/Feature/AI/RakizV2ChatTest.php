@@ -99,4 +99,58 @@ class RakizV2ChatTest extends TestCase
 
         $response->assertStatus(422);
     }
+
+    public function test_v2_chat_stores_and_retrieves_session_history(): void
+    {
+        $user = User::factory()->create();
+        $user->givePermissionTo('use-ai-assistant');
+        Sanctum::actingAs($user);
+
+        $validOutput = json_encode([
+            'answer_markdown' => 'Stored answer.',
+            'confidence' => 'high',
+            'sources' => [],
+            'links' => [],
+            'suggested_actions' => [],
+            'follow_up_questions' => [],
+            'access_notes' => ['had_denied_request' => false, 'reason' => ''],
+        ]);
+
+        OpenAI::fake([
+            CreateResponse::fake([
+                'output' => [
+                    [
+                        'type' => 'message',
+                        'id' => 'msg_1',
+                        'status' => 'completed',
+                        'role' => 'assistant',
+                        'content' => [
+                            ['type' => 'output_text', 'text' => $validOutput, 'annotations' => []],
+                        ],
+                    ],
+                ],
+                'status' => 'completed',
+            ]),
+        ]);
+
+        $chat = $this->postJson('/api/ai/v2/chat', [
+            'message' => 'Store this message',
+        ]);
+
+        $chat->assertStatus(200);
+        $sessionId = $chat->json('data.session_id');
+        $this->assertNotEmpty($sessionId);
+
+        $sessions = $this->getJson('/api/ai/v2/conversations');
+        $sessions->assertStatus(200);
+        $sessions->assertJsonPath('success', true);
+        $this->assertNotEmpty($sessions->json('data'));
+
+        $messages = $this->getJson("/api/ai/v2/conversations/{$sessionId}/messages");
+        $messages->assertStatus(200);
+        $messages->assertJsonPath('success', true);
+        $messages->assertJsonCount(2, 'data');
+        $messages->assertJsonPath('data.0.role', 'user');
+        $messages->assertJsonPath('data.1.role', 'assistant');
+    }
 }

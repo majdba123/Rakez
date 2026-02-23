@@ -54,7 +54,7 @@ app/
 `dashboard`, `sold-units`, `deposits/*`, `projects`, `reservations`, `targets`, `attendance`, `marketing-tasks`, `waiting-list`, `negotiation`, `payment-plan`, etc.
 
 **Analytics (same prefix, separate controller):**  
-`Api\SalesAnalyticsController`: `analytics/dashboard`, `analytics/sold-units`, `analytics/deposits/stats/project/{id}`, `analytics/commissions/stats/employee/{id}`, `analytics/commissions/monthly-report`.
+`Sales\SalesAnalyticsController`: `analytics/dashboard`, `analytics/sold-units`, `analytics/deposits/stats/project/{id}`, `analytics/commissions/stats/employee/{id}`, `analytics/commissions/monthly-report`.
 
 - **No** dedicated `SalesReportController`.  
 - “Report” style data is exposed via **SalesDashboardController**, **SalesInsightsController**, and **SalesAnalyticsController** (KPIs, sold units, deposits, commissions).

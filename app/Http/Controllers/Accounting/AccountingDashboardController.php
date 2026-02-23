@@ -25,6 +25,9 @@ class AccountingDashboardController extends Controller
      */
     public function index(Request $request): JsonResponse
     {
+        if (!$request->user()) {
+            return ApiResponse::unauthorized();
+        }
         try {
             $request->validate([
                 'from_date' => 'nullable|date',

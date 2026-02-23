@@ -1,0 +1,800 @@
+
+
+Code Coverage Report:
+  2026-02-23 03:01:16
+
+ Summary:
+  Classes:  0.26% (1/379)
+  Methods:  1.37% (26/1894)
+  Lines:    3.65% (622/17029)
+
+App\Constants\ApiErrorCodes
+  Methods:  ( 0/ 0)   Lines:  (  0/  0)
+App\Constants\DepositStatus
+  Methods:   0.00% ( 0/ 1)   Lines:   0.00% (  0/  4)
+App\Constants\Pagination
+  Methods:  ( 0/ 0)   Lines:  (  0/  0)
+App\Constants\PermissionConstants
+  Methods:  ( 0/ 0)   Lines:  (  0/  0)
+App\Constants\ReservationStatus
+  Methods:   0.00% ( 0/ 2)   Lines:   0.00% (  0/  9)
+App\Constants\UserType
+  Methods:   0.00% ( 0/ 1)   Lines:   0.00% (  0/ 11)
+App\Events\AdminNotificationEvent
+  Methods:   0.00% ( 0/ 4)   Lines:   0.00% (  0/  8)
+App\Events\Marketing\ImageUploadedEvent
+  Methods:   0.00% ( 0/ 1)   Lines:   0.00% (  0/  1)
+App\Events\MessageSent
+  Methods:   0.00% ( 0/ 4)   Lines:   0.00% (  0/ 18)
+App\Events\PublicNotificationEvent
+  Methods:   0.00% ( 0/ 4)   Lines:   0.00% (  0/  8)
+App\Events\UserNotificationEvent
+  Methods:   0.00% ( 0/ 4)   Lines:   0.00% (  0/  9)
+App\Exports\DeveloperMarketingPlanExport
+  Methods:   0.00% ( 0/ 3)   Lines:   0.00% (  0/ 10)
+App\Exports\EmployeeMarketingPlanExport
+  Methods:   0.00% ( 0/ 3)   Lines:   0.00% (  0/ 25)
+App\Helpers\OtpHelper
+  Methods:   0.00% ( 0/ 8)   Lines:   0.00% (  0/ 57)
+App\Http\Controllers\AI\AIAssistantController
+  Methods:   0.00% ( 0/ 6)   Lines:   0.00% (  0/ 50)
+App\Http\Controllers\AI\AssistantChatController
+  Methods:   0.00% ( 0/ 6)   Lines:   0.00% (  0/ 86)
+App\Http\Controllers\AI\AssistantKnowledgeController
+  Methods:   0.00% ( 0/ 4)   Lines:   0.00% (  0/ 48)
+App\Http\Controllers\AI\RakizV2Controller
+  Methods:  27.27% ( 3/11)   Lines:  50.88% ( 87/171)
+App\Http\Controllers\Accounting\AccountingCommissionController
+  Methods:   0.00% ( 0/10)   Lines:   0.00% (  0/192)
+App\Http\Controllers\Accounting\AccountingConfirmationController
+  Methods:   0.00% ( 0/ 5)   Lines:   0.00% (  0/117)
+App\Http\Controllers\Accounting\AccountingDashboardController
+  Methods:   0.00% ( 0/ 2)   Lines:   0.00% (  0/ 16)
+App\Http\Controllers\Accounting\AccountingDepositController
+  Methods:   0.00% ( 0/ 6)   Lines:   0.00% (  0/102)
+App\Http\Controllers\Accounting\AccountingNotificationController
+  Methods:   0.00% ( 0/ 4)   Lines:   0.00% (  0/ 41)
+App\Http\Controllers\Accounting\AccountingSalaryController
+  Methods:   0.00% ( 0/ 6)   Lines:   0.00% (  0/106)
+App\Http\Controllers\Api\Controller
+  Methods:  ( 0/ 0)   Lines:  (  0/  0)
+App\Http\Controllers\Api\NotificationsProxyController
+  Methods:   0.00% ( 0/ 3)   Lines:   0.00% (  0/  9)
+App\Http\Controllers\Auth\ConfirmPasswordController
+  Methods:   0.00% ( 0/ 1)   Lines:   0.00% (  0/  1)
+App\Http\Controllers\Auth\ForgotPasswordController
+  Methods:  ( 0/ 0)   Lines:  (  0/  0)
+App\Http\Controllers\Auth\LoginController
+  Methods:   0.00% ( 0/ 1)   Lines:   0.00% (  0/  2)
+App\Http\Controllers\Auth\RegisterController
+  Methods:   0.00% ( 0/ 3)   Lines:   0.00% (  0/ 11)
+App\Http\Controllers\Auth\ResetPasswordController
+  Methods:  ( 0/ 0)   Lines:  (  0/  0)
+App\Http\Controllers\Auth\VerificationController
+  Methods:   0.00% ( 0/ 1)   Lines:   0.00% (  0/  3)
+App\Http\Controllers\ChatController
+  Methods:   0.00% ( 0/ 7)   Lines:   0.00% (  0/103)
+App\Http\Controllers\Contract\BoardsDepartmentController
+  Methods:   0.00% ( 0/ 4)   Lines:   0.00% (  0/ 46)
+App\Http\Controllers\Contract\ContractController
+  Methods:   0.00% ( 0/14)   Lines:   0.00% (  0/245)
+App\Http\Controllers\Contract\ContractInfoController
+  Methods:   0.00% ( 0/ 5)   Lines:   0.00% (  0/ 91)
+App\Http\Controllers\Contract\ContractUnitController
+  Methods:   0.00% ( 0/ 7)   Lines:   0.00% (  0/ 78)
+App\Http\Controllers\Contract\DeveloperController
+  Methods:   0.00% ( 0/ 3)   Lines:   0.00% (  0/ 39)
+App\Http\Controllers\Contract\MontageDepartmentController
+  Methods:   0.00% ( 0/ 4)   Lines:   0.00% (  0/ 48)
+App\Http\Controllers\Contract\PhotographyDepartmentController
+  Methods:   0.00% ( 0/ 5)   Lines:   0.00% (  0/ 61)
+App\Http\Controllers\Contract\SecondPartyDataController
+  Methods:   0.00% ( 0/ 4)   Lines:   0.00% (  0/ 46)
+App\Http\Controllers\Controller
+  Methods:  ( 0/ 0)   Lines:  (  0/  0)
+App\Http\Controllers\Credit\ClaimFileController
+  Methods:   0.00% ( 0/10)   Lines:   0.00% (  0/174)
+App\Http\Controllers\Credit\CreditBookingController
+  Methods:   0.00% ( 0/19)   Lines:   0.00% (  0/451)
+App\Http\Controllers\Credit\CreditDashboardController
+  Methods:   0.00% ( 0/ 3)   Lines:   0.00% (  0/ 38)
+App\Http\Controllers\Credit\CreditFinancingController
+  Methods:   0.00% ( 0/ 7)   Lines:   0.00% (  0/ 99)
+App\Http\Controllers\Credit\CreditNotificationController
+  Methods:   0.00% ( 0/ 3)   Lines:   0.00% (  0/ 39)
+App\Http\Controllers\Credit\TitleTransferController
+  Methods:   0.00% ( 0/ 7)   Lines:   0.00% (  0/107)
+App\Http\Controllers\Dashboard\DashboardController
+  Methods:   0.00% ( 0/ 2)   Lines:   0.00% (  0/  5)
+App\Http\Controllers\Dashboard\ProjectManagementDashboardController
+  Methods:   0.00% ( 0/ 3)   Lines:   0.00% (  0/  9)
+App\Http\Controllers\ExclusiveProjectController
+  Methods:   0.00% ( 0/ 8)   Lines:   0.00% (  0/ 63)
+App\Http\Controllers\HR\EmployeeContractController
+  Methods:   0.00% ( 0/ 9)   Lines:   0.00% (  0/176)
+App\Http\Controllers\HR\EmployeeWarningController
+  Methods:   0.00% ( 0/ 3)   Lines:   0.00% (  0/ 94)
+App\Http\Controllers\HR\HrDashboardController
+  Methods:   0.00% ( 0/ 3)   Lines:   0.00% (  0/ 22)
+App\Http\Controllers\HR\HrReportController
+  Methods:   0.00% ( 0/ 8)   Lines:   0.00% (  0/ 92)
+App\Http\Controllers\HR\HrTaskController
+  Methods:   0.00% ( 0/ 4)   Lines:   0.00% (  0/ 38)
+App\Http\Controllers\HR\HrTeamController
+  Methods:   0.00% ( 0/ 9)   Lines:   0.00% (  0/196)
+App\Http\Controllers\HR\HrUserController
+  Methods:   0.00% ( 0/ 8)   Lines:   0.00% (  0/209)
+App\Http\Controllers\HR\MarketerPerformanceController
+  Methods:   0.00% ( 0/ 3)   Lines:   0.00% (  0/ 56)
+App\Http\Controllers\Marketing\DeveloperMarketingPlanController
+  Methods:   0.00% ( 0/ 3)   Lines:   0.00% (  0/  8)
+App\Http\Controllers\Marketing\EmployeeMarketingPlanController
+  Methods:   0.00% ( 0/ 5)   Lines:   0.00% (  0/ 36)
+App\Http\Controllers\Marketing\ExpectedSalesController
+  Methods:   0.00% ( 0/ 5)   Lines:   0.00% (  0/ 41)
+App\Http\Controllers\Marketing\LeadController
+  Methods:   0.00% ( 0/ 5)   Lines:   0.00% (  0/ 40)
+App\Http\Controllers\Marketing\MarketingBudgetDistributionController
+  Methods:   0.00% ( 0/ 5)   Lines:   0.00% (  0/ 82)
+App\Http\Controllers\Marketing\MarketingDashboardController
+  Methods:   0.00% ( 0/ 2)   Lines:   0.00% (  0/  2)
+App\Http\Controllers\Marketing\MarketingProjectController
+  Methods:   0.00% ( 0/ 4)   Lines:   0.00% (  0/ 25)
+App\Http\Controllers\Marketing\MarketingReportController
+  Methods:   0.00% ( 0/ 7)   Lines:   0.00% (  0/141)
+App\Http\Controllers\Marketing\MarketingSettingsController
+  Methods:   0.00% ( 0/ 2)   Lines:   0.00% (  0/  7)
+App\Http\Controllers\Marketing\MarketingTaskController
+  Methods:   0.00% ( 0/ 5)   Lines:   0.00% (  0/ 24)
+App\Http\Controllers\Marketing\TeamManagementController
+  Methods:   0.00% ( 0/ 6)   Lines:   0.00% (  0/ 52)
+App\Http\Controllers\NotificationController
+  Methods:   0.00% ( 0/10)   Lines:   0.00% (  0/ 68)
+App\Http\Controllers\ProjectManagement\ProjectManagementContractController
+  Methods:   0.00% ( 0/ 4)   Lines:   0.00% (  0/ 94)
+App\Http\Controllers\ProjectManagement\ProjectManagementProjectController
+  Methods:   0.00% ( 0/ 2)   Lines:   0.00% (  0/ 25)
+App\Http\Controllers\Registration\FacebookController
+  Methods:   0.00% ( 0/ 3)   Lines:   0.00% (  0/  8)
+App\Http\Controllers\Registration\GoogleAuthController
+  Methods:   0.00% ( 0/ 3)   Lines:   0.00% (  0/  8)
+App\Http\Controllers\Registration\LoginController
+  Methods:   0.00% ( 0/ 3)   Lines:   0.00% (  0/ 13)
+App\Http\Controllers\Registration\RegisterController
+  Methods:   0.00% ( 0/ 9)   Lines:   0.00% (  0/ 35)
+App\Http\Controllers\Sales\CommissionController
+  Methods:   0.00% ( 0/17)   Lines:   0.00% (  0/158)
+App\Http\Controllers\Sales\DepositController
+  Methods:   0.00% ( 0/16)   Lines:   0.00% (  0/108)
+App\Http\Controllers\Sales\MarketingTaskController
+  Methods:   0.00% ( 0/ 8)   Lines:   0.00% (  0/ 63)
+App\Http\Controllers\Sales\NegotiationApprovalController
+  Methods:   0.00% ( 0/ 4)   Lines:   0.00% (  0/ 25)
+App\Http\Controllers\Sales\PaymentPlanController
+  Methods:   0.00% ( 0/ 5)   Lines:   0.00% (  0/ 59)
+App\Http\Controllers\Sales\SalesAnalyticsController
+  Methods:   0.00% ( 0/ 6)   Lines:   0.00% (  0/ 42)
+App\Http\Controllers\Sales\SalesAttendanceController
+  Methods:   0.00% ( 0/ 6)   Lines:   0.00% (  0/ 90)
+App\Http\Controllers\Sales\SalesDashboardController
+  Methods:   0.00% ( 0/ 2)   Lines:   0.00% (  0/ 13)
+App\Http\Controllers\Sales\SalesInsightsController
+  Methods:   0.00% ( 0/ 5)   Lines:   0.00% (  0/107)
+App\Http\Controllers\Sales\SalesProjectController
+  Methods:   0.00% ( 0/ 9)   Lines:   0.00% (  0/107)
+App\Http\Controllers\Sales\SalesReservationController
+  Methods:   0.00% ( 0/ 9)   Lines:   0.00% (  0/167)
+App\Http\Controllers\Sales\SalesTargetController
+  Methods:   0.00% ( 0/ 6)   Lines:   0.00% (  0/ 52)
+App\Http\Controllers\Sales\WaitingListController
+  Methods:   0.00% ( 0/ 7)   Lines:   0.00% (  0/ 54)
+App\Http\Controllers\TaskController
+  Methods:   0.00% ( 0/ 4)   Lines:   0.00% (  0/ 42)
+App\Http\Controllers\TeamController
+  Methods:   0.00% ( 0/ 9)   Lines:   0.00% (  0/100)
+App\Http\Kernel
+  Methods:  ( 0/ 0)   Lines:  (  0/  0)
+App\Http\Middleware\Authenticate
+  Methods:   0.00% ( 0/ 1)   Lines:   0.00% (  0/  1)
+App\Http\Middleware\CheckDynamicPermission
+  Methods:   0.00% ( 0/ 1)   Lines:   0.00% (  0/ 12)
+App\Http\Middleware\CheckUserOtp
+  Methods:   0.00% ( 0/ 1)   Lines:   0.00% (  0/  6)
+App\Http\Middleware\CheckUserStatus
+  Methods:   0.00% ( 0/ 1)   Lines:   0.00% (  0/  4)
+App\Http\Middleware\EncryptCookies
+  Methods:  ( 0/ 0)   Lines:  (  0/  0)
+App\Http\Middleware\HrMiddleware
+  Methods:   0.00% ( 0/ 1)   Lines:   0.00% (  0/ 13)
+App\Http\Middleware\InventoryMiddleware
+  Methods:   0.00% ( 0/ 1)   Lines:   0.00% (  0/ 13)
+App\Http\Middleware\MarketingMiddleware
+  Methods:   0.00% ( 0/ 1)   Lines:   0.00% (  0/  6)
+App\Http\Middleware\PreventRequestsDuringMaintenance
+  Methods:  ( 0/ 0)   Lines:  (  0/  0)
+App\Http\Middleware\RedirectIfAuthenticated
+  Methods:   0.00% ( 0/ 1)   Lines:   0.00% (  0/  5)
+App\Http\Middleware\SalesMiddleware
+  Methods:   0.00% ( 0/ 1)   Lines:   0.00% (  0/ 13)
+App\Http\Middleware\Services_ProviderMiddleWare
+  Methods:   0.00% ( 0/ 1)   Lines:   0.00% (  0/ 22)
+App\Http\Middleware\TrimStrings
+  Methods:  ( 0/ 0)   Lines:  (  0/  0)
+App\Http\Middleware\TrustHosts
+  Methods:   0.00% ( 0/ 1)   Lines:   0.00% (  0/  3)
+App\Http\Middleware\TrustProxies
+  Methods:  ( 0/ 0)   Lines:  (  0/  0)
+App\Http\Middleware\ValidateSignature
+  Methods:  ( 0/ 0)   Lines:  (  0/  0)
+App\Http\Middleware\VerifyCsrfToken
+  Methods:  ( 0/ 0)   Lines:  (  0/  0)
+App\Http\Requests\AI\AskQuestionRequest
+  Methods:   0.00% ( 0/ 4)   Lines:   0.00% (  0/ 31)
+App\Http\Requests\AI\AssistantChatRequest
+  Methods:   0.00% ( 0/ 3)   Lines:   0.00% (  0/ 13)
+App\Http\Requests\AI\ChatRequest
+  Methods:   0.00% ( 0/ 4)   Lines:   0.00% (  0/ 32)
+App\Http\Requests\AI\ExplainAccessRequest
+  Methods:   0.00% ( 0/ 2)   Lines:   0.00% (  0/  6)
+App\Http\Requests\AI\RakizChatRequest
+  Methods: 100.00% ( 2/ 2)   Lines: 100.00% ( 10/ 10)
+App\Http\Requests\AI\RakizSearchRequest
+  Methods:   0.00% ( 0/ 2)   Lines:   0.00% (  0/  5)
+App\Http\Requests\AI\StoreKnowledgeRequest
+  Methods:   0.00% ( 0/ 2)   Lines:   0.00% (  0/ 16)
+App\Http\Requests\AI\UpdateKnowledgeRequest
+  Methods:   0.00% ( 0/ 2)   Lines:   0.00% (  0/ 16)
+App\Http\Requests\Commission\DistributeCommissionRequest
+  Methods:   0.00% ( 0/ 5)   Lines:   0.00% (  0/ 50)
+App\Http\Requests\Commission\StoreCommissionRequest
+  Methods:   0.00% ( 0/ 5)   Lines:   0.00% (  0/ 38)
+App\Http\Requests\Commission\UpdateCommissionExpensesRequest
+  Methods:   0.00% ( 0/ 6)   Lines:   0.00% (  0/ 30)
+App\Http\Requests\Contract\StoreBoardsDepartmentRequest
+  Methods:   0.00% ( 0/ 3)   Lines:   0.00% (  0/  7)
+App\Http\Requests\Contract\StoreContractInfoRequest
+  Methods:   0.00% ( 0/ 3)   Lines:   0.00% (  0/ 24)
+App\Http\Requests\Contract\StoreContractRequest
+  Methods:   0.00% ( 0/ 5)   Lines:   0.00% (  0/ 53)
+App\Http\Requests\Contract\StoreContractUnitRequest
+  Methods:   0.00% ( 0/ 3)   Lines:   0.00% (  0/ 15)
+App\Http\Requests\Contract\StoreMontageDepartmentRequest
+  Methods:   0.00% ( 0/ 3)   Lines:   0.00% (  0/ 15)
+App\Http\Requests\Contract\StorePhotographyDepartmentRequest
+  Methods:   0.00% ( 0/ 3)   Lines:   0.00% (  0/ 13)
+App\Http\Requests\Contract\StoreSecondPartyDataRequest
+  Methods:   0.00% ( 0/ 3)   Lines:   0.00% (  0/ 18)
+App\Http\Requests\Contract\UpdateBoardsDepartmentRequest
+  Methods:   0.00% ( 0/ 3)   Lines:   0.00% (  0/  7)
+App\Http\Requests\Contract\UpdateContractInfoRequest
+  Methods:   0.00% ( 0/ 2)   Lines:   0.00% (  0/ 23)
+App\Http\Requests\Contract\UpdateContractRequest
+  Methods:   0.00% ( 0/ 5)   Lines:   0.00% (  0/ 42)
+App\Http\Requests\Contract\UpdateContractStatusRequest
+  Methods:   0.00% ( 0/ 3)   Lines:   0.00% (  0/  8)
+App\Http\Requests\Contract\UpdateContractUnitRequest
+  Methods:   0.00% ( 0/ 3)   Lines:   0.00% (  0/ 16)
+App\Http\Requests\Contract\UpdateMontageDepartmentRequest
+  Methods:   0.00% ( 0/ 3)   Lines:   0.00% (  0/ 13)
+App\Http\Requests\Contract\UpdatePhotographyDepartmentRequest
+  Methods:   0.00% ( 0/ 3)   Lines:   0.00% (  0/ 13)
+App\Http\Requests\Contract\UpdateSecondPartyDataRequest
+  Methods:   0.00% ( 0/ 3)   Lines:   0.00% (  0/ 18)
+App\Http\Requests\Contract\UploadContractUnitsRequest
+  Methods:   0.00% ( 0/ 3)   Lines:   0.00% (  0/ 10)
+App\Http\Requests\Deposit\StoreDepositRequest
+  Methods:   0.00% ( 0/ 6)   Lines:   0.00% (  0/ 62)
+App\Http\Requests\Deposit\UpdateDepositRequest
+  Methods:   0.00% ( 0/ 6)   Lines:   0.00% (  0/ 45)
+App\Http\Requests\ExclusiveProject\ApproveExclusiveProjectRequest
+  Methods:   0.00% ( 0/ 3)   Lines:   0.00% (  0/  9)
+App\Http\Requests\ExclusiveProject\CompleteExclusiveContractRequest
+  Methods:   0.00% ( 0/ 3)   Lines:   0.00% (  0/ 18)
+App\Http\Requests\ExclusiveProject\StoreExclusiveProjectRequest
+  Methods:   0.00% ( 0/ 3)   Lines:   0.00% (  0/ 26)
+App\Http\Requests\HR\UpdateHrTaskStatusRequest
+  Methods:   0.00% ( 0/ 2)   Lines:   0.00% (  0/  5)
+App\Http\Requests\Marketing\AssignCampaignRequest
+  Methods:   0.00% ( 0/ 3)   Lines:   0.00% (  0/ 11)
+App\Http\Requests\Marketing\AssignLeadRequest
+  Methods:   0.00% ( 0/ 3)   Lines:   0.00% (  0/  8)
+App\Http\Requests\Marketing\AssignTeamRequest
+  Methods:   0.00% ( 0/ 2)   Lines:   0.00% (  0/  5)
+App\Http\Requests\Marketing\CalculateBudgetRequest
+  Methods:   0.00% ( 0/ 2)   Lines:   0.00% (  0/  8)
+App\Http\Requests\Marketing\CalculateExpectedSalesRequest
+  Methods:   0.00% ( 0/ 2)   Lines:   0.00% (  0/  7)
+App\Http\Requests\Marketing\ConvertLeadRequest
+  Methods:   0.00% ( 0/ 2)   Lines:   0.00% (  0/  5)
+App\Http\Requests\Marketing\StoreBudgetDistributionRequest
+  Methods:   0.00% ( 0/ 5)   Lines:   0.00% (  0/ 62)
+App\Http\Requests\Marketing\StoreDeveloperPlanRequest
+  Methods:   0.00% ( 0/ 2)   Lines:   0.00% (  0/ 10)
+App\Http\Requests\Marketing\StoreEmployeePlanRequest
+  Methods:   0.00% ( 0/ 4)   Lines:   0.00% (  0/ 47)
+App\Http\Requests\Marketing\StoreLeadRequest
+  Methods:   0.00% ( 0/ 2)   Lines:   0.00% (  0/ 10)
+App\Http\Requests\Marketing\StoreMarketingTaskRequest
+  Methods:   0.00% ( 0/ 2)   Lines:   0.00% (  0/ 12)
+App\Http\Requests\Marketing\UpdateLeadRequest
+  Methods:   0.00% ( 0/ 2)   Lines:   0.00% (  0/ 10)
+App\Http\Requests\Marketing\UpdateMarketingSettingRequest
+  Methods:   0.00% ( 0/ 2)   Lines:   0.00% (  0/  5)
+App\Http\Requests\Marketing\UpdateMarketingTaskRequest
+  Methods:   0.00% ( 0/ 2)   Lines:   0.00% (  0/ 10)
+App\Http\Requests\ProjectManagement\UpdatePreparationStageRequest
+  Methods:   0.00% ( 0/ 2)   Lines:   0.00% (  0/  7)
+App\Http\Requests\ProjectManagement\UpdateProjectLinkRequest
+  Methods:   0.00% ( 0/ 2)   Lines:   0.00% (  0/  5)
+App\Http\Requests\Registration\LoginRequest
+  Methods:   0.00% ( 0/ 2)   Lines:   0.00% (  0/  5)
+App\Http\Requests\Registration\RegisterUser
+  Methods:   0.00% ( 0/ 2)   Lines:   0.00% (  0/  8)
+App\Http\Requests\Registration\UpdateUser
+  Methods:   0.00% ( 0/ 2)   Lines:   0.00% (  0/  8)
+App\Http\Requests\Sales\ApproveNegotiationRequest
+  Methods:   0.00% ( 0/ 3)   Lines:   0.00% (  0/  7)
+App\Http\Requests\Sales\CancelReservationRequest
+  Methods:   0.00% ( 0/ 2)   Lines:   0.00% (  0/  4)
+App\Http\Requests\Sales\ConvertWaitingListRequest
+  Methods:   0.00% ( 0/ 3)   Lines:   0.00% (  0/ 26)
+App\Http\Requests\Sales\RejectNegotiationRequest
+  Methods:   0.00% ( 0/ 3)   Lines:   0.00% (  0/  8)
+App\Http\Requests\Sales\StoreAttendanceScheduleRequest
+  Methods:   0.00% ( 0/ 3)   Lines:   0.00% (  0/ 16)
+App\Http\Requests\Sales\StoreMarketingTaskRequest
+  Methods:   0.00% ( 0/ 3)   Lines:   0.00% (  0/ 16)
+App\Http\Requests\Sales\StorePaymentPlanRequest
+  Methods:   0.00% ( 0/ 3)   Lines:   0.00% (  0/ 15)
+App\Http\Requests\Sales\StoreReservationActionRequest
+  Methods:   0.00% ( 0/ 4)   Lines:   0.00% (  0/ 19)
+App\Http\Requests\Sales\StoreReservationRequest
+  Methods:   0.00% ( 0/ 5)   Lines:   0.00% (  0/ 59)
+App\Http\Requests\Sales\StoreTargetRequest
+  Methods:   0.00% ( 0/ 3)   Lines:   0.00% (  0/ 18)
+App\Http\Requests\Sales\StoreWaitingListRequest
+  Methods:   0.00% ( 0/ 3)   Lines:   0.00% (  0/ 22)
+App\Http\Requests\Sales\UpdateAttendanceScheduleRequest
+  Methods:   0.00% ( 0/ 2)   Lines:   0.00% (  0/  8)
+App\Http\Requests\Sales\UpdateEmergencyContactsRequest
+  Methods:   0.00% ( 0/ 2)   Lines:   0.00% (  0/  5)
+App\Http\Requests\Sales\UpdateMarketingTaskRequest
+  Methods:   0.00% ( 0/ 3)   Lines:   0.00% (  0/  8)
+App\Http\Requests\Sales\UpdatePaymentInstallmentRequest
+  Methods:   0.00% ( 0/ 3)   Lines:   0.00% (  0/ 12)
+App\Http\Requests\Sales\UpdateTargetRequest
+  Methods:   0.00% ( 0/ 3)   Lines:   0.00% (  0/  8)
+App\Http\Requests\StoreTaskRequest
+  Methods:   0.00% ( 0/ 2)   Lines:   0.00% (  0/  8)
+App\Http\Requests\Team\StoreTeamRequest
+  Methods:   0.00% ( 0/ 2)   Lines:   0.00% (  0/  5)
+App\Http\Requests\Team\TeamContractsRequest
+  Methods:   0.00% ( 0/ 2)   Lines:   0.00% (  0/  9)
+App\Http\Requests\Team\UpdateTeamRequest
+  Methods:   0.00% ( 0/ 2)   Lines:   0.00% (  0/  6)
+App\Http\Requests\UpdateTaskStatusRequest
+  Methods:   0.00% ( 0/ 2)   Lines:   0.00% (  0/  5)
+App\Http\Resources\AI\ChatResource
+  Methods:   0.00% ( 0/ 1)   Lines:   0.00% (  0/ 16)
+App\Http\Resources\AI\ConversationResource
+  Methods:   0.00% ( 0/ 1)   Lines:   0.00% (  0/  6)
+App\Http\Resources\AdminNotificationResource
+  Methods:   0.00% ( 0/ 1)   Lines:   0.00% (  0/  7)
+App\Http\Resources\Chat\ConversationResource
+  Methods:   0.00% ( 0/ 1)   Lines:   0.00% (  0/ 12)
+App\Http\Resources\Chat\MessageResource
+  Methods:   0.00% ( 0/ 1)   Lines:   0.00% (  0/ 11)
+App\Http\Resources\Contract\BoardsDepartmentResource
+  Methods:   0.00% ( 0/ 1)   Lines:   0.00% (  0/ 14)
+App\Http\Resources\Contract\ContractIndexResource
+  Methods:   0.00% ( 0/ 1)   Lines:   0.00% (  0/ 26)
+App\Http\Resources\Contract\ContractInfoResource
+  Methods:   0.00% ( 0/ 1)   Lines:   0.00% (  0/ 30)
+App\Http\Resources\Contract\ContractResource
+  Methods:   0.00% ( 0/ 1)   Lines:   0.00% (  0/ 32)
+App\Http\Resources\Contract\ContractUnitResource
+  Methods:   0.00% ( 0/ 1)   Lines:   0.00% (  0/ 20)
+App\Http\Resources\Contract\MontageDepartmentResource
+  Methods:   0.00% ( 0/ 1)   Lines:   0.00% (  0/ 16)
+App\Http\Resources\Contract\PhotographyDepartmentResource
+  Methods:   0.00% ( 0/ 1)   Lines:   0.00% (  0/ 17)
+App\Http\Resources\Contract\SecondPartyDataResource
+  Methods:   0.00% ( 0/ 1)   Lines:   0.00% (  0/ 20)
+App\Http\Resources\ExclusiveProject\ExclusiveProjectRequestResource
+  Methods:   0.00% ( 0/ 1)   Lines:   0.00% (  0/ 22)
+App\Http\Resources\HR\HrTaskResource
+  Methods:   0.00% ( 0/ 1)   Lines:   0.00% (  0/ 21)
+App\Http\Resources\Marketing\EmployeeMarketingPlanResource
+  Methods:   0.00% ( 0/ 1)   Lines:   0.00% (  0/ 11)
+App\Http\Resources\Marketing\MarketingProjectResource
+  Methods:   0.00% ( 0/ 1)   Lines:   0.00% (  0/ 41)
+App\Http\Resources\ProjectManagement\ProjectListCardResource
+  Methods:   0.00% ( 0/ 1)   Lines:   0.00% (  0/ 27)
+App\Http\Resources\Sales\MarketingTaskResource
+  Methods:   0.00% ( 0/ 1)   Lines:   0.00% (  0/ 19)
+App\Http\Resources\Sales\ReservationContextResource
+  Methods:   0.00% ( 0/ 1)   Lines:   0.00% (  0/ 61)
+App\Http\Resources\Sales\SalesAttendanceResource
+  Methods:   0.00% ( 0/ 1)   Lines:   0.00% (  0/ 10)
+App\Http\Resources\Sales\SalesProjectDetailResource
+  Methods:   0.00% ( 0/ 1)   Lines:   0.00% (  0/ 32)
+App\Http\Resources\Sales\SalesProjectResource
+  Methods:   0.00% ( 0/ 1)   Lines:   0.00% (  0/ 23)
+App\Http\Resources\Sales\SalesReservationDetailResource
+  Methods:   0.00% ( 0/ 1)   Lines:   0.00% (  0/ 24)
+App\Http\Resources\Sales\SalesReservationResource
+  Methods:   0.00% ( 0/ 1)   Lines:   0.00% (  0/ 16)
+App\Http\Resources\Sales\SalesTargetResource
+  Methods:   0.00% ( 0/ 1)   Lines:   0.00% (  0/ 23)
+App\Http\Resources\Sales\SalesUnitResource
+  Methods:   0.00% ( 0/ 1)   Lines:   0.00% (  0/ 19)
+App\Http\Resources\Sales\TaskProjectDetailResource
+  Methods:   0.00% ( 0/ 1)   Lines:   0.00% (  0/ 19)
+App\Http\Resources\Shared\UserResource
+  Methods:   0.00% ( 0/ 1)   Lines:   0.00% (  0/  8)
+App\Http\Resources\TaskResource
+  Methods:   0.00% ( 0/ 1)   Lines:   0.00% (  0/ 21)
+App\Http\Resources\TeamResource
+  Methods:   0.00% ( 0/ 1)   Lines:   0.00% (  0/  8)
+App\Http\Resources\UserNotificationResource
+  Methods:   0.00% ( 0/ 1)   Lines:   0.00% (  0/ 10)
+App\Http\Resources\UserResource
+  Methods:   0.00% ( 0/ 1)   Lines:   0.00% (  0/ 27)
+App\Http\Responses\ApiResponse
+  Methods:   0.00% ( 0/14)   Lines:  14.89% (  7/ 47)
+App\Jobs\IndexRecordSummaryJob
+  Methods:   0.00% ( 0/ 7)   Lines:   0.00% (  0/ 97)
+App\Jobs\IngestDocumentJob
+  Methods:   0.00% ( 0/ 3)   Lines:   0.00% (  0/ 16)
+App\Jobs\ProcessContractUnitsCsv
+  Methods:   0.00% ( 0/ 3)   Lines:   0.00% (  0/ 78)
+App\Listeners\Marketing\NotifyMarketingTeamOnImageUpload
+  Methods:   0.00% ( 0/ 2)   Lines:   0.00% (  0/  9)
+App\Mail\ResetPasswordMail
+  Methods:   0.00% ( 0/ 2)   Lines:   0.00% (  0/  4)
+App\Mail\SendOtpMail
+  Methods:   0.00% ( 0/ 2)   Lines:   0.00% (  0/  4)
+App\Models\AIConversation
+  Methods:   0.00% ( 0/ 3)   Lines:   0.00% (  0/  3)
+App\Models\AccountingSalaryDistribution
+  Methods:   0.00% ( 0/12)   Lines:   0.00% (  0/ 20)
+App\Models\AdminNotification
+  Methods:   0.00% ( 0/ 6)   Lines:   0.00% (  0/ 11)
+App\Models\AiChunk
+  Methods:   0.00% ( 0/ 1)   Lines:   0.00% (  0/  1)
+App\Models\AiDocument
+  Methods:   0.00% ( 0/ 2)   Lines:   0.00% (  0/  2)
+App\Models\AssistantConversation
+  Methods:   0.00% ( 0/ 2)   Lines:   0.00% (  0/  2)
+App\Models\AssistantKnowledgeEntry
+  Methods:   0.00% ( 0/ 6)   Lines:   0.00% (  0/ 32)
+App\Models\AssistantMessage
+  Methods:   0.00% ( 0/ 3)   Lines:   0.00% (  0/  3)
+App\Models\AssistantPrompt
+  Methods:   0.00% ( 0/ 4)   Lines:   0.00% (  0/  8)
+App\Models\BoardsDepartment
+  Methods:   0.00% ( 0/ 3)   Lines:   0.00% (  0/  3)
+App\Models\ClaimFile
+  Methods:   0.00% ( 0/ 7)   Lines:   0.00% (  0/  7)
+App\Models\Commission
+  Methods:   0.00% ( 0/14)   Lines:   0.00% (  0/ 18)
+App\Models\CommissionDistribution
+  Methods:   0.00% ( 0/17)   Lines:   0.00% (  0/ 30)
+App\Models\Contract
+  Methods:   0.00% ( 0/32)   Lines:   0.00% (  0/ 51)
+App\Models\ContractInfo
+  Methods:   0.00% ( 0/ 1)   Lines:   0.00% (  0/  1)
+App\Models\ContractPreparationStage
+  Methods:   0.00% ( 0/ 3)   Lines:   0.00% (  0/  3)
+App\Models\ContractUnit
+  Methods:   0.00% ( 0/ 6)   Lines:   0.00% (  0/  7)
+App\Models\Conversation
+  Methods:   0.00% ( 0/ 8)   Lines:   0.00% (  0/ 28)
+App\Models\CreditFinancingTracker
+  Methods:   0.00% ( 0/14)   Lines:   0.00% (  0/ 43)
+App\Models\DailyDeposit
+  Methods:   0.00% ( 0/ 2)   Lines:   0.00% (  0/  2)
+App\Models\DailyMarketingSpend
+  Methods:  ( 0/ 0)   Lines:  (  0/  0)
+App\Models\Deposit
+  Methods:   0.00% ( 0/21)   Lines:   0.00% (  0/ 35)
+App\Models\DeveloperMarketingPlan
+  Methods:   0.00% ( 0/ 2)   Lines:   0.00% (  0/  2)
+App\Models\EmployeeContract
+  Methods:   0.00% ( 0/ 9)   Lines:   0.00% (  0/ 28)
+App\Models\EmployeeMarketingPlan
+  Methods:   0.00% ( 0/ 4)   Lines:   0.00% (  0/  4)
+App\Models\EmployeeWarning
+  Methods:   0.00% ( 0/ 8)   Lines:   0.00% (  0/  9)
+App\Models\ExclusiveProjectRequest
+  Methods:   0.00% ( 0/15)   Lines:   0.00% (  0/ 30)
+App\Models\ExclusiveProjectRequestUnit
+  Methods:   0.00% ( 0/ 1)   Lines:   0.00% (  0/  1)
+App\Models\ExpectedBooking
+  Methods:   0.00% ( 0/ 1)   Lines:   0.00% (  0/  1)
+App\Models\HrTask
+  Methods:   0.00% ( 0/ 5)   Lines:   0.00% (  0/  5)
+App\Models\Lead
+  Methods:   0.00% ( 0/ 2)   Lines:   0.00% (  0/  2)
+App\Models\MarketingBudgetDistribution
+  Methods:   0.00% ( 0/ 3)   Lines:   0.00% (  0/  3)
+App\Models\MarketingCampaign
+  Methods:   0.00% ( 0/ 1)   Lines:   0.00% (  0/  1)
+App\Models\MarketingProject
+  Methods:   0.00% ( 0/ 7)   Lines:   0.00% (  0/  7)
+App\Models\MarketingProjectTeam
+  Methods:   0.00% ( 0/ 2)   Lines:   0.00% (  0/  2)
+App\Models\MarketingSetting
+  Methods:   0.00% ( 0/ 1)   Lines:   0.00% (  0/  2)
+App\Models\MarketingTask
+  Methods:   0.00% ( 0/ 7)   Lines:   0.00% (  0/  7)
+App\Models\Message
+  Methods:   0.00% ( 0/ 3)   Lines:   0.00% (  0/  6)
+App\Models\MontageDepartment
+  Methods:   0.00% ( 0/ 2)   Lines:   0.00% (  0/  2)
+App\Models\NegotiationApproval
+  Methods:   0.00% ( 0/10)   Lines:   0.00% (  0/ 13)
+App\Models\PhotographyDepartment
+  Methods:   0.00% ( 0/ 4)   Lines:   0.00% (  0/ 10)
+App\Models\ProjectMedia
+  Methods:   0.00% ( 0/ 2)   Lines:   0.00% (  0/  2)
+App\Models\ReservationPaymentInstallment
+  Methods:   0.00% ( 0/ 9)   Lines:   0.00% (  0/ 10)
+App\Models\SalesAttendanceSchedule
+  Methods:   0.00% ( 0/ 6)   Lines:   0.00% (  0/ 10)
+App\Models\SalesProjectAssignment
+  Methods:   0.00% ( 0/ 8)   Lines:   0.00% (  0/ 24)
+App\Models\SalesReservation
+  Methods:   0.00% ( 0/35)   Lines:   0.00% (  0/ 48)
+App\Models\SalesReservationAction
+  Methods:   0.00% ( 0/ 2)   Lines:   0.00% (  0/  2)
+App\Models\SalesTarget
+  Methods:   0.00% ( 0/ 7)   Lines:   0.00% (  0/ 11)
+App\Models\SalesWaitingList
+  Methods:   0.00% ( 0/15)   Lines:   0.00% (  0/ 29)
+App\Models\SecondPartyData
+  Methods:   0.00% ( 0/ 5)   Lines:   0.00% (  0/ 11)
+App\Models\Task
+  Methods:   0.00% ( 0/ 5)   Lines:   0.00% (  0/  5)
+App\Models\Team
+  Methods:   0.00% ( 0/10)   Lines:   0.00% (  0/ 27)
+App\Models\TitleTransfer
+  Methods:   0.00% ( 0/11)   Lines:   0.00% (  0/ 13)
+App\Models\User
+  Methods:   4.00% ( 2/50)   Lines:   5.49% (  5/ 91)
+App\Models\UserNotification
+  Methods:   0.00% ( 0/ 7)   Lines:   0.00% (  0/  7)
+App\Notifications\NewEmployeeNotification
+  Methods:   0.00% ( 0/ 5)   Lines:   0.00% (  0/ 22)
+App\Observers\ContractObserver
+  Methods:   0.00% ( 0/ 4)   Lines:   0.00% (  0/  4)
+App\Observers\DepositObserver
+  Methods:   0.00% ( 0/ 1)   Lines:   0.00% (  0/ 14)
+App\Observers\LeadObserver
+  Methods:   0.00% ( 0/ 4)   Lines:   0.00% (  0/  4)
+App\Observers\MarketingTaskObserver
+  Methods:   0.00% ( 0/ 4)   Lines:   0.00% (  0/  4)
+App\Policies\CommissionPolicy
+  Methods:   0.00% ( 0/ 7)   Lines:   0.00% (  0/ 13)
+App\Policies\ContractPolicy
+  Methods:   0.00% ( 0/ 7)   Lines:   0.00% (  0/ 23)
+App\Policies\ContractUnitPolicy
+  Methods:   0.00% ( 0/ 5)   Lines:   0.00% (  0/ 18)
+App\Policies\DepositPolicy
+  Methods:   0.00% ( 0/ 7)   Lines:   0.00% (  0/ 16)
+App\Policies\HrTaskPolicy
+  Methods:   0.00% ( 0/ 5)   Lines:   0.00% (  0/  6)
+App\Policies\LeadPolicy
+  Methods:   0.00% ( 0/ 5)   Lines:   0.00% (  0/  5)
+App\Policies\MarketingProjectTeamPolicy
+  Methods:   0.00% ( 0/ 5)   Lines:   0.00% (  0/  5)
+App\Policies\MarketingSettingPolicy
+  Methods:   0.00% ( 0/ 5)   Lines:   0.00% (  0/  5)
+App\Policies\MarketingTaskPolicy
+  Methods:   0.00% ( 0/ 5)   Lines:   0.00% (  0/  5)
+App\Policies\SalesAttendancePolicy
+  Methods:   0.00% ( 0/ 6)   Lines:   0.00% (  0/ 24)
+App\Policies\SalesDashboardPolicy
+  Methods:   0.00% ( 0/ 1)   Lines:   0.00% (  0/  1)
+App\Policies\SalesReservationPolicy
+  Methods:   0.00% ( 0/ 7)   Lines:   0.00% (  0/ 23)
+App\Policies\SalesTargetPolicy
+  Methods:   0.00% ( 0/ 5)   Lines:   0.00% (  0/ 22)
+App\Policies\TaskPolicy
+  Methods:   0.00% ( 0/ 5)   Lines:   0.00% (  0/  6)
+App\Providers\AppServiceProvider
+  Methods:  60.00% ( 3/ 5)   Lines:  84.21% ( 48/ 57)
+App\Providers\EventServiceProvider
+  Methods:  ( 0/ 0)   Lines:  (  0/  0)
+App\Rules\CommonValidationRules
+  Methods:   0.00% ( 0/ 3)   Lines:   0.00% (  0/  3)
+App\Services\AI\AIAssistantService
+  Methods:   0.00% ( 0/17)   Lines:   0.00% (  0/275)
+App\Services\AI\AccessExplanationEngine
+  Methods:   0.00% ( 0/10)   Lines:   0.00% (  0/151)
+App\Services\AI\AiIndexingService
+  Methods:  28.57% ( 2/ 7)   Lines:   5.93% (  8/135)
+App\Services\AI\AiRagService
+  Methods:  50.00% ( 1/ 2)   Lines:   2.63% (  1/ 38)
+App\Services\AI\AssistantLLMService
+  Methods:   0.00% ( 0/ 4)   Lines:   0.00% (  0/ 56)
+App\Services\AI\CapabilityResolver
+  Methods:   0.00% ( 0/ 3)   Lines:   0.00% (  0/ 18)
+App\Services\AI\CatalogService
+  Methods:   7.69% ( 1/13)   Lines:   3.70% (  1/ 27)
+App\Services\AI\ContextBuilder
+  Methods:   0.00% ( 0/ 7)   Lines:   0.00% (  0/125)
+App\Services\AI\ContextValidator
+  Methods:   0.00% ( 0/ 3)   Lines:   0.00% (  0/ 20)
+App\Services\AI\DenyTemplateBuilder
+  Methods:   0.00% ( 0/ 2)   Lines:   0.00% (  0/ 16)
+App\Services\AI\Exceptions\AiAssistantDisabledException
+  Methods:   0.00% ( 0/ 1)   Lines:   0.00% (  0/  1)
+App\Services\AI\Exceptions\AiAssistantException
+  Methods:   0.00% ( 0/ 3)   Lines:   0.00% (  0/  3)
+App\Services\AI\Exceptions\AiBudgetExceededException
+  Methods:   0.00% ( 0/ 1)   Lines:   0.00% (  0/  5)
+App\Services\AI\Exceptions\AiUnauthorizedSectionException
+  Methods:   0.00% ( 0/ 1)   Lines:   0.00% (  0/  4)
+App\Services\AI\GuardrailResult
+  Methods:   0.00% ( 0/ 2)   Lines:   0.00% (  0/ 18)
+App\Services\AI\IntentClassifier
+  Methods:  25.00% ( 1/ 4)   Lines:  91.11% ( 41/ 45)
+App\Services\AI\NumericGuardrails
+  Methods:   0.00% ( 0/ 5)   Lines:   0.00% (  0/ 58)
+App\Services\AI\OpenAIEmbeddingClient
+  Methods:   0.00% ( 0/ 4)   Lines:   0.00% (  0/ 50)
+App\Services\AI\OpenAIResponsesClient
+  Methods:   0.00% ( 0/ 3)   Lines:   0.00% (  0/ 74)
+App\Services\AI\RakizAiOrchestrator
+  Methods:  43.75% ( 7/16)   Lines:  75.86% (399/526)
+App\Services\AI\SectionRegistry
+  Methods:   0.00% ( 0/10)   Lines:   0.00% (  0/ 42)
+App\Services\AI\SystemPromptBuilder
+  Methods:   0.00% ( 0/ 9)   Lines:   0.00% (  0/ 77)
+App\Services\AI\ToolRegistry
+  Methods:  60.00% ( 3/ 5)   Lines:  50.00% ( 14/ 28)
+App\Services\AI\Tools\CampaignAdvisorTool
+  Methods:   0.00% ( 0/ 5)   Lines:   0.00% (  0/ 87)
+App\Services\AI\Tools\ExplainAccessTool
+  Methods:   0.00% ( 0/ 2)   Lines:   0.00% (  0/ 19)
+App\Services\AI\Tools\FinanceCalculatorTool
+  Methods:   0.00% ( 0/ 7)   Lines:   0.00% (  0/149)
+App\Services\AI\Tools\GetContractStatusTool
+  Methods:   0.00% ( 0/ 1)   Lines:   0.00% (  0/ 22)
+App\Services\AI\Tools\GetLeadSummaryTool
+  Methods:   0.00% ( 0/ 1)   Lines:   0.00% (  0/ 23)
+App\Services\AI\Tools\GetProjectSummaryTool
+  Methods:   0.00% ( 0/ 1)   Lines:   0.00% (  0/ 30)
+App\Services\AI\Tools\HiringAdvisorTool
+  Methods:   0.00% ( 0/ 7)   Lines:   0.00% (  0/145)
+App\Services\AI\Tools\KpiSalesTool
+  Methods:   0.00% ( 0/ 2)   Lines:   0.00% (  0/ 21)
+App\Services\AI\Tools\MarketingAnalyticsTool
+  Methods:   0.00% ( 0/ 5)   Lines:   0.00% (  0/103)
+App\Services\AI\Tools\RagSearchTool
+  Methods:   0.00% ( 0/ 2)   Lines:   0.00% (  0/ 18)
+App\Services\AI\Tools\SalesAdvisorTool
+  Methods:   0.00% ( 0/ 7)   Lines:   0.00% (  0/157)
+App\Services\AI\Tools\SearchRecordsTool
+  Methods:   0.00% ( 0/ 1)   Lines:   0.00% (  0/ 41)
+App\Services\AI\Tools\ToolResponse
+  Methods:   0.00% ( 0/ 3)   Lines:   0.00% (  0/ 20)
+App\Services\AI\VectorStore\DisabledVectorStore
+  Methods:   0.00% ( 0/ 2)   Lines:   0.00% (  0/  2)
+App\Services\AI\VectorStore\JsonVectorStore
+  Methods:  25.00% ( 1/ 4)   Lines:   2.38% (  1/ 42)
+App\Services\Accounting\AccountingCommissionService
+  Methods:   0.00% ( 0/12)   Lines:   0.00% (  0/298)
+App\Services\Accounting\AccountingDashboardService
+  Methods:   0.00% ( 0/ 9)   Lines:   0.00% (  0/ 71)
+App\Services\Accounting\AccountingDepositService
+  Methods:   0.00% ( 0/ 8)   Lines:   0.00% (  0/186)
+App\Services\Accounting\AccountingNotificationService
+  Methods:   0.00% ( 0/14)   Lines:   0.00% (  0/117)
+App\Services\Accounting\AccountingSalaryService
+  Methods:   0.00% ( 0/ 6)   Lines:   0.00% (  0/126)
+App\Services\Contract\BoardsDepartmentService
+  Methods:   0.00% ( 0/ 4)   Lines:   0.00% (  0/ 31)
+App\Services\Contract\ContractService
+  Methods:   0.00% ( 0/19)   Lines:   0.00% (  0/370)
+App\Services\Contract\ContractUnitService
+  Methods:   0.00% ( 0/ 7)   Lines:   0.00% (  0/131)
+App\Services\Contract\DeveloperService
+  Methods:   0.00% ( 0/ 4)   Lines:   0.00% (  0/ 84)
+App\Services\Contract\MontageDepartmentService
+  Methods:   0.00% ( 0/ 4)   Lines:   0.00% (  0/ 35)
+App\Services\Contract\PhotographyDepartmentService
+  Methods:   0.00% ( 0/ 5)   Lines:   0.00% (  0/ 53)
+App\Services\Contract\SecondPartyDataService
+  Methods:   0.00% ( 0/ 4)   Lines:   0.00% (  0/ 31)
+App\Services\Credit\ClaimFileService
+  Methods:   0.00% ( 0/ 8)   Lines:   0.00% (  0/ 91)
+App\Services\Credit\CreditDashboardService
+  Methods:   0.00% ( 0/16)   Lines:   0.00% (  0/ 60)
+App\Services\Credit\CreditFinancingService
+  Methods:   0.00% ( 0/10)   Lines:   0.00% (  0/152)
+App\Services\Credit\TitleTransferService
+  Methods:   0.00% ( 0/ 8)   Lines:   0.00% (  0/123)
+App\Services\Dashboard\DashboardService
+  Methods:   0.00% ( 0/ 3)   Lines:   0.00% (  0/ 23)
+App\Services\Dashboard\ProjectManagementDashboardService
+  Methods:   0.00% ( 0/ 2)   Lines:   0.00% (  0/ 16)
+App\Services\ExclusiveProjectService
+  Methods:   0.00% ( 0/11)   Lines:   0.00% (  0/190)
+App\Services\HR\EmployeeContractService
+  Methods:   0.00% ( 0/ 9)   Lines:   0.00% (  0/ 77)
+App\Services\HR\HrDashboardService
+  Methods:   0.00% ( 0/ 7)   Lines:   0.00% (  0/ 44)
+App\Services\HR\HrReportService
+  Methods:   0.00% ( 0/ 5)   Lines:   0.00% (  0/159)
+App\Services\HR\HrTaskService
+  Methods:   0.00% ( 0/ 3)   Lines:   0.00% (  0/ 26)
+App\Services\HR\MarketerPerformanceService
+  Methods:   0.00% ( 0/ 4)   Lines:   0.00% (  0/100)
+App\Services\Marketing\DeveloperMarketingPlanService
+  Methods:   0.00% ( 0/ 6)   Lines:   0.00% (  0/ 36)
+App\Services\Marketing\EmployeeMarketingPlanService
+  Methods:   0.00% ( 0/ 8)   Lines:   0.00% (  0/ 76)
+App\Services\Marketing\ExpectedSalesService
+  Methods:   0.00% ( 0/ 5)   Lines:   0.00% (  0/ 28)
+App\Services\Marketing\MarketingBudgetCalculationService
+  Methods:   0.00% ( 0/10)   Lines:   0.00% (  0/102)
+App\Services\Marketing\MarketingDashboardService
+  Methods:   0.00% ( 0/ 8)   Lines:   0.00% (  0/ 34)
+App\Services\Marketing\MarketingNotificationService
+  Methods:   0.00% ( 0/ 3)   Lines:   0.00% (  0/ 13)
+App\Services\Marketing\MarketingProjectService
+  Methods:   0.00% ( 0/ 8)   Lines:   0.00% (  0/ 88)
+App\Services\Marketing\MarketingTaskService
+  Methods:   0.00% ( 0/ 5)   Lines:   0.00% (  0/ 24)
+App\Services\Marketing\TeamManagementService
+  Methods:   0.00% ( 0/ 4)   Lines:   0.00% (  0/ 66)
+App\Services\ProjectManagement\ProjectManagementProjectService
+  Methods:   0.00% ( 0/ 6)   Lines:   0.00% (  0/ 90)
+App\Services\Registration\LoginService
+  Methods:   0.00% ( 0/ 1)   Lines:   0.00% (  0/ 12)
+App\Services\Registration\RegisterService
+  Methods:   0.00% ( 0/ 8)   Lines:   0.00% (  0/156)
+App\Services\Registration\SocialAuthService
+  Methods:   0.00% ( 0/ 1)   Lines:   0.00% (  0/ 16)
+App\Services\Registration\login
+  Methods:   0.00% ( 0/ 1)   Lines:   0.00% (  0/ 12)
+App\Services\Registration\register
+  Methods:   0.00% ( 0/ 8)   Lines:   0.00% (  0/156)
+App\Services\Sales\CommissionService
+  Methods:   0.00% ( 0/20)   Lines:   0.00% (  0/173)
+App\Services\Sales\DepositService
+  Methods:   0.00% ( 0/17)   Lines:   0.00% (  0/207)
+App\Services\Sales\MarketingTaskService
+  Methods:   0.00% ( 0/10)   Lines:   0.00% (  0/ 64)
+App\Services\Sales\NegotiationApprovalService
+  Methods:   0.00% ( 0/ 8)   Lines:   0.00% (  0/150)
+App\Services\Sales\PaymentPlanService
+  Methods:   0.00% ( 0/ 6)   Lines:   0.00% (  0/ 59)
+App\Services\Sales\PdfGeneratorService
+  Methods:   0.00% ( 0/ 2)   Lines:   0.00% (  0/ 21)
+App\Services\Sales\ReservationVoucherService
+  Methods:   0.00% ( 0/ 3)   Lines:   0.00% (  0/ 15)
+App\Services\Sales\SalesAnalyticsService
+  Methods:   0.00% ( 0/12)   Lines:   0.00% (  0/119)
+App\Services\Sales\SalesAttendanceService
+  Methods:   0.00% ( 0/ 7)   Lines:   0.00% (  0/ 66)
+App\Services\Sales\SalesDashboardService
+  Methods:   0.00% ( 0/11)   Lines:   0.00% (  0/123)
+App\Services\Sales\SalesNotificationService
+  Methods:   0.00% ( 0/15)   Lines:   0.00% (  0/175)
+App\Services\Sales\SalesProjectService
+  Methods:   0.00% ( 0/19)   Lines:   0.00% (  0/228)
+App\Services\Sales\SalesReservationService
+  Methods:   0.00% ( 0/ 9)   Lines:   0.00% (  0/230)
+App\Services\Sales\SalesTargetService
+  Methods:   0.00% ( 0/ 7)   Lines:   0.00% (  0/ 51)
+App\Services\Sales\WaitingListService
+  Methods:   0.00% ( 0/11)   Lines:   0.00% (  0/140)
+App\Services\TaskService
+  Methods:   0.00% ( 0/ 3)   Lines:   0.00% (  0/ 26)
+App\Services\Team\TeamService
+  Methods:   0.00% ( 0/ 6)   Lines:   0.00% (  0/ 86)
+App\Support\Query\SearchTerm
+  Methods:   0.00% ( 0/ 2)   Lines:   0.00% (  0/  6)

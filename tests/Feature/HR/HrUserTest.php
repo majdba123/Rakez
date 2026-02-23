@@ -68,7 +68,9 @@ class HrUserTest extends TestCase
             ])
             ->assertJsonStructure([
                 'data',
-                'meta' => ['total', 'per_page', 'current_page', 'last_page'],
+                'meta' => [
+                    'pagination' => ['total', 'per_page', 'current_page', 'total_pages'],
+                ],
             ]);
     }
 
@@ -82,7 +84,7 @@ class HrUserTest extends TestCase
 
         $response->assertStatus(200);
         $data = $response->json('data');
-        
+
         // All returned users should be active
         foreach ($data as $user) {
             $this->assertTrue($user['is_active']);
@@ -99,7 +101,7 @@ class HrUserTest extends TestCase
 
         $response->assertStatus(200);
         $data = $response->json('data');
-        
+
         foreach ($data as $user) {
             $this->assertEquals('sales', $user['type']);
         }

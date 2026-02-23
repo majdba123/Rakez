@@ -54,7 +54,7 @@ app/
 `dashboard`, `sold-units`, `deposits/*`, `projects`, `reservations`, `targets`, `attendance`, `marketing-tasks`, `waiting-list`, `negotiation`, `payment-plan`, إلخ.
 
 **التحليلات (نفس البادئة، كونترولر منفصل):**  
-`Api\SalesAnalyticsController`: `analytics/dashboard`, `analytics/sold-units`, `analytics/deposits/stats/project/{id}`, `analytics/commissions/stats/employee/{id}`, `analytics/commissions/monthly-report`.
+`Sales\SalesAnalyticsController`: `analytics/dashboard`, `analytics/sold-units`, `analytics/deposits/stats/project/{id}`, `analytics/commissions/stats/employee/{id}`, `analytics/commissions/monthly-report`.
 
 - **لا يوجد** كونترولر مخصص `SalesReportController`.
 - بيانات "التقارير" تُعرض عبر **SalesDashboardController**، **SalesInsightsController**، و **SalesAnalyticsController** (مؤشرات، وحدات مباعة، ودائع، عمولات).

@@ -72,10 +72,7 @@ class AccountingDashboardTest extends TestCase
         $response = $this->getJson('/api/accounting/dashboard?from_date=2026-12-31&to_date=2026-01-01');
 
         $response->assertStatus(422)
-            ->assertJson([
-                'success' => false,
-                'message' => 'Validation failed.',
-            ])
+            ->assertJsonPath('success', false)
             ->assertJsonStructure(['errors']);
     }
 

@@ -2,6 +2,10 @@
 
 namespace App\Http\Controllers\Marketing;
 
+/**
+ * Marketing module: daily tasks for marketers (view/create/update by date/status).
+ * For sales leader task management see App\Http\Controllers\Sales\MarketingTaskController.
+ */
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Marketing\StoreMarketingTaskRequest;
 use App\Http\Requests\Marketing\UpdateMarketingTaskRequest;
@@ -41,11 +45,7 @@ class MarketingTaskController extends Controller
         
         $task = $this->taskService->createTask($data);
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Marketing task created successfully',
-            'data' => $task
-        ], 201);
+        return ApiResponse::created($task, 'تم إنشاء المهمة التسويقية بنجاح');
     }
 
     public function update(int $taskId, UpdateMarketingTaskRequest $request): JsonResponse
@@ -53,11 +53,7 @@ class MarketingTaskController extends Controller
         $task = MarketingTask::findOrFail($taskId);
         $task->update($request->validated());
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Marketing task updated successfully',
-            'data' => $task
-        ]);
+        return ApiResponse::success($task, 'تم تحديث المهمة التسويقية بنجاح');
     }
 
     public function updateStatus(int $taskId, Request $request): JsonResponse
@@ -69,10 +65,6 @@ class MarketingTaskController extends Controller
 
         $task = $this->taskService->updateTaskStatus($taskId, $request->input('status'));
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Task status updated successfully',
-            'data' => $task
-        ]);
+        return ApiResponse::success($task, 'تم تحديث حالة المهمة بنجاح');
     }
 }

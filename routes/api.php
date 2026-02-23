@@ -119,6 +119,10 @@ Route::middleware('auth:sanctum')->group(function () {
         // Rakiz AI Assistant v2 (tool calling, RAG, strict JSON)
         Route::prefix('v2')->group(function () {
             Route::post('/chat', [RakizV2Controller::class, 'chat']);
+            Route::post('/chat/stream', [RakizV2Controller::class, 'chatStream']);
+            Route::get('/conversations', [RakizV2Controller::class, 'conversations']);
+            Route::get('/conversations/{sessionId}/messages', [RakizV2Controller::class, 'messages']);
+            Route::delete('/conversations/{sessionId}', [RakizV2Controller::class, 'deleteSession']);
             Route::post('/search', [RakizV2Controller::class, 'search']);
             Route::post('/explain-access', [RakizV2Controller::class, 'explainAccess']);
         });
@@ -704,56 +708,56 @@ Route::middleware('auth:sanctum')->group(function () {
     // ==========================================
     Route::prefix('sales')->middleware(['auth:sanctum', 'role:sales|sales_leader|admin|accounting'])->group(function () {
         // Analytics Dashboard
-        Route::get('analytics/dashboard', [\App\Http\Controllers\Api\SalesAnalyticsController::class, 'dashboard'])->middleware('permission:sales.dashboard.view');
-        Route::get('analytics/sold-units', [\App\Http\Controllers\Api\SalesAnalyticsController::class, 'soldUnits'])->middleware('permission:sales.dashboard.view');
-        Route::get('analytics/deposits/stats/project/{contractId}', [\App\Http\Controllers\Api\SalesAnalyticsController::class, 'depositStatsByProject'])->middleware('permission:sales.dashboard.view');
-        Route::get('analytics/commissions/stats/employee/{userId}', [\App\Http\Controllers\Api\SalesAnalyticsController::class, 'commissionStatsByEmployee'])->middleware('permission:sales.dashboard.view');
-        Route::get('analytics/commissions/monthly-report', [\App\Http\Controllers\Api\SalesAnalyticsController::class, 'monthlyCommissionReport'])->middleware('permission:sales.dashboard.view');
+        Route::get('analytics/dashboard', [\App\Http\Controllers\Sales\SalesAnalyticsController::class, 'dashboard'])->middleware('permission:sales.dashboard.view');
+        Route::get('analytics/sold-units', [\App\Http\Controllers\Sales\SalesAnalyticsController::class, 'soldUnits'])->middleware('permission:sales.dashboard.view');
+        Route::get('analytics/deposits/stats/project/{contractId}', [\App\Http\Controllers\Sales\SalesAnalyticsController::class, 'depositStatsByProject'])->middleware('permission:sales.dashboard.view');
+        Route::get('analytics/commissions/stats/employee/{userId}', [\App\Http\Controllers\Sales\SalesAnalyticsController::class, 'commissionStatsByEmployee'])->middleware('permission:sales.dashboard.view');
+        Route::get('analytics/commissions/monthly-report', [\App\Http\Controllers\Sales\SalesAnalyticsController::class, 'monthlyCommissionReport'])->middleware('permission:sales.dashboard.view');
 
         // Commissions
         Route::prefix('commissions')->group(function () {
-            Route::get('/', [\App\Http\Controllers\Api\CommissionController::class, 'index']);
-            Route::post('/', [\App\Http\Controllers\Api\CommissionController::class, 'store']);
-            Route::get('/{commission}', [\App\Http\Controllers\Api\CommissionController::class, 'show']);
-            Route::put('/{commission}/expenses', [\App\Http\Controllers\Api\CommissionController::class, 'updateExpenses']);
-            Route::post('/{commission}/distributions', [\App\Http\Controllers\Api\CommissionController::class, 'addDistribution']);
-            Route::post('/{commission}/distribute/lead-generation', [\App\Http\Controllers\Api\CommissionController::class, 'distributeLeadGeneration']);
-            Route::post('/{commission}/distribute/persuasion', [\App\Http\Controllers\Api\CommissionController::class, 'distributePersuasion']);
-            Route::post('/{commission}/distribute/closing', [\App\Http\Controllers\Api\CommissionController::class, 'distributeClosing']);
-            Route::post('/{commission}/distribute/management', [\App\Http\Controllers\Api\CommissionController::class, 'distributeManagement']);
-            Route::post('/{commission}/approve', [\App\Http\Controllers\Api\CommissionController::class, 'approve']);
-            Route::post('/{commission}/mark-paid', [\App\Http\Controllers\Api\CommissionController::class, 'markAsPaid']);
-            Route::get('/{commission}/summary', [\App\Http\Controllers\Api\CommissionController::class, 'summary']);
+            Route::get('/', [\App\Http\Controllers\Sales\CommissionController::class, 'index']);
+            Route::post('/', [\App\Http\Controllers\Sales\CommissionController::class, 'store']);
+            Route::get('/{commission}', [\App\Http\Controllers\Sales\CommissionController::class, 'show']);
+            Route::put('/{commission}/expenses', [\App\Http\Controllers\Sales\CommissionController::class, 'updateExpenses']);
+            Route::post('/{commission}/distributions', [\App\Http\Controllers\Sales\CommissionController::class, 'addDistribution']);
+            Route::post('/{commission}/distribute/lead-generation', [\App\Http\Controllers\Sales\CommissionController::class, 'distributeLeadGeneration']);
+            Route::post('/{commission}/distribute/persuasion', [\App\Http\Controllers\Sales\CommissionController::class, 'distributePersuasion']);
+            Route::post('/{commission}/distribute/closing', [\App\Http\Controllers\Sales\CommissionController::class, 'distributeClosing']);
+            Route::post('/{commission}/distribute/management', [\App\Http\Controllers\Sales\CommissionController::class, 'distributeManagement']);
+            Route::post('/{commission}/approve', [\App\Http\Controllers\Sales\CommissionController::class, 'approve']);
+            Route::post('/{commission}/mark-paid', [\App\Http\Controllers\Sales\CommissionController::class, 'markAsPaid']);
+            Route::get('/{commission}/summary', [\App\Http\Controllers\Sales\CommissionController::class, 'summary']);
 
             // Distribution management
-            Route::put('/distributions/{distribution}', [\App\Http\Controllers\Api\CommissionController::class, 'updateDistribution']);
-            Route::delete('/distributions/{distribution}', [\App\Http\Controllers\Api\CommissionController::class, 'deleteDistribution']);
-            Route::post('/distributions/{distribution}/approve', [\App\Http\Controllers\Api\CommissionController::class, 'approveDistribution']);
-            Route::post('/distributions/{distribution}/reject', [\App\Http\Controllers\Api\CommissionController::class, 'rejectDistribution']);
+            Route::put('/distributions/{distribution}', [\App\Http\Controllers\Sales\CommissionController::class, 'updateDistribution']);
+            Route::delete('/distributions/{distribution}', [\App\Http\Controllers\Sales\CommissionController::class, 'deleteDistribution']);
+            Route::post('/distributions/{distribution}/approve', [\App\Http\Controllers\Sales\CommissionController::class, 'approveDistribution']);
+            Route::post('/distributions/{distribution}/reject', [\App\Http\Controllers\Sales\CommissionController::class, 'rejectDistribution']);
         });
 
         // Deposits
         Route::prefix('deposits')->group(function () {
-            Route::get('/', [\App\Http\Controllers\Api\DepositController::class, 'index']);
-            Route::post('/', [\App\Http\Controllers\Api\DepositController::class, 'store']);
+            Route::get('/', [\App\Http\Controllers\Sales\DepositController::class, 'index']);
+            Route::post('/', [\App\Http\Controllers\Sales\DepositController::class, 'store']);
             // Legacy alias to avoid collision with Sales-facing follow-up tab endpoint.
-            Route::get('/legacy-follow-up', [\App\Http\Controllers\Api\DepositController::class, 'followUp']);
-            Route::get('/{deposit}', [\App\Http\Controllers\Api\DepositController::class, 'show']);
-            Route::put('/{deposit}', [\App\Http\Controllers\Api\DepositController::class, 'update']);
-            Route::post('/{deposit}/confirm-receipt', [\App\Http\Controllers\Api\DepositController::class, 'confirmReceipt']);
-            Route::post('/{deposit}/mark-received', [\App\Http\Controllers\Api\DepositController::class, 'markAsReceived']);
-            Route::post('/{deposit}/refund', [\App\Http\Controllers\Api\DepositController::class, 'refund']);
-            Route::post('/{deposit}/generate-claim', [\App\Http\Controllers\Api\DepositController::class, 'generateClaimFile']);
-            Route::get('/{deposit}/can-refund', [\App\Http\Controllers\Api\DepositController::class, 'canRefund']);
-            Route::delete('/{deposit}', [\App\Http\Controllers\Api\DepositController::class, 'destroy']);
+            Route::get('/legacy-follow-up', [\App\Http\Controllers\Sales\DepositController::class, 'followUp']);
+            Route::get('/{deposit}', [\App\Http\Controllers\Sales\DepositController::class, 'show']);
+            Route::put('/{deposit}', [\App\Http\Controllers\Sales\DepositController::class, 'update']);
+            Route::post('/{deposit}/confirm-receipt', [\App\Http\Controllers\Sales\DepositController::class, 'confirmReceipt']);
+            Route::post('/{deposit}/mark-received', [\App\Http\Controllers\Sales\DepositController::class, 'markAsReceived']);
+            Route::post('/{deposit}/refund', [\App\Http\Controllers\Sales\DepositController::class, 'refund']);
+            Route::post('/{deposit}/generate-claim', [\App\Http\Controllers\Sales\DepositController::class, 'generateClaimFile']);
+            Route::get('/{deposit}/can-refund', [\App\Http\Controllers\Sales\DepositController::class, 'canRefund']);
+            Route::delete('/{deposit}', [\App\Http\Controllers\Sales\DepositController::class, 'destroy']);
 
             // Bulk operations
-            Route::post('/bulk-confirm', [\App\Http\Controllers\Api\DepositController::class, 'bulkConfirm']);
+            Route::post('/bulk-confirm', [\App\Http\Controllers\Sales\DepositController::class, 'bulkConfirm']);
 
             // By project/reservation
-            Route::get('/stats/project/{contractId}', [\App\Http\Controllers\Api\DepositController::class, 'statsByProject']);
-            Route::get('/by-reservation/{salesReservationId}', [\App\Http\Controllers\Api\DepositController::class, 'byReservation']);
-            Route::get('/refundable/project/{contractId}', [\App\Http\Controllers\Api\DepositController::class, 'refundableDeposits']);
+            Route::get('/stats/project/{contractId}', [\App\Http\Controllers\Sales\DepositController::class, 'statsByProject']);
+            Route::get('/by-reservation/{salesReservationId}', [\App\Http\Controllers\Sales\DepositController::class, 'byReservation']);
+            Route::get('/refundable/project/{contractId}', [\App\Http\Controllers\Sales\DepositController::class, 'refundableDeposits']);
         });
     });
 

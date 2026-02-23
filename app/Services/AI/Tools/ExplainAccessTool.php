@@ -33,6 +33,7 @@ class ExplainAccessTool implements ToolContract
                 'missing_permissions' => $result['missing_permissions'] ?? [],
                 'human_reason' => $result['human_reason'] ?? '',
                 'suggested_routes' => $result['suggested_routes'] ?? [],
+                'inputs' => ['route' => $route, 'entity_type' => $entityType, 'entity_id' => $entityId],
             ],
             'source_refs' => $sourceRefs,
         ];

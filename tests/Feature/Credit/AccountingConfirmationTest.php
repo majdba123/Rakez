@@ -56,7 +56,7 @@ class AccountingConfirmationTest extends TestCase
             ->getJson('/api/accounting/pending-confirmations');
 
         $response->assertStatus(200)
-            ->assertJsonPath('meta.total', 3);
+            ->assertJsonPath('meta.pagination.total', 3);
     }
 
     public function test_accounting_user_can_confirm_down_payment(): void
@@ -122,7 +122,7 @@ class AccountingConfirmationTest extends TestCase
             ->getJson('/api/accounting/confirmations/history');
 
         $response->assertStatus(200)
-            ->assertJsonPath('meta.total', 5);
+            ->assertJsonPath('meta.pagination.total', 5);
     }
 
     public function test_admin_can_confirm_down_payment(): void

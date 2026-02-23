@@ -10,6 +10,7 @@ use Laravel\Sanctum\Sanctum;
 use OpenAI\Laravel\Facades\OpenAI;
 use Tests\TestCase;
 use Tests\Traits\TestsWithAI;
+use Tests\Traits\TestsWithPermissions;
 
 /**
  * Integration tests for AI Assistant (full HTTP flows).
@@ -17,7 +18,12 @@ use Tests\Traits\TestsWithAI;
  */
 class AIAssistantIntegrationIntegTest extends TestCase
 {
-    use RefreshDatabase, TestsWithAI;
+    use RefreshDatabase, TestsWithAI, TestsWithPermissions;
+
+    protected function userWithAiPermission(): User
+    {
+        return $this->createUserWithPermissions(['use-ai-assistant']);
+    }
 
     public function test_full_ask_flow(): void
     {
@@ -25,7 +31,7 @@ class AIAssistantIntegrationIntegTest extends TestCase
             $this->fakeAIResponse('Here is a helpful answer to your question.'),
         ]);
 
-        $user = User::factory()->create();
+        $user = $this->userWithAiPermission();
         Sanctum::actingAs($user);
 
         $response = $this->postJson('/api/ai/ask', [
@@ -60,7 +66,7 @@ class AIAssistantIntegrationIntegTest extends TestCase
             $this->fakeAIResponse('Third answer'),
         ]);
 
-        $user = User::factory()->create();
+        $user = $this->userWithAiPermission();
         Sanctum::actingAs($user);
 
         $sessionId = '11111111-1111-1111-1111-111111111111';
@@ -105,7 +111,7 @@ class AIAssistantIntegrationIntegTest extends TestCase
             $this->fakeAIResponse('Summary of conversation'),
         ]);
 
-        $user = User::factory()->create();
+        $user = $this->userWithAiPermission();
         Sanctum::actingAs($user);
 
         $sessionId = '11111111-1111-1111-1111-111111111111';
@@ -135,7 +141,7 @@ class AIAssistantIntegrationIntegTest extends TestCase
             $this->fakeAIResponse('Answer 2'),
         ]);
 
-        $user = User::factory()->create();
+        $user = $this->userWithAiPermission();
         Sanctum::actingAs($user);
 
         $session1 = '11111111-1111-1111-1111-111111111111';
@@ -160,7 +166,7 @@ class AIAssistantIntegrationIntegTest extends TestCase
 
     public function test_capability_resolution_flow(): void
     {
-        $user = User::factory()->create();
+        $user = $this->userWithAiPermission();
         $user->setAttribute('capabilities', ['contracts.view', 'units.view']);
 
         Sanctum::actingAs($user);
@@ -194,7 +200,7 @@ class AIAssistantIntegrationIntegTest extends TestCase
             $this->fakeAIResponse('Answer'),
         ]);
 
-        $user = User::factory()->create();
+        $user = $this->userWithAiPermission();
         $contract = Contract::factory()->create(['user_id' => $user->id]);
 
         Sanctum::actingAs($user);
@@ -224,7 +230,7 @@ class AIAssistantIntegrationIntegTest extends TestCase
             new \Exception('OpenAI API error'),
         ]);
 
-        $user = User::factory()->create();
+        $user = $this->userWithAiPermission();
         Sanctum::actingAs($user);
 
         $response = $this->postJson('/api/ai/ask', [
@@ -240,7 +246,7 @@ class AIAssistantIntegrationIntegTest extends TestCase
             $this->fakeAIResponse('Answer'),
         ]);
 
-        $user = User::factory()->create();
+        $user = $this->userWithAiPermission();
         Sanctum::actingAs($user);
 
         $askResponse = $this->postJson('/api/ai/ask', [

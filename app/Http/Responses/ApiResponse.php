@@ -142,6 +142,25 @@ class ApiResponse
     }
 
     /**
+     * Standard pagination meta shape for list endpoints.
+     * Use with ApiResponse::success($data, $message, 200, ['pagination' => self::paginationMeta($paginator)]).
+     *
+     * @param \Illuminate\Contracts\Pagination\LengthAwarePaginator $paginator
+     * @return array{total: int, count: int, per_page: int, current_page: int, total_pages: int, has_more_pages: bool}
+     */
+    public static function paginationMeta($paginator): array
+    {
+        return [
+            'total' => $paginator->total(),
+            'count' => $paginator->count(),
+            'per_page' => $paginator->perPage(),
+            'current_page' => $paginator->currentPage(),
+            'total_pages' => $paginator->lastPage(),
+            'has_more_pages' => $paginator->hasMorePages(),
+        ];
+    }
+
+    /**
      * Return a paginated response.
      */
     public static function paginated(
@@ -153,14 +172,7 @@ class ApiResponse
             $message,
             200,
             [
-                'pagination' => [
-                    'total' => $paginatedData->total(),
-                    'count' => $paginatedData->count(),
-                    'per_page' => $paginatedData->perPage(),
-                    'current_page' => $paginatedData->currentPage(),
-                    'total_pages' => $paginatedData->lastPage(),
-                    'has_more_pages' => $paginatedData->hasMorePages(),
-                ],
+                'pagination' => self::paginationMeta($paginatedData),
             ]
         );
     }

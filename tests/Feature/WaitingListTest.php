@@ -67,7 +67,7 @@ class WaitingListTest extends TestCase
         $response->assertStatus(201)
             ->assertJson([
                 'success' => true,
-                'message' => 'Waiting list entry created successfully',
+                'message' => 'تم إضافة السجل إلى قائمة الانتظار بنجاح',
             ]);
 
         $this->assertDatabaseHas('sales_waiting_list', [
@@ -141,7 +141,7 @@ class WaitingListTest extends TestCase
         $response->assertStatus(200)
             ->assertJson([
                 'success' => true,
-                'message' => 'Waiting list entry converted to reservation successfully',
+                'message' => 'تم تحويل سجل قائمة الانتظار إلى حجز بنجاح',
             ]);
 
         $this->assertDatabaseHas('sales_waiting_list', [
@@ -196,7 +196,7 @@ class WaitingListTest extends TestCase
         $response->assertStatus(200)
             ->assertJson([
                 'success' => true,
-                'message' => 'Waiting list entry cancelled successfully',
+                'message' => 'تم إلغاء سجل قائمة الانتظار بنجاح',
             ]);
 
         $this->assertDatabaseHas('sales_waiting_list', [

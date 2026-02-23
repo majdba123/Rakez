@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers\Api;
 
-use App\Http\Controllers\Controller;
 use App\Http\Controllers\Credit\CreditNotificationController;
 use App\Http\Controllers\Accounting\AccountingNotificationController;
 use Illuminate\Http\JsonResponse;
