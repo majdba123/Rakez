@@ -1,0 +1,541 @@
+{
+  "info": {
+    "_postman_id": "accounting-module-complete-001",
+    "name": "RAKEZ ERP - Accounting Module (Complete)",
+    "description": "## Accounting Department - Complete API Collection\n\n**28 Endpoints** covering all 7 sections:\n\n1. **Dashboard** - KPIs (units sold, deposits, sales value, commissions)\n2. **Notifications** - Unit reserved, deposit received, unit vacated, cancelled, commission confirmed/received\n3. **Sold Units & Commissions** - Unit data, lead/persuasion/closing/management distributions, approve/reject/confirm\n4. **Deposits** - Pending, confirm receipt, follow-up, refund, claim file\n5. **Salaries** - Employee salaries, commissions, distributions, approve, mark paid\n6. **Legacy** - Down payment confirmations\n7. **Developers** - List developers and get developer details (accessible by accountants)\n\n**Auth**: Bearer token (set `auth_token` from Login)\n**Base URL**: `{{base_url}}` (e.g. http://localhost:8000/api)\n\n**Roles**: accounting, admin (Developers also: project_management)",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {"key": "token", "value": "{{auth_token}}", "type": "string"}
+    ]
+  },
+  "item": [
+    {
+      "name": "00 - Auth",
+      "item": [
+        {
+          "name": "Login",
+          "request": {
+            "auth": {"type": "noauth"},
+            "method": "POST",
+            "header": [
+              {"key": "Accept", "value": "application/json"},
+              {"key": "Content-Type", "value": "application/json"}
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"email\": \"{{user_email}}\",\n    \"password\": \"{{user_password}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/login",
+              "host": ["{{base_url}}"],
+              "path": ["login"]
+            },
+            "event": [
+              {
+                "listen": "test",
+                "script": {
+                  "exec": [
+                    "const res = pm.response.json();",
+                    "if (res.access_token) {",
+                    "    pm.environment.set('auth_token', res.access_token);",
+                    "    pm.environment.set('user_id', res.user?.id || '');",
+                    "    pm.test('Login successful', function () { pm.response.to.have.status(200); });",
+                    "} else {",
+                    "    pm.test('Login failed', function () { pm.expect(res.access_token).to.exist; });",
+                    "}"
+                  ],
+                  "type": "text/javascript"
+                }
+              }
+            ],
+            "description": "Run this first. Saves access_token and user_id to environment.\n\nAPI returns: access_token, user"
+          }
+        }
+      ]
+    },
+    {
+      "name": "01 - Dashboard",
+      "item": [
+        {
+          "name": "Get Dashboard Metrics",
+          "request": {
+            "method": "GET",
+            "header": [{"key": "Accept", "value": "application/json"}],
+            "url": {
+              "raw": "{{base_url}}/accounting/dashboard?from_date=2026-01-01&to_date=2026-02-28",
+              "host": ["{{base_url}}"],
+              "path": ["accounting", "dashboard"],
+              "query": [
+                {"key": "from_date", "value": "2026-01-01", "description": "Start date (YYYY-MM-DD)"},
+                {"key": "to_date", "value": "2026-02-28", "description": "End date (YYYY-MM-DD)"}
+              ]
+            },
+            "description": "**Tab 1 - KPIs**\n\nReturns: units_sold, total_received_deposits, total_refunded_deposits, total_projects_value, total_sales_value, total_commissions, pending_commissions, approved_commissions\n\n**Permission**: accounting.dashboard.view"
+          }
+        }
+      ]
+    },
+    {
+      "name": "02 - Notifications",
+      "item": [
+        {
+          "name": "List Notifications",
+          "request": {
+            "method": "GET",
+            "header": [{"key": "Accept", "value": "application/json"}],
+            "url": {
+              "raw": "{{base_url}}/accounting/notifications?per_page=15&page=1&type=unit_reserved",
+              "host": ["{{base_url}}"],
+              "path": ["accounting", "notifications"],
+              "query": [
+                {"key": "per_page", "value": "15"},
+                {"key": "page", "value": "1"},
+                {"key": "from_date", "value": "", "disabled": true},
+                {"key": "to_date", "value": "", "disabled": true},
+                {"key": "status", "value": "", "disabled": true, "description": "pending|read"},
+                {"key": "type", "value": "unit_reserved", "description": "unit_reserved|deposit_received|unit_vacated|reservation_cancelled|commission_confirmed|commission_received"}
+              ]
+            },
+            "description": "**Tab 2 - Notification types**\n\nTypes: unit_reserved, deposit_received, unit_vacated, reservation_cancelled, commission_confirmed, commission_received\n\n**Permission**: accounting.notifications.view"
+          }
+        },
+        {
+          "name": "Mark Notification as Read",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Accept", "value": "application/json"}],
+            "url": {
+              "raw": "{{base_url}}/accounting/notifications/{{notification_id}}/read",
+              "host": ["{{base_url}}"],
+              "path": ["accounting", "notifications", "{{notification_id}}", "read"]
+            },
+            "description": "**Permission**: accounting.notifications.view"
+          }
+        },
+        {
+          "name": "Mark All as Read",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Accept", "value": "application/json"}],
+            "url": {
+              "raw": "{{base_url}}/accounting/notifications/read-all",
+              "host": ["{{base_url}}"],
+              "path": ["accounting", "notifications", "read-all"]
+            },
+            "description": "**Permission**: accounting.notifications.view"
+          }
+        }
+      ]
+    },
+    {
+      "name": "03 - Sold Units & Commissions",
+      "item": [
+        {
+          "name": "List Sold Units",
+          "request": {
+            "method": "GET",
+            "header": [{"key": "Accept", "value": "application/json"}],
+            "url": {
+              "raw": "{{base_url}}/accounting/sold-units?per_page=15&page=1",
+              "host": ["{{base_url}}"],
+              "path": ["accounting", "sold-units"],
+              "query": [
+                {"key": "per_page", "value": "15"},
+                {"key": "page", "value": "1"},
+                {"key": "project_id", "value": "", "disabled": true},
+                {"key": "from_date", "value": "", "disabled": true},
+                {"key": "to_date", "value": "", "disabled": true},
+                {"key": "commission_source", "value": "", "disabled": true, "description": "owner|buyer"},
+                {"key": "commission_status", "value": "", "disabled": true, "description": "pending|approved|paid"}
+              ]
+            },
+            "description": "**Tab 3 - Unit data**\n\nProject, unit number, type, final price, commission %, team, distributions\n\n**Permission**: accounting.sold-units.view"
+          }
+        },
+        {
+          "name": "List Marketers",
+          "request": {
+            "method": "GET",
+            "header": [{"key": "Accept", "value": "application/json"}],
+            "url": {
+              "raw": "{{base_url}}/accounting/marketers",
+              "host": ["{{base_url}}"],
+              "path": ["accounting", "marketers"]
+            },
+            "description": "**Dropdown data**\n\nReturns list of users eligible for commission distribution: `data[]` with `id`, `name`. Use for المسوق (Marketer) dropdown when updating distributions.\n\n**Permission**: accounting.sold-units.view"
+          }
+        },
+        {
+          "name": "Show Sold Unit",
+          "request": {
+            "method": "GET",
+            "header": [{"key": "Accept", "value": "application/json"}],
+            "url": {
+              "raw": "{{base_url}}/accounting/sold-units/{{reservation_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["accounting", "sold-units", "{{reservation_id}}"]
+            },
+            "description": "Unit detail with commission breakdown. Response includes `available_marketers` array (id, name) for dropdown. **Permission**: accounting.sold-units.view"
+          }
+        },
+        {
+          "name": "Create Manual Commission",
+          "request": {
+            "method": "POST",
+            "header": [
+              {"key": "Accept", "value": "application/json"},
+              {"key": "Content-Type", "value": "application/json"}
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"contract_unit_id\": 1,\n    \"final_selling_price\": 1500000,\n    \"commission_percentage\": 3,\n    \"commission_source\": \"owner\",\n    \"team_responsible\": \"فريق المبيعات\",\n    \"marketing_expenses\": 5000,\n    \"bank_fees\": 500\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/accounting/sold-units/{{reservation_id}}/commission",
+              "host": ["{{base_url}}"],
+              "path": ["accounting", "sold-units", "{{reservation_id}}", "commission"]
+            },
+            "description": "**Required**: contract_unit_id, final_selling_price, commission_percentage, commission_source (owner|buyer)\n**Optional**: team_responsible, marketing_expenses, bank_fees\n\n**Permission**: accounting.commissions.create"
+          }
+        },
+        {
+          "name": "Update Commission Distributions",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {"key": "Accept", "value": "application/json"},
+              {"key": "Content-Type", "value": "application/json"}
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"distributions\": [\n        {\"type\": \"lead_generation\", \"user_id\": 5, \"percentage\": 25.0},\n        {\"type\": \"persuasion\", \"user_id\": 7, \"percentage\": 30.0},\n        {\"type\": \"closing\", \"user_id\": 9, \"percentage\": 35.0},\n        {\"type\": \"team_leader\", \"user_id\": 2, \"percentage\": 10.0}\n    ]\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/accounting/commissions/{{commission_id}}/distributions",
+              "host": ["{{base_url}}"],
+              "path": ["accounting", "commissions", "{{commission_id}}", "distributions"]
+            },
+            "description": "**Types**: lead_generation, persuasion, closing, team_leader, sales_manager, project_manager, external_marketer, other\n**Total percentage must equal 100**\nFor external_marketer/other: use external_name, bank_account\n\n**Permission**: accounting.sold-units.manage"
+          }
+        },
+        {
+          "name": "Approve Distribution",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Accept", "value": "application/json"}],
+            "url": {
+              "raw": "{{base_url}}/accounting/commissions/{{commission_id}}/distributions/{{distribution_id}}/approve",
+              "host": ["{{base_url}}"],
+              "path": ["accounting", "commissions", "{{commission_id}}", "distributions", "{{distribution_id}}", "approve"]
+            },
+            "description": "**Permission**: accounting.commissions.approve"
+          }
+        },
+        {
+          "name": "Reject Distribution",
+          "request": {
+            "method": "POST",
+            "header": [
+              {"key": "Accept", "value": "application/json"},
+              {"key": "Content-Type", "value": "application/json"}
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"notes\": \"Invalid percentage allocation\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/accounting/commissions/{{commission_id}}/distributions/{{distribution_id}}/reject",
+              "host": ["{{base_url}}"],
+              "path": ["accounting", "commissions", "{{commission_id}}", "distributions", "{{distribution_id}}", "reject"]
+            },
+            "description": "**Permission**: accounting.commissions.approve"
+          }
+        },
+        {
+          "name": "Get Commission Summary",
+          "request": {
+            "method": "GET",
+            "header": [{"key": "Accept", "value": "application/json"}],
+            "url": {
+              "raw": "{{base_url}}/accounting/commissions/{{commission_id}}/summary",
+              "host": ["{{base_url}}"],
+              "path": ["accounting", "commissions", "{{commission_id}}", "summary"]
+            },
+            "description": "**Tab 4 - Summary**\n\nReturns: total_before_tax, vat, marketing_expenses, bank_fees, net_amount, distributions table\n\n**Permission**: accounting.sold-units.view"
+          }
+        },
+        {
+          "name": "Confirm Commission Payment",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Accept", "value": "application/json"}],
+            "url": {
+              "raw": "{{base_url}}/accounting/commissions/{{commission_id}}/distributions/{{distribution_id}}/confirm",
+              "host": ["{{base_url}}"],
+              "path": ["accounting", "commissions", "{{commission_id}}", "distributions", "{{distribution_id}}", "confirm"]
+            },
+            "description": "Sends notification to employee. **Permission**: accounting.commissions.approve"
+          }
+        }
+      ]
+    },
+    {
+      "name": "04 - Deposits",
+      "item": [
+        {
+          "name": "List Pending Deposits",
+          "request": {
+            "method": "GET",
+            "header": [{"key": "Accept", "value": "application/json"}],
+            "url": {
+              "raw": "{{base_url}}/accounting/deposits/pending?per_page=15&page=1",
+              "host": ["{{base_url}}"],
+              "path": ["accounting", "deposits", "pending"],
+              "query": [
+                {"key": "per_page", "value": "15"},
+                {"key": "page", "value": "1"},
+                {"key": "project_id", "value": "", "disabled": true},
+                {"key": "from_date", "value": "", "disabled": true},
+                {"key": "to_date", "value": "", "disabled": true},
+                {"key": "payment_method", "value": "", "disabled": true},
+                {"key": "commission_source", "value": "", "disabled": true, "description": "owner|buyer"}
+              ]
+            },
+            "description": "**Tab 5.1 - إدارة العربون**\n\nReturns: project_name, unit_type, unit_price, final_selling_price, amount, payment_method, client_name, payment_date, commission_source, commission_percentage, status. unit_number in contract_unit.\n\n**Permission**: accounting.deposits.view"
+          }
+        },
+        {
+          "name": "Confirm Deposit Receipt",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Accept", "value": "application/json"}],
+            "url": {
+              "raw": "{{base_url}}/accounting/deposits/{{deposit_id}}/confirm",
+              "host": ["{{base_url}}"],
+              "path": ["accounting", "deposits", "{{deposit_id}}", "confirm"]
+            },
+            "description": "No body required. **Permission**: accounting.deposits.manage"
+          }
+        },
+        {
+          "name": "Get Follow-Up",
+          "request": {
+            "method": "GET",
+            "header": [{"key": "Accept", "value": "application/json"}],
+            "url": {
+              "raw": "{{base_url}}/accounting/deposits/follow-up?per_page=15&page=1",
+              "host": ["{{base_url}}"],
+              "path": ["accounting", "deposits", "follow-up"],
+              "query": [
+                {"key": "per_page", "value": "15"},
+                {"key": "page", "value": "1"},
+                {"key": "project_id", "value": "", "disabled": true},
+                {"key": "from_date", "value": "", "disabled": true},
+                {"key": "to_date", "value": "", "disabled": true},
+                {"key": "commission_source", "value": "", "disabled": true}
+              ]
+            },
+            "description": "**Tab 5.2 - المتابعة**\n\nReturns: project_name, unit_number, client_name, final_selling_price, commission_percentage, commission_source, deposits[]. Refund only when commission_source=owner and status received/confirmed; buyer = not refundable. Show Return Deposit when unit vacated (from Credit).\n\n**Permission**: accounting.deposits.view"
+          }
+        },
+        {
+          "name": "Process Refund",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Accept", "value": "application/json"}],
+            "url": {
+              "raw": "{{base_url}}/accounting/deposits/{{deposit_id}}/refund",
+              "host": ["{{base_url}}"],
+              "path": ["accounting", "deposits", "{{deposit_id}}", "refund"]
+            },
+            "description": "Refund allowed only when: commission_source=owner, status is received or confirmed (not pending), not already refunded. 400 if buyer or pending. No body. **Permission**: accounting.deposits.manage"
+          }
+        },
+        {
+          "name": "Generate Claim File",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Accept", "value": "application/json"}],
+            "url": {
+              "raw": "{{base_url}}/accounting/deposits/claim-file/{{reservation_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["accounting", "deposits", "claim-file", "{{reservation_id}}"]
+            },
+            "description": "Claim file: project_name, unit_number, unit_type, final_selling_price, commission_percentage. Only when commission_source=owner; 400 with 'ملف المطالبة متاح فقط عندما تكون نسبة السعي من المالك' if buyer.\n\n**Permission**: accounting.deposits.view"
+          }
+        }
+      ]
+    },
+    {
+      "name": "05 - Salaries",
+      "item": [
+        {
+          "name": "List Employee Salaries",
+          "request": {
+            "method": "GET",
+            "header": [{"key": "Accept", "value": "application/json"}],
+            "url": {
+              "raw": "{{base_url}}/accounting/salaries?month=2&year=2026",
+              "host": ["{{base_url}}"],
+              "path": ["accounting", "salaries"],
+              "query": [
+                {"key": "month", "value": "2", "description": "Required (1-12)"},
+                {"key": "year", "value": "2026", "description": "Required"},
+                {"key": "type", "value": "", "disabled": true},
+                {"key": "team_id", "value": "", "disabled": true},
+                {"key": "commission_eligible", "value": "", "disabled": true}
+              ]
+            },
+            "description": "**Tab 6**\n\nBase salary, commissions, job_title. For sales: commission %, projects, units, net monthly commission.\n\n**Permission**: accounting.salaries.view"
+          }
+        },
+        {
+          "name": "Show Employee Detail",
+          "request": {
+            "method": "GET",
+            "header": [{"key": "Accept", "value": "application/json"}],
+            "url": {
+              "raw": "{{base_url}}/accounting/salaries/{{employee_id}}?month=2&year=2026",
+              "host": ["{{base_url}}"],
+              "path": ["accounting", "salaries", "{{employee_id}}"],
+              "query": [
+                {"key": "month", "value": "2", "description": "Required"},
+                {"key": "year", "value": "2026", "description": "Required"}
+              ]
+            },
+            "description": "Sold units, commission per project, net monthly commission.\n\n**Permission**: accounting.salaries.view"
+          }
+        },
+        {
+          "name": "Create Salary Distribution",
+          "request": {
+            "method": "POST",
+            "header": [
+              {"key": "Accept", "value": "application/json"},
+              {"key": "Content-Type", "value": "application/json"}
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"month\": 2,\n    \"year\": 2026\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/accounting/salaries/{{employee_id}}/distribute",
+              "host": ["{{base_url}}"],
+              "path": ["accounting", "salaries", "{{employee_id}}", "distribute"]
+            },
+            "description": "**Permission**: accounting.salaries.distribute"
+          }
+        },
+        {
+          "name": "Approve Distribution",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Accept", "value": "application/json"}],
+            "url": {
+              "raw": "{{base_url}}/accounting/salaries/distributions/{{distribution_id}}/approve",
+              "host": ["{{base_url}}"],
+              "path": ["accounting", "salaries", "distributions", "{{distribution_id}}", "approve"]
+            },
+            "description": "**Permission**: accounting.salaries.distribute"
+          }
+        },
+        {
+          "name": "Mark as Paid",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Accept", "value": "application/json"}],
+            "url": {
+              "raw": "{{base_url}}/accounting/salaries/distributions/{{distribution_id}}/paid",
+              "host": ["{{base_url}}"],
+              "path": ["accounting", "salaries", "distributions", "{{distribution_id}}", "paid"]
+            },
+            "description": "**Permission**: accounting.salaries.distribute"
+          }
+        }
+      ]
+    },
+    {
+      "name": "06 - Legacy (Down Payment Confirmations)",
+      "item": [
+        {
+          "name": "List Pending Confirmations",
+          "request": {
+            "method": "GET",
+            "header": [{"key": "Accept", "value": "application/json"}],
+            "url": {
+              "raw": "{{base_url}}/accounting/pending-confirmations",
+              "host": ["{{base_url}}"],
+              "path": ["accounting", "pending-confirmations"]
+            },
+            "description": "**Permission**: accounting.down_payment.confirm"
+          }
+        },
+        {
+          "name": "Confirm Down Payment",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Accept", "value": "application/json"}],
+            "url": {
+              "raw": "{{base_url}}/accounting/confirm/{{reservation_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["accounting", "confirm", "{{reservation_id}}"]
+            },
+            "description": "**Permission**: accounting.down_payment.confirm"
+          }
+        },
+        {
+          "name": "Confirmations History",
+          "request": {
+            "method": "GET",
+            "header": [{"key": "Accept", "value": "application/json"}],
+            "url": {
+              "raw": "{{base_url}}/accounting/confirmations/history",
+              "host": ["{{base_url}}"],
+              "path": ["accounting", "confirmations", "history"]
+            },
+            "description": "**Permission**: accounting.down_payment.confirm"
+          }
+        }
+      ]
+    },
+    {
+      "name": "07 - Developers (Accountants)",
+      "item": [
+        {
+          "name": "List Developers",
+          "request": {
+            "method": "GET",
+            "header": [{"key": "Accept", "value": "application/json"}],
+            "url": {
+              "raw": "{{base_url}}/developers?search=&per_page=15&page=1",
+              "host": ["{{base_url}}"],
+              "path": ["developers"],
+              "query": [
+                {"key": "search", "value": "", "description": "Search by developer name or representative (ابحث عن مطور بالاسم أو اسم الممثل)"},
+                {"key": "per_page", "value": "15"},
+                {"key": "page", "value": "1"}
+              ]
+            },
+            "description": "Developers Management (إدارة المطورين). List unique developers with their projects, units count, and teams. Accessible by **accounting**, project_management, and admin.\n\n**Permission**: contracts.view or contracts.view_all\n**Response**: data[] (developer_number, developer_name, projects_count, projects, units_count, teams), meta (pagination)"
+          }
+        },
+        {
+          "name": "Get Developer Details",
+          "request": {
+            "method": "GET",
+            "header": [{"key": "Accept", "value": "application/json"}],
+            "url": {
+              "raw": "{{base_url}}/developers/{{developer_number}}",
+              "host": ["{{base_url}}"],
+              "path": ["developers", "{{developer_number}}"]
+            },
+            "description": "Single developer detail (تفاصيل المطور). Use developer_number from the list response. Accessible by **accounting**, project_management, and admin.\n\n**Permission**: contracts.view or contracts.view_all\n**Response**: data (developer_number, developer_name, projects_count, projects, units_count, teams)\n**404**: لم يتم العثور على بيانات المطور. ربما تم فتح الرابط مباشرة"
+          }
+        }
+      ]
+    }
+  ]
+}

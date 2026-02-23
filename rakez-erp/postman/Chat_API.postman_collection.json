@@ -1,0 +1,429 @@
+{
+  "info": {
+    "_postman_id": "chat-system-api-collection",
+    "name": "Rakez ERP - Chat System API",
+    "description": "Real-time chat system API with WebSocket support. Enables messaging between two users with read/unread status tracking.\n\n## Features:\n- ✅ Private conversations between two users\n- ✅ Real-time messaging via WebSocket (Laravel Reverb)\n- ✅ Read/unread status tracking\n- ✅ Message pagination\n- ✅ Unread message count\n- ✅ Message deletion\n\n## Authentication:\nAll endpoints require Bearer token authentication (Sanctum).\n\n## WebSocket:\nMessages are broadcast in real-time on private channel: `conversation.{conversationId}`\nEvent name: `message.sent`",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8000",
+      "type": "string"
+    },
+    {
+      "key": "token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "conversationId",
+      "value": "1",
+      "type": "string"
+    },
+    {
+      "key": "userId",
+      "value": "2",
+      "type": "string"
+    },
+    {
+      "key": "messageId",
+      "value": "1",
+      "type": "string"
+    },
+    {
+      "key": "page",
+      "value": "1",
+      "type": "string"
+    },
+    {
+      "key": "per_page",
+      "value": "50",
+      "type": "string"
+    }
+  ],
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{token}}",
+        "type": "string"
+      }
+    ]
+  },
+  "item": [
+    {
+      "name": "Conversations",
+      "item": [
+        {
+          "name": "Get All Conversations",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Response has success field', function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('success');",
+                  "    pm.expect(jsonData.success).to.be.true;",
+                  "});",
+                  "",
+                  "pm.test('Response contains conversations array', function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('data');",
+                  "    pm.expect(jsonData.data).to.be.an('array');",
+                  "});",
+                  "",
+                  "// Save first conversation ID if available",
+                  "const jsonData = pm.response.json();",
+                  "if (jsonData.data && jsonData.data.length > 0) {",
+                  "    pm.collectionVariables.set('conversationId', jsonData.data[0].id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/chat/conversations",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "chat", "conversations"]
+            },
+            "description": "Get all conversations for the authenticated user.\n\n**Returns:**\n- List of conversations with other user info\n- Unread count for each conversation\n- Last message timestamp\n\n**Response Structure:**\n```json\n{\n  \"success\": true,\n  \"message\": \"تم جلب المحادثات بنجاح\",\n  \"data\": [\n    {\n      \"id\": 1,\n      \"other_user\": {\n        \"id\": 2,\n        \"name\": \"John Doe\",\n        \"email\": \"john@example.com\"\n      },\n      \"last_message_at\": \"2026-02-13T10:30:00.000000Z\",\n      \"unread_count\": 3,\n      \"created_at\": \"2026-02-13T09:00:00.000000Z\"\n    }\n  ]\n}\n```"
+          },
+          "response": []
+        },
+        {
+          "name": "Get or Create Conversation",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Response has conversation data', function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('data');",
+                  "    pm.expect(jsonData.data).to.have.property('id');",
+                  "    ",
+                  "    // Save conversation ID for other requests",
+                  "    pm.collectionVariables.set('conversationId', jsonData.data.id);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/chat/conversations/{{userId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "chat", "conversations", "{{userId}}"]
+            },
+            "description": "Get or create a conversation with another user.\n\n**Parameters:**\n- `userId`: ID of the user to chat with\n\n**Returns:**\n- Conversation object with other user info\n- Creates conversation if it doesn't exist\n\n**Note:** You cannot create a conversation with yourself.\n\n**Response Structure:**\n```json\n{\n  \"success\": true,\n  \"message\": \"تم جلب المحادثة بنجاح\",\n  \"data\": {\n    \"id\": 1,\n    \"other_user\": { ... },\n    \"last_message_at\": null,\n    \"unread_count\": 0,\n    \"created_at\": \"2026-02-13T09:00:00.000000Z\"\n  }\n}\n```"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Messages",
+      "item": [
+        {
+          "name": "Get Messages",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Response has messages array', function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('data');",
+                  "    pm.expect(jsonData.data).to.be.an('array');",
+                  "});",
+                  "",
+                  "pm.test('Response has pagination meta', function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('meta');",
+                  "    pm.expect(jsonData.meta).to.have.property('pagination');",
+                  "});",
+                  "",
+                  "// Save first message ID if available",
+                  "const jsonData = pm.response.json();",
+                  "if (jsonData.data && jsonData.data.length > 0) {",
+                  "    pm.collectionVariables.set('messageId', jsonData.data[0].id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/chat/conversations/{{conversationId}}/messages?page={{page}}&per_page={{per_page}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "chat", "conversations", "{{conversationId}}", "messages"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "{{page}}",
+                  "description": "Page number (default: 1)"
+                },
+                {
+                  "key": "per_page",
+                  "value": "{{per_page}}",
+                  "description": "Items per page (default: 50, max: 100)"
+                }
+              ]
+            },
+            "description": "Get messages for a specific conversation with pagination.\n\n**Parameters:**\n- `conversationId`: ID of the conversation\n- `page`: Page number (optional, default: 1)\n- `per_page`: Items per page (optional, default: 50, max: 100)\n\n**Note:** Messages are automatically marked as read when fetched.\n\n**Response Structure:**\n```json\n{\n  \"success\": true,\n  \"message\": \"تم جلب الرسائل بنجاح\",\n  \"data\": [\n    {\n      \"id\": 1,\n      \"conversation_id\": 1,\n      \"sender\": {\n        \"id\": 1,\n        \"name\": \"Jane Doe\",\n        \"email\": \"jane@example.com\"\n      },\n      \"sender_id\": 1,\n      \"message\": \"Hello!\",\n      \"is_read\": true,\n      \"read_at\": \"2026-02-13T10:31:00.000000Z\",\n      \"created_at\": \"2026-02-13T10:30:00.000000Z\"\n    }\n  ],\n  \"meta\": {\n    \"pagination\": {\n      \"total\": 50,\n      \"count\": 50,\n      \"per_page\": 50,\n      \"current_page\": 1,\n      \"total_pages\": 1,\n      \"has_more_pages\": false\n    }\n  }\n}\n```"
+          },
+          "response": []
+        },
+        {
+          "name": "Send Message",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 201 (Created)', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "",
+                  "pm.test('Response has message data', function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('data');",
+                  "    pm.expect(jsonData.data).to.have.property('id');",
+                  "    pm.expect(jsonData.data).to.have.property('message');",
+                  "    ",
+                  "    // Save message ID",
+                  "    pm.collectionVariables.set('messageId', jsonData.data.id);",
+                  "});",
+                  "",
+                  "pm.test('Message is broadcast via WebSocket', function () {",
+                  "    // Note: This will be received by other user via WebSocket",
+                  "    // Channel: conversation.{conversationId}",
+                  "    // Event: message.sent",
+                  "    pm.test('Message sent successfully', function () {",
+                  "        pm.expect(pm.response.code).to.equal(201);",
+                  "    });",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"message\": \"Hello! This is a test message.\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/chat/conversations/{{conversationId}}/messages",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "chat", "conversations", "{{conversationId}}", "messages"]
+            },
+            "description": "Send a message in a conversation.\n\n**Parameters:**\n- `conversationId`: ID of the conversation\n\n**Request Body:**\n```json\n{\n    \"message\": \"Your message text here (max 5000 characters)\"\n}\n```\n\n**Returns:**\n- Created message object\n- Message is broadcast via WebSocket to the other user\n\n**WebSocket Event:**\n- Channel: `conversation.{conversationId}`\n- Event: `message.sent`\n- Data: Full message object with sender info\n\n**Response Structure:**\n```json\n{\n  \"success\": true,\n  \"message\": \"تم إرسال الرسالة بنجاح\",\n  \"data\": {\n    \"id\": 2,\n    \"conversation_id\": 1,\n    \"sender\": { ... },\n    \"sender_id\": 1,\n    \"message\": \"Hello! This is a test message.\",\n    \"is_read\": false,\n    \"read_at\": null,\n    \"created_at\": \"2026-02-13T10:35:00.000000Z\"\n  }\n}\n```"
+          },
+          "response": []
+        },
+        {
+          "name": "Mark Messages as Read",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Response indicates success', function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('success');",
+                  "    pm.expect(jsonData.success).to.be.true;",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/chat/conversations/{{conversationId}}/read",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "chat", "conversations", "{{conversationId}}", "read"]
+            },
+            "description": "Mark all messages in a conversation as read.\n\n**Parameters:**\n- `conversationId`: ID of the conversation\n\n**Returns:**\n- Success message\n- All unread messages from other user are marked as read\n\n**Note:** Messages are automatically marked as read when you fetch them via GET /messages endpoint.\n\n**Response Structure:**\n```json\n{\n  \"success\": true,\n  \"message\": \"تم تحديد الرسائل كمقروءة\"\n}\n```"
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Message",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Response indicates success', function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('success');",
+                  "    pm.expect(jsonData.success).to.be.true;",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/chat/messages/{{messageId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "chat", "messages", "{{messageId}}"]
+            },
+            "description": "Delete a message.\n\n**Parameters:**\n- `messageId`: ID of the message to delete\n\n**Returns:**\n- Success message\n\n**Note:** You can only delete your own messages.\n\n**Response Structure:**\n```json\n{\n  \"success\": true,\n  \"message\": \"تم حذف الرسالة بنجاح\"\n}\n```"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Statistics",
+      "item": [
+        {
+          "name": "Get Unread Count",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Response has unread_count', function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('data');",
+                  "    pm.expect(jsonData.data).to.have.property('unread_count');",
+                  "    pm.expect(jsonData.data.unread_count).to.be.a('number');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/chat/unread-count",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "chat", "unread-count"]
+            },
+            "description": "Get total unread messages count across all conversations.\n\n**Returns:**\n- Total count of unread messages from all conversations\n\n**Use Case:**\n- Display badge with unread count in UI\n- Show notification indicator\n\n**Response Structure:**\n```json\n{\n  \"success\": true,\n  \"message\": \"تم جلب عدد الرسائل غير المقروءة بنجاح\",\n  \"data\": {\n    \"unread_count\": 5\n  }\n}\n```"
+          },
+          "response": []
+        }
+      ]
+    }
+  ],
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "// Auto-set timestamp for requests",
+          "pm.globals.set('timestamp', Date.now());"
+        ]
+      }
+    },
+    {
+      "listen": "test",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "// Global test: Response time should be acceptable",
+          "pm.test('Response time is acceptable', function () {",
+          "    pm.expect(pm.response.responseTime).to.be.below(5000);",
+          "});"
+        ]
+      }
+    }
+  ]
+}
+

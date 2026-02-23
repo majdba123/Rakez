@@ -1,0 +1,23 @@
+{
+  "id": "8ba98a35-c9f6-4ebd-bff6-8d73cc0535d1",
+  "name": "Globals",
+  "values": [
+    {
+      "key": "timestamp",
+      "value": "",
+      "enabled": true,
+      "type": "any",
+      "description": ""
+    },
+    {
+      "key": "random",
+      "value": "",
+      "enabled": true,
+      "type": "any",
+      "description": ""
+    }
+  ],
+  "_postman_variable_scope": "globals",
+  "_postman_exported_at": "2026-02-04T17:43:49.500Z",
+  "_postman_exported_using": "Postman/11.0.0"
+}
