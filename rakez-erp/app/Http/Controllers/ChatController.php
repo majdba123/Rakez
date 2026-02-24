@@ -96,7 +96,7 @@ class ChatController extends Controller
             // Get messages with pagination
             $perPage = ApiResponse::getPerPage($request, 50, 100);
             $messages = $conversation->messages()
-                ->with('sender')
+
                 ->orderBy('created_at', 'desc')
                 ->paginate($perPage);
 
