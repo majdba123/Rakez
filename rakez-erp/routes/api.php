@@ -418,7 +418,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
 
                 // Chat Routes
-        Route::prefix('chat')->group(function () {
+        Route::prefix('chat')->middleware(['auth:sanctum'])->group(function () {
             Route::get('/conversations', [ChatController::class, 'index']);
             Route::get('/conversations/{userId}', [ChatController::class, 'getOrCreateConversation']);
             Route::get('/conversations/{conversationId}/messages', [ChatController::class, 'getMessages']);

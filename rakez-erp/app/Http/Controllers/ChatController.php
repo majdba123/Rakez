@@ -47,6 +47,9 @@ class ChatController extends Controller
     {
         try {
             $currentUser = $request->user();
+            if (!$currentUser) {
+                return ApiResponse::unauthorized('غير مصرح - يجب تسجيل الدخول للوصول إلى المحادثات');
+            }
 
             // Validate that user is not trying to chat with themselves
             if ($currentUser->id === $userId) {
