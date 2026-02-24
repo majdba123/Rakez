@@ -3,7 +3,7 @@
 namespace App\Services\Sales;
 
 use App\Models\SalesReservation;
-use Barryvdh\DomPDF\Facade\Pdf;
+use App\Services\Pdf\PdfFactory;
 use Illuminate\Support\Facades\Storage;
 
 class ReservationVoucherService
@@ -20,12 +20,10 @@ class ReservationVoucherService
             'employee' => $reservation->snapshot['employee'] ?? [],
         ];
 
-        $pdf = Pdf::loadView('reservations.voucher', $data);
-        
         $filename = "reservation_{$reservation->id}_voucher.pdf";
         $path = "reservations/{$filename}";
         
-        Storage::disk('public')->put($path, $pdf->output());
+        Storage::disk('public')->put($path, PdfFactory::output('reservations.voucher', $data));
         
         return $path;
     }

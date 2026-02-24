@@ -127,6 +127,14 @@ return [
             'path' => storage_path('logs/laravel.log'),
         ],
 
+        'ads' => [
+            'driver' => 'daily',
+            'path' => storage_path('logs/ads/ads.log'),
+            'level' => env('ADS_LOG_LEVEL', 'debug'),
+            'days' => 30,
+            'replace_placeholders' => true,
+        ],
+
     ],
 
 ];

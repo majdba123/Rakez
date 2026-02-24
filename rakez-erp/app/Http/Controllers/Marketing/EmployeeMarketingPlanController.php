@@ -49,10 +49,12 @@ class EmployeeMarketingPlanController extends Controller
     public function store(\App\Http\Requests\Marketing\StoreEmployeePlanRequest $request): JsonResponse
     {
         $validated = $request->validated();
-        
+
+        $userId = $validated['user_id'] ?? auth()->id();
+
         $plan = $this->planService->createPlan(
             $validated['marketing_project_id'],
-            $validated['user_id'],
+            $userId,
             $validated
         );
 
@@ -65,15 +67,31 @@ class EmployeeMarketingPlanController extends Controller
 
     public function autoGenerate(Request $request): JsonResponse
     {
+        $userId = $request->input('user_id') ?? auth()->id();
+
         $plan = $this->planService->autoGeneratePlan(
             $request->input('marketing_project_id'),
-            $request->input('user_id')
+            $userId,
+            $request->input('marketing_percent'),
+            $request->input('strategy', 'ai')
         );
 
         return response()->json([
             'success' => true,
             'message' => 'Employee marketing plan auto-generated successfully',
             'data' => $plan
+        ]);
+    }
+
+    public function suggest(Request $request, \App\Services\Marketing\MarketingPlanSuggestionService $suggestionService): JsonResponse
+    {
+        $inputs = $request->all();
+        $suggestion = $suggestionService->suggest($inputs);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Marketing plan suggestions generated successfully',
+            'data' => $suggestion
         ]);
     }
 }

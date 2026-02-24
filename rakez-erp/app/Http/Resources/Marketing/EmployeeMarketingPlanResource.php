@@ -14,11 +14,13 @@ class EmployeeMarketingPlanResource extends JsonResource
             'marketing_project_id' => $this->marketing_project_id,
             'user' => $this->user->name ?? null,
             'commission_value' => $this->commission_value,
+            'marketing_percent' => $this->marketing_percent,
             'marketing_value' => $this->marketing_value,
             'platform_distribution' => $this->platform_distribution,
             'campaign_distribution' => $this->campaign_distribution,
             'campaign_distribution_by_platform' => $this->campaign_distribution_by_platform,
             'campaigns' => $this->whenLoaded('campaigns'),
+            'breakdown' => $this->breakdown ?? null,
         ];
     }
 }

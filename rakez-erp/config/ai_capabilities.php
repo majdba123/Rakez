@@ -1,6 +1,7 @@
 <?php
 
 $salesBasePermissions = [
+    'tasks.create',
     'sales.dashboard.view',
     'sales.projects.view',
     'sales.units.view',
@@ -16,6 +17,7 @@ $salesBasePermissions = [
     'sales.targets.update',
     'sales.attendance.view',
     'notifications.view',
+    'exclusive_projects.view',
     'exclusive_projects.request',
     'exclusive_projects.contract.complete',
     'exclusive_projects.contract.export',
@@ -32,6 +34,7 @@ $salesLeaderExtraPermissions = [
     'sales.projects.allocate_shifts',
     'sales.negotiation.approve',
     'sales.payment-plan.manage',
+    'ai-calls.manage',
 ];
 
 return [
@@ -111,6 +114,7 @@ return [
         'hr.contracts.manage' => 'Create and download employee contracts.',
         'hr.reports.view' => 'Access HR reports.',
         'hr.reports.print' => 'Print performance reports.',
+        'tasks.create' => 'Create and manage tasks (إدارة المهام - إضافة مهمة، مهامي). System-wide: POST /api/tasks, GET /api/my-tasks, PATCH /api/my-tasks/{id}/status.',
 
         // Marketing
         'marketing.dashboard.view' => 'View marketing dashboard KPIs.',
@@ -133,6 +137,9 @@ return [
         // AI Assistant
         'use-ai-assistant' => 'Access the in-app AI help assistant.',
         'manage-ai-knowledge' => 'Manage AI assistant knowledge base entries.',
+
+        // AI Calling
+        'ai-calls.manage' => 'Manage AI calling system: initiate, view, retry calls and manage scripts.',
 
         // Credit
         'credit.dashboard.view' => 'View Credit department dashboard KPIs.',
@@ -255,6 +262,8 @@ return [
             'accounting.down_payment.confirm',
             'use-ai-assistant',
             'manage-ai-knowledge',
+            'tasks.create',
+            'ai-calls.manage',
         ],
         'project_management' => [
             // Staff permissions (base)
@@ -278,10 +287,13 @@ return [
             'projects.team.create',
             'projects.team.assign_leader',
             'projects.team.allocate',
+            'exclusive_projects.view',
             'exclusive_projects.request',
             'exclusive_projects.contract.complete',
             'exclusive_projects.contract.export',
+            'sales.reservations.create',
             'use-ai-assistant',
+            'tasks.create',
             // Manager permissions added dynamically when is_manager=true
         ],
         'editor' => [
@@ -292,19 +304,23 @@ return [
             'notifications.view',
             'editing.projects.view',
             'editing.media.upload',
+            'exclusive_projects.view',
             'exclusive_projects.request',
             'exclusive_projects.contract.complete',
             'exclusive_projects.contract.export',
             'use-ai-assistant',
+            'tasks.create',
         ],
         'developer' => [
             'contracts.view',
             'contracts.create',
             'notifications.view',
+            'exclusive_projects.view',
             'exclusive_projects.request',
             'exclusive_projects.contract.complete',
             'exclusive_projects.contract.export',
             'use-ai-assistant',
+            'tasks.create',
         ],
         'marketing' => [
             'marketing.dashboard.view',
@@ -317,10 +333,12 @@ return [
             'marketing.teams.view',
             'marketing.teams.manage',
             'notifications.view',
+            'exclusive_projects.view',
             'exclusive_projects.request',
             'exclusive_projects.contract.complete',
             'exclusive_projects.contract.export',
             'use-ai-assistant',
+            'tasks.create',
         ],
         'sales' => $salesBasePermissions,
         'sales_leader' => array_values(array_unique(array_merge(
@@ -339,6 +357,7 @@ return [
             'hr.reports.print',
             'notifications.view',
             'use-ai-assistant',
+            'tasks.create',
             // NO exclusive project permissions
         ],
         'credit' => [
@@ -349,10 +368,12 @@ return [
             'credit.claim_files.generate',
             'credit.payment_plan.manage',
             'notifications.view',
+            'exclusive_projects.view',
             'exclusive_projects.request',
             'exclusive_projects.contract.complete',
             'exclusive_projects.contract.export',
             'use-ai-assistant',
+            'tasks.create',
         ],
         'accounting' => [
             'contracts.view_all',
@@ -368,10 +389,12 @@ return [
             'accounting.salaries.distribute',
             'accounting.down_payment.confirm',
             'notifications.view',
+            'exclusive_projects.view',
             'exclusive_projects.request',
             'exclusive_projects.contract.complete',
             'exclusive_projects.contract.export',
             'use-ai-assistant',
+            'tasks.create',
         ],
         'inventory' => [
             // Needed for /api/inventory/* routes we added
@@ -381,11 +404,13 @@ return [
             'second_party.view',
             'notifications.view',
             'use-ai-assistant',
+            'tasks.create',
         ],
         'default' => [
             'contracts.view',
             'notifications.view',
             'use-ai-assistant',
+            'tasks.create',
         ],
     ],
 ];

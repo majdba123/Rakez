@@ -7,7 +7,7 @@ use App\Models\EmployeeContract;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
-use Barryvdh\DomPDF\Facade\Pdf;
+use App\Services\Pdf\PdfFactory;
 use Exception;
 
 class EmployeeContractService
@@ -96,8 +96,6 @@ class EmployeeContractService
             'generated_at' => now()->format('Y-m-d H:i:s'),
         ];
 
-        $pdf = Pdf::loadView('contracts.employee', $data);
-
         $filename = sprintf(
             'contracts/employee_%d_contract_%d_%s.pdf',
             $user->id,
@@ -105,7 +103,7 @@ class EmployeeContractService
             now()->format('Ymd_His')
         );
 
-        Storage::disk('public')->put($filename, $pdf->output());
+        Storage::disk('public')->put($filename, PdfFactory::output('contracts.employee', $data));
 
         $contract->update(['pdf_path' => $filename]);
 

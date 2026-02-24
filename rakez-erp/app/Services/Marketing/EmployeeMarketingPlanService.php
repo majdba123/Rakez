@@ -28,25 +28,44 @@ class EmployeeMarketingPlanService
 
     public function createPlan($marketingProjectId, $userId, $inputs)
     {
-        $commissionValue = $inputs['commission_value'] ?? 0;
-        $marketingValue = $inputs['marketing_value'] ?? 0;
+        $project = MarketingProject::with('contract.info')->findOrFail($marketingProjectId);
+        $contract = $project->contract;
+
+        $commissionValue = $inputs['commission_value'] ?? null;
+
+        if ($commissionValue === null) {
+            $availableUnitsValue = ContractUnit::where('second_party_data_id', $contract->secondPartyData->id ?? 0)
+                ->where('status', 'available')
+                ->sum('price');
+            $commissionPercent = $contract->info->commission_percent ?? 0;
+            $commissionValue = $this->calculateCommissionValue($availableUnitsValue, $commissionPercent);
+        }
+
+        $marketingPercent = $inputs['marketing_percent'] ?? 10;
+        $marketingValue = $this->calculateMarketingValue((float) $commissionValue, (float) $marketingPercent);
 
         $platformDistribution = $this->normalizeDistribution(
             $inputs['platform_distribution'] ?? $this->buildEqualDistribution(self::PLATFORMS),
             self::PLATFORMS
         );
-        $campaignDistribution = $this->normalizeDistribution(
-            $inputs['campaign_distribution'] ?? $this->buildEqualDistribution(self::CAMPAIGNS),
-            self::CAMPAIGNS
-        );
+        
         $campaignDistributionByPlatform = $this->normalizeCampaignDistributionByPlatform(
             $inputs['campaign_distribution_by_platform'] ?? null
         );
+
+        // Derive campaign_distribution if not provided
+        $campaignDistribution = $inputs['campaign_distribution'] ?? null;
+        if (!$campaignDistribution) {
+            $campaignDistribution = $this->deriveCampaignDistribution($platformDistribution, $campaignDistributionByPlatform);
+        } else {
+            $campaignDistribution = $this->normalizeDistribution($campaignDistribution, self::CAMPAIGNS);
+        }
 
         $plan = EmployeeMarketingPlan::create([
             'marketing_project_id' => $marketingProjectId,
             'user_id' => $userId,
             'commission_value' => $commissionValue,
+            'marketing_percent' => $marketingPercent,
             'marketing_value' => $marketingValue,
             'platform_distribution' => $platformDistribution,
             'campaign_distribution' => $campaignDistribution,
@@ -61,7 +80,31 @@ class EmployeeMarketingPlanService
             }
         }
 
+        $breakdownService = app(MarketingDistributionBreakdownService::class);
+        $breakdown = $breakdownService->breakdownAll($marketingValue, $platformDistribution, $campaignDistributionByPlatform);
+
+        $plan->breakdown = $breakdown;
+
         return $plan;
+    }
+
+    private function deriveCampaignDistribution(array $platformDistribution, array $campaignDistributionByPlatform): array
+    {
+        $derived = [];
+        foreach (self::CAMPAIGNS as $campaign) {
+            $derived[$campaign] = 0.0;
+        }
+
+        foreach ($platformDistribution as $platform => $platformPercent) {
+            $campaigns = $campaignDistributionByPlatform[$platform] ?? [];
+            foreach ($campaigns as $campaign => $campaignPercent) {
+                if (isset($derived[$campaign])) {
+                    $derived[$campaign] += ($platformPercent / 100) * $campaignPercent;
+                }
+            }
+        }
+
+        return $derived;
     }
 
     public function calculateCommissionValue($availableUnitsValue, $commissionPercent)
@@ -83,7 +126,7 @@ class EmployeeMarketingPlanService
         return $distribution;
     }
 
-    public function autoGeneratePlan($marketingProjectId, $userId)
+    public function autoGeneratePlan($marketingProjectId, $userId, $marketingPercent = null, $strategy = 'ai')
     {
         $project = MarketingProject::with('contract.info')->findOrFail($marketingProjectId);
         $contract = $project->contract;
@@ -96,19 +139,29 @@ class EmployeeMarketingPlanService
         $commissionPercent = $contract->info->commission_percent ?? 2.5;
         $commissionValue = $this->calculateCommissionValue($availableUnitsValue, $commissionPercent);
         
-        // Default marketing percent 10% of commission
-        $marketingPercent = 10;
+        $marketingPercent = $marketingPercent ?? 10;
         $marketingValue = $this->calculateMarketingValue($commissionValue, $marketingPercent);
 
-        $platformDistribution = $this->buildEqualDistribution(self::PLATFORMS);
-        $campaignDistribution = $this->buildEqualDistribution(self::CAMPAIGNS);
-        $campaignDistributionByPlatform = [];
-        foreach (self::PLATFORMS as $platform) {
-            $campaignDistributionByPlatform[$platform] = $campaignDistribution;
+        if ($strategy === 'ai') {
+            $suggestionService = app(MarketingPlanSuggestionService::class);
+            $suggestion = $suggestionService->suggest([
+                'marketing_value' => $marketingValue,
+            ]);
+            $platformDistribution = $suggestion['platform_distribution'];
+            $campaignDistribution = $suggestion['campaign_distribution'];
+            $campaignDistributionByPlatform = $suggestion['campaign_distribution_by_platform'];
+        } else {
+            $platformDistribution = $this->buildEqualDistribution(self::PLATFORMS);
+            $campaignDistribution = $this->buildEqualDistribution(self::CAMPAIGNS);
+            $campaignDistributionByPlatform = [];
+            foreach (self::PLATFORMS as $platform) {
+                $campaignDistributionByPlatform[$platform] = $campaignDistribution;
+            }
         }
 
         return $this->createPlan($marketingProjectId, $userId, [
             'commission_value' => $commissionValue,
+            'marketing_percent' => $marketingPercent,
             'marketing_value' => $marketingValue,
             'platform_distribution' => $platformDistribution,
             'campaign_distribution' => $campaignDistribution,

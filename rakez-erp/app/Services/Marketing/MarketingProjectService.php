@@ -9,18 +9,28 @@ use App\Models\ContractInfo;
 class MarketingProjectService
 {
     /**
+     * Contract status used for "completed" contracts in marketing context.
+     * Requirements refer to "projects with completed contracts"; in this system
+     * that is represented by contract status 'approved'.
+     */
+    public const COMPLETED_CONTRACT_STATUS = 'approved';
+
+    /**
+     * Get marketing projects whose contracts are completed (approved).
+     *
      * @param int $perPage
      * @return \Illuminate\Contracts\Pagination\LengthAwarePaginator
      */
     public function getProjectsWithCompletedContracts(int $perPage = 15)
     {
         return MarketingProject::whereHas('contract', function ($query) {
-                $query->where('status', 'approved');
+                $query->where('status', self::COMPLETED_CONTRACT_STATUS);
             })
             ->with([
                 'contract.info',
                 'contract.projectMedia',
                 'contract.secondPartyData',
+                'contract.units',
                 'teamLeader',
             ])
             ->orderBy('created_at', 'desc')
@@ -35,8 +45,41 @@ class MarketingProjectService
             'marketingProject.developerPlan',
             'marketingProject.employeePlans.user',
             'marketingProject.expectedBooking',
-            'projectMedia'
+            'projectMedia',
+            'units',
         ])->findOrFail($contractId);
+    }
+
+    /**
+     * Get summary fields for a contract (location, contract_number, units_count, pricing, etc.)
+     * for use in list and detail API responses.
+     */
+    public function getContractSummaryFields(Contract $contract): array
+    {
+        $contract->loadMissing(['info', 'units']);
+        $info = $contract->info;
+        $units = collect($contract->units ?? []);
+        $availableUnits = $units->where('status', 'available');
+        $pendingUnits = $units->where('status', 'pending');
+
+        $locationParts = array_filter([$contract->city ?? null, $contract->district ?? null]);
+        $location = $locationParts ? trim(implode(', ', $locationParts)) : null;
+
+        return [
+            'location' => $location,
+            'city' => $contract->city ?? null,
+            'district' => $contract->district ?? null,
+            'contract_number' => $info?->contract_number ?? null,
+            'units_count' => [
+                'available' => $availableUnits->count(),
+                'pending' => $pendingUnits->count(),
+            ],
+            'avg_unit_price' => $info ? (float) ($info->avg_property_value ?? 0) : 0,
+            'commission_percent' => $info ? (float) ($info->commission_percent ?? 0) : 0,
+            'total_available_value' => (float) $availableUnits->sum('price'),
+            'advertiser_number' => (!empty($info?->agency_number)) ? 'Available' : 'Pending',
+            'advertiser_number_value' => $info?->agency_number ?? null,
+        ];
     }
 
     public function calculateCampaignBudget($contractId, $inputs)
@@ -46,16 +89,20 @@ class MarketingProjectService
 
         $unitPrice = $inputs['unit_price'] ?? ($info->avg_property_value ?? 0);
         $commissionPercent = $info->commission_percent ?? 0;
-        $marketingPercent = 10; // Fixed 10% as per requirements
-
+        
         $commissionValue = $unitPrice * ($commissionPercent / 100);
+
+        // Get marketing percent from inputs, or fallback to 10%
+        $marketingPercent = isset($inputs['marketing_percent']) ? (float) $inputs['marketing_percent'] : 10;
         $marketingValue = $commissionValue * ($marketingPercent / 100);
 
         $durationDays = (int) ($info->agreement_duration_days ?? 30);
         $durationMonths = $this->resolveDurationMonths($info, $durationDays);
 
         return [
+            'commission_percent' => $commissionPercent,
             'commission_value' => $commissionValue,
+            'marketing_percent' => $marketingPercent,
             'marketing_value' => $marketingValue,
             'daily_budget' => $this->calculateDailyBudget($marketingValue, $durationDays),
             'monthly_budget' => $this->calculateMonthlyBudget($marketingValue, $durationMonths),

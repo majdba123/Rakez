@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\ExclusiveProjectRequest;
+use App\Models\ExclusiveProjectRequestUnit;
 use App\Models\Contract;
 use App\Models\User;
 use App\Models\AdminNotification;
@@ -12,38 +13,76 @@ use App\Events\UserNotificationEvent;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Pagination\LengthAwarePaginator;
-use Barryvdh\DomPDF\Facade\Pdf;
+use App\Services\Pdf\PdfFactory;
 use Exception;
 
 class ExclusiveProjectService
 {
     /**
      * Create a new exclusive project request.
+     * Supports multiple unit types via 'units' array; otherwise uses legacy single unit fields.
      */
     public function createRequest(array $data, User $user): ExclusiveProjectRequest
     {
         DB::beginTransaction();
 
         try {
-            $request = ExclusiveProjectRequest::create([
-                'requested_by' => $user->id,
-                'project_name' => $data['project_name'],
-                'developer_name' => $data['developer_name'],
-                'developer_contact' => $data['developer_contact'],
-                'project_description' => $data['project_description'] ?? null,
-                'estimated_units' => $data['estimated_units'] ?? null,
-                'location_city' => $data['location_city'],
-                'location_district' => $data['location_district'] ?? null,
-                'status' => 'pending',
-            ]);
+            $unitsInput = $data['units'] ?? null;
+            $hasUnitsArray = is_array($unitsInput) && count($unitsInput) > 0;
+
+            if ($hasUnitsArray) {
+                $estimatedUnits = 0;
+                $totalValue = 0;
+                foreach ($unitsInput as $row) {
+                    $count = (int) ($row['count'] ?? 0);
+                    $price = isset($row['average_price']) ? (float) $row['average_price'] : 0;
+                    $estimatedUnits += $count;
+                    $totalValue += $count * $price;
+                }
+                $request = ExclusiveProjectRequest::create([
+                    'requested_by' => $user->id,
+                    'project_name' => $data['project_name'],
+                    'developer_name' => $data['developer_name'],
+                    'developer_contact' => $data['developer_contact'],
+                    'project_description' => $data['project_description'] ?? null,
+                    'estimated_units' => $estimatedUnits,
+                    'unit_type' => null,
+                    'estimated_unit_price' => null,
+                    'total_value' => $totalValue > 0 ? $totalValue : null,
+                    'location_city' => $data['location_city'],
+                    'location_district' => $data['location_district'] ?? null,
+                    'status' => 'pending',
+                ]);
+                foreach ($unitsInput as $row) {
+                    ExclusiveProjectRequestUnit::create([
+                        'exclusive_project_request_id' => $request->id,
+                        'unit_type' => $row['unit_type'] ?? '',
+                        'count' => (int) ($row['count'] ?? 0),
+                        'average_price' => isset($row['average_price']) ? (float) $row['average_price'] : null,
+                    ]);
+                }
+            } else {
+                $request = ExclusiveProjectRequest::create([
+                    'requested_by' => $user->id,
+                    'project_name' => $data['project_name'],
+                    'developer_name' => $data['developer_name'],
+                    'developer_contact' => $data['developer_contact'],
+                    'project_description' => $data['project_description'] ?? null,
+                    'estimated_units' => $data['estimated_units'] ?? null,
+                    'unit_type' => $data['unit_type'] ?? null,
+                    'estimated_unit_price' => $data['estimated_unit_price'] ?? null,
+                    'total_value' => $data['total_value'] ?? null,
+                    'location_city' => $data['location_city'],
+                    'location_district' => $data['location_district'] ?? null,
+                    'status' => 'pending',
+                ]);
+            }
 
             DB::commit();
 
-            // Notify project management managers
             $this->notifyManagers($request);
 
-            return $request->fresh(['requestedBy']);
-
+            return $request->fresh(['requestedBy', 'requestUnits']);
         } catch (Exception $e) {
             DB::rollBack();
             throw $e;
@@ -55,7 +94,7 @@ class ExclusiveProjectService
      */
     public function getRequests(array $filters = [], int $perPage = 15): LengthAwarePaginator
     {
-        $query = ExclusiveProjectRequest::with(['requestedBy', 'approvedBy', 'contract']);
+        $query = ExclusiveProjectRequest::with(['requestedBy', 'approvedBy', 'contract', 'requestUnits']);
 
         // Filter by status
         if (isset($filters['status'])) {
@@ -83,7 +122,7 @@ class ExclusiveProjectService
      */
     public function getRequest(int $id): ExclusiveProjectRequest
     {
-        return ExclusiveProjectRequest::with(['requestedBy', 'approvedBy', 'contract'])
+        return ExclusiveProjectRequest::with(['requestedBy', 'approvedBy', 'contract', 'requestUnits'])
             ->findOrFail($id);
     }
 
@@ -206,16 +245,12 @@ class ExclusiveProjectService
             throw new Exception('Contract is not completed yet');
         }
 
-        // Generate PDF
-        $pdf = Pdf::loadView('pdfs.exclusive_project_contract', [
-            'request' => $request,
-            'contract' => $request->contract,
-        ]);
-
-        // Save PDF to storage
         $filename = "exclusive_project_contract_{$request->id}_" . time() . ".pdf";
         $path = "contracts/exclusive/{$filename}";
-        Storage::put($path, $pdf->output());
+        Storage::put($path, PdfFactory::output('pdfs.exclusive_project_contract', [
+            'request' => $request,
+            'contract' => $request->contract,
+        ]));
 
         // Update request with PDF path
         $request->update(['contract_pdf_path' => $path]);

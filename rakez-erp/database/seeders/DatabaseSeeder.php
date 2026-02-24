@@ -19,6 +19,7 @@ class DatabaseSeeder extends Seeder
             CommissionRolesSeeder::class,
             TeamsSeeder::class,
             UsersSeeder::class,
+            TasksSeeder::class,
             AssistantKnowledgeSalesSeeder::class,
             ContractsSeeder::class,
             MarketingSeeder::class,
@@ -29,6 +30,7 @@ class DatabaseSeeder extends Seeder
             HRSeeder::class,
             AISeeder::class,
             NotificationsSeeder::class,
+            AiCallScriptSeeder::class,
             // Add other seeders here
         ]);
     }

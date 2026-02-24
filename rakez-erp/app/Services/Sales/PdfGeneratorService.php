@@ -4,7 +4,7 @@ namespace App\Services\Sales;
 
 use App\Models\Commission;
 use App\Models\Deposit;
-use Barryvdh\DomPDF\Facade\Pdf;
+use App\Services\Pdf\PdfFactory;
 use Illuminate\Support\Facades\Storage;
 
 class PdfGeneratorService
@@ -22,12 +22,10 @@ class PdfGeneratorService
             'generated_at' => now()->format('Y-m-d H:i:s'),
         ];
 
-        $pdf = Pdf::loadView('pdfs.commission-claim', $data);
-        
         $filename = "commission_claim_{$commission->id}_" . time() . ".pdf";
         $path = "commissions/claims/{$filename}";
         
-        Storage::disk('public')->put($path, $pdf->output());
+        Storage::disk('public')->put($path, PdfFactory::output('pdfs.commission-claim', $data));
         
         return $path;
     }
@@ -44,12 +42,10 @@ class PdfGeneratorService
             'generated_at' => now()->format('Y-m-d H:i:s'),
         ];
 
-        $pdf = Pdf::loadView('pdfs.deposit-claim', $data);
-        
         $filename = "deposit_claim_{$deposit->id}_" . time() . ".pdf";
         $path = "deposits/claims/{$filename}";
         
-        Storage::disk('public')->put($path, $pdf->output());
+        Storage::disk('public')->put($path, PdfFactory::output('pdfs.deposit-claim', $data));
         
         return $path;
     }

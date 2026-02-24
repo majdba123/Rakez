@@ -1,176 +1,66 @@
-<!DOCTYPE html>
-<html lang="ar" dir="rtl">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>عقد مشروع حصري - Exclusive Project Contract</title>
-    <style>
-        body {
-            font-family: 'DejaVu Sans', sans-serif;
-            direction: rtl;
-            text-align: right;
-            padding: 20px;
-            line-height: 1.6;
-        }
-        .header {
-            text-align: center;
-            margin-bottom: 30px;
-            border-bottom: 2px solid #333;
-            padding-bottom: 20px;
-        }
-        .header h1 {
-            color: #2c3e50;
-            margin: 0;
-        }
-        .section {
-            margin-bottom: 25px;
-        }
-        .section-title {
-            background-color: #f8f9fa;
-            padding: 10px;
-            border-right: 4px solid #3498db;
-            font-weight: bold;
-            font-size: 16px;
-            margin-bottom: 10px;
-        }
-        .info-row {
-            display: flex;
-            justify-content: space-between;
-            padding: 8px 0;
-            border-bottom: 1px solid #eee;
-        }
-        .info-label {
-            font-weight: bold;
-            color: #555;
-        }
-        .info-value {
-            color: #333;
-        }
-        .footer {
-            margin-top: 50px;
-            padding-top: 20px;
-            border-top: 2px solid #333;
-            text-align: center;
-            font-size: 12px;
-            color: #777;
-        }
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 10px;
-        }
-        table th, table td {
-            border: 1px solid #ddd;
-            padding: 10px;
-            text-align: center;
-        }
-        table th {
-            background-color: #3498db;
-            color: white;
-        }
-    </style>
-</head>
-<body>
-    <div class="header">
-        <h1>عقد مشروع حصري</h1>
-        <h2>Exclusive Project Contract</h2>
-        <p>رقم الطلب: {{ $request->id }}</p>
-        <p>التاريخ: {{ now()->format('Y-m-d') }}</p>
-    </div>
+@extends('layouts.pdf')
 
-    <div class="section">
-        <div class="section-title">معلومات المشروع - Project Information</div>
-        <div class="info-row">
-            <span class="info-label">اسم المشروع - Project Name:</span>
-            <span class="info-value">{{ $request->project_name }}</span>
-        </div>
-        <div class="info-row">
-            <span class="info-label">اسم المطور - Developer Name:</span>
-            <span class="info-value">{{ $request->developer_name }}</span>
-        </div>
-        <div class="info-row">
-            <span class="info-label">رقم التواصل - Contact Number:</span>
-            <span class="info-value">{{ $request->developer_contact }}</span>
-        </div>
-        <div class="info-row">
-            <span class="info-label">المدينة - City:</span>
-            <span class="info-value">{{ $request->location_city }}</span>
-        </div>
+@section('title', 'عقد مشروع حصري - Exclusive Project Contract')
+
+@section('content')
+    <p class="doc-title">عقد مشروع حصري</p>
+    <p class="doc-title-en">Exclusive Project Contract</p>
+    <p class="doc-subtitle">رقم الطلب: {{ $request->id }} | التاريخ: {{ now()->format('Y-m-d') }}</p>
+
+    <p class="section-title">&#9670; معلومات المشروع / Project Information</p>
+    <table class="info-table">
+        <tr><td>اسم المشروع / Project Name</td><td>{{ $request->project_name }}</td></tr>
+        <tr><td>اسم المطور / Developer Name</td><td>{{ $request->developer_name }}</td></tr>
+        <tr><td>رقم التواصل / Contact Number</td><td>{{ $request->developer_contact }}</td></tr>
+        <tr><td>المدينة / City</td><td>{{ $request->location_city }}</td></tr>
         @if($request->location_district)
-        <div class="info-row">
-            <span class="info-label">الحي - District:</span>
-            <span class="info-value">{{ $request->location_district }}</span>
-        </div>
+        <tr><td>الحي / District</td><td>{{ $request->location_district }}</td></tr>
         @endif
         @if($request->estimated_units)
-        <div class="info-row">
-            <span class="info-label">عدد الوحدات المتوقع - Estimated Units:</span>
-            <span class="info-value">{{ $request->estimated_units }}</span>
-        </div>
+        <tr><td>عدد الوحدات المتوقع / Estimated Units</td><td>{{ $request->estimated_units }}</td></tr>
         @endif
-    </div>
+    </table>
 
     @if($request->project_description)
-    <div class="section">
-        <div class="section-title">وصف المشروع - Project Description</div>
-        <p>{{ $request->project_description }}</p>
-    </div>
+    <p class="section-title">&#9670; وصف المشروع / Project Description</p>
+    <p style="font-size: 10px; padding: 5px; background: #f9f9f9; border: 1px solid #eee;">{{ $request->project_description }}</p>
     @endif
 
     @if($contract && $contract->units)
-    <div class="section">
-        <div class="section-title">الوحدات - Units</div>
-        <table>
-            <thead>
-                <tr>
-                    <th>النوع - Type</th>
-                    <th>العدد - Count</th>
-                    <th>السعر - Price</th>
-                    <th>الإجمالي - Total</th>
-                </tr>
-            </thead>
-            <tbody>
-                @foreach($contract->units as $unit)
-                <tr>
-                    <td>{{ $unit['type'] }}</td>
-                    <td>{{ $unit['count'] }}</td>
-                    <td>{{ number_format($unit['price'], 2) }} ريال</td>
-                    <td>{{ number_format($unit['count'] * $unit['price'], 2) }} ريال</td>
-                </tr>
-                @endforeach
-            </tbody>
-        </table>
-    </div>
+    <p class="section-title">&#9670; الوحدات / Units</p>
+    <table class="data-table">
+        <thead>
+            <tr>
+                <th>النوع / Type</th>
+                <th>العدد / Count</th>
+                <th>السعر / Price</th>
+                <th>الإجمالي / Total</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach($contract->units as $unit)
+            <tr>
+                <td>{{ $unit['type'] }}</td>
+                <td>{{ $unit['count'] }}</td>
+                <td>{{ number_format($unit['price'], 2) }} ريال</td>
+                <td>{{ number_format($unit['count'] * $unit['price'], 2) }} ريال</td>
+            </tr>
+            @endforeach
+        </tbody>
+    </table>
     @endif
 
-    <div class="section">
-        <div class="section-title">معلومات الموافقة - Approval Information</div>
-        <div class="info-row">
-            <span class="info-label">تم الطلب بواسطة - Requested By:</span>
-            <span class="info-value">{{ $request->requestedBy->name }}</span>
-        </div>
+    <p class="section-title">&#9670; معلومات الموافقة / Approval Information</p>
+    <table class="info-table">
+        <tr><td>تم الطلب بواسطة / Requested By</td><td>{{ $request->requestedBy->name }}</td></tr>
         @if($request->approvedBy)
-        <div class="info-row">
-            <span class="info-label">تمت الموافقة بواسطة - Approved By:</span>
-            <span class="info-value">{{ $request->approvedBy->name }}</span>
-        </div>
-        <div class="info-row">
-            <span class="info-label">تاريخ الموافقة - Approval Date:</span>
-            <span class="info-value">{{ $request->approved_at->format('Y-m-d') }}</span>
-        </div>
+        <tr><td>تمت الموافقة بواسطة / Approved By</td><td>{{ $request->approvedBy->name }}</td></tr>
+        <tr><td>تاريخ الموافقة / Approval Date</td><td>{{ $request->approved_at->format('Y-m-d') }}</td></tr>
         @endif
         @if($request->contract_completed_at)
-        <div class="info-row">
-            <span class="info-label">تاريخ إكمال العقد - Contract Completion Date:</span>
-            <span class="info-value">{{ $request->contract_completed_at->format('Y-m-d') }}</span>
-        </div>
+        <tr><td>تاريخ إكمال العقد / Completion Date</td><td>{{ $request->contract_completed_at->format('Y-m-d') }}</td></tr>
         @endif
-    </div>
+    </table>
 
-    <div class="footer">
-        <p>هذا المستند تم إنشاؤه تلقائياً من نظام إدارة المشاريع</p>
-        <p>This document was automatically generated from the Project Management System</p>
-        <p>تاريخ الطباعة: {{ now()->format('Y-m-d H:i:s') }}</p>
-    </div>
-</body>
-</html>
+    <p class="auto-msg">هذا المستند تم إنشاؤه تلقائياً من نظام إدارة المشاريع | تاريخ الطباعة: {{ now()->format('Y-m-d H:i:s') }}</p>
+@endsection

@@ -185,4 +185,120 @@ return [
             'What is the status of task Z?',
         ],
     ],
+    'sales' => [
+        'label' => 'Sales',
+        'required_capabilities' => ['sales.dashboard.view'],
+        'allowed_context_params' => [],
+        'suggestions' => [
+            'كيف أحسن نسبة الإغلاق؟',
+            'وش أفضل طريقة أتابع العملاء؟',
+            'كيف أحسب العمولة؟',
+        ],
+    ],
+    'hr' => [
+        'label' => 'Human Resources',
+        'required_capabilities' => ['hr.dashboard.view'],
+        'allowed_context_params' => [],
+        'suggestions' => [
+            'وش المهارات المطلوبة لمستشار مبيعات؟',
+            'كيف أقيّم أداء الموظف؟',
+            'كم التكلفة الشهرية للموظف؟',
+        ],
+    ],
+    'credit' => [
+        'label' => 'Credit & Financing',
+        'required_capabilities' => ['credit.dashboard.view'],
+        'allowed_context_params' => [],
+        'suggestions' => [
+            'كيف أحسب القسط الشهري للتمويل؟',
+            'وش مراحل التمويل البنكي؟',
+            'كم الحد الأدنى للراتب للتمويل؟',
+        ],
+    ],
+    'accounting' => [
+        'label' => 'Accounting',
+        'required_capabilities' => ['accounting.dashboard.view'],
+        'allowed_context_params' => [],
+        'suggestions' => [
+            'كيف أوزع العمولات على الفريق؟',
+            'كيف أتابع الإيداعات؟',
+            'وش حالة الرواتب هالشهر؟',
+        ],
+    ],
+    'campaign_advisor' => [
+        'label' => 'Campaign Advisor',
+        'required_capabilities' => ['marketing.dashboard.view'],
+        'allowed_context_params' => [],
+        'suggestions' => [
+            'عندي ميزانية 50 ألف، وش أفضل توزيع؟',
+            'كم ليد أتوقع من 30 ألف بسناب شات؟',
+            'قارن لي بين القنوات الإعلانية.',
+        ],
+    ],
+    'hiring_advisor' => [
+        'label' => 'Hiring Advisor',
+        'required_capabilities' => ['hr.employees.manage'],
+        'allowed_context_params' => [],
+        'suggestions' => [
+            'وش الأسئلة المهمة بمقابلة مستشار مبيعات؟',
+            'كيف أبني فريق تسويق لـ 3 مشاريع؟',
+            'كم تكلفة موظف التسويق الشهرية؟',
+        ],
+    ],
+    'smart_distribution' => [
+        'label' => 'Smart Budget Distribution',
+        'required_capabilities' => ['marketing.dashboard.view'],
+        'allowed_context_params' => ['budget', 'goal', 'project_type'],
+        'context_schema' => [
+            'budget' => 'numeric|min:0',
+            'goal' => 'string|in:awareness,leads,bookings',
+            'project_type' => 'string|in:on_map,ready,exclusive,luxury',
+        ],
+        'suggestions' => [
+            'وزع لي 100 ألف ميزانية تسويق على المنصات',
+            'وش أفضل توزيع لميزانية حملة ليدات؟',
+            'قارن أداء المنصات وأعطني توصية ميزانية',
+        ],
+    ],
+    'employee_recommendation' => [
+        'label' => 'Employee Recommendation',
+        'required_capabilities' => ['sales.team.manage'],
+        'allowed_context_params' => ['project_id', 'project_type'],
+        'context_schema' => [
+            'project_id' => 'int|min:1',
+            'project_type' => 'string|in:on_map,ready,exclusive,luxury',
+        ],
+        'suggestions' => [
+            'رشّح لي أفضل 5 موظفين لمشروع جديد',
+            'مين أفضل الموظفين لمشاريع الخارطة؟',
+            'قيّم أداء فريق المبيعات',
+        ],
+    ],
+    'campaign_funnel' => [
+        'label' => 'Campaign Funnel Analytics',
+        'required_capabilities' => ['marketing.dashboard.view'],
+        'allowed_context_params' => ['platform', 'project_id'],
+        'context_schema' => [
+            'platform' => 'string|in:meta,snap,tiktok',
+            'project_id' => 'int|min:1',
+        ],
+        'suggestions' => [
+            'حلل لي قمع التسويق الكامل',
+            'وين عنق الزجاجة بالحملات؟',
+            'قارن أداء المنصات بالتفصيل',
+        ],
+    ],
+    'roas_optimizer' => [
+        'label' => 'ROAS Optimizer',
+        'required_capabilities' => ['marketing.dashboard.view', 'accounting.dashboard.view'],
+        'allowed_context_params' => ['platform'],
+        'context_schema' => [
+            'platform' => 'string|in:meta,snap,tiktok',
+        ],
+        'suggestions' => [
+            'وش عائد الإنفاق الإعلاني الفعلي؟',
+            'كم تكلفة الحصول على صفقة مغلقة؟',
+            'حلل كفاءة الإنفاق التسويقي',
+        ],
+    ],
 ];
