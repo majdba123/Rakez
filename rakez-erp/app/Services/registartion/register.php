@@ -65,6 +65,7 @@ class register
                 5 => 'sales',
                 6 => 'accounting',
                 7 => 'credit',
+                8 => 'inventory'
             ];
 
             if (!isset($data['type']) || !array_key_exists($data['type'], $typeNames)) {
