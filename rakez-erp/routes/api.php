@@ -458,6 +458,9 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::patch('/conversations/{conversationId}/read', [ChatController::class, 'markAsRead']);
             Route::delete('/messages/{messageId}', [ChatController::class, 'deleteMessage']);
             Route::get('/unread-count', [ChatController::class, 'getUnreadCount']);
+
+            Route::get('/list_user', [RegisterController::class, 'list_employees']);
+
         });
 
 

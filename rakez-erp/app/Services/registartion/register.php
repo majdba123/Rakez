@@ -138,13 +138,23 @@ class register
             $query->where('type', $typeFilter);
         }
 
-        // Filter by name (search)
+        // Filter by search (name, email, or phone)
         if (isset($filters['search'])) {
             $query->where(function ($q) use ($filters) {
                 $q->where('name', 'like', '%' . $filters['search'] . '%')
                   ->orWhere('email', 'like', '%' . $filters['search'] . '%')
                   ->orWhere('phone', 'like', '%' . $filters['search'] . '%');
             });
+        }
+
+        // Filter by name (partial match)
+        if (!empty($filters['name'])) {
+            $query->where('name', 'like', '%' . $filters['name'] . '%');
+        }
+
+        // Filter by email (partial match)
+        if (!empty($filters['email'])) {
+            $query->where('email', 'like', '%' . $filters['email'] . '%');
         }
 
         // Filter by status
