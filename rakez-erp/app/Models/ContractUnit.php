@@ -38,6 +38,14 @@ class ContractUnit extends Model
     }
 
     /**
+     * Accessor: get the parent contract via secondPartyData.
+     */
+    public function getContractAttribute()
+    {
+        return $this->secondPartyData?->contract;
+    }
+
+    /**
      * Get the sales reservations for this unit.
      */
     public function salesReservations()

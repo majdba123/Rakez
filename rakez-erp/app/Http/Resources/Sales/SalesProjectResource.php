@@ -17,7 +17,14 @@ class SalesProjectResource extends JsonResource
             ?? $this->user?->team
             ?? 'N/A';
 
-        $status = $this->sales_status ?? 'pending';
+        $salesStatus = $this->sales_status ?? 'pending';
+        $contractStatus = $this->status;
+        $isReady = in_array($contractStatus, ['ready', 'approved']);
+        $totalUnits = (int) ($this->total_units ?? 0);
+        $availableUnits = (int) ($this->available_units ?? 0);
+        $reservedUnits = (int) ($this->reserved_units ?? 0);
+        $soldUnits = max(0, $totalUnits - $availableUnits - $reservedUnits);
+        $soldUnitsPercent = $totalUnits > 0 ? (int) round(($soldUnits / $totalUnits) * 100) : 0;
 
         return [
             'contract_id' => $this->id,
@@ -27,13 +34,28 @@ class SalesProjectResource extends JsonResource
             'location' => "{$this->city}, {$this->district}",
             'city' => $this->city,
             'district' => $this->district,
-            'sales_status' => $status,
-            'project_status_label_ar' => $status === 'available' ? 'متاح' : 'قيد الانتظار',
-            'total_units' => $this->total_units ?? 0,
-            'available_units' => $this->available_units ?? 0,
-            'reserved_units' => $this->reserved_units ?? 0,
+            'contract_status' => $contractStatus,
+            'is_ready' => $isReady,
+            'sales_status' => $salesStatus,
+            'project_status_label_ar' => self::arabicStatusLabel($salesStatus, $isReady),
+            'total_units' => $totalUnits,
+            'available_units' => $availableUnits,
+            'reserved_units' => $reservedUnits,
+            'sold_units' => $soldUnits,
+            'sold_units_percent' => $soldUnitsPercent,
+            'preparation_progress_percent' => 0,
+            'preparation_progress_label_ar' => 'N/A',
             'remaining_days' => $this->remaining_days,
             'created_at' => $this->created_at?->toIso8601String(),
         ];
+    }
+
+    public static function arabicStatusLabel(string $salesStatus, bool $isReady): string
+    {
+        if (!$isReady) {
+            return 'غير جاهز - تتبع الأوراق';
+        }
+
+        return $salesStatus === 'available' ? 'جاهز - متاح للبيع' : 'قيد الانتظار';
     }
 }

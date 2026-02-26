@@ -3,20 +3,15 @@
 namespace App\Http\Controllers\HR;
 
 use App\Http\Controllers\Controller;
-use App\Http\Responses\ApiResponse;
 use App\Models\User;
-use App\Services\Registration\RegisterService;
-use Exception;
+use App\Services\registartion\register as RegisterService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
+use Exception;
 
-/**
- * HR employee/user management. This is the source of truth for HR module (تبويبة إدارة المستخدمين).
- * Prefer these endpoints over api/employees/* for HR flows; api/employees/* is legacy/registration.
- */
 class HrUserController extends Controller
 {
     protected RegisterService $registerService;
@@ -66,21 +61,25 @@ class HrUserController extends Controller
             $sortOrder = $request->input('sort_order', 'desc');
             $query->orderBy($sortBy, $sortOrder);
 
-            $perPage = ApiResponse::getPerPage($request, 15, 100);
+            $perPage = min((int) $request->input('per_page', 15), 100);
             $users = $query->paginate($perPage);
 
-            return ApiResponse::success($users->items(), 'تم جلب قائمة الموظفين بنجاح', 200, [
-                'pagination' => [
+            return response()->json([
+                'success' => true,
+                'message' => 'تم جلب قائمة الموظفين بنجاح',
+                'data' => $users->items(),
+                'meta' => [
                     'total' => $users->total(),
-                    'count' => $users->count(),
                     'per_page' => $users->perPage(),
                     'current_page' => $users->currentPage(),
-                    'total_pages' => $users->lastPage(),
-                    'has_more_pages' => $users->hasMorePages(),
+                    'last_page' => $users->lastPage(),
                 ],
-            ]);
+            ], 200);
         } catch (Exception $e) {
-            return ApiResponse::serverError($e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage(),
+            ], 500);
         }
     }
 
@@ -98,46 +97,70 @@ class HrUserController extends Controller
                 'salesTargetsAsMarketer',
             ])->findOrFail($id);
 
-            $data = [
-                'id' => $user->id,
-                'name' => $user->name,
-                'birthday' => $user->birthday,
-                'birthday_hijri' => $user->birthday_hijri,
-                'phone' => $user->phone,
-                'identity_number' => $user->identity_number,
-                'nationality' => $user->nationality,
-                'gender' => $user->gender,
-                'type' => $user->type,
-                'job_title' => $user->job_title,
-                'department' => $user->department,
-                'salary' => $user->salary,
-                'additional_benefits' => $user->additional_benefits,
-                'probation_period_days' => $user->probation_period_days,
-                'date_of_works' => $user->date_of_works,
-                'work_type' => $user->work_type,
-                'is_manager' => $user->is_manager,
-                'is_active' => $user->is_active,
-                'email' => $user->email,
-                'iban' => $user->iban,
-                'cv_path' => $user->cv_path,
-                'contract_path' => $user->contract_path,
-                'signature_path' => $user->signature_path,
-                'work_phone_approval' => $user->work_phone_approval,
-                'logo_usage_approval' => $user->logo_usage_approval,
-                'team' => $user->team ? ['id' => $user->team->id, 'name' => $user->team->name] : null,
-                'contract_end_date' => $user->contract_end_date,
-                'employee_contracts' => $user->employeeContracts,
-                'is_in_probation' => $user->isInProbation(),
-                'probation_end_date' => $user->getProbationEndDate(),
-                'warnings_count' => $user->warnings->count(),
-                'warnings' => $user->warnings,
-                'created_at' => $user->created_at,
-                'updated_at' => $user->updated_at,
-            ];
-            return ApiResponse::success($data, 'تم جلب بيانات الموظف بنجاح');
+            return response()->json([
+                'success' => true,
+                'message' => 'تم جلب بيانات الموظف بنجاح',
+                'data' => [
+                    // Personal Information
+                    'id' => $user->id,
+                    'name' => $user->name,
+                    'birthday' => $user->birthday,
+                    'phone' => $user->phone,
+                    'identity_number' => $user->identity_number,
+                    'nationality' => $user->nationality,
+
+                    // Job Information
+                    'type' => $user->type,
+                    'job_title' => $user->job_title,
+                    'department' => $user->department,
+                    'salary' => $user->salary,
+                    'additional_benefits' => $user->additional_benefits,
+                    'probation_period_days' => $user->probation_period_days,
+                    'date_of_works' => $user->date_of_works,
+                    'work_type' => $user->work_type,
+                    'is_manager' => $user->is_manager,
+                    'is_active' => $user->is_active,
+
+                    // Contact & Banking
+                    'email' => $user->email,
+                    'iban' => $user->iban,
+
+                    // Documents & Approvals
+                    'cv_path' => $user->cv_path,
+                    'contract_path' => $user->contract_path,
+                    'signature_path' => $user->signature_path,
+                    'work_phone_approval' => $user->work_phone_approval,
+                    'logo_usage_approval' => $user->logo_usage_approval,
+
+                    // Team
+                    'team' => $user->team ? [
+                        'id' => $user->team->id,
+                        'name' => $user->team->name,
+                    ] : null,
+
+                    // Contracts
+                    'contract_end_date' => $user->contract_end_date,
+                    'employee_contracts' => $user->employeeContracts,
+
+                    // Probation status
+                    'is_in_probation' => $user->isInProbation(),
+                    'probation_end_date' => $user->getProbationEndDate(),
+
+                    // Warnings
+                    'warnings_count' => $user->warnings->count(),
+                    'warnings' => $user->warnings,
+
+                    // Timestamps
+                    'created_at' => $user->created_at,
+                    'updated_at' => $user->updated_at,
+                ],
+            ], 200);
         } catch (Exception $e) {
             $statusCode = str_contains($e->getMessage(), 'No query results') ? 404 : 500;
-            return ApiResponse::error($e->getMessage(), $statusCode);
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage(),
+            ], $statusCode);
         }
     }
 
@@ -153,14 +176,11 @@ class HrUserController extends Controller
             'phone' => 'required|string|max:20',
             'password' => 'required|string|min:8',
             'type' => 'required|integer|between:0,7',
-            'role' => 'nullable|string|exists:roles,name',
             'is_manager' => 'nullable|boolean',
             'team_id' => 'nullable|integer|exists:teams,id',
             'identity_number' => 'nullable|string|max:20',
             'birthday' => 'nullable|date',
-            'birthday_hijri' => 'nullable|string|max:50',
             'nationality' => 'nullable|string|max:100',
-            'gender' => 'nullable|string|max:20',
             'job_title' => 'nullable|string|max:100',
             'department' => 'nullable|string|max:100',
             'salary' => 'nullable|numeric|min:0',
@@ -178,7 +198,7 @@ class HrUserController extends Controller
 
             // Update additional fields not handled by register service
             $additionalFields = [
-                'birthday_hijri', 'nationality', 'gender', 'job_title', 'department', 'additional_benefits',
+                'nationality', 'job_title', 'department', 'additional_benefits',
                 'probation_period_days', 'work_type', 'work_phone_approval', 'logo_usage_approval'
             ];
 
@@ -193,14 +213,21 @@ class HrUserController extends Controller
                 $user->update($updateData);
             }
 
-            return ApiResponse::created([
-                'id' => $user->id,
-                'name' => $user->name,
-                'email' => $user->email,
-                'type' => $user->type,
-            ], 'تم إنشاء الموظف بنجاح');
+            return response()->json([
+                'success' => true,
+                'message' => 'تم إنشاء الموظف بنجاح',
+                'data' => [
+                    'id' => $user->id,
+                    'name' => $user->name,
+                    'email' => $user->email,
+                    'type' => $user->type,
+                ],
+            ], 201);
         } catch (Exception $e) {
-            return ApiResponse::serverError($e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage(),
+            ], 500);
         }
     }
 
@@ -219,9 +246,7 @@ class HrUserController extends Controller
             'team_id' => 'nullable|integer|exists:teams,id',
             'identity_number' => 'nullable|string|max:20',
             'birthday' => 'nullable|date',
-            'birthday_hijri' => 'nullable|string|max:50',
             'nationality' => 'nullable|string|max:100',
-            'gender' => 'nullable|string|max:20',
             'job_title' => 'nullable|string|max:100',
             'department' => 'nullable|string|max:100',
             'salary' => 'nullable|numeric|min:0',
@@ -234,26 +259,25 @@ class HrUserController extends Controller
             'logo_usage_approval' => 'nullable|boolean',
             'contract_end_date' => 'nullable|date',
             'is_manager' => 'nullable|boolean',
-            'role' => 'nullable|string|exists:roles,name',
         ]);
 
         try {
-            $role = $validated['role'] ?? null;
-            unset($validated['role']);
             $user->update($validated);
-            if ($role !== null) {
-                $user->syncRoles([$role]);
-            } elseif (array_key_exists('is_manager', $validated)) {
-                $user->syncRolesFromType();
-            }
 
-            return ApiResponse::success([
-                'id' => $user->id,
-                'name' => $user->name,
-                'email' => $user->email,
-            ], 'تم تحديث بيانات الموظف بنجاح');
+            return response()->json([
+                'success' => true,
+                'message' => 'تم تحديث بيانات الموظف بنجاح',
+                'data' => [
+                    'id' => $user->id,
+                    'name' => $user->name,
+                    'email' => $user->email,
+                ],
+            ], 200);
         } catch (Exception $e) {
-            return ApiResponse::serverError($e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage(),
+            ], 500);
         }
     }
 
@@ -271,11 +295,22 @@ class HrUserController extends Controller
             $user = User::findOrFail($id);
             $user->update(['is_active' => $validated['is_active']]);
 
-            $msg = $validated['is_active'] ? 'تم تفعيل حساب الموظف بنجاح' : 'تم تعطيل حساب الموظف بنجاح';
-            return ApiResponse::success(['id' => $user->id, 'is_active' => $user->is_active], $msg);
+            return response()->json([
+                'success' => true,
+                'message' => $validated['is_active'] 
+                    ? 'تم تفعيل حساب الموظف بنجاح'
+                    : 'تم تعطيل حساب الموظف بنجاح',
+                'data' => [
+                    'id' => $user->id,
+                    'is_active' => $user->is_active,
+                ],
+            ], 200);
         } catch (Exception $e) {
             $statusCode = str_contains($e->getMessage(), 'No query results') ? 404 : 500;
-            return ApiResponse::error($e->getMessage(), $statusCode);
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage(),
+            ], $statusCode);
         }
     }
 
@@ -289,10 +324,16 @@ class HrUserController extends Controller
             $user = User::findOrFail($id);
             $user->delete();
 
-            return ApiResponse::success(null, 'تم حذف الموظف بنجاح');
+            return response()->json([
+                'success' => true,
+                'message' => 'تم حذف الموظف بنجاح',
+            ], 200);
         } catch (Exception $e) {
             $statusCode = str_contains($e->getMessage(), 'No query results') ? 404 : 500;
-            return ApiResponse::error($e->getMessage(), $statusCode);
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage(),
+            ], $statusCode);
         }
     }
 
@@ -341,14 +382,22 @@ class HrUserController extends Controller
                 $user->update($updateData);
             }
 
-            return ApiResponse::success([
-                'cv_path' => $user->cv_path,
-                'contract_path' => $user->contract_path,
-                'signature_path' => $user->signature_path,
-            ], 'تم رفع الملفات بنجاح');
+            return response()->json([
+                'success' => true,
+                'message' => 'تم رفع الملفات بنجاح',
+                'data' => [
+                    'cv_path' => $user->cv_path,
+                    'contract_path' => $user->contract_path,
+                    'signature_path' => $user->signature_path,
+                ],
+            ], 200);
         } catch (Exception $e) {
             $statusCode = str_contains($e->getMessage(), 'No query results') ? 404 : 500;
-            return ApiResponse::error($e->getMessage(), $statusCode);
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage(),
+            ], $statusCode);
         }
     }
 }
+

@@ -53,11 +53,19 @@ class SalesProjectService
             return $contract;
         });
 
-        // Apply status filter after computation
+        // Apply status filter after computation (in-memory since sales_status is computed)
         if (!empty($filters['status'])) {
-            $contracts->getCollection()->filter(function ($contract) use ($filters) {
+            $filtered = $contracts->getCollection()->filter(function ($contract) use ($filters) {
                 return $contract->sales_status === $filters['status'];
-            });
+            })->values();
+
+            return new LengthAwarePaginator(
+                $filtered,
+                $filtered->count(),
+                $contracts->perPage(),
+                $contracts->currentPage(),
+                ['path' => request()->url(), 'query' => request()->query()]
+            );
         }
 
         return $contracts;
@@ -126,11 +134,19 @@ class SalesProjectService
             return $unit;
         });
 
-        // Apply status filter after computation
+        // Apply status filter after computation (in-memory since computed_availability is dynamic)
         if (!empty($filters['status'])) {
-            $units->getCollection()->filter(function ($unit) use ($filters) {
+            $filtered = $units->getCollection()->filter(function ($unit) use ($filters) {
                 return $unit->computed_availability === $filters['status'];
-            });
+            })->values();
+
+            return new LengthAwarePaginator(
+                $filtered,
+                $filtered->count(),
+                $units->perPage(),
+                $units->currentPage(),
+                ['path' => request()->url(), 'query' => request()->query()]
+            );
         }
 
         return $units;
@@ -294,15 +310,44 @@ class SalesProjectService
 
     /**
      * Apply scope filter to query.
+     * - sales_leader: scope 'all' = see all projects (مدير مبيعات يرى كل المشاريع); 'me' = assigned to me; 'team' = assigned to leaders in my team.
+     * - sales: scope 'me' / 'team' / 'all' as per existing logic.
      */
     protected function applyScopeFilter($query, string $scope, User $user): void
     {
-        // If user is sales_leader, strictly restrict to assigned projects (active assignments only)
         if ($user->hasRole('sales_leader')) {
-            $query->whereHas('salesProjectAssignments', function ($q) use ($user) {
-                $q->where('leader_id', $user->id)
-                  ->active();
-            });
+            if ($scope === 'all') {
+                // مدير المبيعات: عرض المشاريع الجاهزة للتسويق التي ليست معينة لفريق آخر (غير معينة أو معينة لي أو لفريقي)
+                $leaderIds = collect([$user->id]);
+                if ($user->team) {
+                    $leaderIds = $leaderIds->merge(
+                        User::where('team', $user->team)->where('is_manager', true)->pluck('id')
+                    );
+                }
+                $query->where(function ($q) use ($leaderIds) {
+                    $q->whereDoesntHave('salesProjectAssignments', function ($aq) {
+                        $aq->active();
+                    })->orWhereHas('salesProjectAssignments', function ($aq) use ($leaderIds) {
+                        $aq->whereIn('leader_id', $leaderIds)->active();
+                    });
+                });
+                return;
+            }
+            if ($scope === 'me') {
+                $query->whereHas('salesProjectAssignments', function ($q) use ($user) {
+                    $q->where('leader_id', $user->id)->active();
+                });
+                return;
+            }
+            if ($scope === 'team' && $user->team) {
+                $teamLeaderIds = User::where('team', $user->team)
+                    ->where('is_manager', true)
+                    ->pluck('id');
+                $query->whereHas('salesProjectAssignments', function ($q) use ($teamLeaderIds) {
+                    $q->whereIn('leader_id', $teamLeaderIds)->active();
+                });
+                return;
+            }
             return;
         }
 
@@ -366,11 +411,14 @@ class SalesProjectService
     }
 
     /**
-     * Get team members for a leader.
+     * Get team members for a leader (same team_id).
      */
     public function getTeamMembers(User $leader): \Illuminate\Database\Eloquent\Collection
     {
-        return User::where('team', $leader->team)
+        if (!$leader->team_id) {
+            return new \Illuminate\Database\Eloquent\Collection([]);
+        }
+        return User::where('team_id', $leader->team_id)
             ->where('type', 'sales')
             ->where('id', '!=', $leader->id)
             ->get();

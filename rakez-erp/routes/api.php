@@ -32,7 +32,10 @@ use App\Http\Controllers\Sales\SalesReservationController;
 use App\Http\Controllers\Sales\SalesTargetController;
 use App\Http\Controllers\Sales\SalesAttendanceController;
 use App\Http\Controllers\Sales\MarketingTaskController;
+use App\Http\Controllers\Sales\SalesTeamController;
 use App\Http\Controllers\Sales\WaitingListController;
+use App\Http\Controllers\Sales\SalesInsightsController;
+use App\Http\Controllers\Api\SalesAnalyticsController;
 use App\Http\Controllers\ExclusiveProjectController;
 use App\Http\Middleware\CheckDynamicPermission;
 use App\Http\Controllers\TeamController;
@@ -77,7 +80,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/sections', [AIAssistantController::class, 'sections']);
     });
 
-    // Contract Routes - Protected routes (user contracts)
+    // Contract Routes - Protected routes (user contracts + sales for project-tracker)
     Route::middleware('auth:sanctum')->group(function () {
         Route::get('/contracts/index', [ContractController::class, 'index']);
         Route::post('/contracts/store', [ContractController::class, 'store']);
@@ -87,6 +90,10 @@ Route::middleware('auth:sanctum')->group(function () {
 
         Route::post('/contracts/store/info/{id}', [ContractInfoController::class, 'store']);
 
+        // Sales / project-tracker: view second-party-data and photography-department (authorized via ContractPolicy in controller)
+        Route::get('/second-party-data/show/{id}', [SecondPartyDataController::class, 'show']);
+        Route::get('/photography-department/show/{contractId}', [PhotographyDepartmentController::class, 'show']);
+
 
         Route::prefix('user/notifications')->group(function () {
             Route::get('/private', [NotificationController::class, 'getUserPrivateNotifications']);
@@ -94,6 +101,11 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::patch('/mark-all-read', [NotificationController::class, 'userMarkAllAsRead']);
             Route::patch('/{id}/read', [NotificationController::class, 'userMarkAsRead']);
         });
+
+        // Shorthand /api/notifications -> returns private notifications for the authenticated user
+        Route::get('/notifications', [NotificationController::class, 'getUserPrivateNotifications']);
+        Route::patch('/notifications/mark-all-read', [NotificationController::class, 'userMarkAllAsRead']);
+        Route::patch('/notifications/{id}/read', [NotificationController::class, 'userMarkAsRead']);
     });
 
 
@@ -224,12 +236,17 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::middleware('permission:sales.team.manage')->group(function () {
             Route::get('team/projects', [SalesProjectController::class, 'teamProjects']);
             Route::get('team/members', [SalesProjectController::class, 'teamMembers']);
+            Route::get('team/recommendations', [SalesTeamController::class, 'recommendations']);
+            Route::patch('team/members/{memberId}/rating', [SalesTeamController::class, 'rateMember']);
+            Route::post('team/members/{memberId}/remove', [SalesTeamController::class, 'removeMember']);
             Route::patch('projects/{contractId}/emergency-contacts', [SalesProjectController::class, 'updateEmergencyContacts']);
 
             Route::post('targets', [SalesTargetController::class, 'store']);
 
             Route::get('attendance/team', [SalesAttendanceController::class, 'team']);
             Route::post('attendance/schedules', [SalesAttendanceController::class, 'store']);
+            Route::get('attendance/project/{contractId}', [SalesAttendanceController::class, 'projectOverview']);
+            Route::post('attendance/project/{contractId}/bulk', [SalesAttendanceController::class, 'bulkStore']);
 
             Route::get('tasks/projects', [MarketingTaskController::class, 'projects'])->middleware('permission:sales.tasks.manage');
             Route::get('tasks/projects/{contractId}', [MarketingTaskController::class, 'showProject'])->middleware('permission:sales.tasks.manage');
@@ -244,6 +261,21 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::post('/', [WaitingListController::class, 'store'])->middleware('permission:sales.waiting_list.create');
             Route::post('/{id}/convert', [WaitingListController::class, 'convert'])->middleware('permission:sales.waiting_list.convert');
             Route::delete('/{id}', [WaitingListController::class, 'cancel'])->middleware('permission:sales.waiting_list.create');
+        });
+
+        // Sales Insights Routes
+        Route::get('sold-units', [SalesInsightsController::class, 'soldUnits'])->middleware('permission:sales.dashboard.view');
+        Route::get('sold-units/{unitId}/commission-summary', [SalesInsightsController::class, 'soldUnitCommissionSummary'])->middleware('permission:sales.dashboard.view');
+        Route::get('deposits/management', [SalesInsightsController::class, 'depositsManagement'])->middleware('permission:sales.dashboard.view');
+        Route::get('deposits/follow-up', [SalesInsightsController::class, 'depositsFollowUp'])->middleware('permission:sales.dashboard.view');
+
+        // Sales Analytics Routes
+        Route::prefix('analytics')->group(function () {
+            Route::get('dashboard', [SalesAnalyticsController::class, 'dashboard'])->middleware('permission:sales.dashboard.view');
+            Route::get('sold-units', [SalesAnalyticsController::class, 'soldUnits'])->middleware('permission:sales.dashboard.view');
+            Route::get('deposits/stats/project/{contractId}', [SalesAnalyticsController::class, 'depositStatsByProject'])->middleware('permission:sales.dashboard.view');
+            Route::get('commissions/stats/employee/{userId}', [SalesAnalyticsController::class, 'commissionStatsByEmployee'])->middleware('permission:sales.dashboard.view');
+            Route::get('commissions/monthly-report', [SalesAnalyticsController::class, 'monthlyCommissionReport'])->middleware('permission:sales.dashboard.view');
         });
     });
 

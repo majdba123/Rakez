@@ -89,6 +89,9 @@ class PhotographyDepartmentController extends Controller
     public function show(int $contractId): JsonResponse
     {
         try {
+            $contract = \App\Models\Contract::findOrFail($contractId);
+            $this->authorize('view', $contract);
+
             $photographyDepartment = $this->photographyDepartmentService->getByContractId($contractId);
 
             if (!$photographyDepartment) {

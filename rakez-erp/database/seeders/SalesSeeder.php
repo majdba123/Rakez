@@ -35,7 +35,27 @@ class SalesSeeder extends Seeder
         $accountingPool = $accountingUsers ?: User::where('type', 'admin')->pluck('id')->all();
 
         $salesLeaders = User::where('type', 'sales')->where('is_manager', true)->pluck('id')->all();
+        $salesLeadersFromType = User::where('type', 'sales_leader')->pluck('id')->all();
+        $salesLeaders = array_unique(array_merge($salesLeaders, $salesLeadersFromType));
         $salesLeaders = $salesLeaders ?: $salesUsers;
+
+        // Guarantee at least one active assignment for each named sales leader
+        $namedLeaders = User::whereIn('email', ['ahmed@rakez.com', 'sales.leader@rakez.com'])->pluck('id')->all();
+        $assignedContracts = [];
+        foreach ($namedLeaders as $idx => $namedLeaderId) {
+            $contractId = $readyContracts[$idx] ?? ($readyContracts[0] ?? null);
+            if ($contractId && !in_array($contractId, $assignedContracts)) {
+                SalesProjectAssignment::updateOrCreate(
+                    ['leader_id' => $namedLeaderId, 'contract_id' => $contractId],
+                    [
+                        'assigned_by' => $namedLeaderId,
+                        'start_date' => now()->subDays(30)->toDateString(),
+                        'end_date' => now()->addDays(180)->toDateString(),
+                    ]
+                );
+                $assignedContracts[] = $contractId;
+            }
+        }
 
         foreach ($readyContracts as $contractId) {
             $leaderId = Arr::random($salesLeaders);

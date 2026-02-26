@@ -70,14 +70,14 @@ class SalesDashboardService
             'kpi_version' => 'v2',
             'definitions' => [
                 'projects_under_marketing' => 'Contracts with ready/approved status and all units priced',
-                'percent_confirmed' => 'confirmed_reservations / (confirmed_reservations + negotiation_reservations) * 100',
+                'percent_confirmed' => 'confirmed_count / (confirmed_count + negotiation_count) * 100',
                 'total_received_projects_value' => 'Sum of unit prices for projects with confirmed reservations in selected scope',
             ],
             'reserved_units' => $reservedUnits,
             'available_units' => $availableUnits,
             'projects_under_marketing' => $projectsUnderMarketing,
-            'confirmed_reservations' => $confirmedCount,
-            'negotiation_reservations' => $negotiationCount,
+            'confirmed_count' => $confirmedCount,
+            'negotiation_count' => $negotiationCount,
             'percent_confirmed' => $percentConfirmed,
             'total_reservations' => $total,
             'negotiation_ratio' => $total > 0 ? round(($negotiationCount / $total) * 100, 2) : 0,
@@ -85,7 +85,7 @@ class SalesDashboardService
             'total_received_deposits' => $totalReceivedDeposits,
             'total_refunded_deposits' => $totalRefundedDeposits,
             'total_received_projects_value' => $totalReceivedProjectsValue,
-            'total_sales_value' => $totalSalesValue,
+            'total_revenue' => $totalSalesValue,
         ];
     }
 

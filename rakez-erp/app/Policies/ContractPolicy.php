@@ -25,6 +25,11 @@ class ContractPolicy
             return true;
         }
 
+        // Sales and sales_leader can view contracts (e.g. project-tracker, sales projects)
+        if ($user->hasAnyRole(['sales', 'sales_leader', 'admin'])) {
+            return true;
+        }
+
         // Owner can view
         if ($contract->user_id === $user->id) {
             return true;

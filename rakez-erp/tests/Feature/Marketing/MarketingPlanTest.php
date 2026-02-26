@@ -80,6 +80,7 @@ class MarketingPlanTest extends TestCase
                 'marketing_project_id' => $project->id,
                 'user_id' => $this->marketingUser->id,
                 'commission_value' => 20000,
+                'marketing_percent' => 10,
                 'marketing_value' => 2000,
                 'platform_distribution' => [
                     'TikTok' => 20,
@@ -89,11 +90,43 @@ class MarketingPlanTest extends TestCase
                     'LinkedIn' => 10,
                     'X' => 10,
                 ],
-                'campaign_distribution' => [
-                    'Direct Communication' => 30,
-                    'Hand Raise' => 30,
-                    'Impression' => 20,
-                    'Sales' => 20,
+                'campaign_distribution_by_platform' => [
+                    'Meta' => [
+                        'Direct Communication' => 25,
+                        'Hand Raise' => 25,
+                        'Impression' => 25,
+                        'Sales' => 25,
+                    ],
+                    'TikTok' => [
+                        'Direct Communication' => 25,
+                        'Hand Raise' => 25,
+                        'Impression' => 25,
+                        'Sales' => 25,
+                    ],
+                    'Snapchat' => [
+                        'Direct Communication' => 25,
+                        'Hand Raise' => 25,
+                        'Impression' => 25,
+                        'Sales' => 25,
+                    ],
+                    'YouTube' => [
+                        'Direct Communication' => 25,
+                        'Hand Raise' => 25,
+                        'Impression' => 25,
+                        'Sales' => 25,
+                    ],
+                    'LinkedIn' => [
+                        'Direct Communication' => 25,
+                        'Hand Raise' => 25,
+                        'Impression' => 25,
+                        'Sales' => 25,
+                    ],
+                    'X' => [
+                        'Direct Communication' => 25,
+                        'Hand Raise' => 25,
+                        'Impression' => 25,
+                        'Sales' => 25,
+                    ],
                 ]
             ]);
 
@@ -117,6 +150,7 @@ class MarketingPlanTest extends TestCase
                 'marketing_project_id' => $project->id,
                 'user_id' => $this->marketingUser->id,
                 'commission_value' => 20000,
+                'marketing_percent' => 10,
                 'marketing_value' => 2000,
                 'platform_distribution' => [
                     'TikTok' => 20,
@@ -126,12 +160,6 @@ class MarketingPlanTest extends TestCase
                     'LinkedIn' => 10,
                     'X' => 10,
                 ],
-                'campaign_distribution' => [
-                    'Direct Communication' => 30,
-                    'Hand Raise' => 30,
-                    'Impression' => 20,
-                    'Sales' => 20,
-                ],
                 'campaign_distribution_by_platform' => [
                     'Meta' => [
                         'Direct Communication' => 40,
@@ -140,6 +168,30 @@ class MarketingPlanTest extends TestCase
                         'Sales' => 10,
                     ],
                     'TikTok' => [
+                        'Direct Communication' => 25,
+                        'Hand Raise' => 25,
+                        'Impression' => 25,
+                        'Sales' => 25,
+                    ],
+                    'Snapchat' => [
+                        'Direct Communication' => 25,
+                        'Hand Raise' => 25,
+                        'Impression' => 25,
+                        'Sales' => 25,
+                    ],
+                    'YouTube' => [
+                        'Direct Communication' => 25,
+                        'Hand Raise' => 25,
+                        'Impression' => 25,
+                        'Sales' => 25,
+                    ],
+                    'LinkedIn' => [
+                        'Direct Communication' => 25,
+                        'Hand Raise' => 25,
+                        'Impression' => 25,
+                        'Sales' => 25,
+                    ],
+                    'X' => [
                         'Direct Communication' => 25,
                         'Hand Raise' => 25,
                         'Impression' => 25,

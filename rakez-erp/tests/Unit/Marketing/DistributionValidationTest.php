@@ -25,7 +25,46 @@ class DistributionValidationTest extends TestCase
             'marketing_project_id' => $project->id,
             'user_id' => $user->id,
             'commission_value' => 20000,
+            'marketing_percent' => 10,
             'marketing_value' => 2000,
+            'campaign_distribution_by_platform' => [
+                'Meta' => [
+                    'Direct Communication' => 25,
+                    'Hand Raise' => 25,
+                    'Impression' => 25,
+                    'Sales' => 25,
+                ],
+                'TikTok' => [
+                    'Direct Communication' => 25,
+                    'Hand Raise' => 25,
+                    'Impression' => 25,
+                    'Sales' => 25,
+                ],
+                'Snapchat' => [
+                    'Direct Communication' => 25,
+                    'Hand Raise' => 25,
+                    'Impression' => 25,
+                    'Sales' => 25,
+                ],
+                'YouTube' => [
+                    'Direct Communication' => 25,
+                    'Hand Raise' => 25,
+                    'Impression' => 25,
+                    'Sales' => 25,
+                ],
+                'LinkedIn' => [
+                    'Direct Communication' => 25,
+                    'Hand Raise' => 25,
+                    'Impression' => 25,
+                    'Sales' => 25,
+                ],
+                'X' => [
+                    'Direct Communication' => 25,
+                    'Hand Raise' => 25,
+                    'Impression' => 25,
+                    'Sales' => 25,
+                ],
+            ]
         ];
     }
 

@@ -72,6 +72,9 @@ class SecondPartyDataController extends Controller
     public function show(int $contractId): JsonResponse
     {
         try {
+            $contract = \App\Models\Contract::findOrFail($contractId);
+            $this->authorize('view', $contract);
+
             $secondPartyData = $this->secondPartyDataService->getByContractId($contractId);
 
             if (!$secondPartyData) {

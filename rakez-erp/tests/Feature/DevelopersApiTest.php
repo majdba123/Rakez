@@ -69,9 +69,11 @@ class DevelopersApiTest extends TestCase
                         'teams',
                     ],
                 ],
-                'meta' => ['total', 'per_page', 'current_page', 'last_page'],
+                'meta' => [
+                    'pagination' => ['total', 'per_page', 'current_page', 'total_pages'],
+                ],
             ])
-            ->assertJsonPath('meta.total', 2);
+            ->assertJsonPath('meta.pagination.total', 2);
     }
 
     public function test_developer_list_empty_returns_arabic_message(): void
@@ -100,7 +102,7 @@ class DevelopersApiTest extends TestCase
         $response = $this->actingAs($user)->getJson('/api/developers');
         $response->assertStatus(200)
             ->assertJsonPath('success', true)
-            ->assertJsonPath('meta.total', 1);
+            ->assertJsonPath('meta.pagination.total', 1);
     }
 
     public function test_developer_detail_returns_200_with_same_data_shape_for_known_developer(): void

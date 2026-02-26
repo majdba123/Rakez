@@ -4,6 +4,7 @@ namespace App\Services\Sales;
 
 use App\Models\UserNotification;
 use App\Models\AdminNotification;
+use App\Models\Contract;
 use App\Models\SalesReservation;
 use App\Models\Deposit;
 use App\Models\Commission;
@@ -353,6 +354,51 @@ class SalesNotificationService
         foreach ($projectManagers as $manager) {
             $this->createNotification($manager->id, $message, $eventType, $context);
         }
+    }
+
+    /**
+     * Notify a team member that they have been scheduled to work at a project.
+     */
+    public function notifyScheduleAssigned(User $user, Contract $contract, string $date, ?string $startTime, ?string $endTime): void
+    {
+        $projectName = $contract->project_name ?? 'Unknown Project';
+        $timeInfo = ($startTime && $endTime)
+            ? " from {$startTime} to {$endTime}"
+            : '';
+
+        $message = "You are assigned to {$projectName} on {$date}{$timeInfo}.";
+
+        $this->createNotification(
+            $user->id,
+            $message,
+            'schedule_assigned',
+            [
+                'contract_id' => $contract->id,
+                'date' => $date,
+                'start_time' => $startTime,
+                'end_time' => $endTime,
+            ]
+        );
+    }
+
+    /**
+     * Notify a team member that their schedule at a project has been cancelled.
+     */
+    public function notifyScheduleRemoved(User $user, Contract $contract, string $date): void
+    {
+        $projectName = $contract->project_name ?? 'Unknown Project';
+
+        $message = "Your schedule at {$projectName} on {$date} has been cancelled.";
+
+        $this->createNotification(
+            $user->id,
+            $message,
+            'schedule_removed',
+            [
+                'contract_id' => $contract->id,
+                'date' => $date,
+            ]
+        );
     }
 
     protected function createNotification(int $userId, string $message, string $eventType, array $context = []): void

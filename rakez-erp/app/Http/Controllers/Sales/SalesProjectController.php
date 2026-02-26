@@ -10,6 +10,7 @@ use App\Http\Resources\Sales\SalesUnitResource;
 use App\Models\Contract;
 use App\Models\User;
 use App\Services\Sales\SalesProjectService;
+use App\Services\Sales\SalesTeamService;
 use App\Http\Responses\ApiResponse;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -17,7 +18,8 @@ use Illuminate\Http\Request;
 class SalesProjectController extends Controller
 {
     public function __construct(
-        private SalesProjectService $projectService
+        private SalesProjectService $projectService,
+        private SalesTeamService $teamService
     ) {}
 
     /**
@@ -26,12 +28,14 @@ class SalesProjectController extends Controller
     public function index(Request $request): JsonResponse
     {
         try {
+            $user = $request->user();
+            $defaultScope = $user->hasRole('sales_leader') ? 'all' : 'me';
             $filters = [
                 'status' => $request->query('status'),
                 'q' => $request->query('q'),
                 'city' => $request->query('city'),
                 'district' => $request->query('district'),
-                'scope' => $request->query('scope', 'me'),
+                'scope' => $request->query('scope', $defaultScope),
                 'per_page' => $request->query('per_page', 15),
             ];
 
@@ -141,22 +145,22 @@ class SalesProjectController extends Controller
     }
 
     /**
-     * List team members (leader only).
+     * List team members (leader only). Includes leader rating and confirmed reservations count.
      */
     public function teamMembers(Request $request): JsonResponse
     {
         try {
-            $user = $request->user();
-            $members = User::where('type', 'sales')
-                ->where('team', $user->team)
-                ->where('id', '!=', $user->id)
-                ->select('id', 'name', 'email', 'team')
-                ->get();
-
-            return response()->json([
-                'success' => true,
-                'data' => $members,
-            ]);
+            $withRatings = $request->boolean('with_ratings', true);
+            $members = $withRatings
+                ? $this->teamService->getTeamMembersWithRatings($request->user())
+                : $this->teamService->getTeamMembers($request->user())->map(fn (User $u) => [
+                    'user' => $u,
+                    'leader_rating' => null,
+                    'leader_rating_comment' => null,
+                    'confirmed_reservations_count' => 0,
+                ]);
+            $data = $members->map(fn (array $item) => $this->teamService->memberToApiShape($item, false))->values();
+            return response()->json(['success' => true, 'data' => $data]);
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,

@@ -123,12 +123,34 @@ class MarketingPlansRoutesTest extends TestCase
         $contract = Contract::factory()->create();
         $project = MarketingProject::create(['contract_id' => $contract->id]);
 
+        $platformDistribution = [
+            'TikTok' => 20,
+            'Meta' => 25,
+            'Snapchat' => 15,
+            'YouTube' => 15,
+            'LinkedIn' => 10,
+            'X' => 15,
+        ];
+        $campaignDistribution = [
+            'Direct Communication' => 25,
+            'Hand Raise' => 25,
+            'Impression' => 25,
+            'Sales' => 25,
+        ];
+        $campaignByPlatform = [];
+        foreach (array_keys($platformDistribution) as $platform) {
+            $campaignByPlatform[$platform] = $campaignDistribution;
+        }
+
         $response = $this->actingAs($this->marketingUser, 'sanctum')
             ->postJson('/api/marketing/plans/employee', [
                 'marketing_project_id' => $project->id,
                 'user_id' => $this->marketingUser->id,
                 'commission_value' => 1000,
                 'marketing_value' => 5000,
+                'marketing_percent' => 50,
+                'platform_distribution' => $platformDistribution,
+                'campaign_distribution_by_platform' => $campaignByPlatform,
             ]);
 
         $response->assertStatus(200)

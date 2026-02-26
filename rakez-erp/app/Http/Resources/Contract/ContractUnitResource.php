@@ -22,6 +22,7 @@ class ContractUnitResource extends JsonResource
             'status' => $this->status,
             'price' => (float) $this->price,
             'area' => $this->area,
+            'floor' => $this->floor ?? null,
             'description' => $this->description,
             'created_at' => $this->created_at?->toIso8601String(),
             'updated_at' => $this->updated_at?->toIso8601String(),
