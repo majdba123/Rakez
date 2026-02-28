@@ -311,7 +311,7 @@ class ContractController extends Controller
 
             $contractIds = collect($rows->items())->pluck('contract_id')->map(fn($v) => (int) $v)->all();
 
-            // Aggregate units: sum(count) by contract_id / status / unit_type
+            // Aggregate units: count rows by contract_id / status / unit_type (each row is one unit; count column was removed)
             $unitAgg = [];
             if (!empty($contractIds)) {
                 $unitRows = DB::table('contract_units')
@@ -324,7 +324,7 @@ class ContractController extends Controller
                         'second_party_data.contract_id as contract_id',
                         'contract_units.status as unit_status',
                         'contract_units.unit_type as unit_type',
-                        DB::raw('SUM(contract_units.count) as total_count'),
+                        DB::raw('COUNT(contract_units.id) as total_count'),
                     ])
                     ->get();
 
