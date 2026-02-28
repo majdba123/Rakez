@@ -344,7 +344,8 @@ class ContractController extends Controller
                 $agencyDate = $row->agency_date ? Carbon::parse($row->agency_date) : null;
                 $remainingDays = $agencyDate ? now()->diffInDays($agencyDate, false) : null;
 
-                $color = null;
+                // Color based on remaining days until agency_date: green > 90, yellow > 30, red <= 30, gray when no date
+                $color = 'gray';
                 if ($remainingDays !== null) {
                     if ($remainingDays > 90) {
                         $color = 'green';
