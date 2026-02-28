@@ -244,12 +244,12 @@ class ContractService
     public function getContractsAgencyOverviewForAdmin(array $filters = [], int $perPage = 50): LengthAwarePaginator
     {
         try {
+            // LEFT JOIN so we return all contracts; agency_date/lat/lng can be null when contract_info is missing or agency_date not set
             $query = Contract::query()
                 ->leftJoin('contract_infos', function ($join) {
                     $join->on('contract_infos.contract_id', '=', 'contracts.id')
                         ->whereNull('contract_infos.deleted_at');
                 })
-                ->whereNotNull('contract_infos.agency_date')
                 ->select([
                     'contracts.id as contract_id',
                     'contracts.project_name',
