@@ -560,6 +560,8 @@ Route::middleware('auth:sanctum')->group(function () {
 
             // Team contract locations
             Route::get('/contracts/locations', [ContractController::class, 'locations'])->middleware('permission:contracts.view_all');
+            Route::get('/contracts/agency-overview', [ContractController::class, 'inventoryAgencyOverview'])->middleware('permission:contracts.view_all');
+
         });
 
 
@@ -583,6 +585,9 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::patch('/conversations/{conversationId}/read', [ChatController::class, 'markAsRead']);
             Route::delete('/messages/{messageId}', [ChatController::class, 'deleteMessage']);
             Route::get('/unread-count', [ChatController::class, 'getUnreadCount']);
+
+            Route::get('/list_user', [RegisterController::class, 'list_employees']);
+
         });
 
 

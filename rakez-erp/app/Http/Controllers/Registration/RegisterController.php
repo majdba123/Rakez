@@ -49,6 +49,8 @@ class RegisterController extends Controller
         $validated = $request->validate([
             'type' => 'nullable|string',
             'search' => 'nullable|string|max:255',
+            'name' => 'nullable|string|max:255',
+            'email' => 'nullable|string|max:255',
             'status' => 'nullable|string|in:active,deleted',
             'start_date' => 'nullable|date',
             'end_date' => 'nullable|date|after_or_equal:start_date',
