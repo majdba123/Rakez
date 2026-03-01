@@ -4,6 +4,7 @@ namespace App\Http\Resources\Sales;
 
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
+use Illuminate\Support\Str;
 
 class SalesProjectResource extends JsonResource
 {
@@ -26,11 +27,24 @@ class SalesProjectResource extends JsonResource
         $soldUnits = max(0, $totalUnits - $availableUnits - $reservedUnits);
         $soldUnitsPercent = $totalUnits > 0 ? (int) round(($soldUnits / $totalUnits) * 100) : 0;
 
-        return [
+        $cardFields = $this->relationLoaded('secondPartyData')
+            ? self::cardFieldsFromContract($this->resource, $salesStatus)
+            : [
+                'status_badge_ar' => $salesStatus === 'available' ? 'متاح' : 'غير متاح',
+                'price_min' => null,
+                'price_max' => null,
+                'area_min_m2' => null,
+                'area_max_m2' => null,
+                'unit_type_label_ar' => null,
+                'ad_code' => null,
+            ];
+
+        return array_merge([
             'contract_id' => $this->id,
             'project_name' => $this->project_name,
             'team_name' => $teamName,
             'project_description' => $this->notes,
+            'project_image_url' => self::fullImageUrl($this->project_image_url),
             'location' => "{$this->city}, {$this->district}",
             'city' => $this->city,
             'district' => $this->district,
@@ -43,11 +57,67 @@ class SalesProjectResource extends JsonResource
             'reserved_units' => $reservedUnits,
             'sold_units' => $soldUnits,
             'sold_units_percent' => $soldUnitsPercent,
+            'sold_units_label_ar' => 'وحدة مباعة',
             'preparation_progress_percent' => 0,
             'preparation_progress_label_ar' => 'N/A',
             'remaining_days' => $this->remaining_days,
             'created_at' => $this->created_at?->toIso8601String(),
+        ], $cardFields);
+    }
+
+    /**
+     * Derive listing-card fields from contract (secondPartyData + contractUnits).
+     * Returns status_badge_ar, price_min, price_max, area_min_m2, area_max_m2, unit_type_label_ar, ad_code.
+     */
+    public static function cardFieldsFromContract($contract, string $salesStatus): array
+    {
+        $statusBadge = $salesStatus === 'available' ? 'متاح' : 'غير متاح';
+
+        $spd = $contract->secondPartyData ?? null;
+        $units = $spd && $spd->relationLoaded('contractUnits') ? $spd->contractUnits : collect();
+
+        $priceMin = null;
+        $priceMax = null;
+        $areaMin = null;
+        $areaMax = null;
+        $unitTypeLabel = null;
+
+        if ($units->isNotEmpty()) {
+            $prices = $units->pluck('price')->filter()->map(fn ($p) => (float) $p);
+            $areas = $units->pluck('area')->filter()->map(fn ($a) => (float) $a);
+            $priceMin = $prices->isEmpty() ? null : round($prices->min(), 2);
+            $priceMax = $prices->isEmpty() ? null : round($prices->max(), 2);
+            $areaMin = $areas->isEmpty() ? null : round($areas->min(), 2);
+            $areaMax = $areas->isEmpty() ? null : round($areas->max(), 2);
+            $firstType = $units->pluck('unit_type')->filter()->first();
+            $unitTypeLabel = $firstType ? (string) $firstType : null;
+        }
+
+        $adCode = $spd ? $spd->advertiser_section_url : null;
+
+        return [
+            'status_badge_ar' => $statusBadge,
+            'price_min' => $priceMin,
+            'price_max' => $priceMax,
+            'area_min_m2' => $areaMin,
+            'area_max_m2' => $areaMax,
+            'unit_type_label_ar' => $unitTypeLabel,
+            'ad_code' => $adCode,
         ];
+    }
+
+    /**
+     * Return full URL for an image (absolute URLs unchanged, relative paths prefixed with app URL).
+     */
+    public static function fullImageUrl(?string $url): ?string
+    {
+        if ($url === null || $url === '') {
+            return null;
+        }
+        if (Str::startsWith($url, ['http://', 'https://'])) {
+            return $url;
+        }
+        return url($url);
     }
 
     public static function arabicStatusLabel(string $salesStatus, bool $isReady): string

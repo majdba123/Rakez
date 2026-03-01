@@ -77,6 +77,7 @@ Sample response:
       "project_name": "برج ركيز السكني 1",
       "team_name": "فريق أحمد",
       "project_description": "وصف المشروع",
+      "project_image_url": "https://example.com/storage/projects/image.jpg",
       "location": "الرياض, حي النرجس",
       "city": "الرياض",
       "district": "حي النرجس",
@@ -84,10 +85,19 @@ Sample response:
       "is_ready": true,
       "sales_status": "available",
       "project_status_label_ar": "جاهز - متاح للبيع",
+      "status_badge_ar": "متاح",
       "total_units": 50,
       "available_units": 30,
       "reserved_units": 12,
       "sold_units": 8,
+      "sold_units_percent": 16,
+      "sold_units_label_ar": "وحدة مباعة",
+      "price_min": 500000.00,
+      "price_max": 1200000.00,
+      "area_min_m2": 85.5,
+      "area_max_m2": 220.0,
+      "unit_type_label_ar": "شقق",
+      "ad_code": "12345",
       "remaining_days": 45,
       "created_at": "2026-01-15T10:00:00+00:00"
     }
@@ -95,6 +105,8 @@ Sample response:
   "meta": { "current_page": 1, "last_page": 3, "per_page": 15, "total": 42 }
 }
 ```
+
+**Card fields:** `status_badge_ar` ("متاح" | "غير متاح"), `price_min` / `price_max` (Saudi Riyal), `area_min_m2` / `area_max_m2`, `unit_type_label_ar` (e.g. "شقق", "فيلا"), and `ad_code` (from advertiser section — كود الإعلان) are derived from contract units and second-party data. If units or second-party data are missing, these are `null`. **Bedrooms and bathrooms are not in the system** and can be added later if the `contract_units` schema is extended.
 
 ---
 
@@ -117,11 +129,12 @@ Sample response:
     "district": "حي النرجس",
     "location": "الرياض, حي النرجس",
     "project_description": "وصف المشروع",
-    "project_image_url": "/storage/projects/image.jpg",
+    "project_image_url": "https://example.com/storage/projects/image.jpg",
     "contract_status": "ready",
     "is_ready": true,
     "sales_status": "available",
     "project_status_label_ar": "جاهز - متاح للبيع",
+    "status_badge_ar": "متاح",
     "team_name": "فريق أحمد",
     "emergency_contact_number": "0501111111",
     "security_guard_number": "0502222222",
@@ -129,8 +142,16 @@ Sample response:
     "available_units": 30,
     "reserved_units": 12,
     "sold_units": 8,
+    "sold_units_percent": 16,
+    "sold_units_label_ar": "وحدة مباعة",
+    "price_min": 500000.00,
+    "price_max": 1200000.00,
+    "area_min_m2": 85.5,
+    "area_max_m2": 220.0,
+    "unit_type_label_ar": "شقق",
+    "ad_code": "12345",
     "montage_data": {
-      "image_url": "/storage/montage/img.jpg",
+      "image_url": "https://example.com/storage/montage/img.jpg",
       "video_url": "/storage/montage/video.mp4",
       "description": "..."
     },
@@ -138,6 +159,8 @@ Sample response:
   }
 }
 ```
+
+**Card fields:** Same as list (1.2): `status_badge_ar`, `price_min` / `price_max`, `area_min_m2` / `area_max_m2`, `unit_type_label_ar`, `ad_code`. Bedrooms and bathrooms are not in the system.
 
 ---
 
@@ -230,16 +253,69 @@ Sample response:
 
 ### 1.6 Create Reservation
 
-**POST** `/api/sales/reservations`
+**POST** `/api/sales/reservations`  
 Permission: `sales.reservations.create`
 
-Request body:
+**Headers:**
+- `Authorization: Bearer {token}` (required)
+- `Content-Type: application/json`
+- `Accept: application/json`
+
+**Request body (full specification)**
+
+| Field | Type | Required | Accepted values / notes |
+|-------|------|----------|-------------------------|
+| `contract_id` | integer | Yes | Must exist in `contracts.id` |
+| `contract_unit_id` | integer | Yes | Must exist in `contract_units.id` and belong to `contract_id` |
+| `contract_date` | string (date) | Yes | `YYYY-MM-DD`. Default: today if omitted. |
+| `reservation_type` | string | Yes | `confirmed_reservation` or `negotiation`. **Form labels accepted:** `حجز بغرض التفاوض` → negotiation; `عقد` / حجز بعقد → confirmed_reservation. Aliases: `عقد`, `contract`, `confirmed` → confirmed_reservation; `تفاوض`, `negotiation` → negotiation. |
+| `client_name` | string | Yes | Max 255 |
+| `client_mobile` | string | Yes | Max 50. Aliases: `phone`, `mobile` → mapped to `client_mobile`. |
+| `client_nationality` | string | Yes | Max 100. Default: `غير محدد` if omitted. |
+| `client_iban` | string | Yes | Max 100. **Default: `-` if omitted or empty** (نموذج حجز الوحدة). Alias: `clientIban`. |
+| `payment_method` | string | Yes | `bank_transfer` \| `cash` \| `bank_financing`. **Form labels:** تحويل بنكي → bank_transfer; كاش/نقد → cash; تمويل بنكي → bank_financing. Default: `cash` if omitted. Alias: `paymentMethod`. |
+| `down_payment_amount` | number | Yes | ≥ 0. Alias: `downPaymentAmount`. |
+| `down_payment_status` | string | Yes | `refundable` \| `non_refundable`. **Form:** عربون مسترد → refundable; غير مسترد → non_refundable. Default: `refundable`. Alias: `downPaymentStatus`. |
+| `purchase_mechanism` | string | Yes | `cash` \| `supported_bank` \| `unsupported_bank`. **Form labels:** بنك غير مدعوم → unsupported_bank; بنك مدعوم → supported_bank; كاش → cash. Default: `cash`. Alias: `purchaseMechanism`. |
+| `evacuation_date` | string (date) | No | `YYYY-MM-DD`, must be ≥ today. Required for off-plan + non_refundable deposit. |
+| `negotiation_notes` | string | If type=negotiation | Required when `reservation_type` is `negotiation`. |
+| `negotiation_reason` | string | If type=negotiation | Max 255. Required when `reservation_type` is `negotiation`. |
+| `proposed_price` | number | If type=negotiation | Required when `reservation_type` is `negotiation`; must be &lt; unit price. |
+
+**Minimal request (عقد / confirmed):** the API applies defaults for omitted fields.
 
 ```json
 {
-  "contract_id": 1,
-  "contract_unit_id": 101,
-  "contract_date": "2026-02-26",
+  "contract_id": 52,
+  "contract_unit_id": 201,
+  "contract_date": "2026-02-28",
+  "reservation_type": "عقد",
+  "client_name": "أحمد محمد",
+  "client_mobile": "0512345678",
+  "down_payment_amount": 50000
+}
+```
+
+Or using API values and camelCase aliases:
+
+```json
+{
+  "contract_id": 52,
+  "contract_unit_id": 201,
+  "reservationType": "confirmed_reservation",
+  "client_name": "أحمد محمد",
+  "phone": "0512345678",
+  "downPaymentAmount": 50000
+}
+```
+
+**Full request (all fields, عقد):**
+
+```json
+{
+  "contract_id": 52,
+  "contract_unit_id": 201,
+  "contract_date": "2026-02-28",
   "reservation_type": "confirmed_reservation",
   "client_name": "عبدالله المنصور",
   "client_mobile": "0512345678",
@@ -253,7 +329,7 @@ Request body:
 }
 ```
 
-For negotiation type, add:
+**Full request (تفاوض / negotiation):** add:
 
 ```json
 {
@@ -263,6 +339,27 @@ For negotiation type, add:
   "proposed_price": 800000.00
 }
 ```
+
+**Copy-paste full request (confirmed_reservation):**
+
+```json
+{
+  "contract_id": 52,
+  "contract_unit_id": 201,
+  "contract_date": "2026-02-28",
+  "reservation_type": "confirmed_reservation",
+  "client_name": "عبدالله المنصور",
+  "client_mobile": "0512345678",
+  "client_nationality": "Saudi",
+  "client_iban": "SA1234567890123456789012",
+  "payment_method": "cash",
+  "down_payment_amount": 50000,
+  "down_payment_status": "refundable",
+  "purchase_mechanism": "cash"
+}
+```
+
+Replace `52` with your project (contract) id and `201` with the unit id. Optional: add `"evacuation_date": "2026-06-01"` for off-plan.
 
 Sample response (201):
 
@@ -291,9 +388,20 @@ Sample response (201):
 
 ---
 
+### 1.6b Get Reservation Details (for detail modal)
+
+**GET** `/api/sales/reservations/{id}`  
+Permission: `sales.reservations.view`
+
+Returns full reservation details including: `client_mobile`, `client_nationality`, `payment_method`, `purchase_mechanism`, `down_payment_status`, `project_name`, `unit_number`, `negotiation_notes`, `negotiation_reason`, `proposed_price`, `evacuation_date`, etc. Use this when the UI opens "تفاصيل الحجز" so all fields are populated from the API.
+
+Response: `{ "success": true, "data": { ... } }` — `data` includes all fields needed for the detail modal (الجوال، الجنسية، طريقة الدفع، آلية الشراء، حالة العربون، etc.).
+
+---
+
 ### 1.7 List Reservations
 
-**GET** `/api/sales/reservations`
+**GET** `/api/sales/reservations`  
 Permission: `sales.reservations.view`
 
 Query params:
@@ -306,7 +414,9 @@ Query params:
 - `to` -- date
 - `per_page` -- int (default: 15)
 
-Sample response: same shape as 1.6 response `data`, but as paginated array.
+Each list item includes: `client_mobile`, `client_nationality`, `payment_method`, `down_payment_status`, `purchase_mechanism` so the detail view can show them without a separate call. For full details (e.g. negotiation_notes, proposed_price), use **GET** `/api/sales/reservations/{id}` (1.6b).
+
+Sample response: paginated array; each `data[]` item has the same core fields as 1.6 plus the client/financial fields above.
 
 ---
 
@@ -742,7 +852,9 @@ Request body:
 
 **POST** `/api/sales/targets`
 
-Request body:
+The team leader can assign **one or multiple units** to a sales staff member. Use `contract_unit_ids` (array) for multiple units, or `contract_unit_id` (single) for one unit. All units must belong to the selected project (`contract_id`).
+
+Request body (single unit):
 
 ```json
 {
@@ -756,9 +868,23 @@ Request body:
 }
 ```
 
+Request body (multiple units):
+
+```json
+{
+  "marketer_id": 5,
+  "contract_id": 1,
+  "contract_unit_ids": [101, 102, 103],
+  "target_type": "reservation",
+  "start_date": "2026-03-01",
+  "end_date": "2026-03-31",
+  "leader_notes": "التركيز على الوحدات المحددة"
+}
+```
+
 `target_type` values: `reservation` | `negotiation` | `closing`
 
-Sample response: Same as 1.12 target object.
+Sample response: Same as 1.12 target object; includes `units` (array of `{ id, unit_number }`) and `contract_unit_ids` when multiple units are assigned.
 
 ---
 

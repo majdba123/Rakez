@@ -1,0 +1,1417 @@
+{
+  "info": {
+    "name": "Rakez ERP API",
+    "description": "Complete API collection for Rakez ERP system. Real estate ERP with Sales, Accounting, Credit, HR, Marketing, Inventory, AI Calling, Ads, and Chat modules.\n\n## Auth\nAll protected routes require:\n`Authorization: Bearer {{token}}`\n\n## Setup\n1. Set `base_url` variable to your server URL (e.g. `http://localhost:8000`)\n2. Login and paste the returned token into the `token` variable\n3. All subsequent requests will use the token automatically\n\n## Roles\n- `admin` — full access\n- `sales` / `sales_leader` — sales module\n- `accounting` — accounting module\n- `credit` — credit module\n- `hr` — HR module\n- `marketing` — marketing module\n- `inventory` — inventory module\n- `editor` — content editing\n- `project_management` — project management",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_postman_id": "rakez-erp-2026"
+  },
+  "variable": [
+    { "key": "base_url", "value": "http://localhost:8000", "type": "string" },
+    { "key": "token", "value": "YOUR_SANCTUM_TOKEN_HERE", "type": "string" }
+  ],
+  "auth": {
+    "type": "bearer",
+    "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }]
+  },
+  "item": [
+
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Login",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{base_url}}/api/login", "host": ["{{base_url}}"], "path": ["api", "login"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"admin@rakez.com\",\n  \"password\": \"password\"\n}"
+            },
+            "description": "Rate limited to 5 attempts/minute per IP. Returns Sanctum bearer token."
+          },
+          "response": [
+            {
+              "name": "200 Success",
+              "status": "OK",
+              "code": 200,
+              "body": "{\n  \"token\": \"1|abcdefghijklmnopqrstuvwxyz\",\n  \"user\": {\n    \"id\": 1,\n    \"name\": \"Admin User\",\n    \"email\": \"admin@rakez.com\",\n    \"type\": \"admin\"\n  }\n}"
+            },
+            {
+              "name": "429 Too Many Requests",
+              "status": "Too Many Requests",
+              "code": 429,
+              "body": "{\n  \"message\": \"Too Many Attempts.\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "Logout",
+          "request": {
+            "method": "POST",
+            "url": { "raw": "{{base_url}}/api/logout", "host": ["{{base_url}}"], "path": ["api", "logout"] },
+            "description": "Revokes the current token."
+          },
+          "response": [
+            { "name": "200 Success", "status": "OK", "code": 200, "body": "{\n  \"message\": \"Logged out successfully\"\n}" }
+          ]
+        },
+        {
+          "name": "Get Authenticated User",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{base_url}}/api/user", "host": ["{{base_url}}"], "path": ["api", "user"] }
+          },
+          "response": [
+            { "name": "200 Success", "status": "OK", "code": 200, "body": "{\n  \"id\": 1,\n  \"name\": \"Admin User\",\n  \"email\": \"admin@rakez.com\",\n  \"type\": \"admin\"\n}" }
+          ]
+        },
+        {
+          "name": "Google Auth",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{base_url}}/api/auth/google", "host": ["{{base_url}}"], "path": ["api", "auth", "google"] },
+            "body": { "mode": "raw", "raw": "{\n  \"token\": \"google_id_token_here\"\n}" }
+          }
+        }
+      ]
+    },
+
+    {
+      "name": "Admin — Employees",
+      "item": [
+        {
+          "name": "List Roles",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{base_url}}/api/admin/employees/roles", "host": ["{{base_url}}"], "path": ["api","admin","employees","roles"] },
+            "description": "Requires: role:admin + permission:employees.manage"
+          }
+        },
+        {
+          "name": "Add Employee",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{base_url}}/api/admin/employees/add_employee", "host": ["{{base_url}}"], "path": ["api","admin","employees","add_employee"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Ahmed Al-Rashid\",\n  \"email\": \"ahmed@rakez.com\",\n  \"password\": \"SecurePass123!\",\n  \"type\": \"sales\",\n  \"role\": \"sales\"\n}"
+            }
+          }
+        },
+        {
+          "name": "List Employees",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{base_url}}/api/admin/employees/list_employees", "host": ["{{base_url}}"], "path": ["api","admin","employees","list_employees"] }
+          }
+        },
+        {
+          "name": "Show Employee",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{base_url}}/api/admin/employees/show_employee/1", "host": ["{{base_url}}"], "path": ["api","admin","employees","show_employee","1"] }
+          }
+        },
+        {
+          "name": "Update Employee",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{base_url}}/api/admin/employees/update_employee/1", "host": ["{{base_url}}"], "path": ["api","admin","employees","update_employee","1"] },
+            "body": { "mode": "raw", "raw": "{\n  \"name\": \"Ahmed Al-Rashid Updated\",\n  \"type\": \"sales_leader\"\n}" }
+          }
+        },
+        {
+          "name": "Delete Employee",
+          "request": {
+            "method": "DELETE",
+            "url": { "raw": "{{base_url}}/api/admin/employees/delete_employee/1", "host": ["{{base_url}}"], "path": ["api","admin","employees","delete_employee","1"] }
+          }
+        },
+        {
+          "name": "Restore Employee",
+          "request": {
+            "method": "PATCH",
+            "url": { "raw": "{{base_url}}/api/admin/employees/restore/1", "host": ["{{base_url}}"], "path": ["api","admin","employees","restore","1"] }
+          }
+        }
+      ]
+    },
+
+    {
+      "name": "Admin — Notifications",
+      "item": [
+        {
+          "name": "Get Admin Notifications",
+          "request": { "method": "GET", "url": { "raw": "{{base_url}}/api/admin/notifications", "host": ["{{base_url}}"], "path": ["api","admin","notifications"] } }
+        },
+        {
+          "name": "Send to User",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{base_url}}/api/admin/notifications/send-to-user", "host": ["{{base_url}}"], "path": ["api","admin","notifications","send-to-user"] },
+            "body": { "mode": "raw", "raw": "{\n  \"user_id\": 5,\n  \"title\": \"Action Required\",\n  \"message\": \"Please review the pending contract.\",\n  \"type\": \"info\"\n}" }
+          }
+        },
+        {
+          "name": "Send Public Notification",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{base_url}}/api/admin/notifications/send-public", "host": ["{{base_url}}"], "path": ["api","admin","notifications","send-public"] },
+            "body": { "mode": "raw", "raw": "{\n  \"title\": \"System Maintenance\",\n  \"message\": \"System will be down for maintenance on Friday 10 PM.\"\n}" }
+          }
+        }
+      ]
+    },
+
+    {
+      "name": "Notifications (User)",
+      "item": [
+        {
+          "name": "My Private Notifications",
+          "request": { "method": "GET", "url": { "raw": "{{base_url}}/api/notifications", "host": ["{{base_url}}"], "path": ["api","notifications"] } }
+        },
+        {
+          "name": "Mark All Read",
+          "request": { "method": "PATCH", "url": { "raw": "{{base_url}}/api/notifications/mark-all-read", "host": ["{{base_url}}"], "path": ["api","notifications","mark-all-read"] } }
+        },
+        {
+          "name": "Mark Single Read",
+          "request": { "method": "PATCH", "url": { "raw": "{{base_url}}/api/notifications/3/read", "host": ["{{base_url}}"], "path": ["api","notifications","3","read"] } }
+        }
+      ]
+    },
+
+    {
+      "name": "Contracts",
+      "item": [
+        {
+          "name": "List Contracts (User)",
+          "request": { "method": "GET", "url": { "raw": "{{base_url}}/api/contracts/index", "host": ["{{base_url}}"], "path": ["api","contracts","index"] } }
+        },
+        {
+          "name": "List Contracts (Admin)",
+          "request": { "method": "GET", "url": { "raw": "{{base_url}}/api/contracts/admin-index", "host": ["{{base_url}}"], "path": ["api","contracts","admin-index"] } }
+        },
+        {
+          "name": "Create Contract",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{base_url}}/api/contracts/store", "host": ["{{base_url}}"], "path": ["api","contracts","store"] },
+            "body": { "mode": "raw", "raw": "{\n  \"project_name\": \"Sunrise Tower\",\n  \"location\": \"Dubai Marina\",\n  \"start_date\": \"2026-03-01\",\n  \"end_date\": \"2027-03-01\",\n  \"value\": 5000000\n}" }
+          }
+        },
+        {
+          "name": "Show Contract",
+          "request": { "method": "GET", "url": { "raw": "{{base_url}}/api/contracts/show/1", "host": ["{{base_url}}"], "path": ["api","contracts","show","1"] } }
+        },
+        {
+          "name": "Update Contract",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{base_url}}/api/contracts/update/1", "host": ["{{base_url}}"], "path": ["api","contracts","update","1"] },
+            "body": { "mode": "raw", "raw": "{\n  \"project_name\": \"Sunrise Tower Phase 2\"\n}" }
+          }
+        },
+        {
+          "name": "Delete Contract",
+          "request": { "method": "DELETE", "url": { "raw": "{{base_url}}/api/contracts/1", "host": ["{{base_url}}"], "path": ["api","contracts","1"] } }
+        }
+      ]
+    },
+
+    {
+      "name": "Sales Department",
+      "description": "Requires role: sales | sales_leader | admin",
+      "item": [
+        {
+          "name": "Dashboard",
+          "request": { "method": "GET", "url": { "raw": "{{base_url}}/api/sales/dashboard", "host": ["{{base_url}}"], "path": ["api","sales","dashboard"] } }
+        },
+        {
+          "name": "Projects — List",
+          "request": { "method": "GET", "url": { "raw": "{{base_url}}/api/sales/projects", "host": ["{{base_url}}"], "path": ["api","sales","projects"] } }
+        },
+        {
+          "name": "Projects — Show",
+          "request": { "method": "GET", "url": { "raw": "{{base_url}}/api/sales/projects/1", "host": ["{{base_url}}"], "path": ["api","sales","projects","1"] } }
+        },
+        {
+          "name": "Projects — Units",
+          "request": { "method": "GET", "url": { "raw": "{{base_url}}/api/sales/projects/1/units", "host": ["{{base_url}}"], "path": ["api","sales","projects","1","units"] } }
+        },
+        {
+          "name": "Reservations — Create",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{base_url}}/api/sales/reservations", "host": ["{{base_url}}"], "path": ["api","sales","reservations"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"unit_id\": 12,\n  \"customer_name\": \"Mohammed Al-Farsi\",\n  \"customer_phone\": \"+971501234567\",\n  \"customer_email\": \"m.alfarsi@email.com\",\n  \"national_id\": \"784-1990-1234567-1\",\n  \"deposit_amount\": 50000,\n  \"deposit_payment_type\": \"cheque\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Reservations — List",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/api/sales/reservations?status=pending&per_page=20",
+              "host": ["{{base_url}}"], "path": ["api","sales","reservations"],
+              "query": [
+                { "key": "status", "value": "pending" },
+                { "key": "per_page", "value": "20" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Reservations — Confirm",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{base_url}}/api/sales/reservations/1/confirm", "host": ["{{base_url}}"], "path": ["api","sales","reservations","1","confirm"] },
+            "body": { "mode": "raw", "raw": "{\n  \"notes\": \"Confirmed after verifying deposit cheque\"\n}" }
+          }
+        },
+        {
+          "name": "Reservations — Cancel",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{base_url}}/api/sales/reservations/1/cancel", "host": ["{{base_url}}"], "path": ["api","sales","reservations","1","cancel"] },
+            "body": { "mode": "raw", "raw": "{\n  \"reason\": \"Customer withdrew\"\n}" }
+          }
+        },
+        {
+          "name": "Reservations — Download Voucher",
+          "request": { "method": "GET", "url": { "raw": "{{base_url}}/api/sales/reservations/1/voucher", "host": ["{{base_url}}"], "path": ["api","sales","reservations","1","voucher"] }, "description": "Returns PDF file" }
+        },
+        {
+          "name": "Reservation Context (for unit)",
+          "request": { "method": "GET", "url": { "raw": "{{base_url}}/api/sales/units/12/reservation-context", "host": ["{{base_url}}"], "path": ["api","sales","units","12","reservation-context"] } }
+        },
+        {
+          "name": "Targets — My Targets",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/api/sales/targets/my?month=2026-03",
+              "host": ["{{base_url}}"], "path": ["api","sales","targets","my"],
+              "query": [{ "key": "month", "value": "2026-03" }]
+            }
+          }
+        },
+        {
+          "name": "Targets — Create (Leader)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{base_url}}/api/sales/targets", "host": ["{{base_url}}"], "path": ["api","sales","targets"] },
+            "body": { "mode": "raw", "raw": "{\n  \"user_id\": 5,\n  \"contract_id\": 1,\n  \"unit_id\": 12,\n  \"target_type\": \"units_sold\",\n  \"target_value\": 3,\n  \"month\": \"2026-03\"\n}" }
+          }
+        },
+        {
+          "name": "Attendance — My Attendance",
+          "request": { "method": "GET", "url": { "raw": "{{base_url}}/api/sales/attendance/my", "host": ["{{base_url}}"], "path": ["api","sales","attendance","my"] } }
+        },
+        {
+          "name": "Sold Units",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/api/sales/sold-units?date_from=2026-01-01&date_to=2026-03-31",
+              "host": ["{{base_url}}"], "path": ["api","sales","sold-units"],
+              "query": [
+                { "key": "date_from", "value": "2026-01-01" },
+                { "key": "date_to", "value": "2026-03-31" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Analytics — Dashboard",
+          "request": { "method": "GET", "url": { "raw": "{{base_url}}/api/sales/analytics/dashboard", "host": ["{{base_url}}"], "path": ["api","sales","analytics","dashboard"] } }
+        },
+        {
+          "name": "Waiting List — List",
+          "request": { "method": "GET", "url": { "raw": "{{base_url}}/api/sales/waiting-list", "host": ["{{base_url}}"], "path": ["api","sales","waiting-list"] } }
+        },
+        {
+          "name": "Waiting List — Add Entry",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{base_url}}/api/sales/waiting-list", "host": ["{{base_url}}"], "path": ["api","sales","waiting-list"] },
+            "body": { "mode": "raw", "raw": "{\n  \"unit_id\": 12,\n  \"customer_name\": \"Sara Al-Mansoori\",\n  \"customer_phone\": \"+971501111111\",\n  \"priority\": 1\n}" }
+          }
+        },
+        {
+          "name": "Waiting List — Convert to Reservation",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{base_url}}/api/sales/waiting-list/3/convert", "host": ["{{base_url}}"], "path": ["api","sales","waiting-list","3","convert"] },
+            "body": { "mode": "raw", "raw": "{\n  \"deposit_amount\": 50000\n}" }
+          }
+        }
+      ]
+    },
+
+    {
+      "name": "Sales — Negotiations & Payment Plans",
+      "description": "Requires role: sales | sales_leader | admin",
+      "item": [
+        {
+          "name": "Negotiations — List Pending",
+          "request": { "method": "GET", "url": { "raw": "{{base_url}}/api/sales/negotiations/pending", "host": ["{{base_url}}"], "path": ["api","sales","negotiations","pending"] }, "description": "Requires permission: sales.negotiation.approve" }
+        },
+        {
+          "name": "Negotiations — Approve",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{base_url}}/api/sales/negotiations/1/approve", "host": ["{{base_url}}"], "path": ["api","sales","negotiations","1","approve"] },
+            "body": { "mode": "raw", "raw": "{\n  \"notes\": \"Approved after management review. Price adjusted by 2%.\"\n}" }
+          }
+        },
+        {
+          "name": "Negotiations — Reject",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{base_url}}/api/sales/negotiations/1/reject", "host": ["{{base_url}}"], "path": ["api","sales","negotiations","1","reject"] },
+            "body": { "mode": "raw", "raw": "{\n  \"reason\": \"Discount requested exceeds maximum allowed threshold.\"\n}" }
+          }
+        },
+        {
+          "name": "Payment Plan — Get",
+          "request": { "method": "GET", "url": { "raw": "{{base_url}}/api/sales/reservations/1/payment-plan", "host": ["{{base_url}}"], "path": ["api","sales","reservations","1","payment-plan"] } }
+        },
+        {
+          "name": "Payment Plan — Create",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{base_url}}/api/sales/reservations/1/payment-plan", "host": ["{{base_url}}"], "path": ["api","sales","reservations","1","payment-plan"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"installments\": [\n    { \"amount\": 100000, \"due_date\": \"2026-04-01\", \"description\": \"Down payment\" },\n    { \"amount\": 50000, \"due_date\": \"2026-07-01\", \"description\": \"First installment\" },\n    { \"amount\": 50000, \"due_date\": \"2026-10-01\", \"description\": \"Second installment\" }\n  ]\n}"
+            }
+          }
+        },
+        {
+          "name": "Payment Installment — Update",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{base_url}}/api/sales/payment-installments/5", "host": ["{{base_url}}"], "path": ["api","sales","payment-installments","5"] },
+            "body": { "mode": "raw", "raw": "{\n  \"due_date\": \"2026-08-01\",\n  \"amount\": 55000,\n  \"status\": \"paid\"\n}" }
+          }
+        },
+        {
+          "name": "Payment Installment — Delete",
+          "request": { "method": "DELETE", "url": { "raw": "{{base_url}}/api/sales/payment-installments/5", "host": ["{{base_url}}"], "path": ["api","sales","payment-installments","5"] } }
+        }
+      ]
+    },
+
+    {
+      "name": "Accounting Department",
+      "description": "Requires role: accounting | admin",
+      "item": [
+        {
+          "name": "Dashboard",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/api/accounting/dashboard?date_from=2026-01-01&date_to=2026-03-31",
+              "host": ["{{base_url}}"], "path": ["api","accounting","dashboard"],
+              "query": [
+                { "key": "date_from", "value": "2026-01-01" },
+                { "key": "date_to", "value": "2026-03-31" }
+              ]
+            }
+          },
+          "response": [
+            {
+              "name": "200 Success",
+              "status": "OK",
+              "code": 200,
+              "body": "{\n  \"total_revenue\": 5200000,\n  \"units_sold\": 12,\n  \"pending_commissions\": 3,\n  \"pending_deposits\": 7,\n  \"total_commissions_paid\": 180000\n}"
+            }
+          ]
+        },
+        {
+          "name": "Commissions — Sold Units List",
+          "request": { "method": "GET", "url": { "raw": "{{base_url}}/api/accounting/sold-units", "host": ["{{base_url}}"], "path": ["api","accounting","sold-units"] } }
+        },
+        {
+          "name": "Commissions — Show Unit",
+          "request": { "method": "GET", "url": { "raw": "{{base_url}}/api/accounting/sold-units/1", "host": ["{{base_url}}"], "path": ["api","accounting","sold-units","1"] } }
+        },
+        {
+          "name": "Commissions — Marketers List",
+          "request": { "method": "GET", "url": { "raw": "{{base_url}}/api/accounting/marketers", "host": ["{{base_url}}"], "path": ["api","accounting","marketers"] } }
+        },
+        {
+          "name": "Commissions — Create Manual Commission",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{base_url}}/api/accounting/sold-units/1/commission", "host": ["{{base_url}}"], "path": ["api","accounting","sold-units","1","commission"] },
+            "body": { "mode": "raw", "raw": "{\n  \"amount\": 25000,\n  \"type\": \"sales_commission\",\n  \"notes\": \"Manual commission for unit 12 sale\"\n}" }
+          }
+        },
+        {
+          "name": "Commissions — Update Distributions",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{base_url}}/api/accounting/commissions/1/distributions", "host": ["{{base_url}}"], "path": ["api","accounting","commissions","1","distributions"] },
+            "body": { "mode": "raw", "raw": "{\n  \"distributions\": [\n    { \"user_id\": 5, \"amount\": 15000, \"role\": \"agent\" },\n    { \"user_id\": 6, \"amount\": 10000, \"role\": \"leader\" }\n  ]\n}" }
+          }
+        },
+        {
+          "name": "Commissions — Approve Distribution",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{base_url}}/api/accounting/commissions/1/distributions/2/approve", "host": ["{{base_url}}"], "path": ["api","accounting","commissions","1","distributions","2","approve"] },
+            "body": { "mode": "raw", "raw": "{\n  \"notes\": \"Approved after final verification\"\n}" }
+          }
+        },
+        {
+          "name": "Commissions — Reject Distribution",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{base_url}}/api/accounting/commissions/1/distributions/2/reject", "host": ["{{base_url}}"], "path": ["api","accounting","commissions","1","distributions","2","reject"] },
+            "body": { "mode": "raw", "raw": "{\n  \"reason\": \"Amounts do not match contract terms\"\n}" }
+          }
+        },
+        {
+          "name": "Commissions — Summary",
+          "request": { "method": "GET", "url": { "raw": "{{base_url}}/api/accounting/commissions/1/summary", "host": ["{{base_url}}"], "path": ["api","accounting","commissions","1","summary"] } }
+        },
+        {
+          "name": "Commissions — Confirm Payment",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{base_url}}/api/accounting/commissions/1/distributions/2/confirm", "host": ["{{base_url}}"], "path": ["api","accounting","commissions","1","distributions","2","confirm"] },
+            "body": { "mode": "raw", "raw": "{\n  \"payment_reference\": \"TXN-20260301-001\",\n  \"payment_date\": \"2026-03-01\"\n}" }
+          }
+        },
+        {
+          "name": "Deposits — Pending",
+          "request": { "method": "GET", "url": { "raw": "{{base_url}}/api/accounting/deposits/pending", "host": ["{{base_url}}"], "path": ["api","accounting","deposits","pending"] } }
+        },
+        {
+          "name": "Deposits — Follow Up List",
+          "request": { "method": "GET", "url": { "raw": "{{base_url}}/api/accounting/deposits/follow-up", "host": ["{{base_url}}"], "path": ["api","accounting","deposits","follow-up"] } }
+        },
+        {
+          "name": "Deposits — Confirm Receipt",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{base_url}}/api/accounting/deposits/3/confirm", "host": ["{{base_url}}"], "path": ["api","accounting","deposits","3","confirm"] },
+            "body": { "mode": "raw", "raw": "{\n  \"received_date\": \"2026-03-01\",\n  \"bank_reference\": \"CHQ-20260301\"\n}" }
+          }
+        },
+        {
+          "name": "Deposits — Process Refund",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{base_url}}/api/accounting/deposits/3/refund", "host": ["{{base_url}}"], "path": ["api","accounting","deposits","3","refund"] },
+            "body": { "mode": "raw", "raw": "{\n  \"reason\": \"Reservation cancelled by customer\",\n  \"refund_amount\": 50000\n}" }
+          }
+        },
+        {
+          "name": "Confirmations — Pending",
+          "request": { "method": "GET", "url": { "raw": "{{base_url}}/api/accounting/pending-confirmations", "host": ["{{base_url}}"], "path": ["api","accounting","pending-confirmations"] } }
+        },
+        {
+          "name": "Confirmations — History",
+          "request": { "method": "GET", "url": { "raw": "{{base_url}}/api/accounting/confirmations/history", "host": ["{{base_url}}"], "path": ["api","accounting","confirmations","history"] } }
+        },
+        {
+          "name": "Confirmations — Confirm",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{base_url}}/api/accounting/confirmations/4/confirm", "host": ["{{base_url}}"], "path": ["api","accounting","confirmations","4","confirm"] },
+            "body": { "mode": "raw", "raw": "{\n  \"confirmed_date\": \"2026-03-01\"\n}" }
+          }
+        },
+        {
+          "name": "Salaries — List",
+          "request": { "method": "GET", "url": { "raw": "{{base_url}}/api/accounting/salaries", "host": ["{{base_url}}"], "path": ["api","accounting","salaries"] } }
+        },
+        {
+          "name": "Salaries — Employee Detail",
+          "request": { "method": "GET", "url": { "raw": "{{base_url}}/api/accounting/salaries/5", "host": ["{{base_url}}"], "path": ["api","accounting","salaries","5"] } }
+        },
+        {
+          "name": "Salaries — Create Distribution",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{base_url}}/api/accounting/salaries/5/distribute", "host": ["{{base_url}}"], "path": ["api","accounting","salaries","5","distribute"] },
+            "body": { "mode": "raw", "raw": "{\n  \"month\": \"2026-03\",\n  \"base_amount\": 15000,\n  \"bonus\": 2000\n}" }
+          }
+        },
+        {
+          "name": "Salaries — Approve Distribution",
+          "request": {
+            "method": "POST",
+            "url": { "raw": "{{base_url}}/api/accounting/salaries/distributions/1/approve", "host": ["{{base_url}}"], "path": ["api","accounting","salaries","distributions","1","approve"] }
+          }
+        },
+        {
+          "name": "Salaries — Mark as Paid",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{base_url}}/api/accounting/salaries/distributions/1/paid", "host": ["{{base_url}}"], "path": ["api","accounting","salaries","distributions","1","paid"] },
+            "body": { "mode": "raw", "raw": "{\n  \"payment_reference\": \"SALARY-2026-03-EMP5\",\n  \"paid_at\": \"2026-03-28\"\n}" }
+          }
+        },
+        {
+          "name": "Notifications — List",
+          "request": { "method": "GET", "url": { "raw": "{{base_url}}/api/accounting/notifications", "host": ["{{base_url}}"], "path": ["api","accounting","notifications"] } }
+        },
+        {
+          "name": "Notifications — Mark All Read",
+          "request": { "method": "POST", "url": { "raw": "{{base_url}}/api/accounting/notifications/read-all", "host": ["{{base_url}}"], "path": ["api","accounting","notifications","read-all"] } }
+        },
+        {
+          "name": "Notifications — Mark Single Read",
+          "request": { "method": "POST", "url": { "raw": "{{base_url}}/api/accounting/notifications/7/read", "host": ["{{base_url}}"], "path": ["api","accounting","notifications","7","read"] } }
+        }
+      ]
+    },
+
+    {
+      "name": "Credit Department",
+      "description": "Requires role: credit | admin",
+      "item": [
+        {
+          "name": "Dashboard",
+          "request": { "method": "GET", "url": { "raw": "{{base_url}}/api/credit/dashboard", "host": ["{{base_url}}"], "path": ["api","credit","dashboard"] } },
+          "response": [
+            {
+              "name": "200 Success", "status": "OK", "code": 200,
+              "body": "{\n  \"total_bookings\": 45,\n  \"confirmed\": 20,\n  \"negotiation\": 5,\n  \"sold\": 18,\n  \"cancelled\": 2,\n  \"pending_financing\": 3\n}"
+            }
+          ]
+        },
+        {
+          "name": "Dashboard — Refresh",
+          "request": { "method": "POST", "url": { "raw": "{{base_url}}/api/credit/dashboard/refresh", "host": ["{{base_url}}"], "path": ["api","credit","dashboard","refresh"] } }
+        },
+        {
+          "name": "Bookings — All",
+          "request": { "method": "GET", "url": { "raw": "{{base_url}}/api/credit/bookings?per_page=20", "host": ["{{base_url}}"], "path": ["api","credit","bookings"], "query": [{ "key": "per_page", "value": "20" }] } }
+        },
+        {
+          "name": "Bookings — Confirmed",
+          "request": { "method": "GET", "url": { "raw": "{{base_url}}/api/credit/bookings/confirmed", "host": ["{{base_url}}"], "path": ["api","credit","bookings","confirmed"] } }
+        },
+        {
+          "name": "Bookings — In Negotiation",
+          "request": { "method": "GET", "url": { "raw": "{{base_url}}/api/credit/bookings/negotiation", "host": ["{{base_url}}"], "path": ["api","credit","bookings","negotiation"] } }
+        },
+        {
+          "name": "Bookings — Waiting",
+          "request": { "method": "GET", "url": { "raw": "{{base_url}}/api/credit/bookings/waiting", "host": ["{{base_url}}"], "path": ["api","credit","bookings","waiting"] } }
+        },
+        {
+          "name": "Bookings — Sold",
+          "request": { "method": "GET", "url": { "raw": "{{base_url}}/api/credit/bookings/sold", "host": ["{{base_url}}"], "path": ["api","credit","bookings","sold"] } }
+        },
+        {
+          "name": "Bookings — Cancelled",
+          "request": { "method": "GET", "url": { "raw": "{{base_url}}/api/credit/bookings/cancelled", "host": ["{{base_url}}"], "path": ["api","credit","bookings","cancelled"] } }
+        },
+        {
+          "name": "Bookings — Show",
+          "request": { "method": "GET", "url": { "raw": "{{base_url}}/api/credit/bookings/1", "host": ["{{base_url}}"], "path": ["api","credit","bookings","1"] } }
+        },
+        {
+          "name": "Bookings — Update Negotiation",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{base_url}}/api/credit/bookings/negotiation/1", "host": ["{{base_url}}"], "path": ["api","credit","bookings","negotiation","1"] },
+            "body": { "mode": "raw", "raw": "{\n  \"negotiated_price\": 1850000,\n  \"notes\": \"Customer agreed to 2% discount on final price\"\n}" }
+          }
+        },
+        {
+          "name": "Bookings — Cancel",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{base_url}}/api/credit/bookings/1/cancel", "host": ["{{base_url}}"], "path": ["api","credit","bookings","1","cancel"] },
+            "body": { "mode": "raw", "raw": "{\n  \"reason\": \"Financing declined by bank\"\n}" }
+          }
+        },
+        {
+          "name": "Financing — Initialize",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{base_url}}/api/credit/bookings/1/financing", "host": ["{{base_url}}"], "path": ["api","credit","bookings","1","financing"] },
+            "body": { "mode": "raw", "raw": "{\n  \"bank\": \"Emirates NBD\",\n  \"loan_amount\": 1500000,\n  \"interest_rate\": 3.5,\n  \"tenure_years\": 25\n}" }
+          }
+        },
+        {
+          "name": "Financing — Show",
+          "request": { "method": "GET", "url": { "raw": "{{base_url}}/api/credit/bookings/1/financing", "host": ["{{base_url}}"], "path": ["api","credit","bookings","1","financing"] } }
+        },
+        {
+          "name": "Financing — Advance Stage",
+          "request": { "method": "POST", "url": { "raw": "{{base_url}}/api/credit/bookings/1/financing/advance", "host": ["{{base_url}}"], "path": ["api","credit","bookings","1","financing","advance"] } }
+        },
+        {
+          "name": "Financing — Complete Stage",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{base_url}}/api/credit/bookings/1/financing/stage/documents_submitted", "host": ["{{base_url}}"], "path": ["api","credit","bookings","1","financing","stage","documents_submitted"] },
+            "body": { "mode": "raw", "raw": "{\n  \"notes\": \"All documents verified and submitted to bank\"\n}" }
+          }
+        },
+        {
+          "name": "Financing — Reject",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{base_url}}/api/credit/bookings/1/financing/reject", "host": ["{{base_url}}"], "path": ["api","credit","bookings","1","financing","reject"] },
+            "body": { "mode": "raw", "raw": "{\n  \"reason\": \"Customer does not meet bank income requirements\"\n}" }
+          }
+        },
+        {
+          "name": "Title Transfer — Initialize",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{base_url}}/api/credit/bookings/1/title-transfer", "host": ["{{base_url}}"], "path": ["api","credit","bookings","1","title-transfer"] },
+            "body": { "mode": "raw", "raw": "{\n  \"notes\": \"Ready for DLD transfer\"\n}" }
+          }
+        },
+        {
+          "name": "Title Transfer — Pending List",
+          "request": { "method": "GET", "url": { "raw": "{{base_url}}/api/credit/title-transfers/pending", "host": ["{{base_url}}"], "path": ["api","credit","title-transfers","pending"] } }
+        },
+        {
+          "name": "Title Transfer — Schedule",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{base_url}}/api/credit/title-transfer/2/schedule", "host": ["{{base_url}}"], "path": ["api","credit","title-transfer","2","schedule"] },
+            "body": { "mode": "raw", "raw": "{\n  \"scheduled_date\": \"2026-04-10\",\n  \"location\": \"DLD Office, Dubai\"\n}" }
+          }
+        },
+        {
+          "name": "Title Transfer — Unschedule",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{base_url}}/api/credit/title-transfer/2/unschedule", "host": ["{{base_url}}"], "path": ["api","credit","title-transfer","2","unschedule"] },
+            "body": { "mode": "raw", "raw": "{\n  \"reason\": \"Customer postponed\"\n}" }
+          }
+        },
+        {
+          "name": "Title Transfer — Complete",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{base_url}}/api/credit/title-transfer/2/complete", "host": ["{{base_url}}"], "path": ["api","credit","title-transfer","2","complete"] },
+            "body": { "mode": "raw", "raw": "{\n  \"transfer_date\": \"2026-04-10\",\n  \"reference_number\": \"DLD-20260410-001\"\n}" }
+          }
+        },
+        {
+          "name": "Sold Projects",
+          "request": { "method": "GET", "url": { "raw": "{{base_url}}/api/credit/sold-projects", "host": ["{{base_url}}"], "path": ["api","credit","sold-projects"] } }
+        },
+        {
+          "name": "Claim Files — List",
+          "request": { "method": "GET", "url": { "raw": "{{base_url}}/api/credit/claim-files", "host": ["{{base_url}}"], "path": ["api","credit","claim-files"] } }
+        },
+        {
+          "name": "Claim Files — Candidates",
+          "request": { "method": "GET", "url": { "raw": "{{base_url}}/api/credit/claim-files/candidates", "host": ["{{base_url}}"], "path": ["api","credit","claim-files","candidates"] } }
+        },
+        {
+          "name": "Claim Files — Generate Bulk",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{base_url}}/api/credit/claim-files/generate-bulk", "host": ["{{base_url}}"], "path": ["api","credit","claim-files","generate-bulk"] },
+            "body": { "mode": "raw", "raw": "{\n  \"booking_ids\": [1, 2, 3, 5]\n}" }
+          }
+        },
+        {
+          "name": "Claim Files — Generate Combined",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{base_url}}/api/credit/claim-files/combined", "host": ["{{base_url}}"], "path": ["api","credit","claim-files","combined"] },
+            "body": { "mode": "raw", "raw": "{\n  \"claim_file_ids\": [1, 2, 3]\n}" }
+          }
+        },
+        {
+          "name": "Claim Files — Generate for Booking",
+          "request": {
+            "method": "POST",
+            "url": { "raw": "{{base_url}}/api/credit/bookings/1/claim-file", "host": ["{{base_url}}"], "path": ["api","credit","bookings","1","claim-file"] }
+          }
+        },
+        {
+          "name": "Claim Files — Show",
+          "request": { "method": "GET", "url": { "raw": "{{base_url}}/api/credit/claim-files/1", "host": ["{{base_url}}"], "path": ["api","credit","claim-files","1"] } }
+        },
+        {
+          "name": "Claim Files — Download PDF",
+          "request": { "method": "GET", "url": { "raw": "{{base_url}}/api/credit/claim-files/1/pdf", "host": ["{{base_url}}"], "path": ["api","credit","claim-files","1","pdf"] }, "description": "Returns PDF file stream" }
+        },
+        {
+          "name": "Claim Files — Generate PDF",
+          "request": {
+            "method": "POST",
+            "url": { "raw": "{{base_url}}/api/credit/claim-files/1/pdf", "host": ["{{base_url}}"], "path": ["api","credit","claim-files","1","pdf"] }
+          }
+        },
+        {
+          "name": "Notifications — List",
+          "request": { "method": "GET", "url": { "raw": "{{base_url}}/api/credit/notifications", "host": ["{{base_url}}"], "path": ["api","credit","notifications"] } }
+        },
+        {
+          "name": "Notifications — Mark All Read",
+          "request": { "method": "POST", "url": { "raw": "{{base_url}}/api/credit/notifications/read-all", "host": ["{{base_url}}"], "path": ["api","credit","notifications","read-all"] } }
+        },
+        {
+          "name": "Notifications — Mark Single Read",
+          "request": { "method": "POST", "url": { "raw": "{{base_url}}/api/credit/notifications/3/read", "host": ["{{base_url}}"], "path": ["api","credit","notifications","3","read"] } }
+        }
+      ]
+    },
+
+    {
+      "name": "HR Department",
+      "description": "Requires role: hr middleware",
+      "item": [
+        {
+          "name": "HR Dashboard",
+          "request": { "method": "GET", "url": { "raw": "{{base_url}}/api/hr/dashboard", "host": ["{{base_url}}"], "path": ["api","hr","dashboard"] } }
+        },
+        {
+          "name": "Add Employee",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{base_url}}/api/hr/add_employee", "host": ["{{base_url}}"], "path": ["api","hr","add_employee"] },
+            "body": { "mode": "raw", "raw": "{\n  \"name\": \"Fatima Al-Zahra\",\n  \"email\": \"fatima@rakez.com\",\n  \"type\": \"sales\",\n  \"password\": \"Employee@2026!\"\n}" }
+          }
+        },
+        {
+          "name": "List Employees",
+          "request": { "method": "GET", "url": { "raw": "{{base_url}}/api/hr/list_employees", "host": ["{{base_url}}"], "path": ["api","hr","list_employees"] } }
+        },
+        {
+          "name": "Show Employee",
+          "request": { "method": "GET", "url": { "raw": "{{base_url}}/api/hr/show_employee/5", "host": ["{{base_url}}"], "path": ["api","hr","show_employee","5"] } }
+        },
+        {
+          "name": "Update Employee",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{base_url}}/api/hr/update_employee/5", "host": ["{{base_url}}"], "path": ["api","hr","update_employee","5"] },
+            "body": { "mode": "raw", "raw": "{\n  \"name\": \"Fatima Al-Zahra Hassan\"\n}" }
+          }
+        },
+        {
+          "name": "Delete Employee",
+          "request": { "method": "DELETE", "url": { "raw": "{{base_url}}/api/hr/delete_employee/5", "host": ["{{base_url}}"], "path": ["api","hr","delete_employee","5"] } }
+        },
+        {
+          "name": "Team — Contracts by Team",
+          "request": { "method": "GET", "url": { "raw": "{{base_url}}/api/hr/teams/contracts/2", "host": ["{{base_url}}"], "path": ["api","hr","teams","contracts","2"] } }
+        },
+        {
+          "name": "Team — Contract Locations",
+          "request": { "method": "GET", "url": { "raw": "{{base_url}}/api/hr/teams/contracts/locations/2", "host": ["{{base_url}}"], "path": ["api","hr","teams","contracts","locations","2"] } }
+        },
+        {
+          "name": "Team — Sales Average",
+          "request": { "method": "GET", "url": { "raw": "{{base_url}}/api/hr/teams/sales-average/2", "host": ["{{base_url}}"], "path": ["api","hr","teams","sales-average","2"] } }
+        }
+      ]
+    },
+
+    {
+      "name": "Marketing Department",
+      "description": "Requires role: marketing | admin",
+      "item": [
+        {
+          "name": "Dashboard",
+          "request": { "method": "GET", "url": { "raw": "{{base_url}}/api/marketing/dashboard", "host": ["{{base_url}}"], "path": ["api","marketing","dashboard"] } }
+        },
+        {
+          "name": "Projects — List",
+          "request": { "method": "GET", "url": { "raw": "{{base_url}}/api/marketing/projects", "host": ["{{base_url}}"], "path": ["api","marketing","projects"] } }
+        },
+        {
+          "name": "Projects — Show",
+          "request": { "method": "GET", "url": { "raw": "{{base_url}}/api/marketing/projects/1", "host": ["{{base_url}}"], "path": ["api","marketing","projects","1"] } }
+        },
+        {
+          "name": "Developer Plans — Show",
+          "request": { "method": "GET", "url": { "raw": "{{base_url}}/api/marketing/developer-plans/1", "host": ["{{base_url}}"], "path": ["api","marketing","developer-plans","1"] } }
+        },
+        {
+          "name": "Developer Plans — Create",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{base_url}}/api/marketing/developer-plans", "host": ["{{base_url}}"], "path": ["api","marketing","developer-plans"] },
+            "body": { "mode": "raw", "raw": "{\n  \"contract_id\": 1,\n  \"total_budget\": 500000,\n  \"start_date\": \"2026-03-01\",\n  \"end_date\": \"2026-09-30\",\n  \"channels\": [\"social_media\", \"outdoor\", \"digital\"]\n}" }
+          }
+        },
+        {
+          "name": "Leads — List",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/api/marketing/leads?status=new&per_page=20",
+              "host": ["{{base_url}}"], "path": ["api","marketing","leads"],
+              "query": [{ "key": "status", "value": "new" }, { "key": "per_page", "value": "20" }]
+            }
+          }
+        },
+        {
+          "name": "Leads — Create",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{base_url}}/api/marketing/leads", "host": ["{{base_url}}"], "path": ["api","marketing","leads"] },
+            "body": { "mode": "raw", "raw": "{\n  \"name\": \"Khalid Al-Hamdan\",\n  \"phone\": \"+971509876543\",\n  \"email\": \"khalid@email.com\",\n  \"source\": \"instagram\",\n  \"project_id\": 1,\n  \"budget\": \"2M-3M\"\n}" }
+          }
+        },
+        {
+          "name": "Tasks — List",
+          "request": { "method": "GET", "url": { "raw": "{{base_url}}/api/marketing/tasks", "host": ["{{base_url}}"], "path": ["api","marketing","tasks"] } }
+        },
+        {
+          "name": "Reports — Project Performance",
+          "request": { "method": "GET", "url": { "raw": "{{base_url}}/api/marketing/reports/project/1", "host": ["{{base_url}}"], "path": ["api","marketing","reports","project","1"] } }
+        },
+        {
+          "name": "Reports — Budget",
+          "request": { "method": "GET", "url": { "raw": "{{base_url}}/api/marketing/reports/budget", "host": ["{{base_url}}"], "path": ["api","marketing","reports","budget"] } }
+        },
+        {
+          "name": "Settings — List",
+          "request": { "method": "GET", "url": { "raw": "{{base_url}}/api/marketing/settings", "host": ["{{base_url}}"], "path": ["api","marketing","settings"] } }
+        }
+      ]
+    },
+
+    {
+      "name": "Inventory Department",
+      "description": "Requires inventory middleware",
+      "item": [
+        {
+          "name": "Contracts — Show",
+          "request": { "method": "GET", "url": { "raw": "{{base_url}}/api/inventory/contracts/show/1", "host": ["{{base_url}}"], "path": ["api","inventory","contracts","show","1"] } }
+        },
+        {
+          "name": "Contracts — Admin Index",
+          "request": { "method": "GET", "url": { "raw": "{{base_url}}/api/inventory/contracts/admin-index", "host": ["{{base_url}}"], "path": ["api","inventory","contracts","admin-index"] } }
+        },
+        {
+          "name": "Contract Units — Show",
+          "request": { "method": "GET", "url": { "raw": "{{base_url}}/api/inventory/contracts/units/show/1", "host": ["{{base_url}}"], "path": ["api","inventory","contracts","units","show","1"] } }
+        },
+        {
+          "name": "Contracts — All Locations",
+          "request": { "method": "GET", "url": { "raw": "{{base_url}}/api/inventory/contracts/locations", "host": ["{{base_url}}"], "path": ["api","inventory","contracts","locations"] } }
+        }
+      ]
+    },
+
+    {
+      "name": "AI Calling",
+      "description": "Requires role: admin | sales | sales_leader | marketing",
+      "item": [
+        {
+          "name": "Calls — List",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/api/ai/calls?status=completed&per_page=20",
+              "host": ["{{base_url}}"], "path": ["api","ai","calls"],
+              "query": [{ "key": "status", "value": "completed" }, { "key": "per_page", "value": "20" }]
+            }
+          },
+          "response": [
+            {
+              "name": "200 Success", "status": "OK", "code": 200,
+              "body": "{\n  \"data\": [\n    {\n      \"id\": 1,\n      \"phone\": \"+971501234567\",\n      \"status\": \"completed\",\n      \"duration\": 142,\n      \"outcome\": \"interested\",\n      \"created_at\": \"2026-02-28T10:00:00Z\"\n    }\n  ],\n  \"meta\": { \"current_page\": 1, \"total\": 25 }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Calls — Initiate Single",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{base_url}}/api/ai/calls/initiate", "host": ["{{base_url}}"], "path": ["api","ai","calls","initiate"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"phone\": \"+971501234567\",\n  \"lead_name\": \"Ahmed Al-Rashid\",\n  \"script_id\": 2,\n  \"project_name\": \"Sunrise Tower\",\n  \"unit_type\": \"2BR Apartment\",\n  \"price_range\": \"1.8M - 2.2M AED\"\n}"
+            }
+          },
+          "response": [
+            {
+              "name": "200 Success", "status": "OK", "code": 200,
+              "body": "{\n  \"call_id\": 42,\n  \"twilio_sid\": \"CA1234567890abcdef\",\n  \"status\": \"initiated\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "Calls — Bulk Initiate",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{base_url}}/api/ai/calls/bulk", "host": ["{{base_url}}"], "path": ["api","ai","calls","bulk"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"script_id\": 2,\n  \"project_name\": \"Sunrise Tower\",\n  \"leads\": [\n    { \"phone\": \"+971501111111\", \"name\": \"Ahmed\" },\n    { \"phone\": \"+971502222222\", \"name\": \"Sara\" },\n    { \"phone\": \"+971503333333\", \"name\": \"Mohammed\" }\n  ]\n}"
+            }
+          }
+        },
+        {
+          "name": "Calls — Analytics",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/api/ai/calls/analytics?date_from=2026-02-01&date_to=2026-02-28",
+              "host": ["{{base_url}}"], "path": ["api","ai","calls","analytics"],
+              "query": [
+                { "key": "date_from", "value": "2026-02-01" },
+                { "key": "date_to", "value": "2026-02-28" }
+              ]
+            }
+          },
+          "response": [
+            {
+              "name": "200 Success", "status": "OK", "code": 200,
+              "body": "{\n  \"total_calls\": 120,\n  \"completed\": 95,\n  \"no_answer\": 18,\n  \"failed\": 7,\n  \"avg_duration_seconds\": 98,\n  \"interested_rate\": 0.32\n}"
+            }
+          ]
+        },
+        {
+          "name": "Calls — Show",
+          "request": { "method": "GET", "url": { "raw": "{{base_url}}/api/ai/calls/1", "host": ["{{base_url}}"], "path": ["api","ai","calls","1"] } }
+        },
+        {
+          "name": "Calls — Transcript",
+          "request": { "method": "GET", "url": { "raw": "{{base_url}}/api/ai/calls/1/transcript", "host": ["{{base_url}}"], "path": ["api","ai","calls","1","transcript"] } }
+        },
+        {
+          "name": "Calls — Retry",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{base_url}}/api/ai/calls/1/retry", "host": ["{{base_url}}"], "path": ["api","ai","calls","1","retry"] },
+            "body": { "mode": "raw", "raw": "{\n  \"reason\": \"No answer on first attempt\"\n}" }
+          }
+        },
+        {
+          "name": "Scripts — List",
+          "request": { "method": "GET", "url": { "raw": "{{base_url}}/api/ai/calls/scripts", "host": ["{{base_url}}"], "path": ["api","ai","calls","scripts"] } }
+        },
+        {
+          "name": "Scripts — Create",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{base_url}}/api/ai/calls/scripts", "host": ["{{base_url}}"], "path": ["api","ai","calls","scripts"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Luxury Project Follow-Up\",\n  \"language\": \"ar\",\n  \"greeting\": \"السلام عليكم، أنا منى من فريق ريكيز للعقارات\",\n  \"body\": \"اتصل بكم بخصوص مشروع برج صنرايز الرائع...\",\n  \"closing\": \"شكراً جزيلاً على وقتكم\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Scripts — Update",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{base_url}}/api/ai/calls/scripts/2", "host": ["{{base_url}}"], "path": ["api","ai","calls","scripts","2"] },
+            "body": { "mode": "raw", "raw": "{\n  \"name\": \"Luxury Project Follow-Up v2\"\n}" }
+          }
+        },
+        {
+          "name": "Scripts — Delete",
+          "request": { "method": "DELETE", "url": { "raw": "{{base_url}}/api/ai/calls/scripts/2", "host": ["{{base_url}}"], "path": ["api","ai","calls","scripts","2"] } }
+        }
+      ]
+    },
+
+    {
+      "name": "AI Assistant",
+      "item": [
+        {
+          "name": "Chat with Assistant",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{base_url}}/api/ai/assistant/chat", "host": ["{{base_url}}"], "path": ["api","ai","assistant","chat"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"message\": \"What are the current pending reservations?\",\n  \"section\": \"sales\",\n  \"context\": {}\n}"
+            }
+          },
+          "response": [
+            {
+              "name": "200 Success", "status": "OK", "code": 200,
+              "body": "{\n  \"reply\": \"There are currently 7 pending reservations...\",\n  \"session_id\": \"sess_abc123\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "Ask (Legacy)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{base_url}}/api/ai/ask", "host": ["{{base_url}}"], "path": ["api","ai","ask"] },
+            "body": { "mode": "raw", "raw": "{\n  \"question\": \"Show me the top performing sales agents this month\"\n}" }
+          }
+        },
+        {
+          "name": "Get Conversations",
+          "request": { "method": "GET", "url": { "raw": "{{base_url}}/api/ai/conversations", "host": ["{{base_url}}"], "path": ["api","ai","conversations"] } }
+        },
+        {
+          "name": "Delete Conversation",
+          "request": { "method": "DELETE", "url": { "raw": "{{base_url}}/api/ai/conversations/sess_abc123", "host": ["{{base_url}}"], "path": ["api","ai","conversations","sess_abc123"] } }
+        },
+        {
+          "name": "List Sections",
+          "request": { "method": "GET", "url": { "raw": "{{base_url}}/api/ai/sections", "host": ["{{base_url}}"], "path": ["api","ai","sections"] } }
+        }
+      ]
+    },
+
+    {
+      "name": "AI Knowledge Base (Admin)",
+      "description": "Requires role: admin",
+      "item": [
+        {
+          "name": "List Knowledge",
+          "request": { "method": "GET", "url": { "raw": "{{base_url}}/api/ai/knowledge", "host": ["{{base_url}}"], "path": ["api","ai","knowledge"] } }
+        },
+        {
+          "name": "Add Knowledge",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{base_url}}/api/ai/knowledge", "host": ["{{base_url}}"], "path": ["api","ai","knowledge"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Commission Policy 2026\",\n  \"content\": \"Sales agents receive 2% commission on completed sales. Leaders receive 0.5% override on team sales...\",\n  \"tags\": [\"commissions\", \"policy\", \"sales\"]\n}"
+            }
+          }
+        },
+        {
+          "name": "Update Knowledge",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{base_url}}/api/ai/knowledge/1", "host": ["{{base_url}}"], "path": ["api","ai","knowledge","1"] },
+            "body": { "mode": "raw", "raw": "{\n  \"content\": \"Updated commission policy...\"\n}" }
+          }
+        },
+        {
+          "name": "Delete Knowledge",
+          "request": { "method": "DELETE", "url": { "raw": "{{base_url}}/api/ai/knowledge/1", "host": ["{{base_url}}"], "path": ["api","ai","knowledge","1"] } }
+        }
+      ]
+    },
+
+    {
+      "name": "Ads Platform",
+      "description": "Requires role: admin | marketing",
+      "item": [
+        {
+          "name": "Platform Accounts",
+          "request": { "method": "GET", "url": { "raw": "{{base_url}}/api/ads/accounts", "host": ["{{base_url}}"], "path": ["api","ads","accounts"] } },
+          "response": [
+            {
+              "name": "200 Success", "status": "OK", "code": 200,
+              "body": "[\n  {\n    \"id\": 1,\n    \"platform\": \"meta\",\n    \"account_id\": \"act_123456789\",\n    \"account_name\": \"Rakez Meta Ads\",\n    \"is_active\": true,\n    \"token_expires_at\": \"2026-12-31T00:00:00Z\"\n  },\n  {\n    \"id\": 2,\n    \"platform\": \"snap\",\n    \"account_id\": \"snap_987654321\",\n    \"account_name\": \"Rakez Snapchat\",\n    \"is_active\": true\n  }\n]"
+            }
+          ]
+        },
+        {
+          "name": "Campaigns — List",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/api/ads/campaigns?platform=meta&per_page=50",
+              "host": ["{{base_url}}"], "path": ["api","ads","campaigns"],
+              "query": [
+                { "key": "platform", "value": "meta" },
+                { "key": "per_page", "value": "50" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Insights — Query",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/api/ads/insights?platform=meta&level=campaign&date_start=2026-02-01&date_stop=2026-02-28&per_page=100",
+              "host": ["{{base_url}}"], "path": ["api","ads","insights"],
+              "query": [
+                { "key": "platform", "value": "meta" },
+                { "key": "level", "value": "campaign" },
+                { "key": "date_start", "value": "2026-02-01" },
+                { "key": "date_stop", "value": "2026-02-28" },
+                { "key": "per_page", "value": "100" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Sync — Trigger Campaign Sync",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{base_url}}/api/ads/sync", "host": ["{{base_url}}"], "path": ["api","ads","sync"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"platform\": \"meta\",\n  \"account_id\": \"act_123456789\",\n  \"action\": \"campaigns\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Sync — Trigger Insights Sync",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{base_url}}/api/ads/sync", "host": ["{{base_url}}"], "path": ["api","ads","sync"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"platform\": \"meta\",\n  \"account_id\": \"act_123456789\",\n  \"action\": \"insights\",\n  \"days\": 30\n}"
+            }
+          }
+        },
+        {
+          "name": "Outcomes — Submit CRM Signal",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{base_url}}/api/ads/outcomes", "host": ["{{base_url}}"], "path": ["api","ads","outcomes"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"customer_id\": \"CRM-2026-0042\",\n  \"outcome_type\": \"purchase\",\n  \"occurred_at\": \"2026-02-28T14:30:00Z\",\n  \"email\": \"customer@email.com\",\n  \"phone\": \"+971501234567\",\n  \"value\": 2100000,\n  \"currency\": \"AED\",\n  \"order_id\": \"ORD-2026-0042\",\n  \"meta_fbc\": \"fb.1.1234567890.AbCdEfGhIjKlMnOp\",\n  \"meta_fbp\": \"fb.1.1234567890.1234567890\",\n  \"client_ip\": \"192.168.1.100\",\n  \"client_user_agent\": \"Mozilla/5.0...\",\n  \"platforms\": [\"meta\", \"snap\"]\n}"
+            }
+          },
+          "response": [
+            {
+              "name": "201 Created", "status": "Created", "code": 201,
+              "body": "{\n  \"event_id\": \"evt_sha256hash\",\n  \"outcome_type\": \"purchase\",\n  \"platforms\": [\"meta\", \"snap\"],\n  \"status\": \"queued\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "Outcomes — Status",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/api/ads/outcomes/status?platform=meta&status=sent&limit=50",
+              "host": ["{{base_url}}"], "path": ["api","ads","outcomes","status"],
+              "query": [
+                { "key": "platform", "value": "meta" },
+                { "key": "status", "value": "sent" },
+                { "key": "limit", "value": "50" }
+              ]
+            }
+          }
+        }
+      ]
+    },
+
+    {
+      "name": "Twilio Webhooks",
+      "description": "Called by Twilio only. Validated with Twilio signature middleware. Do NOT call manually in production.",
+      "item": [
+        {
+          "name": "Voice Handler",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/x-www-form-urlencoded" },
+              { "key": "X-Twilio-Signature", "value": "twilio_computed_signature_here" }
+            ],
+            "url": { "raw": "{{base_url}}/api/webhooks/twilio/voice/42", "host": ["{{base_url}}"], "path": ["api","webhooks","twilio","voice","42"] },
+            "body": {
+              "mode": "urlencoded",
+              "urlencoded": [
+                { "key": "CallSid", "value": "CA1234567890abcdef" },
+                { "key": "CallStatus", "value": "in-progress" },
+                { "key": "To", "value": "+971501234567" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Status Handler",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/x-www-form-urlencoded" }],
+            "url": { "raw": "{{base_url}}/api/webhooks/twilio/status/42", "host": ["{{base_url}}"], "path": ["api","webhooks","twilio","status","42"] },
+            "body": {
+              "mode": "urlencoded",
+              "urlencoded": [
+                { "key": "CallSid", "value": "CA1234567890abcdef" },
+                { "key": "CallStatus", "value": "completed" },
+                { "key": "CallDuration", "value": "142" }
+              ]
+            }
+          }
+        }
+      ]
+    },
+
+    {
+      "name": "Chat (Internal)",
+      "item": [
+        {
+          "name": "List Conversations",
+          "request": { "method": "GET", "url": { "raw": "{{base_url}}/api/chat/conversations", "host": ["{{base_url}}"], "path": ["api","chat","conversations"] } }
+        },
+        {
+          "name": "Get or Create Conversation",
+          "request": { "method": "GET", "url": { "raw": "{{base_url}}/api/chat/conversations/5", "host": ["{{base_url}}"], "path": ["api","chat","conversations","5"] } }
+        },
+        {
+          "name": "Get Messages",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/api/chat/conversations/1/messages?per_page=50",
+              "host": ["{{base_url}}"], "path": ["api","chat","conversations","1","messages"],
+              "query": [{ "key": "per_page", "value": "50" }]
+            }
+          }
+        },
+        {
+          "name": "Send Message",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{base_url}}/api/chat/conversations/1/messages", "host": ["{{base_url}}"], "path": ["api","chat","conversations","1","messages"] },
+            "body": { "mode": "raw", "raw": "{\n  \"message\": \"Hi, please check the updated payment plan for reservation #12.\"\n}" }
+          }
+        },
+        {
+          "name": "Mark as Read",
+          "request": { "method": "PATCH", "url": { "raw": "{{base_url}}/api/chat/conversations/1/read", "host": ["{{base_url}}"], "path": ["api","chat","conversations","1","read"] } }
+        },
+        {
+          "name": "Delete Message",
+          "request": { "method": "DELETE", "url": { "raw": "{{base_url}}/api/chat/messages/5", "host": ["{{base_url}}"], "path": ["api","chat","messages","5"] } }
+        },
+        {
+          "name": "Unread Count",
+          "request": { "method": "GET", "url": { "raw": "{{base_url}}/api/chat/unread-count", "host": ["{{base_url}}"], "path": ["api","chat","unread-count"] } }
+        }
+      ]
+    },
+
+    {
+      "name": "Exclusive Projects",
+      "item": [
+        {
+          "name": "List",
+          "request": { "method": "GET", "url": { "raw": "{{base_url}}/api/exclusive-projects", "host": ["{{base_url}}"], "path": ["api","exclusive-projects"] } }
+        },
+        {
+          "name": "Show",
+          "request": { "method": "GET", "url": { "raw": "{{base_url}}/api/exclusive-projects/1", "host": ["{{base_url}}"], "path": ["api","exclusive-projects","1"] } }
+        },
+        {
+          "name": "Request Exclusive Project",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{base_url}}/api/exclusive-projects", "host": ["{{base_url}}"], "path": ["api","exclusive-projects"] },
+            "body": { "mode": "raw", "raw": "{\n  \"project_name\": \"Marina Heights\",\n  \"justification\": \"High potential client requesting exclusive pricing\",\n  \"requested_discount\": 5\n}" }
+          }
+        },
+        {
+          "name": "Approve",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{base_url}}/api/exclusive-projects/1/approve", "host": ["{{base_url}}"], "path": ["api","exclusive-projects","1","approve"] },
+            "body": { "mode": "raw", "raw": "{\n  \"notes\": \"Approved for VIP client\"\n}" }
+          }
+        },
+        {
+          "name": "Reject",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{base_url}}/api/exclusive-projects/1/reject", "host": ["{{base_url}}"], "path": ["api","exclusive-projects","1","reject"] },
+            "body": { "mode": "raw", "raw": "{\n  \"reason\": \"Discount exceeds maximum allowed\"\n}" }
+          }
+        },
+        {
+          "name": "Export Contract",
+          "request": { "method": "GET", "url": { "raw": "{{base_url}}/api/exclusive-projects/1/export", "host": ["{{base_url}}"], "path": ["api","exclusive-projects","1","export"] }, "description": "Returns PDF" }
+        }
+      ]
+    },
+
+    {
+      "name": "Dashboard",
+      "item": [
+        {
+          "name": "HR Dashboard",
+          "request": { "method": "GET", "url": { "raw": "{{base_url}}/api/hr/dashboard", "host": ["{{base_url}}"], "path": ["api","hr","dashboard"] } }
+        },
+        {
+          "name": "Project Management Dashboard",
+          "request": { "method": "GET", "url": { "raw": "{{base_url}}/api/project_management/dashboard", "host": ["{{base_url}}"], "path": ["api","project_management","dashboard"] } }
+        },
+        {
+          "name": "Project Management — Units Statistics",
+          "request": { "method": "GET", "url": { "raw": "{{base_url}}/api/project_management/dashboard/units-statistics", "host": ["{{base_url}}"], "path": ["api","project_management","dashboard","units-statistics"] } }
+        }
+      ]
+    }
+
+  ]
+}

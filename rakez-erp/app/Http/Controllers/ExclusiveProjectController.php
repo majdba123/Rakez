@@ -19,6 +19,7 @@ class ExclusiveProjectController extends Controller
 
     /**
      * Get exclusive project requests with filters.
+     * Non-approvers only see their own requests; approvers (PM Manager, Admin) can see all or filter by requested_by.
      */
     public function index(Request $request): JsonResponse
     {
@@ -33,7 +34,7 @@ class ExclusiveProjectController extends Controller
             $filters = array_filter($filters, fn($value) => $value !== null);
 
             $perPage = $request->query('per_page', 15);
-            $requests = $this->exclusiveProjectService->getRequests($filters, $perPage);
+            $requests = $this->exclusiveProjectService->getRequests($filters, $perPage, $request->user());
 
             return response()->json([
                 'success' => true,
@@ -55,15 +56,24 @@ class ExclusiveProjectController extends Controller
 
     /**
      * Get a single exclusive project request.
+     * Only the request owner or users with exclusive_projects.approve can view.
      */
-    public function show(int $id): JsonResponse
+    public function show(Request $request, int $id): JsonResponse
     {
         try {
-            $request = $this->exclusiveProjectService->getRequest($id);
+            $exclusiveRequest = $this->exclusiveProjectService->getRequest($id);
+            $user = $request->user();
+
+            if ((int) $exclusiveRequest->requested_by !== (int) $user->id && !$user->can('exclusive_projects.approve')) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'You do not have access to this exclusive project request.',
+                ], Response::HTTP_FORBIDDEN);
+            }
 
             return response()->json([
                 'success' => true,
-                'data' => $request,
+                'data' => $exclusiveRequest,
             ]);
         } catch (\Exception $e) {
             return response()->json([

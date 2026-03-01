@@ -12,6 +12,15 @@ class SalesTargetFactory extends Factory
 {
     protected $model = SalesTarget::class;
 
+    public function configure(): static
+    {
+        return $this->afterCreating(function (SalesTarget $target) {
+            if ($target->contract_unit_id) {
+                $target->contractUnits()->sync([$target->contract_unit_id]);
+            }
+        });
+    }
+
     public function definition(): array
     {
         return [

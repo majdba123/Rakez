@@ -83,6 +83,45 @@ class HrTeamController extends Controller
     }
 
     /**
+     * List members of a team.
+     * GET /hr/teams/{id}/members
+     */
+    public function members(Request $request, int $id): JsonResponse
+    {
+        try {
+            $team = Team::with(['members'])->findOrFail($id);
+            $year = (int) $request->input('year', now()->year);
+            $month = (int) $request->input('month', now()->month);
+
+            $membersData = $team->members->map(function ($member) use ($year, $month) {
+                return [
+                    'id' => $member->id,
+                    'name' => $member->name,
+                    'email' => $member->email,
+                    'phone' => $member->phone,
+                    'type' => $member->type,
+                    'is_active' => $member->is_active,
+                    'target_achievement_rate' => $member->getTargetAchievementRate($year, $month),
+                    'deposits_count' => $member->getDepositsCount($year, $month),
+                    'warnings_count' => $member->getWarningsCount($year),
+                ];
+            });
+
+            return response()->json([
+                'success' => true,
+                'message' => 'تم جلب أعضاء الفريق بنجاح',
+                'data' => $membersData->values()->all(),
+            ], 200);
+        } catch (Exception $e) {
+            $statusCode = str_contains($e->getMessage(), 'No query results') ? 404 : 500;
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage(),
+            ], $statusCode);
+        }
+    }
+
+    /**
      * Get team details with members.
      * GET /hr/teams/{id}
      */

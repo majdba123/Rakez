@@ -9,6 +9,7 @@ use App\Models\ContractUnit;
 use App\Models\SecondPartyData;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Arr;
 use Carbon\Carbon;
 
 class ArabicSeedDataSeeder extends Seeder
@@ -80,17 +81,23 @@ class ArabicSeedDataSeeder extends Seeder
             ],
         ];
 
+        $realEstateImages = config('unsplash_images.real_estate', []);
+        $logoThumbs = config('unsplash_images.logo_thumb', []);
+
         foreach ($projects as $projectData) {
+            $projectImage = $realEstateImages ? Arr::random($realEstateImages) : null;
             $contract = Contract::create(array_merge($projectData, [
                 'user_id' => $salesLeader->id,
+                'project_image_url' => $projectImage,
                 'emergency_contact_number' => '0500000001',
                 'security_guard_number' => '0500000002',
             ]));
 
+            $logoUrl = $logoThumbs ? Arr::random($logoThumbs) : 'https://via.placeholder.com/150';
             // Create Second Party Data for each contract
             $secondParty = SecondPartyData::create([
                 'contract_id' => $contract->id,
-                'project_logo_url' => 'https://via.placeholder.com/150',
+                'project_logo_url' => $logoUrl,
             ]);
 
             // 3. Create Contract Units with Arabic Details
@@ -107,21 +114,27 @@ class ArabicSeedDataSeeder extends Seeder
                 ]);
             }
 
+            $targetUnitIds = ContractUnit::where('second_party_data_id', $secondParty->id)->pluck('id')->take(3)->all();
+            $firstUnitId = $targetUnitIds[0] ?? null;
+
             // 4. Sales Data
-            // Sales Project Assignment
+            // Sales Project Assignment (with active date range)
             DB::table('sales_project_assignments')->insert([
                 'contract_id' => $contract->id,
                 'leader_id' => $salesLeader->id,
-                'assigned_by' => $salesLeader->id, // Assuming self-assigned for seed data
+                'assigned_by' => $salesLeader->id,
+                'start_date' => Carbon::now()->startOfMonth(),
+                'end_date' => Carbon::now()->addMonths(3)->endOfMonth(),
                 'created_at' => now(),
                 'updated_at' => now(),
             ]);
 
-            // Sales Targets
-            DB::table('sales_targets')->insert([
+            // Sales Targets (with first unit; pivot will have 2-3 units)
+            $targetId = DB::table('sales_targets')->insertGetId([
                 'leader_id' => $salesLeader->id,
                 'marketer_id' => $marketer->id,
                 'contract_id' => $contract->id,
+                'contract_unit_id' => $firstUnitId,
                 'target_type' => 'reservation',
                 'start_date' => Carbon::now()->startOfMonth(),
                 'end_date' => Carbon::now()->addMonths(3)->endOfMonth(),
@@ -130,6 +143,15 @@ class ArabicSeedDataSeeder extends Seeder
                 'created_at' => now(),
                 'updated_at' => now(),
             ]);
+
+            foreach ($targetUnitIds as $unitId) {
+                DB::table('sales_target_units')->insert([
+                    'sales_target_id' => $targetId,
+                    'contract_unit_id' => $unitId,
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]);
+            }
 
             // Sales Attendance
             DB::table('sales_attendance_schedules')->insert([

@@ -73,5 +73,7 @@ class Kernel extends HttpKernel
         'role_or_permission' => \Spatie\Permission\Middleware\RoleOrPermissionMiddleware::class,
         'marketing' => \App\Http\Middleware\MarketingMiddleware::class,
         'inventory' => \App\Http\Middleware\InventoryMiddleware::class,
+        'hr' => \App\Http\Middleware\HrMiddleware::class,
+        'sales' => \App\Http\Middleware\SalesMiddleware::class,
     ];
 }

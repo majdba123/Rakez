@@ -110,6 +110,32 @@ class SalesReservationController extends Controller
     }
 
     /**
+     * Get a single reservation with full details (for detail modal).
+     */
+    public function show(int $id): JsonResponse
+    {
+        try {
+            $reservation = SalesReservation::with(['contract', 'contractUnit', 'marketingEmployee'])
+                ->findOrFail($id);
+
+            return response()->json([
+                'success' => true,
+                'data' => new SalesReservationDetailResource($reservation),
+            ]);
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Reservation not found',
+            ], 404);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to retrieve reservation: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
      * Confirm a reservation.
      */
     public function confirm(int $id): JsonResponse

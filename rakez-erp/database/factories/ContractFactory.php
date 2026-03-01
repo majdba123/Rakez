@@ -12,6 +12,9 @@ class ContractFactory extends Factory
 
     public function definition(): array
     {
+        $realEstate = config('unsplash_images.real_estate', []);
+        $projectImage = $realEstate ? $realEstate[array_rand($realEstate)] : $this->faker->imageUrl();
+
         return [
             'user_id' => User::factory(),
             'project_name' => $this->faker->words(3, true),
@@ -20,7 +23,7 @@ class ContractFactory extends Factory
             'city' => $this->faker->city(),
             'district' => $this->faker->streetName(),
             'units' => [],
-            'project_image_url' => $this->faker->imageUrl(),
+            'project_image_url' => $projectImage,
             'developer_requiment' => $this->faker->sentence(),
             'status' => 'pending',
             'notes' => $this->faker->sentence(),

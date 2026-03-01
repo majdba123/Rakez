@@ -97,14 +97,23 @@ class SalesSeeder extends Seeder
             if (empty($contractToUnits[$contractId])) {
                 continue;
             }
-            $unitId = Arr::random($contractToUnits[$contractId]);
-            SalesTarget::factory()->create([
+            $unitIds = $contractToUnits[$contractId];
+            $isMultiUnit = ($i % 5 === 4) && count($unitIds) >= 2;
+            if ($isMultiUnit) {
+                $selectedUnitIds = array_slice(array_values($unitIds), 0, min(3, count($unitIds)));
+                $firstUnitId = $selectedUnitIds[0];
+            } else {
+                $firstUnitId = Arr::random($unitIds);
+                $selectedUnitIds = [$firstUnitId];
+            }
+            $target = SalesTarget::factory()->create([
                 'leader_id' => Arr::random($salesLeaders),
                 'marketer_id' => Arr::random($salesUsers),
                 'contract_id' => $contractId,
-                'contract_unit_id' => $unitId,
+                'contract_unit_id' => $firstUnitId,
                 'status' => $i % 3 === 0 ? 'completed' : ($i % 2 === 0 ? 'in_progress' : 'new'),
             ]);
+            $target->contractUnits()->sync($selectedUnitIds);
         }
 
         for ($i = 0; $i < $counts['attendance_schedules']; $i++) {

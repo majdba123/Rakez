@@ -8,12 +8,15 @@ use App\Http\Resources\Sales\SalesProjectDetailResource;
 use App\Http\Resources\Sales\SalesProjectResource;
 use App\Http\Resources\Sales\SalesUnitResource;
 use App\Models\Contract;
+use App\Models\ContractUnit;
 use App\Models\User;
+use App\Services\Pdf\PdfFactory;
 use App\Services\Sales\SalesProjectService;
 use App\Services\Sales\SalesTeamService;
 use App\Http\Responses\ApiResponse;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Symfony\Component\HttpFoundation\Response;
 
 class SalesProjectController extends Controller
 {
@@ -62,20 +65,31 @@ class SalesProjectController extends Controller
     /**
      * Show project details.
      */
-    public function show(int $contractId): JsonResponse
+    public function show(Request $request, int $contractId): JsonResponse
     {
         try {
+            if (!$this->projectService->userCanAccessContract($request->user(), $contractId)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'You do not have access to this project',
+                ], 403);
+            }
             $project = $this->projectService->getProjectById($contractId);
 
             return response()->json([
                 'success' => true,
                 'data' => new SalesProjectDetailResource($project),
             ]);
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Project not found',
+            ], 404);
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Project not found: ' . $e->getMessage(),
-            ], 404);
+                'message' => 'Failed to retrieve project: ' . $e->getMessage(),
+            ], 500);
         }
     }
 
@@ -85,6 +99,12 @@ class SalesProjectController extends Controller
     public function units(Request $request, int $contractId): JsonResponse
     {
         try {
+            if (!$this->projectService->userCanAccessContract($request->user(), $contractId)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'You do not have access to this project',
+                ], 403);
+            }
             $filters = [
                 'status' => $request->query('status'),
                 'floor' => $request->query('floor'),
@@ -111,6 +131,28 @@ class SalesProjectController extends Controller
                 'message' => 'Failed to retrieve units: ' . $e->getMessage(),
             ], 500);
         }
+    }
+
+    /**
+     * Download unit details as PDF.
+     * GET /api/sales/units/{id}/pdf
+     */
+    public function unitPdf(int $id): Response
+    {
+        $unit = ContractUnit::with('secondPartyData.contract')->findOrFail($id);
+        $contract = $unit->secondPartyData?->contract;
+
+        if (!$contract) {
+            abort(404, 'Unit has no associated contract.');
+        }
+
+        $filename = sprintf('unit_%s_%s.pdf', $unit->unit_number ?? $id, now()->format('Y-m-d'));
+
+        return PdfFactory::download('pdfs.unit_details', [
+            'unit' => $unit,
+            'contract' => $contract,
+            'generated_at' => now()->format('Y-m-d H:i'),
+        ], $filename);
     }
 
     /**

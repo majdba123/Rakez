@@ -9,15 +9,9 @@ use App\Http\Controllers\Registration\LoginController;
 use App\Http\Controllers\Registration\GoogleAuthController;
 use App\Http\Controllers\Registration\FacebookController;
 use App\Http\Controllers\ChatController;
-use App\Http\Controllers\FileUploadController;
-use App\Http\Controllers\ProfileController;
-use App\Http\Controllers\CouponController;
-use App\Http\Controllers\FoodTypeProductProviderController;
-use App\Http\Controllers\FoodTypeController;
-use App\Http\Controllers\UserNotificationController;
-use App\Http\Controllers\ForgetPasswordController;
 use App\Http\Controllers\Contract\ContractController;
 use App\Http\Controllers\Contract\ContractInfoController;
+use App\Http\Controllers\Contract\DeveloperController;
 use App\Http\Controllers\Contract\SecondPartyDataController;
 use App\Http\Controllers\Contract\ContractUnitController;
 use App\Http\Controllers\Contract\BoardsDepartmentController;
@@ -50,6 +44,35 @@ use App\Http\Controllers\Marketing\LeadController;
 use App\Http\Controllers\Marketing\MarketingReportController;
 use App\Http\Controllers\Marketing\MarketingSettingsController;
 use App\Http\Controllers\Dashboard\DashboardController;
+use App\Http\Controllers\Accounting\AccountingCommissionController;
+use App\Http\Controllers\Accounting\AccountingConfirmationController;
+use App\Http\Controllers\Accounting\AccountingDashboardController;
+use App\Http\Controllers\Accounting\AccountingDepositController;
+use App\Http\Controllers\Accounting\AccountingNotificationController;
+use App\Http\Controllers\Accounting\AccountingSalaryController;
+use App\Http\Controllers\Credit\ClaimFileController;
+use App\Http\Controllers\Credit\CreditBookingController;
+use App\Http\Controllers\Credit\CreditDashboardController;
+use App\Http\Controllers\Credit\CreditFinancingController;
+use App\Http\Controllers\Credit\CreditNotificationController;
+use App\Http\Controllers\Credit\TitleTransferController;
+use App\Http\Controllers\AI\AiCallController;
+use App\Http\Controllers\AI\AssistantChatController;
+use App\Http\Controllers\AI\AssistantKnowledgeController;
+use App\Http\Controllers\AI\TwilioWebhookController;
+use App\Http\Controllers\Ads\AdsInsightsController;
+use App\Http\Controllers\Ads\AdsOutcomeController;
+use App\Http\Controllers\Sales\NegotiationApprovalController;
+use App\Http\Controllers\Sales\PaymentPlanController;
+use App\Http\Controllers\HR\HrTeamController;
+use App\Http\Controllers\HR\HrUserController;
+use App\Http\Controllers\HR\HrDashboardController;
+use App\Http\Controllers\HR\HrReportController;
+use App\Http\Controllers\HR\EmployeeContractController;
+use App\Http\Controllers\HR\EmployeeWarningController;
+use App\Http\Controllers\HR\MarketerPerformanceController;
+use App\Http\Controllers\MyTasksController;
+use App\Http\Controllers\TaskMetaController;
 
 use Illuminate\Support\Facades\File;  // أضف هذا السطر في الأعلى
 
@@ -58,7 +81,7 @@ Broadcast::routes(['middleware' => ['auth:sanctum']]);
 
 
 
-Route::post('/login', [LoginController::class, 'login']);
+Route::post('/login', [LoginController::class, 'login'])->middleware('throttle:login');
 
 
 
@@ -71,6 +94,13 @@ Route::middleware('auth:sanctum')->group(function () {
     });
 
     Route::post('/logout', [LoginController::class, 'logout']);
+
+    // Teams list for any authenticated user (must be before role-restricted project_management group)
+    Route::get('/project_management/teams/index', [TeamController::class, 'index']);
+
+    // Developers list (authorized via ContractPolicy in controller)
+    Route::get('/developers', [DeveloperController::class, 'index']);
+    Route::get('/developers/{developer_number}', [DeveloperController::class, 'show']);
 
     Route::prefix('ai')->middleware('throttle:ai-assistant')->group(function () {
         Route::post('/ask', [AIAssistantController::class, 'ask']);
@@ -107,7 +137,6 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::patch('/notifications/mark-all-read', [NotificationController::class, 'userMarkAllAsRead']);
         Route::patch('/notifications/{id}/read', [NotificationController::class, 'userMarkAsRead']);
     });
-
 
     Route::middleware(['auth:sanctum', 'role:project_management|admin'])->group(function () {
 
@@ -186,10 +215,26 @@ Route::middleware('auth:sanctum')->group(function () {
     // ==========================================
     Route::prefix('editor')->middleware(['auth:sanctum', 'role:editor|admin'])->group(function () {
 
-        // Contract routes for editor
+        // Contracts - view all & individual contract
         Route::prefix('contracts')->group(function () {
             Route::get('/index', [ContractController::class, 'adminIndex'])->middleware('permission:contracts.view_all');
             Route::get('/show/{id}', [ContractController::class, 'show'])->middleware('permission:contracts.view');
+        });
+
+        // Second Party Data - view only
+        Route::prefix('second-party-data')->group(function () {
+            Route::get('show/{id}', [SecondPartyDataController::class, 'show'])->middleware('permission:second_party.view');
+        });
+
+        // Contract Units - view only
+        Route::prefix('contracts/units')->group(function () {
+            Route::get('show/{contractId}', [ContractUnitController::class, 'indexByContract'])->middleware('permission:units.view');
+        });
+
+        // Developers - browse & detail
+        Route::prefix('developers')->group(function () {
+            Route::get('/', [DeveloperController::class, 'index'])->middleware('permission:contracts.view_all');
+            Route::get('/{developer_number}', [DeveloperController::class, 'show'])->middleware('permission:contracts.view');
         });
 
         // Montage Department - قسم المونتاج
@@ -197,6 +242,21 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::get('show/{contractId}', [MontageDepartmentController::class, 'show'])->middleware('permission:departments.montage.view');
             Route::post('store/{contractId}', [MontageDepartmentController::class, 'store'])->middleware('permission:departments.montage.edit');
             Route::put('update/{contractId}', [MontageDepartmentController::class, 'update'])->middleware('permission:departments.montage.edit');
+        });
+
+        // Photography Department - قسم التصوير
+        Route::prefix('photography-department')->group(function () {
+            Route::get('show/{contractId}', [PhotographyDepartmentController::class, 'show'])->middleware('permission:departments.photography.view');
+            Route::post('store/{contractId}', [PhotographyDepartmentController::class, 'store'])->middleware('permission:departments.photography.edit');
+            Route::put('update/{contractId}', [PhotographyDepartmentController::class, 'update'])->middleware('permission:departments.photography.edit');
+            Route::patch('approve/{contractId}', [PhotographyDepartmentController::class, 'approve'])->middleware('permission:departments.photography.edit');
+        });
+
+        // Boards Department - قسم اللوحات
+        Route::prefix('boards-department')->group(function () {
+            Route::get('show/{contractId}', [BoardsDepartmentController::class, 'show'])->middleware('permission:departments.boards.view');
+            Route::post('store/{contractId}', [BoardsDepartmentController::class, 'store'])->middleware('permission:departments.boards.edit');
+            Route::put('update/{contractId}', [BoardsDepartmentController::class, 'update'])->middleware('permission:departments.boards.edit');
         });
 
     });
@@ -213,6 +273,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('projects', [SalesProjectController::class, 'index'])->middleware('permission:sales.projects.view');
         Route::get('projects/{contractId}', [SalesProjectController::class, 'show'])->middleware('permission:sales.projects.view');
         Route::get('projects/{contractId}/units', [SalesProjectController::class, 'units'])->middleware('permission:sales.projects.view');
+        Route::get('units/{id}/pdf', [SalesProjectController::class, 'unitPdf'])->middleware('permission:sales.projects.view');
 
         // Reservation context
         Route::get('units/{unitId}/reservation-context', [SalesReservationController::class, 'context'])->middleware('permission:sales.reservations.create');
@@ -220,6 +281,7 @@ Route::middleware('auth:sanctum')->group(function () {
         // Reservations
         Route::post('reservations', [SalesReservationController::class, 'store'])->middleware('permission:sales.reservations.create');
         Route::get('reservations', [SalesReservationController::class, 'index'])->middleware('permission:sales.reservations.view');
+        Route::get('reservations/{id}', [SalesReservationController::class, 'show'])->middleware('permission:sales.reservations.view');
         Route::post('reservations/{id}/confirm', [SalesReservationController::class, 'confirm'])->middleware('permission:sales.reservations.confirm');
         Route::post('reservations/{id}/cancel', [SalesReservationController::class, 'cancel'])->middleware('permission:sales.reservations.cancel');
         Route::post('reservations/{id}/actions', [SalesReservationController::class, 'storeAction'])->middleware('permission:sales.reservations.view');
@@ -389,7 +451,19 @@ Route::middleware('auth:sanctum')->group(function () {
     });
 
     Route::get('/storage/{path}', function ($path) {
+        // Prevent directory traversal attacks
+        if (str_contains($path, '..') || str_contains($path, "\0")) {
+            abort(403);
+        }
+
         $filePath = storage_path('app/public/' . $path);
+        $realBase = realpath(storage_path('app/public'));
+        $realFile = realpath($filePath);
+
+        // Ensure resolved path is still within the public storage directory
+        if ($realFile === false || !str_starts_with($realFile, $realBase)) {
+            abort(403);
+        }
 
         if (!File::exists($filePath)) {
             abort(404);
@@ -401,25 +475,65 @@ Route::middleware('auth:sanctum')->group(function () {
 
 
     Route::prefix('hr')->middleware(['auth:sanctum', 'hr'])->group(function () {
-
-
         Route::post('/add_employee', [RegisterController::class, 'add_employee']);
         Route::get('/list_employees', [RegisterController::class, 'list_employees']);
         Route::get('/show_employee/{id}', [RegisterController::class, 'show_employee']);
         Route::put('/update_employee/{id}', [RegisterController::class, 'update_employee']);
         Route::delete('/delete_employee/{id}', [RegisterController::class, 'delete_employee']);
 
+        Route::prefix('users')->group(function () {
+            Route::get('/', [HrUserController::class, 'index']);
+            Route::post('/', [HrUserController::class, 'store']);
+            Route::get('/{id}/contracts', [EmployeeContractController::class, 'index'])->whereNumber('id');
+            Route::post('/{id}/contracts', [EmployeeContractController::class, 'store'])->whereNumber('id');
+            Route::post('/{id}/files', [HrUserController::class, 'uploadFiles'])->whereNumber('id');
+            Route::patch('/{id}/status', [HrUserController::class, 'toggleStatus'])->whereNumber('id');
+            Route::get('/{id}/warnings', [EmployeeWarningController::class, 'index'])->whereNumber('id');
+            Route::post('/{id}/warnings', [EmployeeWarningController::class, 'store'])->whereNumber('id');
+            Route::get('/{id}', [HrUserController::class, 'show'])->whereNumber('id');
+            Route::put('/{id}', [HrUserController::class, 'update'])->whereNumber('id');
+            Route::delete('/{id}', [HrUserController::class, 'destroy'])->whereNumber('id');
+        });
 
         Route::prefix('teams')->group(function () {
-
-
             Route::get('/contracts/{teamId}', [TeamController::class, 'contracts'])->whereNumber('teamId');
             Route::get('/contracts/locations/{teamId}', [TeamController::class, 'contractLocations'])->whereNumber('teamId');
             Route::get('/sales-average/{teamId}', [TeamController::class, 'salesAverage'])->whereNumber('teamId');
             Route::get('/getTeamsForContract/{contractId}', [ContractController::class, 'getTeamsForContract']);
+
+            Route::get('/', [HrTeamController::class, 'index']);
+            Route::post('/', [HrTeamController::class, 'store']);
+            Route::get('/{id}/members', [HrTeamController::class, 'members'])->whereNumber('id');
+            Route::post('/{id}/members', [HrTeamController::class, 'assignMember'])->whereNumber('id');
+            Route::delete('/{id}/members/{userId}', [HrTeamController::class, 'removeMember'])->whereNumber(['id', 'userId']);
+            Route::get('/{id}', [HrTeamController::class, 'show'])->whereNumber('id');
+            Route::put('/{id}', [HrTeamController::class, 'update'])->whereNumber('id');
+            Route::delete('/{id}', [HrTeamController::class, 'destroy'])->whereNumber('id');
+        });
+
+        Route::prefix('marketers')->group(function () {
+            Route::get('/performance', [MarketerPerformanceController::class, 'index']);
+            Route::get('/{id}/performance', [MarketerPerformanceController::class, 'show'])->whereNumber('id');
         });
 
         Route::get('/dashboard', [DashboardController::class, 'hr']);
+
+        // HR Dashboard KPIs
+        Route::prefix('dashboard')->group(function () {
+            Route::get('/', [HrDashboardController::class, 'index']);
+            Route::post('/refresh', [HrDashboardController::class, 'refresh']);
+        });
+
+        // HR Reports
+        Route::prefix('reports')->group(function () {
+            Route::get('/team-performance', [HrReportController::class, 'teamPerformance']);
+            Route::get('/marketer-performance', [HrReportController::class, 'marketerPerformance']);
+            Route::get('/marketer-performance/pdf', [HrReportController::class, 'marketerPerformancePdf']);
+            Route::get('/employee-count', [HrReportController::class, 'employeeCount']);
+            Route::get('/expiring-contracts', [HrReportController::class, 'expiringContracts']);
+            Route::get('/expiring-contracts/pdf', [HrReportController::class, 'expiringContractsPdf']);
+            Route::get('/ended-contracts', [HrReportController::class, 'endedContracts']);
+        });
 
     });
 
@@ -449,6 +563,17 @@ Route::middleware('auth:sanctum')->group(function () {
         });
 
 
+        // My tasks (system-wide tasks assigned to current user) and task metadata
+        Route::middleware('auth:sanctum')->group(function () {
+            Route::get('/my-tasks', [MyTasksController::class, 'index']);
+            Route::patch('/my-tasks/{id}/status', [MyTasksController::class, 'updateStatus'])->whereNumber('id');
+            Route::post('/tasks', [MyTasksController::class, 'store']);
+
+            // Task sections and users by section (for assignment UI)
+            Route::get('/tasks/sections', [TaskMetaController::class, 'sections']);
+            Route::get('/tasks/sections/{section}/users', [TaskMetaController::class, 'usersBySection']);
+        });
+
                 // Chat Routes
         Route::prefix('chat')->middleware(['auth:sanctum'])->group(function () {
             Route::get('/conversations', [ChatController::class, 'index']);
@@ -467,3 +592,164 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::get('/show/{id}', [TeamController::class, 'show']);
         });
 
+// ==========================================
+// ACCOUNTING DEPARTMENT ROUTES
+// ==========================================
+Route::prefix('accounting')->middleware(['auth:sanctum', 'role:accounting|admin'])->group(function () {
+
+    Route::get('dashboard', [AccountingDashboardController::class, 'index'])->middleware('permission:accounting.dashboard.view');
+
+    // Commission management
+    Route::get('sold-units', [AccountingCommissionController::class, 'index'])->middleware('permission:accounting.commissions.view');
+    Route::get('marketers', [AccountingCommissionController::class, 'marketers'])->middleware('permission:accounting.commissions.view');
+    Route::get('sold-units/{id}', [AccountingCommissionController::class, 'show'])->middleware('permission:accounting.commissions.view');
+    Route::post('sold-units/{id}/commission', [AccountingCommissionController::class, 'createManual'])->middleware('permission:accounting.commissions.manage');
+    Route::put('commissions/{id}/distributions', [AccountingCommissionController::class, 'updateDistributions'])->middleware('permission:accounting.commissions.manage');
+    Route::post('commissions/{id}/distributions/{distId}/approve', [AccountingCommissionController::class, 'approveDistribution'])->middleware('permission:accounting.commissions.approve');
+    Route::post('commissions/{id}/distributions/{distId}/reject', [AccountingCommissionController::class, 'rejectDistribution'])->middleware('permission:accounting.commissions.approve');
+    Route::get('commissions/{id}/summary', [AccountingCommissionController::class, 'summary'])->middleware('permission:accounting.commissions.view');
+    Route::post('commissions/{id}/distributions/{distId}/confirm', [AccountingCommissionController::class, 'confirmPayment'])->middleware('permission:accounting.commissions.manage');
+
+    // Deposit management
+    Route::get('deposits/pending', [AccountingDepositController::class, 'pending'])->middleware('permission:accounting.deposits.view');
+    Route::get('deposits/follow-up', [AccountingDepositController::class, 'followUp'])->middleware('permission:accounting.deposits.view');
+    Route::post('deposits/{id}/confirm', [AccountingDepositController::class, 'confirm'])->middleware('permission:accounting.deposits.manage');
+    Route::post('deposits/{id}/refund', [AccountingDepositController::class, 'refund'])->middleware('permission:accounting.deposits.manage');
+
+    // Down payment confirmations
+    Route::get('pending-confirmations', [AccountingConfirmationController::class, 'index'])->middleware('permission:accounting.deposits.view');
+    Route::get('confirmations/history', [AccountingConfirmationController::class, 'history'])->middleware('permission:accounting.deposits.view');
+    Route::post('confirmations/{id}/confirm', [AccountingConfirmationController::class, 'confirm'])->middleware('permission:accounting.deposits.manage');
+
+    // Salary management
+    Route::get('salaries', [AccountingSalaryController::class, 'index'])->middleware('permission:accounting.salaries.view');
+    Route::get('salaries/{userId}', [AccountingSalaryController::class, 'show'])->middleware('permission:accounting.salaries.view');
+    Route::post('salaries/{userId}/distribute', [AccountingSalaryController::class, 'createDistribution'])->middleware('permission:accounting.salaries.manage');
+    Route::post('salaries/distributions/{distributionId}/approve', [AccountingSalaryController::class, 'approveDistribution'])->middleware('permission:accounting.salaries.manage');
+    Route::post('salaries/distributions/{distributionId}/paid', [AccountingSalaryController::class, 'markAsPaid'])->middleware('permission:accounting.salaries.manage');
+
+    // Notifications
+    Route::get('notifications', [AccountingNotificationController::class, 'index'])->middleware('permission:accounting.dashboard.view');
+    Route::post('notifications/read-all', [AccountingNotificationController::class, 'markAllAsRead'])->middleware('permission:accounting.dashboard.view');
+    Route::post('notifications/{id}/read', [AccountingNotificationController::class, 'markAsRead'])->middleware('permission:accounting.dashboard.view');
+});
+
+// ==========================================
+// CREDIT DEPARTMENT ROUTES
+// ==========================================
+Route::prefix('credit')->middleware(['auth:sanctum', 'role:credit|admin'])->group(function () {
+
+    // Dashboard
+    Route::get('dashboard', [CreditDashboardController::class, 'index'])->middleware('permission:credit.dashboard.view');
+    Route::post('dashboard/refresh', [CreditDashboardController::class, 'refresh'])->middleware('permission:credit.dashboard.view');
+
+    // Bookings
+    Route::get('bookings', [CreditBookingController::class, 'index'])->middleware('permission:credit.bookings.view');
+    Route::get('bookings/confirmed', [CreditBookingController::class, 'confirmed'])->middleware('permission:credit.bookings.view');
+    Route::get('bookings/negotiation', [CreditBookingController::class, 'negotiation'])->middleware('permission:credit.bookings.view');
+    Route::get('bookings/waiting', [CreditBookingController::class, 'waiting'])->middleware('permission:credit.bookings.view');
+    Route::get('bookings/sold', [CreditBookingController::class, 'sold'])->middleware('permission:credit.bookings.view');
+    Route::get('bookings/cancelled', [CreditBookingController::class, 'cancelled'])->middleware('permission:credit.bookings.view');
+    Route::get('bookings/{id}', [CreditBookingController::class, 'show'])->middleware('permission:credit.bookings.view');
+    Route::patch('bookings/negotiation/{id}', [CreditBookingController::class, 'updateNegotiation'])->middleware('permission:credit.bookings.view');
+    Route::post('bookings/{id}/cancel', [CreditBookingController::class, 'cancel'])->middleware('permission:credit.bookings.manage');
+
+    // Financing
+    Route::get('bookings/{id}/financing', [CreditFinancingController::class, 'show'])->middleware('permission:credit.financing.view');
+    Route::post('bookings/{id}/financing', [CreditFinancingController::class, 'initialize'])->middleware('permission:credit.financing.manage');
+    Route::post('bookings/{id}/financing/advance', [CreditFinancingController::class, 'advance'])->middleware('permission:credit.financing.manage');
+    Route::patch('bookings/{bookingId}/financing/stage/{stage}', [CreditFinancingController::class, 'completeStage'])->middleware('permission:credit.financing.manage');
+    Route::post('bookings/{bookingId}/financing/reject', [CreditFinancingController::class, 'reject'])->middleware('permission:credit.financing.manage');
+
+    // Title Transfer
+    Route::post('bookings/{id}/title-transfer', [TitleTransferController::class, 'initialize'])->middleware('permission:credit.title_transfer.manage');
+    Route::get('title-transfers/pending', [TitleTransferController::class, 'pending'])->middleware('permission:credit.title_transfer.manage');
+    Route::patch('title-transfer/{id}/schedule', [TitleTransferController::class, 'schedule'])->middleware('permission:credit.title_transfer.manage');
+    Route::patch('title-transfer/{id}/unschedule', [TitleTransferController::class, 'unschedule'])->middleware('permission:credit.title_transfer.manage');
+    Route::post('title-transfer/{id}/complete', [TitleTransferController::class, 'complete'])->middleware('permission:credit.title_transfer.manage');
+    Route::get('sold-projects', [TitleTransferController::class, 'soldProjects'])->middleware('permission:credit.bookings.view');
+
+    // Claim Files
+    Route::get('claim-files', [ClaimFileController::class, 'index'])->middleware('permission:credit.claim_files.view');
+    Route::get('claim-files/candidates', [ClaimFileController::class, 'candidates'])->middleware('permission:credit.claim_files.manage');
+    Route::post('claim-files/generate-bulk', [ClaimFileController::class, 'generateBulk'])->middleware('permission:credit.claim_files.manage');
+    Route::post('claim-files/combined', [ClaimFileController::class, 'generateCombined'])->middleware('permission:credit.claim_files.manage');
+    Route::get('claim-files/{id}', [ClaimFileController::class, 'show'])->middleware('permission:credit.claim_files.view');
+    Route::get('claim-files/{id}/pdf', [ClaimFileController::class, 'download'])->middleware('permission:credit.claim_files.view');
+    Route::post('claim-files/{id}/pdf', [ClaimFileController::class, 'generatePdf'])->middleware('permission:credit.claim_files.manage');
+    Route::post('bookings/{id}/claim-file', [ClaimFileController::class, 'generate'])->middleware('permission:credit.claim_files.manage');
+
+    // Notifications
+    Route::get('notifications', [CreditNotificationController::class, 'index'])->middleware('permission:credit.dashboard.view');
+    Route::post('notifications/read-all', [CreditNotificationController::class, 'markAllAsRead'])->middleware('permission:credit.dashboard.view');
+    Route::post('notifications/{id}/read', [CreditNotificationController::class, 'markAsRead'])->middleware('permission:credit.dashboard.view');
+});
+
+// ==========================================
+// AI CALLING ROUTES
+// ==========================================
+Route::prefix('ai/calls')->middleware(['auth:sanctum', 'role:admin|sales|sales_leader|marketing'])->group(function () {
+    Route::get('/', [AiCallController::class, 'index'])->middleware('permission:ai.calls.view');
+    Route::get('/analytics', [AiCallController::class, 'analytics'])->middleware('permission:ai.calls.view');
+    Route::get('/scripts', [AiCallController::class, 'scripts'])->middleware('permission:ai.calls.view');
+    Route::post('/scripts', [AiCallController::class, 'storeScript'])->middleware('permission:ai.scripts.manage');
+    Route::put('/scripts/{id}', [AiCallController::class, 'updateScript'])->middleware('permission:ai.scripts.manage');
+    Route::delete('/scripts/{id}', [AiCallController::class, 'deleteScript'])->middleware('permission:ai.scripts.manage');
+    Route::post('/initiate', [AiCallController::class, 'initiate'])->middleware('permission:ai.calls.initiate');
+    Route::post('/bulk', [AiCallController::class, 'bulkInitiate'])->middleware('permission:ai.calls.initiate');
+    Route::get('/{id}', [AiCallController::class, 'show'])->middleware('permission:ai.calls.view');
+    Route::get('/{id}/transcript', [AiCallController::class, 'transcript'])->middleware('permission:ai.calls.view');
+    Route::post('/{id}/retry', [AiCallController::class, 'retry'])->middleware('permission:ai.calls.initiate');
+});
+
+// ==========================================
+// ASSISTANT KNOWLEDGE BASE (Admin only)
+// ==========================================
+Route::prefix('ai/knowledge')->middleware(['auth:sanctum', 'role:admin'])->group(function () {
+    Route::get('/', [AssistantKnowledgeController::class, 'index']);
+    Route::post('/', [AssistantKnowledgeController::class, 'store']);
+    Route::put('/{id}', [AssistantKnowledgeController::class, 'update']);
+    Route::delete('/{id}', [AssistantKnowledgeController::class, 'destroy']);
+});
+
+// Assistant Chat (all authenticated users)
+Route::post('/ai/assistant/chat', [AssistantChatController::class, 'chat'])->middleware(['auth:sanctum']);
+
+// ==========================================
+// TWILIO WEBHOOKS (Signed by Twilio - no user auth)
+// ==========================================
+Route::prefix('webhooks/twilio')->middleware([\App\Http\Middleware\ValidateTwilioSignature::class])->group(function () {
+    Route::post('/voice/{callId}', [TwilioWebhookController::class, 'handleVoice']);
+    Route::post('/gather/{callId}', [TwilioWebhookController::class, 'handleGather']);
+    Route::post('/status/{callId}', [TwilioWebhookController::class, 'handleStatus']);
+    Route::post('/fallback/{callId}', [TwilioWebhookController::class, 'handleFallback']);
+});
+
+// ==========================================
+// ADS PLATFORM ROUTES
+// ==========================================
+Route::prefix('ads')->middleware(['auth:sanctum', 'role:admin|marketing'])->group(function () {
+    Route::get('accounts', [AdsInsightsController::class, 'accounts'])->middleware('permission:marketing.ads.view');
+    Route::get('campaigns', [AdsInsightsController::class, 'campaigns'])->middleware('permission:marketing.ads.view');
+    Route::get('insights', [AdsInsightsController::class, 'insights'])->middleware('permission:marketing.ads.view');
+    Route::post('sync', [AdsInsightsController::class, 'triggerSync'])->middleware('permission:marketing.ads.manage');
+    Route::post('outcomes', [AdsOutcomeController::class, 'store'])->middleware('permission:marketing.ads.manage');
+    Route::get('outcomes/status', [AdsOutcomeController::class, 'status'])->middleware('permission:marketing.ads.view');
+});
+
+// ==========================================
+// SALES - Negotiation & Payment Plans
+// ==========================================
+Route::prefix('sales')->middleware(['auth:sanctum', 'role:sales|sales_leader|admin'])->group(function () {
+
+    // Negotiation Approvals
+    Route::get('negotiations/pending', [NegotiationApprovalController::class, 'index'])->middleware('permission:sales.negotiation.approve');
+    Route::post('negotiations/{id}/approve', [NegotiationApprovalController::class, 'approve'])->middleware('permission:sales.negotiation.approve');
+    Route::post('negotiations/{id}/reject', [NegotiationApprovalController::class, 'reject'])->middleware('permission:sales.negotiation.approve');
+
+    // Payment Plans
+    Route::get('reservations/{id}/payment-plan', [PaymentPlanController::class, 'show'])->middleware('permission:sales.payment_plan.manage');
+    Route::post('reservations/{id}/payment-plan', [PaymentPlanController::class, 'store'])->middleware('permission:sales.payment_plan.manage');
+    Route::put('payment-installments/{id}', [PaymentPlanController::class, 'update'])->middleware('permission:sales.payment_plan.manage');
+    Route::delete('payment-installments/{id}', [PaymentPlanController::class, 'destroy'])->middleware('permission:sales.payment_plan.manage');
+});

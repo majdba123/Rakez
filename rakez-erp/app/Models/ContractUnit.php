@@ -19,6 +19,12 @@ class ContractUnit extends Model
         'status',
         'price',
         'area',
+        'floor',
+        'bedrooms',
+        'bathrooms',
+        'private_area_m2',
+        'total_area_m2',
+        'facade',
         'description',
     ];
 
