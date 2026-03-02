@@ -53,11 +53,24 @@ class SalesTarget extends Model
     }
 
     /**
-     * Get the contract unit for this target.
+     * Get the primary contract unit for this target (backward compatibility; first of assigned units).
      */
     public function contractUnit()
     {
         return $this->belongsTo(ContractUnit::class);
+    }
+
+    /**
+     * Get all contract units assigned to this target (multiple units per target).
+     */
+    public function contractUnits()
+    {
+        return $this->belongsToMany(
+            ContractUnit::class,
+            'sales_target_units',
+            'sales_target_id',
+            'contract_unit_id'
+        )->withTimestamps();
     }
 
     /**

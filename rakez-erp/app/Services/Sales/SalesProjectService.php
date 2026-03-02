@@ -319,9 +319,9 @@ class SalesProjectService
             if ($scope === 'all') {
                 // مدير المبيعات: عرض المشاريع الجاهزة للتسويق التي ليست معينة لفريق آخر (غير معينة أو معينة لي أو لفريقي)
                 $leaderIds = collect([$user->id]);
-                if ($user->team) {
+                if ($user->team_id) {
                     $leaderIds = $leaderIds->merge(
-                        User::where('team', $user->team)->where('is_manager', true)->pluck('id')
+                        User::where('team_id', $user->team_id)->where('is_manager', true)->pluck('id')
                     );
                 }
                 $query->where(function ($q) use ($leaderIds) {
@@ -339,8 +339,8 @@ class SalesProjectService
                 });
                 return;
             }
-            if ($scope === 'team' && $user->team) {
-                $teamLeaderIds = User::where('team', $user->team)
+            if ($scope === 'team' && $user->team_id) {
+                $teamLeaderIds = User::where('team_id', $user->team_id)
                     ->where('is_manager', true)
                     ->pluck('id');
                 $query->whereHas('salesProjectAssignments', function ($q) use ($teamLeaderIds) {
@@ -351,22 +351,61 @@ class SalesProjectService
             return;
         }
 
-        // For other roles, apply existing logic
-        if ($scope === 'me' && $user->isSalesLeader()) {
-            $query->whereHas('salesProjectAssignments', function ($q) use ($user) {
-                $q->where('leader_id', $user->id)
-                  ->active();
-            });
-        } elseif ($scope === 'team' && $user->team) {
-            $teamLeaderIds = User::where('team', $user->team)
+        // For other roles (e.g. sales staff): scope 'me' = team-assigned projects only; scope 'team' = same
+        if ($scope === 'me') {
+            if ($user->isSalesLeader()) {
+                $query->whereHas('salesProjectAssignments', function ($q) use ($user) {
+                    $q->where('leader_id', $user->id)->active();
+                });
+            } else {
+                // Non-leader sales: only projects assigned to leaders in the same team (team_id)
+                if ($user->team_id) {
+                    $teamLeaderIds = User::where('team_id', $user->team_id)
+                        ->where('is_manager', true)
+                        ->pluck('id');
+                    $query->whereHas('salesProjectAssignments', function ($q) use ($teamLeaderIds) {
+                        $q->whereIn('leader_id', $teamLeaderIds)->active();
+                    });
+                } else {
+                    $query->whereRaw('0 = 1'); // no team_id => no projects for scope 'me'
+                }
+            }
+        } elseif ($scope === 'team' && $user->team_id) {
+            $teamLeaderIds = User::where('team_id', $user->team_id)
                 ->where('is_manager', true)
                 ->pluck('id');
             $query->whereHas('salesProjectAssignments', function ($q) use ($teamLeaderIds) {
-                $q->whereIn('leader_id', $teamLeaderIds)
-                  ->active();
+                $q->whereIn('leader_id', $teamLeaderIds)->active();
             });
         }
         // 'all' scope has no filter
+    }
+
+    /**
+     * Check if the user can access a contract (project) for viewing details or units.
+     * Admin: always. Sales leader: if they have an active assignment. Sales staff: if contract is assigned to a leader in their team.
+     */
+    public function userCanAccessContract(User $user, int $contractId): bool
+    {
+        if ($user->hasRole('admin')) {
+            return true;
+        }
+        if ($user->hasRole('sales_leader')) {
+            return \App\Models\SalesProjectAssignment::where('leader_id', $user->id)
+                ->where('contract_id', $contractId)
+                ->active()
+                ->exists();
+        }
+        if ($user->team_id) {
+            $teamLeaderIds = User::where('team_id', $user->team_id)
+                ->where('is_manager', true)
+                ->pluck('id');
+            return \App\Models\SalesProjectAssignment::where('contract_id', $contractId)
+                ->whereIn('leader_id', $teamLeaderIds)
+                ->active()
+                ->exists();
+        }
+        return false;
     }
 
     /**

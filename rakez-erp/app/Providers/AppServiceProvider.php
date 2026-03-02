@@ -37,23 +37,23 @@ class AppServiceProvider extends ServiceProvider
 
         // Define custom gates for commission and deposit operations
         Gate::define('approve-commission-distribution', function ($user) {
-            return $user->hasAnyRole(['admin', 'sales_manager']);
+            return $user->hasAnyRole(['admin', 'sales_leader']);
         });
 
         Gate::define('approve-commission', function ($user) {
-            return $user->hasAnyRole(['admin', 'sales_manager']);
+            return $user->hasAnyRole(['admin', 'sales_leader']);
         });
 
         Gate::define('mark-commission-paid', function ($user) {
-            return $user->hasAnyRole(['admin', 'accountant']);
+            return $user->hasAnyRole(['admin', 'accounting']);
         });
 
         Gate::define('confirm-deposit-receipt', function ($user) {
-            return $user->hasAnyRole(['admin', 'accountant', 'sales_manager']);
+            return $user->hasAnyRole(['admin', 'accounting', 'sales_leader']);
         });
 
         Gate::define('refund-deposit', function ($user) {
-            return $user->hasAnyRole(['admin', 'accountant', 'sales_manager']);
+            return $user->hasAnyRole(['admin', 'accounting', 'sales_leader']);
         });
 
         // Implicitly grant "Super Admin" role all permissions
@@ -101,6 +101,10 @@ class AppServiceProvider extends ServiceProvider
 
         RateLimiter::for('ai-assistant', function (Request $request) use ($perMinute) {
             return Limit::perMinute($perMinute)->by($request->user()?->id ?: $request->ip());
+        });
+
+        RateLimiter::for('login', function (Request $request) {
+            return Limit::perMinute(5)->by($request->ip());
         });
     }
 }

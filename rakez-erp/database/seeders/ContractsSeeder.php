@@ -58,13 +58,19 @@ class ContractsSeeder extends Seeder
             $isOffPlan = fake()->boolean(30);
             $developer = Arr::random($this->developerList);
 
+            $realEstateImages = config('unsplash_images.real_estate', []);
+            $logoThumbs = config('unsplash_images.logo_thumb', []);
+            $projectImage = $realEstateImages ? Arr::random($realEstateImages) : 'https://via.placeholder.com/800x600';
+            $logoUrl = $logoThumbs ? Arr::random($logoThumbs) : 'https://via.placeholder.com/150';
+            $deptImage = $realEstateImages ? Arr::random($realEstateImages) : 'https://via.placeholder.com/1200x800';
+
             $contract = Contract::factory()->create([
                 'user_id' => $ownerId,
                 'status' => $status,
                 'is_off_plan' => $isOffPlan,
                 'developer_name' => $developer['name'],
                 'developer_number' => $developer['number'],
-                'project_image_url' => 'https://via.placeholder.com/800x600',
+                'project_image_url' => $projectImage,
                 'emergency_contact_number' => '05' . fake()->numerify('########'),
                 'security_guard_number' => '05' . fake()->numerify('########'),
             ]);
@@ -75,7 +81,7 @@ class ContractsSeeder extends Seeder
 
             $secondParty = SecondPartyData::factory()->create([
                 'contract_id' => $contract->id,
-                'project_logo_url' => 'https://via.placeholder.com/150',
+                'project_logo_url' => $logoUrl,
             ]);
 
             BoardsDepartment::create([
@@ -87,7 +93,7 @@ class ContractsSeeder extends Seeder
 
             PhotographyDepartment::create([
                 'contract_id' => $contract->id,
-                'image_url' => 'https://via.placeholder.com/1200x800',
+                'image_url' => $deptImage,
                 'video_url' => 'https://example.com/video.mp4',
                 'description' => fake()->sentence(),
                 'processed_by' => Arr::random($owners),
@@ -96,7 +102,7 @@ class ContractsSeeder extends Seeder
 
             MontageDepartment::create([
                 'contract_id' => $contract->id,
-                'image_url' => 'https://via.placeholder.com/1200x800',
+                'image_url' => $realEstateImages ? Arr::random($realEstateImages) : 'https://via.placeholder.com/1200x800',
                 'video_url' => 'https://example.com/montage.mp4',
                 'description' => fake()->sentence(),
                 'processed_by' => Arr::random($owners),
@@ -120,11 +126,14 @@ class ContractsSeeder extends Seeder
                 ]);
             }
 
+            $mediaImages = config('unsplash_images.real_estate', []);
             for ($m = 0; $m < 3; $m++) {
                 ProjectMedia::create([
                     'contract_id' => $contract->id,
                     'type' => $m % 2 === 0 ? 'image' : 'video',
-                    'url' => $m % 2 === 0 ? 'https://via.placeholder.com/1000x700' : 'https://example.com/project.mp4',
+                    'url' => $m % 2 === 0
+                        ? ($mediaImages ? Arr::random($mediaImages) : 'https://via.placeholder.com/1000x700')
+                        : 'https://example.com/project.mp4',
                     'department' => $m % 2 === 0 ? 'photography' : 'montage',
                 ]);
             }

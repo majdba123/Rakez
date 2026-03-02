@@ -13,6 +13,119 @@ class StoreReservationRequest extends FormRequest
         return $this->user()->can('sales.reservations.create');
     }
 
+    /**
+     * Map frontend values to API: reservation_type (عقد/contract -> confirmed_reservation), phone -> client_mobile, and defaults for optional-in-UI fields.
+     */
+    protected function prepareForValidation(): void
+    {
+        $input = $this->all();
+
+        // reservation_type: واجهة قد ترسل "عقد" أو "contract" أو "حجز بغرض التفاوض" أو "تفاوض" أو "negotiation" أو كائن { value, label }
+        $type = $input['reservation_type'] ?? $input['reservationType'] ?? null;
+        if (is_array($type) || (is_object($type) && !$type instanceof \Stringable)) {
+            $type = $type['value'] ?? $type['id'] ?? $type['label'] ?? null;
+        }
+        if (is_string($type)) {
+            $t = trim($type);
+            $tLower = strtolower($t);
+            // حجز بغرض التفاوض / تفاوض / negotiation
+            if (str_contains($t, 'تفاوض') || in_array($tLower, ['تفاوض', 'negotiation', 'under_negotiation'], true)
+                || str_contains($tLower, 'negotiat')) {
+                $input['reservation_type'] = 'negotiation';
+            } elseif (str_contains($t, 'عقد') || in_array($tLower, ['عقد', 'contract', 'confirmed', 'confirmed_reservation'], true)
+                || str_contains($tLower, 'contract') || str_contains($tLower, 'confirm')) {
+                $input['reservation_type'] = 'confirmed_reservation';
+            }
+        }
+
+        // رقم الجوال من phone أو mobile
+        if (empty($input['client_mobile']) && !empty($input['phone'])) {
+            $input['client_mobile'] = $input['phone'];
+        }
+        if (empty($input['client_mobile']) && !empty($input['mobile'])) {
+            $input['client_mobile'] = $input['mobile'];
+        }
+
+        // مبلغ العربون
+        if (!isset($input['down_payment_amount']) || $input['down_payment_amount'] === '' || $input['down_payment_amount'] === null) {
+            if (isset($input['downPaymentAmount']) && $input['downPaymentAmount'] !== '') {
+                $input['down_payment_amount'] = $input['downPaymentAmount'];
+            }
+        }
+
+        // قيم افتراضية لحقول قد لا يرسلها نموذج إنشاء حجز مبسط
+        if (empty($input['contract_date']) && empty($input['contractDate'])) {
+            $input['contract_date'] = now()->format('Y-m-d');
+        }
+        if ((empty($input['client_nationality']) && empty($input['clientNationality']))) {
+            $input['client_nationality'] = 'غير محدد';
+        }
+        $iban = $input['client_iban'] ?? $input['clientIban'] ?? null;
+        if ($iban === null || $iban === '') {
+            $input['client_iban'] = '-';
+        }
+        if (empty($input['payment_method']) && empty($input['paymentMethod'])) {
+            $input['payment_method'] = $input['payment_method'] ?? 'cash';
+        }
+        // دعم القيم العربية من نموذج الحجز
+        if (!empty($input['payment_method']) && is_string($input['payment_method'])) {
+            $pm = $input['payment_method'];
+            if (str_contains($pm, 'تحويل') || $pm === 'bank_transfer') {
+                $input['payment_method'] = 'bank_transfer';
+            } elseif (str_contains($pm, 'كاش') || $pm === 'نقد') {
+                $input['payment_method'] = 'cash';
+            } elseif (str_contains($pm, 'تمويل') || $pm === 'bank_financing') {
+                $input['payment_method'] = 'bank_financing';
+            }
+        }
+        if (empty($input['down_payment_status']) && empty($input['downPaymentStatus'])) {
+            $input['down_payment_status'] = $input['down_payment_status'] ?? 'refundable';
+        }
+        if (!empty($input['down_payment_status']) && is_string($input['down_payment_status'])) {
+            $ds = $input['down_payment_status'];
+            if (str_contains($ds, 'مسترد') && !str_contains($ds, 'غير')) {
+                $input['down_payment_status'] = 'refundable';
+            } elseif (str_contains($ds, 'غير') || str_contains($ds, 'non')) {
+                $input['down_payment_status'] = 'non_refundable';
+            }
+        }
+        if (empty($input['purchase_mechanism']) && empty($input['purchaseMechanism'])) {
+            $input['purchase_mechanism'] = $input['purchase_mechanism'] ?? 'cash';
+        }
+        if (!empty($input['purchase_mechanism']) && is_string($input['purchase_mechanism'])) {
+            $mech = $input['purchase_mechanism'];
+            if (str_contains($mech, 'غير مدعوم') || $mech === 'unsupported_bank') {
+                $input['purchase_mechanism'] = 'unsupported_bank';
+            } elseif ((str_contains($mech, 'مدعوم') && !str_contains($mech, 'غير')) || $mech === 'supported_bank') {
+                $input['purchase_mechanism'] = 'supported_bank';
+            } elseif (str_contains($mech, 'كاش') || $mech === 'cash') {
+                $input['purchase_mechanism'] = 'cash';
+            }
+        }
+
+        // عند نوع الحجز "تفاوض": قيم افتراضية للحقول الإلزامية إن لم يرسلها النموذج
+        if (isset($input['reservation_type']) && $input['reservation_type'] === 'negotiation') {
+            if (empty($input['negotiation_notes']) && !empty($input['negotiationNotes'])) {
+                $input['negotiation_notes'] = $input['negotiationNotes'];
+            }
+            if (empty($input['negotiation_notes'])) {
+                $input['negotiation_notes'] = '-';
+            }
+            if (empty($input['negotiation_reason']) && !empty($input['negotiationReason'])) {
+                $input['negotiation_reason'] = $input['negotiationReason'];
+            }
+            if (empty($input['negotiation_reason'])) {
+                $input['negotiation_reason'] = 'السعر';
+            }
+            if ((!isset($input['proposed_price']) || $input['proposed_price'] === '' || $input['proposed_price'] === null)
+                && isset($input['proposedPrice']) && $input['proposedPrice'] !== '') {
+                $input['proposed_price'] = $input['proposedPrice'];
+            }
+        }
+
+        $this->merge($input);
+    }
+
     public function rules(): array
     {
         return [

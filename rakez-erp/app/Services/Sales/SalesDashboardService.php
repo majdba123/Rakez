@@ -65,6 +65,39 @@ class SalesDashboardService
         $totalRefundedDeposits = $this->getTotalRefundedDeposits($scope, $from, $to, $user);
         $totalReceivedProjectsValue = $this->getTotalReceivedProjectsValue($scope, $from, $to, $user);
         $totalSalesValue = $this->getTotalSalesValue($scope, $from, $to, $user);
+        $depositsSummary = $this->getDepositsSummary($scope, $from, $to, $user);
+
+        $negotiationRatio = $total > 0 ? round(($negotiationCount / $total) * 100, 2) : 0;
+
+        // 4.6.8 مؤشرات مرئية للوحة المبيعات (visible indicators for sales dashboard)
+        $indicators = [
+            'reserved_units' => [
+                'value' => $reservedUnits,
+                'label_ar' => 'عدد الوحدات المحجوزة',
+            ],
+            'available_units' => [
+                'value' => $availableUnits,
+                'label_ar' => 'عدد الوحدات المتاحة',
+            ],
+            'projects_under_marketing' => [
+                'value' => $projectsUnderMarketing,
+                'label_ar' => 'عدد المشاريع قيد التسويق',
+            ],
+            'confirmed_vs_negotiation' => [
+                'confirmed_count' => $confirmedCount,
+                'negotiation_count' => $negotiationCount,
+                'percent_confirmed' => $percentConfirmed,
+                'percent_negotiation' => $negotiationRatio,
+                'label_ar' => 'نسبة الحجوزات المؤكدة مقابل التفاوض',
+            ],
+            'deposits' => [
+                'total_received' => $totalReceivedDeposits,
+                'total_refunded' => $totalRefundedDeposits,
+                'count' => $depositsSummary['count'],
+                'pending_count' => $depositsSummary['pending_count'],
+                'label_ar' => 'العرابين',
+            ],
+        ];
 
         return [
             'kpi_version' => 'v2',
@@ -73,19 +106,44 @@ class SalesDashboardService
                 'percent_confirmed' => 'confirmed_count / (confirmed_count + negotiation_count) * 100',
                 'total_received_projects_value' => 'Sum of unit prices for projects with confirmed reservations in selected scope',
             ],
+            'indicators' => $indicators,
             'reserved_units' => $reservedUnits,
             'available_units' => $availableUnits,
             'projects_under_marketing' => $projectsUnderMarketing,
             'confirmed_count' => $confirmedCount,
+            'confirmed_reservations' => $confirmedCount,
             'negotiation_count' => $negotiationCount,
+            'negotiation_reservations' => $negotiationCount,
             'percent_confirmed' => $percentConfirmed,
             'total_reservations' => $total,
-            'negotiation_ratio' => $total > 0 ? round(($negotiationCount / $total) * 100, 2) : 0,
+            'negotiation_ratio' => $negotiationRatio,
             'sold_units_count' => $soldUnitsCount,
             'total_received_deposits' => $totalReceivedDeposits,
             'total_refunded_deposits' => $totalRefundedDeposits,
+            'deposits' => $depositsSummary,
             'total_received_projects_value' => $totalReceivedProjectsValue,
             'total_revenue' => $totalSalesValue,
+            'total_sales_value' => $totalSalesValue,
+        ];
+    }
+
+    /**
+     * Get deposits (عرابين) summary for dashboard: count and pending count.
+     */
+    protected function getDepositsSummary(string $scope, ?string $from, ?string $to, User $user): array
+    {
+        $baseQuery = Deposit::query();
+        $this->applyScopeFilterToDeposits($baseQuery, $scope, $user);
+        if ($from || $to) {
+            $baseQuery->dateRange($from, $to);
+        }
+
+        $count = (clone $baseQuery)->count();
+        $pendingCount = (clone $baseQuery)->where('status', 'pending')->count();
+
+        return [
+            'count' => $count,
+            'pending_count' => $pendingCount,
         ];
     }
 

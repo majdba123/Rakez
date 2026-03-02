@@ -11,9 +11,16 @@ class SalesReservationResource extends JsonResource
     {
         return [
             'reservation_id' => $this->id,
+            'contract_id' => $this->contract_id,
+            'contract_unit_id' => $this->contract_unit_id,
             'project_name' => $this->contract->project_name ?? 'N/A',
             'unit_number' => $this->contractUnit->unit_number ?? 'N/A',
             'client_name' => $this->client_name,
+            'client_mobile' => $this->client_mobile ?? null,
+            'client_nationality' => $this->client_nationality ?? null,
+            'payment_method' => $this->payment_method ?? null,
+            'down_payment_status' => $this->down_payment_status ?? null,
+            'purchase_mechanism' => $this->purchase_mechanism ?? null,
             'status' => $this->status,
             'reservation_type' => $this->reservation_type,
             'marketing_employee_id' => $this->marketing_employee_id,

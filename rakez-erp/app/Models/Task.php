@@ -16,6 +16,7 @@ class Task extends Model
 
     protected $fillable = [
         'task_name',
+        'section',
         'team_id',
         'due_at',
         'assigned_to',

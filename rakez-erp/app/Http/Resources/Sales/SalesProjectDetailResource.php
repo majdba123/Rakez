@@ -21,7 +21,19 @@ class SalesProjectDetailResource extends JsonResource
         $contractStatus = $this->status;
         $isReady = in_array($contractStatus, ['ready', 'approved']);
 
-        return [
+        $cardFields = $this->relationLoaded('secondPartyData')
+            ? SalesProjectResource::cardFieldsFromContract($this->resource, $salesStatus)
+            : [
+                'status_badge_ar' => $salesStatus === 'available' ? 'متاح' : 'غير متاح',
+                'price_min' => null,
+                'price_max' => null,
+                'area_min_m2' => null,
+                'area_max_m2' => null,
+                'unit_type_label_ar' => null,
+                'ad_code' => null,
+            ];
+
+        return array_merge([
             'contract_id' => $this->id,
             'project_name' => $this->project_name,
             'developer_name' => $this->developer_name,
@@ -30,7 +42,7 @@ class SalesProjectDetailResource extends JsonResource
             'district' => $this->district,
             'location' => "{$this->city}, {$this->district}",
             'project_description' => $this->notes,
-            'project_image_url' => $this->project_image_url,
+            'project_image_url' => SalesProjectResource::fullImageUrl($this->project_image_url),
             'contract_status' => $contractStatus,
             'is_ready' => $isReady,
             'sales_status' => $salesStatus,
@@ -43,17 +55,18 @@ class SalesProjectDetailResource extends JsonResource
             'reserved_units' => $this->reserved_units ?? 0,
             'sold_units' => $soldUnits = max(0, ($this->total_units ?? 0) - ($this->available_units ?? 0) - ($this->reserved_units ?? 0)),
             'sold_units_percent' => ($total = (int)($this->total_units ?? 0)) > 0 ? (int) round(($soldUnits / $total) * 100) : 0,
+            'sold_units_label_ar' => 'وحدة مباعة',
             'preparation_progress_percent' => 0,
             'preparation_progress_label_ar' => 'N/A',
             'remaining_days' => $this->remaining_days,
             'montage_data' => $this->when($this->montageDepartment, function () {
                 return [
-                    'image_url' => $this->montageDepartment->image_url,
+                    'image_url' => SalesProjectResource::fullImageUrl($this->montageDepartment->image_url),
                     'video_url' => $this->montageDepartment->video_url,
                     'description' => $this->montageDepartment->description,
                 ];
             }),
             'created_at' => $this->created_at?->toIso8601String(),
-        ];
+        ], $cardFields);
     }
 }

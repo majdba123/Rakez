@@ -91,17 +91,23 @@ class ExclusiveProjectService
 
     /**
      * Get exclusive project requests with filters and pagination.
+     * If $user is given and cannot approve exclusive projects, results are restricted to that user's requests only.
      */
-    public function getRequests(array $filters = [], int $perPage = 15): LengthAwarePaginator
+    public function getRequests(array $filters = [], int $perPage = 15, ?User $user = null): LengthAwarePaginator
     {
         $query = ExclusiveProjectRequest::with(['requestedBy', 'approvedBy', 'contract', 'requestUnits']);
+
+        // Restrict to current user's requests unless they can approve (PM Manager / Admin see all)
+        if ($user !== null && !$user->can('exclusive_projects.approve')) {
+            $query->where('requested_by', $user->id);
+        }
 
         // Filter by status
         if (isset($filters['status'])) {
             $query->where('status', $filters['status']);
         }
 
-        // Filter by requested_by
+        // Filter by requested_by (only meaningful for approvers; otherwise already scoped above)
         if (isset($filters['requested_by'])) {
             $query->where('requested_by', $filters['requested_by']);
         }

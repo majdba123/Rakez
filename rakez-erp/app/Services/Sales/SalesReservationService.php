@@ -139,9 +139,13 @@ class SalesReservationService
             // Update unit status to reserved
             $unit->update(['status' => 'reserved']);
 
-            // Generate PDF voucher
-            $voucherPath = $this->voucherService->generate($reservation);
-            $reservation->update(['voucher_pdf_path' => $voucherPath]);
+            // Generate PDF voucher (optional: if Mpdf is not installed, reservation is still created)
+            try {
+                $voucherPath = $this->voucherService->generate($reservation);
+                $reservation->update(['voucher_pdf_path' => $voucherPath]);
+            } catch (\Throwable $e) {
+                \Illuminate\Support\Facades\Log::warning('Reservation voucher PDF skipped: ' . $e->getMessage());
+            }
 
             DB::commit();
 

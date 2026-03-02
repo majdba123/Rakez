@@ -30,6 +30,16 @@ class ContractPolicy
             return true;
         }
 
+        // Anyone who can view sales or marketing projects can view the contract (project-tracker: second-party-data, photography)
+        if ($user->can('sales.projects.view') || $user->can('marketing.projects.view')) {
+            return true;
+        }
+
+        // Anyone who can view contracts (e.g. project_management) can view for second-party-data/show, photography/show
+        if ($user->can('contracts.view')) {
+            return true;
+        }
+
         // Owner can view
         if ($contract->user_id === $user->id) {
             return true;
