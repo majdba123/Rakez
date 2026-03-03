@@ -5,11 +5,17 @@ namespace App\Services\Pdf;
 use Mpdf\Mpdf;
 use Mpdf\Output\Destination;
 use Illuminate\Http\Response;
+use Illuminate\Support\Facades\File;
 
 class PdfFactory
 {
     public static function make(array $options = []): Mpdf
     {
+        $tempDir = storage_path('app/mpdf');
+        if (!File::isDirectory($tempDir)) {
+            File::makeDirectory($tempDir, 0755, true);
+        }
+
         return new Mpdf(array_merge([
             'mode' => 'utf-8',
             'format' => 'A4',
@@ -18,7 +24,7 @@ class PdfFactory
             'autoLangToFont' => true,
             'biDirectional' => true,
             'useSubstitutions' => true,
-            'tempDir' => storage_path('app/mpdf'),
+            'tempDir' => $tempDir,
             'margin_top' => 10,
             'margin_bottom' => 25,
             'margin_left' => 12,
@@ -39,9 +45,11 @@ class PdfFactory
 
     /**
      * Load raw HTML into an mPDF instance.
+     * Removes control characters that can break mPDF.
      */
     public static function loadHTML(string $html, array $options = []): Mpdf
     {
+        $html = preg_replace('/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/u', '', $html) ?? $html;
         $mpdf = self::make($options);
         $mpdf->WriteHTML($html);
 

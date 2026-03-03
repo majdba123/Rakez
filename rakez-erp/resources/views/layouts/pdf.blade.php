@@ -85,9 +85,13 @@
         </table>
     </div>
 
-    {{-- Logo --}}
+    {{-- Logo (optional: avoid PDF failure if file missing) --}}
     <div class="logo-area">
+        @if(file_exists(public_path('images/rakez-logo.png')))
         <img src="{{ public_path('images/rakez-logo.png') }}" alt="راكز">
+        @else
+        <strong>شركة راكز العقارية</strong>
+        @endif
     </div>
 
     @yield('content')

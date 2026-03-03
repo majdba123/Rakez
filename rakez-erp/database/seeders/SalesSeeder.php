@@ -60,10 +60,8 @@ class SalesSeeder extends Seeder
         foreach ($readyContracts as $contractId) {
             $leaderId = Arr::random($salesLeaders);
 
-            // Create assignments with date ranges (some active, some past, some future)
+            // Create or update a single assignment per (leader, contract) pair
             $dateType = fake()->numberBetween(0, 2);
-            $startDate = null;
-            $endDate = null;
 
             if ($dateType === 0) {
                 // Active assignment (started in past, ends in future)
@@ -79,14 +77,16 @@ class SalesSeeder extends Seeder
                 $endDate = now()->addDays(fake()->numberBetween(90, 240))->toDateString();
             }
 
-            SalesProjectAssignment::firstOrCreate(
+            SalesProjectAssignment::updateOrCreate(
                 [
                     'leader_id' => $leaderId,
                     'contract_id' => $contractId,
+                ],
+                [
+                    'assigned_by' => Arr::random($salesLeaders),
                     'start_date' => $startDate,
                     'end_date' => $endDate,
-                ],
-                ['assigned_by' => Arr::random($salesLeaders)]
+                ]
             );
         }
 
