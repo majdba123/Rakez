@@ -2,32 +2,25 @@
 
 namespace Database\Seeders;
 
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
-use Illuminate\Database\Seeder;
 use App\Models\User;
+use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
 
 class AdminUserSeeder extends Seeder
 {
-    /**
-     * Run the database seeds.
-     */
     public function run(): void
     {
-        // Check if admin user already exists
-        $adminExists = User::where('email', 'admin@gmail.com')->exists();
+        $exists = User::where('email', 'admin@rakez.com')->exists();
 
-        if (!$adminExists) {
+        if (! $exists) {
             User::create([
-                'name' => 'Administrator',
-                'email' => 'admin@gmail.com',
-                'phone' => '+1234567890',
-                'password' => Hash::make('password'), // You can change this password
+                'name' => 'مدير النظام',
+                'email' => 'admin@rakez.com',
+                'phone' => '0500000000',
+                'password' => Hash::make('password'),
                 'type' => 'admin',
+                'is_active' => true,
             ]);
-
-        } else {
-            $this->command->info('Admin user already exists!');
         }
     }
 }

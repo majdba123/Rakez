@@ -42,7 +42,7 @@ class SalesUnitResource extends JsonResource
             'description' => $this->description ?? null,
             'unit_status' => $this->status,
             'status' => $this->status,
-            'computed_availability' => $this->computed_availability ?? 'pending',
+            'computed_availability' => $this->computed_availability ?? $this->status,
             'can_reserve' => $this->can_reserve ?? false,
             'active_reservation' => $this->when($this->active_reservation, function () {
                 return [

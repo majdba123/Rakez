@@ -51,6 +51,14 @@ Route::get('/test/broadcast/admin', function () {
 });
 
 // ==========================================
+// TASKS PAGE (Add Task form with section → assignee filtering)
+// ==========================================
+
+Route::get('/tasks', function () {
+    return view('tasks.index');
+});
+
+// ==========================================
 // CHAT SYSTEM TEST PAGE
 // ==========================================
 

@@ -15,13 +15,15 @@ class ContractFactory extends Factory
         $realEstate = config('unsplash_images.real_estate', []);
         $projectImage = $realEstate ? $realEstate[array_rand($realEstate)] : $this->faker->imageUrl();
 
+        $projects = ['مشروع سكني', 'برج سكني', 'مجمع فلل', 'عمارة وحدات'];
+        $developers = ['شركة الراجحي للتطوير', 'مؤسسة دار الأركان', 'مجموعة إعمار العقارية'];
         return [
             'user_id' => User::factory(),
-            'project_name' => $this->faker->words(3, true),
-            'developer_name' => $this->faker->company(),
-            'developer_number' => $this->faker->phoneNumber(),
-            'city' => $this->faker->city(),
-            'district' => $this->faker->streetName(),
+            'project_name' => $projects[array_rand($projects)] . ' ' . $this->faker->numberBetween(1, 99),
+            'developer_name' => $developers[array_rand($developers)],
+            'developer_number' => '+966' . $this->faker->numerify('########'),
+            'city' => $this->faker->randomElement(['الرياض', 'جدة', 'الدمام']),
+            'district' => $this->faker->randomElement(['حي النخيل', 'حي العليا', 'حي الشفا']),
             'units' => [],
             'project_image_url' => $projectImage,
             'developer_requiment' => $this->faker->sentence(),

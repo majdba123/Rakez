@@ -29,6 +29,8 @@ class SalesProjectDetailResource extends JsonResource
                 'price_max' => null,
                 'area_min_m2' => null,
                 'area_max_m2' => null,
+                'bedrooms_min' => null,
+                'bedrooms_max' => null,
                 'unit_type_label_ar' => null,
                 'ad_code' => null,
             ];

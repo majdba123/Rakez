@@ -85,7 +85,7 @@ class ArabicSeedDataSeeder extends Seeder
         $logoThumbs = config('unsplash_images.logo_thumb', []);
 
         foreach ($projects as $projectData) {
-            $projectImage = $realEstateImages ? Arr::random($realEstateImages) : null;
+            $projectImage = $realEstateImages ? Arr::random($realEstateImages) : 'https://via.placeholder.com/800x600';
             $contract = Contract::create(array_merge($projectData, [
                 'user_id' => $salesLeader->id,
                 'project_image_url' => $projectImage,
@@ -100,14 +100,24 @@ class ArabicSeedDataSeeder extends Seeder
                 'project_logo_url' => $logoUrl,
             ]);
 
-            // 3. Create Contract Units with Arabic Details
+            // 3. Create Contract Units with full Arabic details (area, floor, bedrooms, bathrooms, facade)
+            $facades = ['شمال', 'جنوب', 'شرق', 'غرب', 'شمال شرق'];
             for ($i = 1; $i <= 5; $i++) {
+                $area = rand(150, 400);
+                $privateArea = rand(8, 30);
+                $bedrooms = $i % 2 == 0 ? rand(2, 4) : rand(3, 6);
+                $bathrooms = min($bedrooms + 1, rand(2, 4));
                 ContractUnit::create([
                     'second_party_data_id' => $secondParty->id,
-                    'unit_type' => $i % 2 == 0 ? 'شقة' : 'فيلا',
+                    'unit_type' => ['أدوار', 'بنتهاوس', 'تاون هاوس', 'شقق', 'فيلا'][$i % 5],
                     'unit_number' => 'U-' . str_pad($i, 3, '0', STR_PAD_LEFT),
-                    'floor' => (string)rand(1, 10),
-                    'area' => rand(150, 400),
+                    'floor' => (string) rand(1, 10),
+                    'area' => (string) $area,
+                    'bedrooms' => $bedrooms,
+                    'bathrooms' => $bathrooms,
+                    'private_area_m2' => $privateArea,
+                    'total_area_m2' => $area + $privateArea,
+                    'facade' => $facades[$i % count($facades)],
                     'price' => rand(500000, 2000000),
                     'status' => 'available',
                     'description' => 'وحدة سكنية واسعة مع إطلالة رائعة وتشطيبات ممتازة',
@@ -115,7 +125,7 @@ class ArabicSeedDataSeeder extends Seeder
             }
 
             $targetUnitIds = ContractUnit::where('second_party_data_id', $secondParty->id)->pluck('id')->take(3)->all();
-            $firstUnitId = $targetUnitIds[0] ?? null;
+            $firstUnitId = $targetUnitIds[0] ?? ContractUnit::where('second_party_data_id', $secondParty->id)->value('id');
 
             // 4. Sales Data
             // Sales Project Assignment (with active date range)
@@ -130,6 +140,7 @@ class ArabicSeedDataSeeder extends Seeder
             ]);
 
             // Sales Targets (with first unit; pivot will have 2-3 units)
+            if ($firstUnitId) {
             $targetId = DB::table('sales_targets')->insertGetId([
                 'leader_id' => $salesLeader->id,
                 'marketer_id' => $marketer->id,
@@ -151,6 +162,7 @@ class ArabicSeedDataSeeder extends Seeder
                     'created_at' => now(),
                     'updated_at' => now(),
                 ]);
+            }
             }
 
             // Sales Attendance

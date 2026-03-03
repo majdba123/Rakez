@@ -83,9 +83,10 @@ Broadcast::routes(['middleware' => ['auth:sanctum']]);
 
 Route::post('/login', [LoginController::class, 'login'])->middleware('throttle:login');
 
-
-
-
+// CSRF token for SPA (project-tracker etc.) — يزيل 404 لطلب csrf-token
+Route::get('/csrf-token', function () {
+    return response()->json(['token' => csrf_token()]);
+});
 
 // Protected routes (auth required)
 Route::middleware('auth:sanctum')->group(function () {

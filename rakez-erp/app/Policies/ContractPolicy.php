@@ -3,6 +3,7 @@
 namespace App\Policies;
 
 use App\Models\Contract;
+use App\Models\SalesProjectAssignment;
 use App\Models\User;
 use Illuminate\Auth\Access\Response;
 
@@ -18,6 +19,7 @@ class ContractPolicy
 
     /**
      * Determine whether the user can view the model.
+     * مدير مبيعات/موظف مبيعات: فقط عقود المشاريع المسندة لفريق المستخدم (توافق مع sales/projects).
      */
     public function view(User $user, Contract $contract): bool
     {
@@ -25,27 +27,42 @@ class ContractPolicy
             return true;
         }
 
-        // Sales and sales_leader can view contracts (e.g. project-tracker, sales projects)
-        if ($user->hasAnyRole(['sales', 'sales_leader', 'admin'])) {
+        if ($user->hasRole('admin')) {
             return true;
         }
 
-        // Anyone who can view sales or marketing projects can view the contract (project-tracker: second-party-data, photography)
+        // Sales / sales_leader: نفس منطق الوصول حسب الفريق (مشاريع المسندة لفريقه فقط)
+        if ($user->hasAnyRole(['sales', 'sales_leader'])) {
+            if (SalesProjectAssignment::where('leader_id', $user->id)
+                ->where('contract_id', $contract->id)
+                ->active()
+                ->exists()) {
+                return true;
+            }
+            if ($user->team_id) {
+                $teamLeaderIds = User::where('team_id', $user->team_id)
+                    ->where('is_manager', true)
+                    ->pluck('id');
+                return SalesProjectAssignment::where('contract_id', $contract->id)
+                    ->whereIn('leader_id', $teamLeaderIds)
+                    ->active()
+                    ->exists();
+            }
+            return false;
+        }
+
         if ($user->can('sales.projects.view') || $user->can('marketing.projects.view')) {
             return true;
         }
 
-        // Anyone who can view contracts (e.g. project_management) can view for second-party-data/show, photography/show
         if ($user->can('contracts.view')) {
             return true;
         }
 
-        // Owner can view
         if ($contract->user_id === $user->id) {
             return true;
         }
 
-        // Manager can view team's contracts
         if ($user->isManager() && $user->team && $contract->user && $contract->user->team === $user->team) {
             return true;
         }

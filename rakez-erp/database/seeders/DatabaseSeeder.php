@@ -7,11 +7,11 @@ use Illuminate\Database\Seeder;
 class DatabaseSeeder extends Seeder
 {
     /**
-     * Seed the application's database.
+     * تشغيل سيدرات قاعدة البيانات (بيانات أولية بالعربية السعودية).
      */
     public function run(): void
     {
-        // Seed users before roles/permissions so role assignment can attach
+        // ترتيب السيدرات: الأدمن أولاً ثم الأدوار والصلاحيات ثم الفرق والمستخدمين
         $this->call([
             AdminUserSeeder::class,
             ArabicSeedDataSeeder::class,

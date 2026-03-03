@@ -35,6 +35,8 @@ class SalesProjectResource extends JsonResource
                 'price_max' => null,
                 'area_min_m2' => null,
                 'area_max_m2' => null,
+                'bedrooms_min' => null,
+                'bedrooms_max' => null,
                 'unit_type_label_ar' => null,
                 'ad_code' => null,
             ];
@@ -67,7 +69,7 @@ class SalesProjectResource extends JsonResource
 
     /**
      * Derive listing-card fields from contract (secondPartyData + contractUnits).
-     * Returns status_badge_ar, price_min, price_max, area_min_m2, area_max_m2, unit_type_label_ar, ad_code.
+     * Returns status_badge_ar, price_min, price_max, area_min_m2, area_max_m2, bedrooms_min, bedrooms_max, unit_type_label_ar, ad_code.
      */
     public static function cardFieldsFromContract($contract, string $salesStatus): array
     {
@@ -80,15 +82,27 @@ class SalesProjectResource extends JsonResource
         $priceMax = null;
         $areaMin = null;
         $areaMax = null;
+        $bedroomsMin = null;
+        $bedroomsMax = null;
         $unitTypeLabel = null;
 
         if ($units->isNotEmpty()) {
             $prices = $units->pluck('price')->filter()->map(fn ($p) => (float) $p);
-            $areas = $units->pluck('area')->filter()->map(fn ($a) => (float) $a);
             $priceMin = $prices->isEmpty() ? null : round($prices->min(), 2);
             $priceMax = $prices->isEmpty() ? null : round($prices->max(), 2);
+
+            // Area: use area or total_area_m2 as fallback
+            $areas = $units->map(function ($u) {
+                $a = $u->area !== null && $u->area !== '' ? (float) $u->area : null;
+                return $a ?? $u->total_area_m2;
+            })->filter();
             $areaMin = $areas->isEmpty() ? null : round($areas->min(), 2);
             $areaMax = $areas->isEmpty() ? null : round($areas->max(), 2);
+
+            $bedrooms = $units->pluck('bedrooms')->filter()->map(fn ($b) => (int) $b);
+            $bedroomsMin = $bedrooms->isEmpty() ? null : $bedrooms->min();
+            $bedroomsMax = $bedrooms->isEmpty() ? null : $bedrooms->max();
+
             $firstType = $units->pluck('unit_type')->filter()->first();
             $unitTypeLabel = $firstType ? (string) $firstType : null;
         }
@@ -101,6 +115,8 @@ class SalesProjectResource extends JsonResource
             'price_max' => $priceMax,
             'area_min_m2' => $areaMin,
             'area_max_m2' => $areaMax,
+            'bedrooms_min' => $bedroomsMin,
+            'bedrooms_max' => $bedroomsMax,
             'unit_type_label_ar' => $unitTypeLabel,
             'ad_code' => $adCode,
         ];

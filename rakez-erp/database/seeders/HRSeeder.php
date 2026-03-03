@@ -10,6 +10,30 @@ use Illuminate\Support\Arr;
 
 class HRSeeder extends Seeder
 {
+    protected array $jobTitles = [
+        'مدير مبيعات',
+        'مسوق عقاري',
+        'موظف موارد بشرية',
+        'محاسب',
+        'موظف ائتمان',
+        'مدير مشاريع',
+        'محرر فيديو',
+        'مطور أنظمة',
+    ];
+
+    protected array $departments = [
+        'المبيعات',
+        'التسويق',
+        'الموارد البشرية',
+        'المحاسبة',
+        'الائتمان',
+        'إدارة المشاريع',
+        'المونتاج',
+        'التطوير',
+    ];
+
+    protected array $workTypes = ['full_time', 'part_time', 'contract'];
+
     public function run(): void
     {
         $counts = SeedCounts::all();
@@ -20,13 +44,14 @@ class HRSeeder extends Seeder
             $status = $contractStatuses[$index % 4];
             $startDate = now()->subDays(fake()->numberBetween(0, 365))->toDateString();
 
-            $endDate = null;
+            $endDate = $startDate;
             if ($status === 'active') {
                 $endDate = now()->addDays(fake()->numberBetween(30, 365 * 2))->toDateString();
             } elseif (in_array($status, ['expired', 'terminated'])) {
                 $endDate = now()->subDays(fake()->numberBetween(1, 365))->toDateString();
             }
 
+            $deptIndex = $index % count($this->departments);
             EmployeeContract::firstOrCreate(
                 ['user_id' => $user->id],
                 [
@@ -34,13 +59,13 @@ class HRSeeder extends Seeder
                     'start_date' => $startDate,
                     'end_date' => $endDate,
                     'contract_data' => [
-                        'job_title' => fake()->jobTitle(),
-                        'department' => fake()->randomElement(['Sales', 'Marketing', 'HR', 'IT', 'Accounting', 'Operations']),
+                        'job_title' => $this->jobTitles[$deptIndex % count($this->jobTitles)],
+                        'department' => $this->departments[$deptIndex],
                         'salary' => fake()->numberBetween(3000, 20000),
-                        'work_type' => fake()->randomElement(['full_time', 'part_time', 'contract']),
-                        'probation_period' => '90 days',
-                        'terms' => fake()->paragraphs(2, true),
-                        'benefits' => fake()->sentences(4, true),
+                        'work_type' => Arr::random($this->workTypes),
+                        'probation_period' => '90 يوم',
+                        'terms' => 'يلتزم الموظف ببنود العقد وأخلاقيات العمل. مدة التجربة 90 يوماً قابلة للتمديد وفق السياسة المعتمدة.',
+                        'benefits' => 'تأمين طبي، إجازة سنوية 21 يوماً، تذاكر سفر سنوية حسب السياسة.',
                     ],
                 ]
             );
