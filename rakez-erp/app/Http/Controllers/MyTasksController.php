@@ -56,7 +56,43 @@ class MyTasksController extends Controller
         $perPage = min((int) $request->input('per_page', 10), 100);
         $query = Task::query()
             ->where('assigned_to', $user->id)
-            ->with(['team:id,name', 'creator:id,name']);
+            ->with(['team:id,name', 'creator:id,name', 'assignee:id,name']);
+
+        if ($request->filled('status')) {
+            $query->where('status', $request->input('status'));
+        }
+
+        $query->orderBy('due_at');
+
+        $tasks = $query->paginate($perPage);
+
+        return response()->json([
+            'success' => true,
+            'data' => $tasks->items(),
+            'meta' => [
+                'current_page' => $tasks->currentPage(),
+                'last_page' => $tasks->lastPage(),
+                'per_page' => $tasks->perPage(),
+                'total' => $tasks->total(),
+            ],
+        ], 200);
+    }
+
+    /**
+     * List tasks created by the authenticated user and assigned to others.
+     * GET /api/requested-tasks
+     */
+    public function requestedTasks(Request $request): JsonResponse
+    {
+        $user = $request->user();
+        if (! $user) {
+            return response()->json(['success' => false, 'message' => 'Unauthenticated.'], 401);
+        }
+
+        $perPage = min((int) $request->input('per_page', 10), 100);
+        $query = Task::query()
+            ->where('created_by', $user->id)
+            ->with(['team:id,name', 'assignee:id,name']);
 
         if ($request->filled('status')) {
             $query->where('status', $request->input('status'));

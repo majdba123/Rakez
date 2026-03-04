@@ -33,6 +33,20 @@
         .tasks-list { background: #fff; border-radius: 12px; padding: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
         .tasks-list h3 { margin-bottom: 16px; color: #5a4a3a; }
         .empty-state { text-align: center; color: #888; padding: 40px 20px; }
+        .tabs { display: flex; gap: 0; margin-bottom: 20px; border-bottom: 2px solid #e0e0e0; }
+        .tab-btn { padding: 12px 24px; border: none; background: none; cursor: pointer; font-weight: 600; font-size: 1rem; color: #888; border-bottom: 3px solid transparent; margin-bottom: -2px; transition: all 0.2s; }
+        .tab-btn:hover { color: #5a4a3a; }
+        .tab-btn.active { color: #5a4a3a; border-bottom-color: #5a4a3a; }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+        .task-badge { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 0.75rem; font-weight: 600; margin-right: 6px; }
+        .badge-from-me { background: #e3f2fd; color: #1565c0; }
+        .badge-from-other { background: #fce4ec; color: #c62828; }
+        .badge-assigned-to { background: #f3e5f5; color: #7b1fa2; }
+        .task-item { padding: 14px 0; border-bottom: 1px solid #eee; }
+        .task-item:last-child { border-bottom: none; }
+        .task-name { font-weight: 600; font-size: 1rem; margin-bottom: 6px; }
+        .task-meta { font-size: 0.85rem; color: #666; display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
         .user-info { background: #fff; padding: 12px 16px; border-radius: 8px; margin-bottom: 16px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
         .user-info p { margin-bottom: 4px; }
         .user-info button { margin-top: 8px; padding: 8px 16px; cursor: pointer; background: #c62828; color: #fff; border: none; border-radius: 6px; }
@@ -58,12 +72,25 @@
             </div>
 
             <div class="toolbar">
-                <h3>المهام الخاصة بي</h3>
+                <div></div>
                 <button type="button" class="btn btn-primary" onclick="openAddTaskModal()">إضافة مهمة</button>
             </div>
 
-            <div class="tasks-list">
-                <div id="tasksListContent" class="empty-state">جاري تحميل المهام...</div>
+            <div class="tabs">
+                <button type="button" class="tab-btn active" onclick="switchTab('my')">المهام المطلوبة مني</button>
+                <button type="button" class="tab-btn" onclick="switchTab('requested')">المهام التي طلبتها من الآخرين</button>
+            </div>
+
+            <div id="tabMy" class="tab-content active">
+                <div class="tasks-list">
+                    <div id="myTasksContent" class="empty-state">جاري تحميل المهام...</div>
+                </div>
+            </div>
+
+            <div id="tabRequested" class="tab-content">
+                <div class="tasks-list">
+                    <div id="requestedTasksContent" class="empty-state">جاري تحميل المهام...</div>
+                </div>
             </div>
         </div>
     </div>
@@ -137,7 +164,7 @@
                     document.getElementById('loginSection').style.display = 'none';
                     document.getElementById('tasksSection').style.display = 'block';
                     loadSections();
-                    loadMyTasks();
+                    loadAllTasks();
                 } else {
                     alert('فشل تسجيل الدخول: ' + (data.message || 'بيانات غير صحيحة'));
                 }
@@ -274,7 +301,7 @@
                 if (res.ok && data.success) {
                     formSuccess.textContent = 'تم إنشاء المهمة بنجاح.';
                     formSuccess.style.display = 'block';
-                    loadMyTasks();
+                    loadAllTasks();
                     setTimeout(function () {
                         closeAddTaskModal();
                     }, 800);
@@ -289,23 +316,64 @@
             }
         }
 
+        function statusLabel(status) {
+            const map = {
+                'in_progress': 'قيد التنفيذ',
+                'completed': 'مكتملة',
+                'could_not_complete': 'لم تكتمل',
+            };
+            return map[status] || status || '—';
+        }
+
+        function statusColor(status) {
+            const map = {
+                'in_progress': '#e65100',
+                'completed': '#2e7d32',
+                'could_not_complete': '#c62828',
+            };
+            return map[status] || '#666';
+        }
+
+        function switchTab(tab) {
+            document.querySelectorAll('.tab-btn').forEach(function (btn) { btn.classList.remove('active'); });
+            document.querySelectorAll('.tab-content').forEach(function (c) { c.classList.remove('active'); });
+            if (tab === 'my') {
+                document.querySelector('.tab-btn:nth-child(1)').classList.add('active');
+                document.getElementById('tabMy').classList.add('active');
+            } else {
+                document.querySelector('.tab-btn:nth-child(2)').classList.add('active');
+                document.getElementById('tabRequested').classList.add('active');
+            }
+        }
+
         async function loadMyTasks() {
-            const el = document.getElementById('tasksListContent');
+            const el = document.getElementById('myTasksContent');
             try {
                 const res = await fetch(API_BASE + '/my-tasks', { headers: authHeaders() });
                 const data = await res.json();
                 if (data.success && Array.isArray(data.data)) {
                     const tasks = data.data;
                     if (tasks.length === 0) {
-                        el.innerHTML = 'لا توجد مهام معينة لك.';
+                        el.innerHTML = 'لا توجد مهام مطلوبة منك.';
                         el.className = 'empty-state';
                         return;
                     }
                     el.className = '';
-                    el.innerHTML = '<ul style="list-style:none;">' + tasks.map(function (t) {
+                    el.innerHTML = tasks.map(function (t) {
                         const due = t.due_at ? new Date(t.due_at).toLocaleString('ar-SA') : '';
-                        return '<li style="padding:12px 0; border-bottom:1px solid #eee;"><strong>' + (t.task_name || '—') + '</strong><br><small>الحالة: ' + (t.status || '—') + ' | موعد الإستحقاق: ' + due + '</small></li>';
-                    }).join('') + '</ul>';
+                        const creatorName = t.creator ? t.creator.name : '—';
+                        const isSelfAssigned = t.created_by == userId;
+                        const fromBadge = isSelfAssigned
+                            ? '<span class="task-badge badge-from-me">مهمة ذاتية</span>'
+                            : '<span class="task-badge badge-from-other">مطلوبة من: ' + creatorName + '</span>';
+                        return '<div class="task-item">'
+                            + '<div class="task-name">' + (t.task_name || '—') + '</div>'
+                            + '<div class="task-meta">'
+                            + fromBadge
+                            + '<span style="color:' + statusColor(t.status) + '; font-weight:600;">' + statusLabel(t.status) + '</span>'
+                            + '<span>موعد الإستحقاق: ' + due + '</span>'
+                            + '</div></div>';
+                    }).join('');
                 } else {
                     el.innerHTML = 'فشل تحميل المهام.';
                     el.className = 'empty-state';
@@ -316,12 +384,51 @@
             }
         }
 
+        async function loadRequestedTasks() {
+            const el = document.getElementById('requestedTasksContent');
+            try {
+                const res = await fetch(API_BASE + '/requested-tasks', { headers: authHeaders() });
+                const data = await res.json();
+                if (data.success && Array.isArray(data.data)) {
+                    const tasks = data.data;
+                    if (tasks.length === 0) {
+                        el.innerHTML = 'لا توجد مهام طلبتها من الآخرين.';
+                        el.className = 'empty-state';
+                        return;
+                    }
+                    el.className = '';
+                    el.innerHTML = tasks.map(function (t) {
+                        const due = t.due_at ? new Date(t.due_at).toLocaleString('ar-SA') : '';
+                        const assigneeName = t.assignee ? t.assignee.name : '—';
+                        return '<div class="task-item">'
+                            + '<div class="task-name">' + (t.task_name || '—') + '</div>'
+                            + '<div class="task-meta">'
+                            + '<span class="task-badge badge-assigned-to">مُسندة إلى: ' + assigneeName + '</span>'
+                            + '<span style="color:' + statusColor(t.status) + '; font-weight:600;">' + statusLabel(t.status) + '</span>'
+                            + '<span>موعد الإستحقاق: ' + due + '</span>'
+                            + '</div></div>';
+                    }).join('');
+                } else {
+                    el.innerHTML = 'فشل تحميل المهام.';
+                    el.className = 'empty-state';
+                }
+            } catch (e) {
+                el.innerHTML = 'خطأ في تحميل المهام.';
+                el.className = 'empty-state';
+            }
+        }
+
+        function loadAllTasks() {
+            loadMyTasks();
+            loadRequestedTasks();
+        }
+
         if (token && userId) {
             document.getElementById('loginSection').style.display = 'none';
             document.getElementById('tasksSection').style.display = 'block';
             document.getElementById('userName').textContent = 'المستخدم';
             loadSections();
-            loadMyTasks();
+            loadAllTasks();
         }
     </script>
 </body>

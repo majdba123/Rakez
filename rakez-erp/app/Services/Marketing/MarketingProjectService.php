@@ -9,14 +9,13 @@ use App\Models\ContractInfo;
 class MarketingProjectService
 {
     /**
-     * Contract status used for "completed" contracts in marketing context.
-     * Requirements refer to "projects with completed contracts"; in this system
-     * that is represented by contract status 'approved'.
+     * المشاريع التسويقية = عقود مكتملة المراحل (status = ready).
+     * العقد يصبح مشروعاً تسويقياً فقط بعد اكتمال جميع المتطلبات في المتتبع.
      */
-    public const COMPLETED_CONTRACT_STATUS = 'approved';
+    public const COMPLETED_CONTRACT_STATUS = 'ready';
 
     /**
-     * Get marketing projects whose contracts are completed (approved).
+     * Get marketing projects whose contracts are fully ready.
      *
      * @param int $perPage
      * @return \Illuminate\Contracts\Pagination\LengthAwarePaginator
