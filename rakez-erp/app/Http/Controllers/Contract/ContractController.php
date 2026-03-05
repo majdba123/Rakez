@@ -9,6 +9,7 @@ use App\Http\Requests\Contract\UpdateContractStatusRequest;
 use App\Http\Resources\Contract\ContractResource;
 use App\Http\Resources\Contract\ContractIndexResource;
 use App\Models\Contract;
+use App\Models\MarketingProject;
 use App\Services\Contract\ContractService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -104,6 +105,71 @@ class ContractController extends Controller
         }
     }
 
+    /**
+     * Inventory dashboard summary:
+     * - Count of marketing projects
+     * - Unit statistics for all contracts grouped by status and unit_type
+     */
+    public function inventoryDashboard(Request $request): JsonResponse
+    {
+        try {
+            // Total marketing projects
+            $marketingProjectsCount = MarketingProject::count();
+
+            // Aggregate units across all contracts
+            $unitRows = DB::table('contract_units')
+                ->join('second_party_data', 'second_party_data.id', '=', 'contract_units.second_party_data_id')
+                ->join('contracts', 'contracts.id', '=', 'second_party_data.contract_id')
+                ->whereNull('contract_units.deleted_at')
+                ->whereNull('second_party_data.deleted_at')
+                ->whereNull('contracts.deleted_at')
+                ->groupBy('contract_units.status', 'contract_units.unit_type')
+                ->select([
+                    'contract_units.status as unit_status',
+                    'contract_units.unit_type as unit_type',
+                    DB::raw('COUNT(contract_units.id) as total_units'),
+                ])
+                ->get();
+
+            $totalUnits = 0;
+            $byStatus = [];
+            $byType = [];
+
+            foreach ($unitRows as $row) {
+                $status = (string) ($row->unit_status ?? 'unknown');
+                $type = (string) ($row->unit_type ?? 'unknown');
+                $count = (int) $row->total_units;
+
+                $totalUnits += $count;
+
+                // Group by status
+                $byStatus[$status]['total'] = ($byStatus[$status]['total'] ?? 0) + $count;
+                $byStatus[$status]['by_type'][$type] = ($byStatus[$status]['by_type'][$type] ?? 0) + $count;
+
+                // Group by unit type
+                $byType[$type]['total'] = ($byType[$type]['total'] ?? 0) + $count;
+                $byType[$type]['by_status'][$status] = ($byType[$type]['by_status'][$status] ?? 0) + $count;
+            }
+
+            return response()->json([
+                'success' => true,
+                'message' => 'تم جلب إحصائيات لوحة التحكم للمخزون بنجاح',
+                'data' => [
+                    'marketing_projects_count' => $marketingProjectsCount,
+                    'units_stats' => [
+                        'total_units' => $totalUnits,
+                        'by_status' => $byStatus,
+                        'by_type' => $byType,
+                    ],
+                ],
+            ], 200);
+        } catch (Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage(),
+            ], 500);
+        }
+    }
 
     public function show(int $id): JsonResponse
     {

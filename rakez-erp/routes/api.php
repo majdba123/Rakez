@@ -564,9 +564,10 @@ Route::middleware('auth:sanctum')->group(function () {
                 Route::get('/show/{contractId}', [ContractUnitController::class, 'indexByContract'])->middleware('permission:units.view');
             });
 
-            // Team contract locations
+            // Team contract locations & dashboard
             Route::get('/contracts/locations', [ContractController::class, 'locations'])->middleware('permission:contracts.view_all');
             Route::get('/contracts/agency-overview', [ContractController::class, 'inventoryAgencyOverview'])->middleware('permission:contracts.view_all');
+            Route::get('/dashboard', [ContractController::class, 'inventoryDashboard'])->middleware('permission:contracts.view_all');
 
         });
 
