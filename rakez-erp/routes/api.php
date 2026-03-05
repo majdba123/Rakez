@@ -29,6 +29,7 @@ use App\Http\Controllers\Sales\MarketingTaskController;
 use App\Http\Controllers\Sales\SalesTeamController;
 use App\Http\Controllers\Sales\WaitingListController;
 use App\Http\Controllers\Sales\SalesInsightsController;
+use App\Http\Controllers\Sales\SalesUnitSearchController;
 use App\Http\Controllers\Api\SalesAnalyticsController;
 use App\Http\Controllers\ExclusiveProjectController;
 use App\Http\Middleware\CheckDynamicPermission;
@@ -83,9 +84,10 @@ Broadcast::routes(['middleware' => ['auth:sanctum']]);
 
 Route::post('/login', [LoginController::class, 'login'])->middleware('throttle:login');
 
-
-
-
+// CSRF token for SPA (project-tracker etc.) — يزيل 404 لطلب csrf-token
+Route::get('/csrf-token', function () {
+    return response()->json(['token' => csrf_token()]);
+});
 
 // Protected routes (auth required)
 Route::middleware('auth:sanctum')->group(function () {
@@ -274,6 +276,10 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('projects/{contractId}', [SalesProjectController::class, 'show'])->middleware('permission:sales.projects.view');
         Route::get('projects/{contractId}/units', [SalesProjectController::class, 'units'])->middleware('permission:sales.projects.view');
         Route::get('units/{id}/pdf', [SalesProjectController::class, 'unitPdf'])->middleware('permission:sales.projects.view');
+
+        // Unit Search (cross-project)
+        Route::get('units/search', [SalesUnitSearchController::class, 'search'])->middleware('permission:sales.projects.view');
+        Route::get('units/filters', [SalesUnitSearchController::class, 'filters'])->middleware('permission:sales.projects.view');
 
         // Reservation context
         Route::get('units/{unitId}/reservation-context', [SalesReservationController::class, 'context'])->middleware('permission:sales.reservations.create');
@@ -568,6 +574,7 @@ Route::middleware('auth:sanctum')->group(function () {
         // My tasks (system-wide tasks assigned to current user) and task metadata
         Route::middleware('auth:sanctum')->group(function () {
             Route::get('/my-tasks', [MyTasksController::class, 'index']);
+            Route::get('/requested-tasks', [MyTasksController::class, 'requestedTasks']);
             Route::patch('/my-tasks/{id}/status', [MyTasksController::class, 'updateStatus'])->whereNumber('id');
             Route::post('/tasks', [MyTasksController::class, 'store']);
 
@@ -605,15 +612,15 @@ Route::prefix('accounting')->middleware(['auth:sanctum', 'role:accounting|admin'
     Route::get('dashboard', [AccountingDashboardController::class, 'index'])->middleware('permission:accounting.dashboard.view');
 
     // Commission management
-    Route::get('sold-units', [AccountingCommissionController::class, 'index'])->middleware('permission:accounting.commissions.view');
-    Route::get('marketers', [AccountingCommissionController::class, 'marketers'])->middleware('permission:accounting.commissions.view');
-    Route::get('sold-units/{id}', [AccountingCommissionController::class, 'show'])->middleware('permission:accounting.commissions.view');
-    Route::post('sold-units/{id}/commission', [AccountingCommissionController::class, 'createManual'])->middleware('permission:accounting.commissions.manage');
-    Route::put('commissions/{id}/distributions', [AccountingCommissionController::class, 'updateDistributions'])->middleware('permission:accounting.commissions.manage');
+    Route::get('sold-units', [AccountingCommissionController::class, 'index'])->middleware('permission:accounting.sold-units.view');
+    Route::get('marketers', [AccountingCommissionController::class, 'marketers'])->middleware('permission:accounting.sold-units.view');
+    Route::get('sold-units/{id}', [AccountingCommissionController::class, 'show'])->middleware('permission:accounting.sold-units.view');
+    Route::post('sold-units/{id}/commission', [AccountingCommissionController::class, 'createManual'])->middleware('permission:accounting.sold-units.manage');
+    Route::put('commissions/{id}/distributions', [AccountingCommissionController::class, 'updateDistributions'])->middleware('permission:accounting.sold-units.manage');
     Route::post('commissions/{id}/distributions/{distId}/approve', [AccountingCommissionController::class, 'approveDistribution'])->middleware('permission:accounting.commissions.approve');
     Route::post('commissions/{id}/distributions/{distId}/reject', [AccountingCommissionController::class, 'rejectDistribution'])->middleware('permission:accounting.commissions.approve');
-    Route::get('commissions/{id}/summary', [AccountingCommissionController::class, 'summary'])->middleware('permission:accounting.commissions.view');
-    Route::post('commissions/{id}/distributions/{distId}/confirm', [AccountingCommissionController::class, 'confirmPayment'])->middleware('permission:accounting.commissions.manage');
+    Route::get('commissions/{id}/summary', [AccountingCommissionController::class, 'summary'])->middleware('permission:accounting.sold-units.view');
+    Route::post('commissions/{id}/distributions/{distId}/confirm', [AccountingCommissionController::class, 'confirmPayment'])->middleware('permission:accounting.sold-units.manage');
 
     // Deposit management
     Route::get('deposits/pending', [AccountingDepositController::class, 'pending'])->middleware('permission:accounting.deposits.view');
@@ -629,9 +636,9 @@ Route::prefix('accounting')->middleware(['auth:sanctum', 'role:accounting|admin'
     // Salary management
     Route::get('salaries', [AccountingSalaryController::class, 'index'])->middleware('permission:accounting.salaries.view');
     Route::get('salaries/{userId}', [AccountingSalaryController::class, 'show'])->middleware('permission:accounting.salaries.view');
-    Route::post('salaries/{userId}/distribute', [AccountingSalaryController::class, 'createDistribution'])->middleware('permission:accounting.salaries.manage');
-    Route::post('salaries/distributions/{distributionId}/approve', [AccountingSalaryController::class, 'approveDistribution'])->middleware('permission:accounting.salaries.manage');
-    Route::post('salaries/distributions/{distributionId}/paid', [AccountingSalaryController::class, 'markAsPaid'])->middleware('permission:accounting.salaries.manage');
+    Route::post('salaries/{userId}/distribute', [AccountingSalaryController::class, 'createDistribution'])->middleware('permission:accounting.salaries.distribute');
+    Route::post('salaries/distributions/{distributionId}/approve', [AccountingSalaryController::class, 'approveDistribution'])->middleware('permission:accounting.salaries.distribute');
+    Route::post('salaries/distributions/{distributionId}/paid', [AccountingSalaryController::class, 'markAsPaid'])->middleware('permission:accounting.salaries.distribute');
 
     // Notifications
     Route::get('notifications', [AccountingNotificationController::class, 'index'])->middleware('permission:accounting.dashboard.view');

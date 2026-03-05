@@ -89,7 +89,7 @@ class AccountingSeeder extends Seeder
             'payment_date' => now()->subDays(fake()->numberBetween(0, 60)),
             'commission_source' => $status === 'refunded' ? 'owner' : Arr::random(['owner', 'buyer']),
             'status' => $status,
-            'notes' => fake()->optional()->sentence(),
+            'notes' => fake()->optional(0.8)->passthrough('تم استلام المبلغ من العميل وفق الوثائق المرفقة.'),
         ];
         if (in_array($status, ['confirmed', 'refunded'])) {
             $attrs['confirmed_by'] = Arr::random($accountingPool);
@@ -169,7 +169,7 @@ class AccountingSeeder extends Seeder
                     'percentage' => $percentage,
                     'amount' => $amount,
                     'status' => $status,
-                    'notes' => fake()->optional()->sentence(),
+                    'notes' => fake()->optional(0.8)->passthrough('تم استلام المبلغ من العميل وفق الوثائق المرفقة.'),
                 ];
 
                 if (in_array($type, ['external_marketer', 'other'])) {

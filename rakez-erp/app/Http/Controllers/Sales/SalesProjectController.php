@@ -32,7 +32,8 @@ class SalesProjectController extends Controller
     {
         try {
             $user = $request->user();
-            $defaultScope = $user->hasRole('sales_leader') ? 'all' : 'me';
+            // مدير مبيعات: فقط مشاريع المسندة لفريقه. موظف مبيعات: فقط المسندة لفريق المستخدم.
+            $defaultScope = $user->hasRole('sales_leader') ? 'team' : 'me';
             $filters = [
                 'status' => $request->query('status'),
                 'q' => $request->query('q'),
@@ -137,22 +138,34 @@ class SalesProjectController extends Controller
      * Download unit details as PDF.
      * GET /api/sales/units/{id}/pdf
      */
-    public function unitPdf(int $id): Response
+    public function unitPdf(int $id): Response|JsonResponse
     {
-        $unit = ContractUnit::with('secondPartyData.contract')->findOrFail($id);
-        $contract = $unit->secondPartyData?->contract;
+        try {
+            $unit = ContractUnit::with('secondPartyData.contract')->findOrFail($id);
+            $contract = $unit->secondPartyData?->contract;
 
-        if (!$contract) {
-            abort(404, 'Unit has no associated contract.');
+            if (!$contract) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'تحميل PDF غير متوفر لهذه الوحدة حالياً',
+                    'reason' => 'Unit has no associated contract.',
+                ], 404);
+            }
+
+            $filename = sprintf('unit_%s_%s.pdf', preg_replace('/[^a-zA-Z0-9\-_]/', '_', (string) ($unit->unit_number ?? $id)), now()->format('Y-m-d'));
+
+            return PdfFactory::download('pdfs.unit_details', [
+                'unit' => $unit,
+                'contract' => $contract,
+                'generated_at' => now()->format('Y-m-d H:i'),
+            ], $filename);
+        } catch (\Throwable $e) {
+            report($e);
+            return response()->json([
+                'success' => false,
+                'message' => 'تحميل PDF غير متوفر لهذه الوحدة حالياً',
+            ], 503);
         }
-
-        $filename = sprintf('unit_%s_%s.pdf', $unit->unit_number ?? $id, now()->format('Y-m-d'));
-
-        return PdfFactory::download('pdfs.unit_details', [
-            'unit' => $unit,
-            'contract' => $contract,
-            'generated_at' => now()->format('Y-m-d H:i'),
-        ], $filename);
     }
 
     /**

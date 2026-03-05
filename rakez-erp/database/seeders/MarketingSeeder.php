@@ -39,11 +39,13 @@ class MarketingSeeder extends Seeder
         $leaderPool = $salesLeaders ?: $marketingUsers;
 
         foreach ($readyContracts as $contractId) {
-            $project = MarketingProject::create([
-                'contract_id' => $contractId,
-                'status' => 'active',
-                'assigned_team_leader' => Arr::random($leaderPool),
-            ]);
+            $project = MarketingProject::firstOrCreate(
+                ['contract_id' => $contractId],
+                [
+                    'status' => 'active',
+                    'assigned_team_leader' => Arr::random($leaderPool),
+                ]
+            );
 
             DeveloperMarketingPlan::factory()->create([
                 'contract_id' => $contractId,

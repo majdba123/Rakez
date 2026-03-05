@@ -30,11 +30,11 @@
         </tr>
         <tr>
             <td>السعر (ريال)</td>
-            <td>{{ $unit->price ? number_format((float) $unit->price, 2) : '—' }}</td>
+            <td>{{ number_format((float)($unit->price ?? 0), 2, '.', ',') }}</td>
         </tr>
         <tr>
             <td>المساحة (م²)</td>
-            <td>{{ $unit->area ?? $unit->total_area_m2 ?? '—' }}</td>
+            <td>{{ $unit->area !== null && $unit->area !== '' ? $unit->area : ($unit->total_area_m2 ?? '—') }}</td>
         </tr>
         <tr>
             <td>الدور</td>
@@ -42,39 +42,31 @@
         </tr>
         <tr>
             <td>الغرف</td>
-            <td>{{ $unit->bedrooms ?? '—' }}</td>
+            <td>{{ $unit->bedrooms !== null && $unit->bedrooms !== '' ? $unit->bedrooms : '—' }}</td>
         </tr>
         <tr>
             <td>الحمامات</td>
-            <td>{{ $unit->bathrooms ?? '—' }}</td>
+            <td>{{ $unit->bathrooms !== null && $unit->bathrooms !== '' ? $unit->bathrooms : '—' }}</td>
         </tr>
-        @if(!empty($unit->private_area_m2))
         <tr>
             <td>المساحة الخاصة (م²)</td>
-            <td>{{ $unit->private_area_m2 }}</td>
+            <td>{{ $unit->private_area_m2 !== null && $unit->private_area_m2 !== '' ? $unit->private_area_m2 : '—' }}</td>
         </tr>
-        @endif
-        @if(!empty($unit->total_area_m2))
         <tr>
             <td>إجمالي المساحة (م²)</td>
-            <td>{{ $unit->total_area_m2 }}</td>
+            <td>{{ $unit->total_area_m2 !== null && $unit->total_area_m2 !== '' ? $unit->total_area_m2 : '—' }}</td>
         </tr>
-        @endif
-        @if(!empty($unit->facade))
         <tr>
             <td>الواجهة / الاتجاه</td>
-            <td>{{ $unit->facade }}</td>
+            <td>{{ $unit->facade ?? '—' }}</td>
         </tr>
-        @endif
         <tr>
             <td>الحالة</td>
             <td>{{ $unit->status ?? '—' }}</td>
         </tr>
-        @if(!empty($unit->description))
         <tr>
             <td>وصف</td>
-            <td>{{ $unit->description }}</td>
+            <td>{{ $unit->description ?? '—' }}</td>
         </tr>
-        @endif
     </table>
 @endsection

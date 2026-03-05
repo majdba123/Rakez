@@ -23,9 +23,10 @@ class TaskMetaController extends Controller
             ->pluck('type')
             ->values();
 
+        $labels = config('task_sections.labels', []);
         $data = $types->map(fn (string $type) => [
             'value' => $type,
-            'label' => $type,
+            'label' => $labels[$type] ?? $type,
         ])->all();
 
         return response()->json([

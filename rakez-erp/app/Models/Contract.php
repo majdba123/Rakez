@@ -161,6 +161,100 @@ class Contract extends Model
     }
 
     /**
+     * Check if contract is ready (all stages completed).
+     */
+    public function isReady(): bool
+    {
+        return $this->status === 'ready';
+    }
+
+    /**
+     * تحقق شامل: هل العقد مكتمل وجاهز للتسويق؟
+     * يشترط اكتمال جميع المراحل في المتتبع قبل تحويله لمشروع تسويقي.
+     *
+     * @return array{ready: bool, missing: string[]}
+     */
+    public function checkMarketingReadiness(): array
+    {
+        $this->loadMissing([
+            'info',
+            'secondPartyData.contractUnits',
+            'boardsDepartment',
+            'photographyDepartment',
+            'montageDepartment',
+        ]);
+
+        $missing = [];
+        $spd = $this->secondPartyData;
+        $filled = fn(?string $v) => $v !== null && trim((string) $v) !== '';
+
+        // 1 – بيانات الطرف الثاني
+        if (!$spd) {
+            $missing[] = 'يجب إضافة بيانات الطرف الثاني';
+        } else {
+            // الصكوك والرخصة
+            if (!$filled($spd->real_estate_papers_url)) {
+                $missing[] = 'يجب رفع أوراق العقار (الصكوك)';
+            }
+            if (!$filled($spd->marketing_license_url)) {
+                $missing[] = 'يجب رفع رخصة التسويق';
+            }
+            // المخططات
+            if (!$filled($spd->plans_equipment_docs_url)) {
+                $missing[] = 'يجب رفع مستندات المخططات والتجهيزات';
+            }
+            // شعار المشروع / السجل والهوية
+            if (!$filled($spd->project_logo_url)) {
+                $missing[] = 'يجب رفع شعار المشروع (السجل والهوية)';
+            }
+            // الأسعار والوحدات
+            if (!$filled($spd->prices_units_url)) {
+                $missing[] = 'يجب رفع ملف الأسعار والوحدات';
+            }
+            if (!$spd->contractUnits()->exists()) {
+                $missing[] = 'يجب رفع ملف الوحدات (CSV)';
+            }
+            // رقم المعلن
+            if (!$filled($spd->advertiser_section_url)) {
+                $missing[] = 'يجب إضافة رقم قسم المعلن';
+            }
+        }
+
+        // 2 – معلومات العقد (شهادة الإتمام)
+        if (!$this->info) {
+            $missing[] = 'يجب إضافة معلومات العقد (شهادة الإتمام)';
+        }
+
+        // 3 – قسم اللوحات
+        if (!$this->boardsDepartment || !$this->boardsDepartment->processed_at) {
+            $missing[] = 'يجب إتمام معالجة قسم اللوحات';
+        }
+
+        // 4 – قسم التصوير
+        if (!$this->photographyDepartment || $this->photographyDepartment->status !== 'approved') {
+            $missing[] = 'يجب اعتماد قسم التصوير (الحالة: معتمد)';
+        }
+
+        // 5 – قسم المونتاج
+        if (!$this->montageDepartment || !$this->montageDepartment->processed_at) {
+            $missing[] = 'يجب إتمام معالجة قسم المونتاج';
+        }
+
+        return [
+            'ready' => empty($missing),
+            'missing' => $missing,
+        ];
+    }
+
+    /**
+     * هل العقد جاهز للتسويق؟ (boolean shorthand)
+     */
+    public function isReadyForMarketing(): bool
+    {
+        return $this->checkMarketingReadiness()['ready'];
+    }
+
+    /**
      * Check if user owns this contract.
      */
     public function isOwnedBy(int $userId): bool

@@ -4,6 +4,7 @@ namespace App\Services\Contract;
 
 use App\Models\Contract;
 use App\Models\ContractInfo;
+use App\Models\MarketingProject;
 use App\Models\Team;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Pagination\Paginator;
@@ -685,9 +686,12 @@ class ContractService
     }
 
     /**
-     * Update contract status by Project Management
-     * Can update approved contracts to 'ready' or 'rejected'
-     * For 'ready' status: must have SecondPartyData and CSV units
+     * Update contract status by Project Management.
+     * Can update approved contracts to 'ready' or 'rejected'.
+     *
+     * For 'ready': ALL project tracker stages must be complete
+     * (documents, departments, units, info) — the contract then
+     * automatically becomes a marketing project.
      */
     public function updateContractStatusByProjectManagement(int $id, string $status): Contract
     {
@@ -702,29 +706,35 @@ class ContractService
                 'montageDepartment.processedByUser',
             ])->findOrFail($id);
 
-            // Project Management can only set to 'ready' or 'rejected'
             $allowedStatuses = ['ready', 'rejected'];
             if (!in_array($status, $allowedStatuses)) {
                 throw new Exception('الحالة يجب أن تكون: ready أو rejected');
             }
 
-            // Can only update approved contracts
             if (!$contract->isApproved()) {
                 throw new Exception('يمكن فقط تحديث العقود الموافق عليها');
             }
 
-            // For 'ready' status, must have SecondPartyData and units
             if ($status === 'ready') {
-                if (!$contract->secondPartyData) {
-                    throw new Exception('يجب إضافة بيانات الطرف الثاني قبل تحويل العقد إلى جاهز');
-                }
+                $readiness = $contract->checkMarketingReadiness();
 
-                if (!$contract->secondPartyData->contractUnits()->exists()) {
-                    throw new Exception('يجب رفع ملف الوحدات (CSV) قبل تحويل العقد إلى جاهز');
+                if (!$readiness['ready']) {
+                    throw new Exception(
+                        'لا يمكن تحويل العقد إلى جاهز — المتطلبات التالية غير مكتملة:' . "\n"
+                        . implode("\n", array_map(fn($m) => '• ' . $m, $readiness['missing']))
+                    );
                 }
             }
 
             $contract->update(['status' => $status]);
+
+            // عند التحويل لجاهز، يصبح تلقائياً مشروعاً تسويقياً
+            if ($status === 'ready') {
+                MarketingProject::firstOrCreate(
+                    ['contract_id' => $contract->id],
+                    ['status' => 'active']
+                );
+            }
 
             DB::commit();
             return $contract->fresh([
@@ -734,6 +744,7 @@ class ContractService
                 'photographyDepartment.processedByUser',
                 'boardsDepartment.processedByUser',
                 'montageDepartment.processedByUser',
+                'marketingProject',
             ]);
         } catch (Exception $e) {
             DB::rollBack();

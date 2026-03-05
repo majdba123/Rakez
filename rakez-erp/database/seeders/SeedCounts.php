@@ -2,6 +2,10 @@
 
 namespace Database\Seeders;
 
+/**
+ * أعداد السجلات الافتراضية لكل سيدر (بالعربية).
+ * يمكن تعديلها حسب بيئة التطوير أو الاختبار.
+ */
 class SeedCounts
 {
     public static function all(): array

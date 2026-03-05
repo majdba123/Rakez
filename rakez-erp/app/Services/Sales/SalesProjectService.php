@@ -249,31 +249,37 @@ class SalesProjectService
 
     /**
      * Compute unit availability.
+     * pending = only when unit has an active reservation of type under_negotiation (حجز تفاوض).
+     * Otherwise: sold, reserved, or available.
      */
     protected function computeUnitAvailability(ContractUnit $unit, string $projectSalesStatus): array
     {
-        // If project is not available, unit is pending
-        if ($projectSalesStatus !== self::SALES_STATUS_AVAILABLE) {
+        $activeReservation = $unit->activeSalesReservations->first();
+
+        // Unit has active negotiation reservation → pending (حجز تفاوض فقط)
+        if ($activeReservation && $activeReservation->status === 'under_negotiation') {
             return ['status' => 'pending', 'can_reserve' => false];
         }
 
-        // If unit status is sold
+        // Unit is sold
         if ($unit->status === 'sold') {
             return ['status' => 'sold', 'can_reserve' => false];
         }
 
-        // If unit status is reserved or has active reservation
-        if ($unit->status === 'reserved' || $unit->activeSalesReservations->isNotEmpty()) {
+        // Unit is reserved or has confirmed reservation
+        if ($unit->status === 'reserved' || $activeReservation) {
             return ['status' => 'reserved', 'can_reserve' => false];
         }
 
-        // If unit status is available and no active reservation
+        // Unit is available; can_reserve only when project is ready for sales
         if ($unit->status === 'available') {
-            return ['status' => 'available', 'can_reserve' => true];
+            return [
+                'status' => 'available',
+                'can_reserve' => $projectSalesStatus === self::SALES_STATUS_AVAILABLE,
+            ];
         }
 
-        // Default: pending
-        return ['status' => 'pending', 'can_reserve' => false];
+        return ['status' => $unit->status ?? 'available', 'can_reserve' => false];
     }
 
     /**
@@ -339,13 +345,19 @@ class SalesProjectService
                 });
                 return;
             }
-            if ($scope === 'team' && $user->team_id) {
-                $teamLeaderIds = User::where('team_id', $user->team_id)
-                    ->where('is_manager', true)
-                    ->pluck('id');
-                $query->whereHas('salesProjectAssignments', function ($q) use ($teamLeaderIds) {
-                    $q->whereIn('leader_id', $teamLeaderIds)->active();
-                });
+            if ($scope === 'team') {
+                if ($user->team_id) {
+                    $teamLeaderIds = User::where('team_id', $user->team_id)
+                        ->where('is_manager', true)
+                        ->pluck('id');
+                    $query->whereHas('salesProjectAssignments', function ($q) use ($teamLeaderIds) {
+                        $q->whereIn('leader_id', $teamLeaderIds)->active();
+                    });
+                } else {
+                    $query->whereHas('salesProjectAssignments', function ($q) use ($user) {
+                        $q->where('leader_id', $user->id)->active();
+                    });
+                }
                 return;
             }
             return;
@@ -383,7 +395,8 @@ class SalesProjectService
 
     /**
      * Check if the user can access a contract (project) for viewing details or units.
-     * Admin: always. Sales leader: if they have an active assignment. Sales staff: if contract is assigned to a leader in their team.
+     * Admin: always. Sales leader (مدير مبيعات): if project assigned to him or to a leader in his team.
+     * Sales staff (موظف مبيعات): if contract is assigned to a leader in their team.
      */
     public function userCanAccessContract(User $user, int $contractId): bool
     {
@@ -391,10 +404,23 @@ class SalesProjectService
             return true;
         }
         if ($user->hasRole('sales_leader')) {
-            return \App\Models\SalesProjectAssignment::where('leader_id', $user->id)
+            $hasDirect = \App\Models\SalesProjectAssignment::where('leader_id', $user->id)
                 ->where('contract_id', $contractId)
                 ->active()
                 ->exists();
+            if ($hasDirect) {
+                return true;
+            }
+            if ($user->team_id) {
+                $teamLeaderIds = User::where('team_id', $user->team_id)
+                    ->where('is_manager', true)
+                    ->pluck('id');
+                return \App\Models\SalesProjectAssignment::where('contract_id', $contractId)
+                    ->whereIn('leader_id', $teamLeaderIds)
+                    ->active()
+                    ->exists();
+            }
+            return false;
         }
         if ($user->team_id) {
             $teamLeaderIds = User::where('team_id', $user->team_id)
