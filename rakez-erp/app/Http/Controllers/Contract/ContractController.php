@@ -9,21 +9,20 @@ use App\Http\Requests\Contract\UpdateContractStatusRequest;
 use App\Http\Resources\Contract\ContractResource;
 use App\Http\Resources\Contract\ContractIndexResource;
 use App\Models\Contract;
-use App\Models\MarketingProject;
 use App\Services\Contract\ContractService;
+use App\Services\Contract\InventoryAgencyOverviewService;
+use App\Services\Contract\InventoryDashboardService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Carbon;
-use Illuminate\Support\Facades\DB;
 use Exception;
 
 class ContractController extends Controller
 {
-    protected ContractService $contractService;
-
-    public function __construct(ContractService $contractService)
-    {
-        $this->contractService = $contractService;
+    public function __construct(
+        protected ContractService $contractService,
+        protected InventoryAgencyOverviewService $inventoryAgencyOverviewService,
+        protected InventoryDashboardService $inventoryDashboardService
+    ) {
     }
 
 
@@ -106,62 +105,22 @@ class ContractController extends Controller
     }
 
     /**
-     * Inventory dashboard summary:
-     * - Count of marketing projects
-     * - Unit statistics for all contracts grouped by status and unit_type
+     * Inventory dashboard summary: marketing projects count, units stats, and optional pending contracts count.
+     * Query param: include_pending_count (1/0 or true/false). Default true — includes pending_contracts_count in response.
      */
     public function inventoryDashboard(Request $request): JsonResponse
     {
         try {
-            // Total marketing projects
-            $marketingProjectsCount = MarketingProject::count();
+            $includePendingCount = $request->boolean('include_pending_count', true);
 
-            // Aggregate units across all contracts
-            $unitRows = DB::table('contract_units')
-                ->join('second_party_data', 'second_party_data.id', '=', 'contract_units.second_party_data_id')
-                ->join('contracts', 'contracts.id', '=', 'second_party_data.contract_id')
-                ->whereNull('contract_units.deleted_at')
-                ->whereNull('second_party_data.deleted_at')
-                ->whereNull('contracts.deleted_at')
-                ->groupBy('contract_units.status', 'contract_units.unit_type')
-                ->select([
-                    'contract_units.status as unit_status',
-                    'contract_units.unit_type as unit_type',
-                    DB::raw('COUNT(contract_units.id) as total_units'),
-                ])
-                ->get();
-
-            $totalUnits = 0;
-            $byStatus = [];
-            $byType = [];
-
-            foreach ($unitRows as $row) {
-                $status = (string) ($row->unit_status ?? 'unknown');
-                $type = (string) ($row->unit_type ?? 'unknown');
-                $count = (int) $row->total_units;
-
-                $totalUnits += $count;
-
-                // Group by status
-                $byStatus[$status]['total'] = ($byStatus[$status]['total'] ?? 0) + $count;
-                $byStatus[$status]['by_type'][$type] = ($byStatus[$status]['by_type'][$type] ?? 0) + $count;
-
-                // Group by unit type
-                $byType[$type]['total'] = ($byType[$type]['total'] ?? 0) + $count;
-                $byType[$type]['by_status'][$status] = ($byType[$type]['by_status'][$status] ?? 0) + $count;
-            }
+            $data = $this->inventoryDashboardService->getDashboardData([
+                'include_pending_count' => $includePendingCount,
+            ]);
 
             return response()->json([
                 'success' => true,
                 'message' => 'تم جلب إحصائيات لوحة التحكم للمخزون بنجاح',
-                'data' => [
-                    'marketing_projects_count' => $marketingProjectsCount,
-                    'units_stats' => [
-                        'total_units' => $totalUnits,
-                        'by_status' => $byStatus,
-                        'by_type' => $byType,
-                    ],
-                ],
+                'data' => $data,
             ], 200);
         } catch (Exception $e) {
             return response()->json([
@@ -299,9 +258,7 @@ class ContractController extends Controller
         }
     }
 
-    /**
-     * Inventory/Admin: return only contract locations with adminIndex-like filters.
-     */
+
     public function locations(Request $request): JsonResponse
     {
         try {
@@ -350,12 +307,7 @@ class ContractController extends Controller
 
     /**
      * Inventory/Admin: contracts list for inventory dashboard.
-     *
-     * Returns only:
-     * - color (based on remaining time until agency_date)
-     * - contract_id, project_name, status, lat, lng
-     * - agency_date
-     * - units_stats: counts grouped by unit status and unit type (sum of `count`)
+     * Delegates to InventoryAgencyOverviewService for data and meta.
      */
     public function inventoryAgencyOverview(Request $request): JsonResponse
     {
@@ -373,83 +325,13 @@ class ContractController extends Controller
             $perPage = (int) $request->input('per_page', 50);
             $perPage = max(1, min($perPage, 200));
 
-            $rows = $this->contractService->getContractsAgencyOverviewForAdmin($filters, $perPage);
-
-            $contractIds = collect($rows->items())->pluck('contract_id')->map(fn($v) => (int) $v)->all();
-
-            // Aggregate units: count rows by contract_id / status / unit_type (each row is one unit; count column was removed)
-            $unitAgg = [];
-            if (!empty($contractIds)) {
-                $unitRows = DB::table('contract_units')
-                    ->join('second_party_data', 'second_party_data.id', '=', 'contract_units.second_party_data_id')
-                    ->whereNull('contract_units.deleted_at')
-                    ->whereNull('second_party_data.deleted_at')
-                    ->whereIn('second_party_data.contract_id', $contractIds)
-                    ->groupBy('second_party_data.contract_id', 'contract_units.status', 'contract_units.unit_type')
-                    ->select([
-                        'second_party_data.contract_id as contract_id',
-                        'contract_units.status as unit_status',
-                        'contract_units.unit_type as unit_type',
-                        DB::raw('COUNT(contract_units.id) as total_count'),
-                    ])
-                    ->get();
-
-                foreach ($unitRows as $r) {
-                    $cid = (int) $r->contract_id;
-                    $status = (string) ($r->unit_status ?? 'unknown');
-                    $type = (string) ($r->unit_type ?? 'unknown');
-                    $count = (int) $r->total_count;
-
-                    $unitAgg[$cid]['total'] = ($unitAgg[$cid]['total'] ?? 0) + $count;
-                    $unitAgg[$cid]['by_status'][$status]['total'] = ($unitAgg[$cid]['by_status'][$status]['total'] ?? 0) + $count;
-                    $unitAgg[$cid]['by_status'][$status]['by_type'][$type] = ($unitAgg[$cid]['by_status'][$status]['by_type'][$type] ?? 0) + $count;
-                }
-            }
-
-            $data = collect($rows->items())->map(function ($row) use ($unitAgg) {
-                $agencyDate = $row->agency_date ? Carbon::parse($row->agency_date) : null;
-                $remainingDays = $agencyDate ? now()->diffInDays($agencyDate, false) : null;
-
-                // Color based on remaining days until agency_date: green > 90, yellow > 30, red <= 30, gray when no date
-                $color = 'gray';
-                if ($remainingDays !== null) {
-                    if ($remainingDays > 90) {
-                        $color = 'green';
-                    } elseif ($remainingDays > 30) {
-                        $color = 'yellow';
-                    } else {
-                        $color = 'red';
-                    }
-                }
-
-                $cid = (int) $row->contract_id;
-
-                return [
-                    'contract_id' => $cid,
-                    'project_name' => $row->project_name,
-                    'status' => $row->status,
-                    'lat' => $row->lat !== null ? (float) $row->lat : null,
-                    'lng' => $row->lng !== null ? (float) $row->lng : null,
-                    'agency_date' => $agencyDate?->toDateString(),
-                    'color' => $color,
-                    'units_stats' => $unitAgg[$cid] ?? [
-                        'total' => 0,
-                        'by_status' => [],
-                    ],
-                ];
-            });
+            $result = $this->inventoryAgencyOverviewService->getOverviewData($filters, $perPage);
 
             return response()->json([
                 'success' => true,
                 'message' => 'تم جلب بيانات المخزون بنجاح',
-                'data' => $data,
-                'meta' => [
-                    'total' => $rows->total(),
-                    'count' => $rows->count(),
-                    'per_page' => $rows->perPage(),
-                    'current_page' => $rows->currentPage(),
-                    'last_page' => $rows->lastPage(),
-                ],
+                'data' => $result['data'],
+                'meta' => $result['meta'],
             ], 200);
         } catch (Exception $e) {
             return response()->json([
@@ -458,7 +340,6 @@ class ContractController extends Controller
             ], 500);
         }
     }
-
 
     public function adminUpdateStatus(UpdateContractStatusRequest $request, int $id): JsonResponse
     {
@@ -480,10 +361,6 @@ class ContractController extends Controller
         }
     }
 
-    /**
-     * Update contract status by Project Management
-     * Can set status to 'ready' or 'rejected'
-     */
     public function projectManagementUpdateStatus(Request $request, int $id): JsonResponse
     {
         try {
