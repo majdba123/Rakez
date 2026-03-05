@@ -64,7 +64,6 @@ Route::get('/tasks', function () {
 
 // Chat test page (requires authentication)
 Route::get('/chat/test', function () {
-    // Ensure user is authenticated
     if (!auth()->check()) {
         return redirect('/login')->with('error', 'يجب تسجيل الدخول لاستخدام نظام الدردشة');
     }

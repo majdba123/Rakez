@@ -2,11 +2,13 @@
 
 namespace App\Services\Credit;
 
+use App\Models\ContractUnit;
 use App\Models\SalesReservation;
 use App\Models\TitleTransfer;
 use App\Models\User;
 use App\Models\UserNotification;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Collection;
 use Exception;
 
@@ -143,9 +145,12 @@ class TitleTransferService
             // Update reservation to sold
             $transfer->reservation->update(['credit_status' => 'sold']);
 
-            // Update unit status to sold
-            if ($transfer->reservation->contractUnit) {
-                $transfer->reservation->contractUnit->update(['status' => 'sold']);
+            // Update unit status to sold + check contract closure
+            $unit = $transfer->reservation->contractUnit;
+            if ($unit) {
+                $this->markUnitSoldAndCheckContractClosure($unit);
+            } else {
+                Log::warning("Title transfer #{$transferId} completed but reservation has no linked contract unit (contract_unit_id is null).");
             }
 
             // Notify relevant parties
@@ -200,6 +205,26 @@ class TitleTransferService
             ->whereIn('status', ['pending', 'preparation', 'scheduled'])
             ->orderBy('scheduled_date', 'asc')
             ->get();
+    }
+
+    /**
+     * Mark a unit as sold and close the parent contract when all its units are sold.
+     */
+    protected function markUnitSoldAndCheckContractClosure(ContractUnit $unit): void
+    {
+        $unit->update(['status' => 'sold']);
+
+        $contract = $unit->secondPartyData?->contract;
+        if (!$contract) {
+            return;
+        }
+
+        $allSold = $contract->units()->exists()
+            && $contract->units()->where('status', '!=', 'sold')->doesntExist();
+
+        if ($allSold) {
+            $contract->update(['is_closed' => true]);
+        }
     }
 
     /**

@@ -11,6 +11,7 @@ use App\Services\AI\AIAssistantService;
 use App\Services\AI\Exceptions\AiAssistantException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class AIAssistantController extends Controller
 {
@@ -42,8 +43,12 @@ class AIAssistantController extends Controller
         }
     }
 
-    public function chat(ChatRequest $request): JsonResponse
+    public function chat(ChatRequest $request): JsonResponse|StreamedResponse
     {
+        if ($request->boolean('stream')) {
+            return $this->streamChat($request);
+        }
+
         try {
             $user = $request->user();
             $payload = $this->assistantService->chat(
@@ -67,6 +72,53 @@ class AIAssistantController extends Controller
                 'message' => $exception->getMessage(),
             ], $exception->statusCode());
         }
+    }
+
+    private function streamChat(ChatRequest $request): StreamedResponse
+    {
+        $user = $request->user();
+        $message = (string) $request->input('message');
+        $sessionId = $request->input('session_id');
+        $section = $request->input('section');
+        $context = $request->input('context', []);
+
+        return new StreamedResponse(function () use ($message, $user, $sessionId, $section, $context) {
+            try {
+                foreach ($this->assistantService->streamChat($message, $user, $sessionId, $section, $context) as $sseChunk) {
+                    echo $sseChunk;
+                    if (ob_get_level()) {
+                        ob_flush();
+                    }
+                    flush();
+                }
+            } catch (AiAssistantException $exception) {
+                echo 'data: ' . json_encode([
+                    'error' => true,
+                    'error_code' => $exception->errorCode(),
+                    'message' => $exception->getMessage(),
+                ]) . "\n\n";
+                echo "data: [DONE]\n\n";
+                if (ob_get_level()) {
+                    ob_flush();
+                }
+                flush();
+            } catch (\Throwable $exception) {
+                echo 'data: ' . json_encode([
+                    'error' => true,
+                    'message' => 'An unexpected error occurred.',
+                ]) . "\n\n";
+                echo "data: [DONE]\n\n";
+                if (ob_get_level()) {
+                    ob_flush();
+                }
+                flush();
+            }
+        }, 200, [
+            'Content-Type' => 'text/event-stream',
+            'Cache-Control' => 'no-cache',
+            'Connection' => 'keep-alive',
+            'X-Accel-Buffering' => 'no',
+        ]);
     }
 
     public function conversations(Request $request): JsonResponse

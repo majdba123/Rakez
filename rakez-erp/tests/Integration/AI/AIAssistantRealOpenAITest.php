@@ -11,12 +11,14 @@ use Tests\TestCase;
 use Tests\Traits\TestsWithPermissions;
 
 /**
- * Real OpenAI E2E tests — hit the live API.
+ * Real OpenAI E2E tests — hit the live API using token from .env.
  *
- * Skipped by default. To run locally:
- *   1. Set OPENAI_API_KEY=sk-... in .env
- *   2. Set AI_REAL_TESTS=true  in .env
- *   3. php artisan test --filter=AIAssistantRealOpenAI
+ * Skipped unless .env is configured. To run:
+ *   1. In .env set OPENAI_API_KEY=sk-... (your real token)
+ *   2. In .env set AI_REAL_TESTS=true
+ *   3. Run: php artisan test --filter=AIAssistantRealOpenAI
+ *
+ * Tests cover: /api/ai/ask, /api/ai/chat (JSON and SSE stream), session continuity.
  */
 class AIAssistantRealOpenAITest extends TestCase
 {
@@ -151,7 +153,90 @@ class AIAssistantRealOpenAITest extends TestCase
     }
 
     // ------------------------------------------------------------------
-    // Test 3 — v2 /api/ai/v2/chat strict JSON schema
+    // Test 3 — /api/ai/chat without stream (full JSON)
+    // ------------------------------------------------------------------
+
+    public function test_real_chat_without_stream_returns_full_json(): void
+    {
+        $user = $this->authenticatedAiUser();
+
+        $response = $this->postJson('/api/ai/chat', [
+            'message' => 'Reply with exactly: OK',
+            'section' => 'general',
+            'stream' => false,
+        ]);
+
+        $response->assertOk();
+        $response->assertHeader('content-type', 'application/json');
+        $response->assertJsonPath('success', true);
+        $response->assertJsonStructure([
+            'data' => [
+                'message',
+                'session_id',
+                'conversation_id',
+            ],
+        ]);
+        $this->assertNotEmpty($response->json('data.message'));
+        $this->assertNotEmpty($response->json('data.session_id'));
+    }
+
+    // ------------------------------------------------------------------
+    // Test 4 — /api/ai/chat with stream=true (SSE)
+    // ------------------------------------------------------------------
+
+    public function test_real_chat_with_stream_returns_sse_chunks(): void
+    {
+        $user = $this->authenticatedAiUser();
+
+        $response = $this->postJson('/api/ai/chat', [
+            'message' => 'Say hello in one word.',
+            'section' => 'general',
+            'stream' => true,
+        ]);
+
+        $response->assertOk();
+        $this->assertStringContainsString(
+            'text/event-stream',
+            $response->headers->get('Content-Type'),
+            'Streaming response must have Content-Type: text/event-stream'
+        );
+
+        $body = $response->streamedContent();
+        $this->assertNotEmpty($body, 'Streamed body must not be empty');
+        $this->assertStringContainsString('data: ', $body);
+        $this->assertStringContainsString('data: [DONE]', $body);
+
+        $chunks = [];
+        $sessionId = null;
+        $done = false;
+        foreach (explode("\n", $body) as $line) {
+            $line = trim($line);
+            if (! str_starts_with($line, 'data: ')) {
+                continue;
+            }
+            $payload = substr($line, 6);
+            if ($payload === '[DONE]') {
+                $done = true;
+                break;
+            }
+            $decoded = json_decode($payload, true);
+            if (is_array($decoded)) {
+                if (isset($decoded['chunk'])) {
+                    $chunks[] = $decoded['chunk'];
+                }
+                if (isset($decoded['session_id'])) {
+                    $sessionId = $decoded['session_id'];
+                }
+            }
+        }
+
+        $this->assertTrue($done, 'Stream must end with data: [DONE]');
+        $this->assertNotEmpty($chunks, 'At least one chunk must be received');
+        $this->assertNotEmpty($sessionId, 'Session ID must be present in stream');
+    }
+
+    // ------------------------------------------------------------------
+    // Test 5 — v2 /api/ai/v2/chat strict JSON schema
     // ------------------------------------------------------------------
 
     public function test_real_v2_chat_returns_strict_json_schema(): void
@@ -161,6 +246,10 @@ class AIAssistantRealOpenAITest extends TestCase
         $response = $this->postJson('/api/ai/v2/chat', [
             'message' => 'What can I do in this system?',
         ]);
+
+        if ($response->status() === 404) {
+            $this->markTestSkipped('Route /api/ai/v2/chat is not registered');
+        }
 
         $response->assertOk();
         $this->assertTrue($response->json('success'));

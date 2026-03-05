@@ -8,6 +8,7 @@ use App\Services\AI\Exceptions\AiUnauthorizedSectionException;
 use App\Models\AIConversation;
 use App\Models\User;
 use Carbon\Carbon;
+use Generator;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\DB;
@@ -168,6 +169,179 @@ class AIAssistantService
         $this->logResponse($user, $sectionKey, $sessionId, $assistantMessage);
 
         return $payload;
+    }
+
+    /**
+     * Streaming variant of chat(). Yields SSE-formatted lines.
+     *
+     * Each yield is a complete SSE line: "data: {...}\n\n"
+     * Final yield is "data: [DONE]\n\n".
+     * After the generator is consumed, the full answer has been stored in DB.
+     *
+     * @return Generator<int, string>
+     */
+    /**
+     * Hybrid streaming chat. Tries SSE streaming first; if that fails,
+     * falls back to the synchronous createResponse() and sends the
+     * full reply as a single SSE chunk. The caller always gets valid
+     * SSE regardless of whether OpenAI streaming is available.
+     *
+     * @return Generator<int, string>
+     */
+    public function streamChat(string $message, User $user, ?string $sessionId, ?string $sectionKey = null, array $context = []): Generator
+    {
+        $this->ensureEnabled();
+
+        // Fast-path: Access Explanation (non-streamable, send as single chunk)
+        if ($explanation = $this->explanationEngine->explain($user, $message)) {
+            $payload = $this->buildExplanationResponse($explanation, $user, $sectionKey, $sessionId);
+            yield 'data: ' . json_encode(['chunk' => $payload['message']], JSON_UNESCAPED_UNICODE) . "\n\n";
+            yield 'data: ' . json_encode(['session_id' => $payload['session_id'], 'done' => true]) . "\n\n";
+            yield "data: [DONE]\n\n";
+            return;
+        }
+
+        $capabilities = $this->capabilityResolver->resolve($user);
+
+        if ($sectionKey && ! $this->isSectionAvailable($sectionKey, $capabilities)) {
+            throw new AiUnauthorizedSectionException($sectionKey);
+        }
+
+        $this->ensureWithinBudget($user);
+
+        $section = $this->sectionRegistry->find($sectionKey);
+        $context = $this->filterContext($sectionKey, $context);
+        $contextSummary = $this->contextBuilder->build($user, $sectionKey, $capabilities, $context);
+
+        $sessionId = $sessionId ?: (string) Str::uuid();
+
+        $historyWindow = (int) config('ai_assistant.chat.tail_messages', 6);
+        $recentMessages = AIConversation::query()
+            ->where('user_id', $user->id)
+            ->where('session_id', $sessionId)
+            ->where('is_summary', false)
+            ->orderByDesc('created_at')
+            ->limit($historyWindow)
+            ->get()
+            ->reverse()
+            ->values();
+
+        $summary = AIConversation::query()
+            ->where('user_id', $user->id)
+            ->where('session_id', $sessionId)
+            ->where('is_summary', true)
+            ->orderByDesc('created_at')
+            ->first();
+
+        $instructions = $this->promptBuilder->build($user, $capabilities, $section, $contextSummary);
+        if ($summary) {
+            $instructions .= "\n\nConversation summary:\n" . $summary->message;
+        }
+
+        $messages = $recentMessages->map(fn (AIConversation $entry) => [
+            'role' => $entry->role,
+            'content' => $entry->message,
+        ])->toArray();
+
+        $messages[] = ['role' => 'user', 'content' => $message];
+
+        $this->storeMessage($user, $sessionId, 'user', $message, $sectionKey, [
+            'context' => $context,
+            'capabilities' => $capabilities,
+        ]);
+
+        $metadata = [
+            'session_id' => $sessionId,
+            'section' => $sectionKey,
+            'user_id' => $user->id,
+        ];
+
+        $fullAnswer = '';
+        $streamed = false;
+
+        // ── Try streaming first ──
+        try {
+            foreach ($this->openAIClient->createStreamedResponse($instructions, $messages, $metadata) as $delta) {
+                $fullAnswer .= $delta;
+                $streamed = true;
+                yield 'data: ' . json_encode(['chunk' => $delta], JSON_UNESCAPED_UNICODE) . "\n\n";
+            }
+        } catch (\Throwable $streamException) {
+            Log::warning('ai.assistant.stream_fallback', [
+                'user_id' => $user->id,
+                'session_id' => $sessionId,
+                'error' => $streamException->getMessage(),
+                'partial_length' => strlen($fullAnswer),
+            ]);
+
+            // ── Fallback: synchronous full response ──
+            if (! $streamed) {
+                try {
+                    $response = $this->openAIClient->createResponse($instructions, $messages, $metadata);
+                    $fullAnswer = $this->extractAssistantReply($response);
+
+                    if ($fullAnswer === '') {
+                        $fullAnswer = 'I could not generate a response. Please try again.';
+                    }
+
+                    yield 'data: ' . json_encode(['chunk' => $fullAnswer], JSON_UNESCAPED_UNICODE) . "\n\n";
+
+                    $assistantMsg = $this->storeAssistantMessage($user, $sessionId, $fullAnswer, $sectionKey, $response);
+                    $this->summarizeConversationIfNeeded($user, $sessionId);
+
+                    $this->logResponse($user, $sectionKey, $sessionId, $assistantMsg);
+
+                    yield 'data: ' . json_encode([
+                        'session_id' => $sessionId,
+                        'conversation_id' => $assistantMsg->id,
+                        'done' => true,
+                    ]) . "\n\n";
+                    yield "data: [DONE]\n\n";
+                    return;
+                } catch (\Throwable $fallbackException) {
+                    Log::error('ai.assistant.stream_fallback_failed', [
+                        'user_id' => $user->id,
+                        'session_id' => $sessionId,
+                        'error' => $fallbackException->getMessage(),
+                    ]);
+                    throw $fallbackException;
+                }
+            }
+            // If we already streamed partial data, just continue with what we have
+        }
+
+        if ($fullAnswer === '') {
+            $fullAnswer = 'I could not generate a response. Please try again.';
+            yield 'data: ' . json_encode(['chunk' => $fullAnswer], JSON_UNESCAPED_UNICODE) . "\n\n";
+        }
+
+        $assistantMsg = AIConversation::query()->create([
+            'user_id' => $user->id,
+            'session_id' => $sessionId,
+            'role' => 'assistant',
+            'message' => $fullAnswer,
+            'section' => $sectionKey,
+            'metadata' => ['streamed' => $streamed],
+            'model' => config('ai_assistant.openai.model', 'gpt-4.1-mini'),
+        ]);
+
+        $this->summarizeConversationIfNeeded($user, $sessionId);
+
+        Log::info('ai.assistant.stream_response', [
+            'user_id' => $user->id,
+            'session_id' => $sessionId,
+            'section' => $sectionKey,
+            'model' => $assistantMsg->model,
+            'answer_length' => strlen($fullAnswer),
+            'streamed' => $streamed,
+        ]);
+
+        yield 'data: ' . json_encode([
+            'session_id' => $sessionId,
+            'conversation_id' => $assistantMsg->id,
+            'done' => true,
+        ]) . "\n\n";
+        yield "data: [DONE]\n\n";
     }
 
     public function listSessions(User $user, ?string $section = null, int $perPage = 20): LengthAwarePaginator

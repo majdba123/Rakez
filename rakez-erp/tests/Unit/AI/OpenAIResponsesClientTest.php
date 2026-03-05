@@ -603,4 +603,30 @@ class OpenAIResponsesClientTest extends TestCase
         // Note: CreateResponse::fake() may return empty string or null for outputText
         $this->assertTrue(empty($result->outputText ?? '') || is_string($result->outputText ?? null));
     }
+
+    public function test_createStreamedResponse_throws_and_logs_when_stream_fails(): void
+    {
+        config([
+            'ai_assistant.openai.model' => 'gpt-4.1-mini',
+            'ai_assistant.openai.temperature' => 0.7,
+            'ai_assistant.openai.max_output_tokens' => 1000,
+            'ai_assistant.openai.truncation' => 'auto',
+        ]);
+
+        $exception = new \RuntimeException('Stream not supported');
+
+        OpenAI::fake([$exception]);
+
+        $this->expectException(\RuntimeException::class);
+        $this->expectExceptionMessage('Stream not supported');
+
+        $generator = $this->client->createStreamedResponse(
+            'instructions',
+            [['role' => 'user', 'content' => 'test']],
+            ['user_id' => 1, 'session_id' => 's1', 'section' => 'general']
+        );
+
+        iterator_to_array($generator);
+    }
+
 }

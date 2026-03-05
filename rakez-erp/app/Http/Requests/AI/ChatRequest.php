@@ -23,6 +23,7 @@ class ChatRequest extends FormRequest
             'session_id' => ['nullable', 'uuid'],
             'section' => ['nullable', 'string', Rule::in($sections)],
             'context' => ['nullable', 'array'],
+            'stream' => ['nullable', 'boolean'],
         ];
 
         // Add nested context validation rules
