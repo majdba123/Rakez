@@ -104,10 +104,7 @@ class ContractController extends Controller
         }
     }
 
-    /**
-     * Inventory dashboard summary: marketing projects count, units stats, and optional pending contracts count.
-     * Query param: include_pending_count (1/0 or true/false). Default true — includes pending_contracts_count in response.
-     */
+
     public function inventoryDashboard(Request $request): JsonResponse
     {
         try {

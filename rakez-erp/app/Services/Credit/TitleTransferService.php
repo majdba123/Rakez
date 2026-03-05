@@ -2,6 +2,7 @@
 
 namespace App\Services\Credit;
 
+use App\Models\ContractUnit;
 use App\Models\SalesReservation;
 use App\Models\TitleTransfer;
 use App\Models\User;
@@ -127,7 +128,7 @@ class TitleTransferService
      */
     public function completeTransfer(int $transferId, User $user): TitleTransfer
     {
-        $transfer = TitleTransfer::findOrFail($transferId);
+        $transfer = TitleTransfer::with('reservation.contractUnit')->findOrFail($transferId);
 
         if ($transfer->status === 'completed') {
             throw new Exception('نقل الملكية مكتمل مسبقًا');
@@ -140,12 +141,12 @@ class TitleTransferService
                 'completed_date' => now()->toDateString(),
             ]);
 
-            // Update reservation to sold
-            $transfer->reservation->update(['credit_status' => 'sold']);
+            $reservation = $transfer->reservation;
+            $reservation->update(['credit_status' => 'sold']);
 
-            // Update unit status to sold
-            if ($transfer->reservation->contractUnit) {
-                $transfer->reservation->contractUnit->update(['status' => 'sold']);
+            // Update contract unit status to sold (by ID so it runs even if relation was null or stale)
+            if ($reservation->contract_unit_id) {
+                ContractUnit::where('id', $reservation->contract_unit_id)->update(['status' => 'sold']);
             }
 
             // Notify relevant parties
