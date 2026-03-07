@@ -105,13 +105,19 @@ class ContractController extends Controller
     }
 
 
+    /**
+     * Inventory dashboard: marketing projects count, units stats, pending and closed contracts KPIs.
+     * Query params: include_pending_count, include_closed_count (default true).
+     */
     public function inventoryDashboard(Request $request): JsonResponse
     {
         try {
             $includePendingCount = $request->boolean('include_pending_count', true);
+            $includeClosedCount = $request->boolean('include_closed_count', true);
 
             $data = $this->inventoryDashboardService->getDashboardData([
                 'include_pending_count' => $includePendingCount,
+                'include_closed_count' => $includeClosedCount,
             ]);
 
             return response()->json([

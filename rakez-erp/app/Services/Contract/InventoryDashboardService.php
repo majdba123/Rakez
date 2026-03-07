@@ -9,14 +9,15 @@ use Illuminate\Support\Facades\DB;
 class InventoryDashboardService
 {
     /**
-     * Get inventory dashboard data: marketing projects count, units stats, and optionally pending contracts count.
+     * Get inventory dashboard data: marketing projects count, units stats, pending and closed contracts counts.
      *
-     * @param  array{include_pending_count?: bool}  $params  Optional. include_pending_count (default true) adds pending_contracts_count to the result.
-     * @return array{marketing_projects_count: int, units_stats: array, pending_contracts_count?: int}
+     * @param  array{include_pending_count?: bool, include_closed_count?: bool}  $params  Optional. include_pending_count / include_closed_count (default true) add the respective KPI.
+     * @return array{marketing_projects_count: int, units_stats: array, pending_contracts_count?: int, closed_contracts_count?: int}
      */
     public function getDashboardData(array $params = []): array
     {
         $includePendingCount = $params['include_pending_count'] ?? true;
+        $includeClosedCount = $params['include_closed_count'] ?? true;
 
         $marketingProjectsCount = MarketingProject::count();
 
@@ -65,6 +66,10 @@ class InventoryDashboardService
             $data['pending_contracts_count'] = $this->getPendingContractsCount();
         }
 
+        if ($includeClosedCount) {
+            $data['closed_contracts_count'] = $this->getClosedContractsCount();
+        }
+
         return $data;
     }
 
@@ -74,5 +79,13 @@ class InventoryDashboardService
     public function getPendingContractsCount(): int
     {
         return Contract::pending()->count();
+    }
+
+    /**
+     * Count contracts that are closed (is_closed = true, not soft-deleted).
+     */
+    public function getClosedContractsCount(): int
+    {
+        return Contract::where('is_closed', true)->count();
     }
 }
