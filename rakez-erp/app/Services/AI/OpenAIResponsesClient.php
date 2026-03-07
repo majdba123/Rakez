@@ -2,8 +2,8 @@
 
 namespace App\Services\AI;
 
+use Generator;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Str;
 use OpenAI\Laravel\Facades\OpenAI;
 use OpenAI\Responses\Responses\CreateResponse;
 use Throwable;
@@ -12,33 +12,7 @@ class OpenAIResponsesClient
 {
     public function createResponse(string $instructions, array $messages, array $metadata = []): CreateResponse
     {
-        $payload = [
-            'model' => config('ai_assistant.openai.model', 'gpt-4.1-mini'),
-            'instructions' => $instructions,
-            'input' => $messages,
-            'temperature' => (float) config('ai_assistant.openai.temperature', 0.7),
-            'max_output_tokens' => (int) config('ai_assistant.openai.max_output_tokens', 1000),
-            'truncation' => config('ai_assistant.openai.truncation', 'auto'),
-            'metadata' => $metadata,
-        ];
-
-        $userId = $metadata['user_id'] ?? null;
-        $sessionId = $metadata['session_id'] ?? null;
-        $section = $metadata['section'] ?? 'general';
-
-        if ($userId !== null) {
-            $payload['safety_identifier'] = $this->makeSafetyIdentifier($userId, $sessionId, $section);
-        }
-
-        // Ensure all metadata values are strings for OpenAI
-        if (isset($metadata)) {
-            foreach ($metadata as $key => $value) {
-                if ($value !== null && ! is_string($value)) {
-                    $metadata[$key] = (string) $value;
-                }
-            }
-            $payload['metadata'] = $metadata;
-        }
+        $payload = $this->buildPayload($instructions, $messages, $metadata);
 
         $start = microtime(true);
 
@@ -71,6 +45,79 @@ class OpenAIResponsesClient
 
             throw $e;
         }
+    }
+
+    /**
+     * Stream an OpenAI Responses API call, yielding text delta strings.
+     *
+     * @return Generator<int, string> Yields plain text chunks.
+     */
+    public function createStreamedResponse(string $instructions, array $messages, array $metadata = []): Generator
+    {
+        $payload = $this->buildPayload($instructions, $messages, $metadata);
+
+        $start = microtime(true);
+
+        try {
+            $stream = OpenAI::responses()->createStreamed($payload);
+
+            foreach ($stream as $event) {
+                if (isset($event->type) && $event->type === 'response.output_text.delta') {
+                    yield $event->delta ?? '';
+                }
+            }
+
+            $latencyMs = (int) round((microtime(true) - $start) * 1000);
+
+            Log::info('OpenAI streamed response ok', [
+                'latency_ms' => $latencyMs,
+                'model' => $payload['model'],
+                'session_id' => $metadata['session_id'] ?? null,
+                'section' => $metadata['section'] ?? null,
+            ]);
+        } catch (Throwable $e) {
+            $latencyMs = (int) round((microtime(true) - $start) * 1000);
+
+            Log::warning('OpenAI streamed response failed', [
+                'latency_ms' => $latencyMs,
+                'model' => $payload['model'],
+                'session_id' => $metadata['session_id'] ?? null,
+                'section' => $metadata['section'] ?? null,
+                'error' => $e->getMessage(),
+            ]);
+
+            throw $e;
+        }
+    }
+
+    private function buildPayload(string $instructions, array $messages, array &$metadata): array
+    {
+        $payload = [
+            'model' => config('ai_assistant.openai.model', 'gpt-4.1-mini'),
+            'instructions' => $instructions,
+            'input' => $messages,
+            'temperature' => (float) config('ai_assistant.openai.temperature', 0.7),
+            'max_output_tokens' => (int) config('ai_assistant.openai.max_output_tokens', 1000),
+            'truncation' => config('ai_assistant.openai.truncation', 'auto'),
+            'metadata' => $metadata,
+        ];
+
+        $userId = $metadata['user_id'] ?? null;
+        $sessionId = $metadata['session_id'] ?? null;
+        $section = $metadata['section'] ?? 'general';
+
+        if ($userId !== null) {
+            $payload['safety_identifier'] = $this->makeSafetyIdentifier($userId, $sessionId, $section);
+        }
+
+        foreach ($metadata as $key => $value) {
+            if ($value !== null && ! is_string($value)) {
+                $metadata[$key] = (string) $value;
+            }
+        }
+        $payload['metadata'] = $metadata;
+
+        return $payload;
     }
 
     private function makeSafetyIdentifier($userId, $sessionId, $section): string

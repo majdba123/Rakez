@@ -8,6 +8,7 @@ use App\Models\TitleTransfer;
 use App\Models\User;
 use App\Models\UserNotification;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Collection;
 use Exception;
 
@@ -128,7 +129,7 @@ class TitleTransferService
      */
     public function completeTransfer(int $transferId, User $user): TitleTransfer
     {
-        $transfer = TitleTransfer::with('reservation.contractUnit')->findOrFail($transferId);
+        $transfer = TitleTransfer::findOrFail($transferId);
 
         if ($transfer->status === 'completed') {
             throw new Exception('نقل الملكية مكتمل مسبقًا');
@@ -141,12 +142,15 @@ class TitleTransferService
                 'completed_date' => now()->toDateString(),
             ]);
 
-            $reservation = $transfer->reservation;
-            $reservation->update(['credit_status' => 'sold']);
+            // Update reservation to sold
+            $transfer->reservation->update(['credit_status' => 'sold']);
 
-            // Update contract unit status to sold (by ID so it runs even if relation was null or stale)
-            if ($reservation->contract_unit_id) {
-                ContractUnit::where('id', $reservation->contract_unit_id)->update(['status' => 'sold']);
+            // Update unit status to sold + check contract closure
+            $unit = $transfer->reservation->contractUnit;
+            if ($unit) {
+                $this->markUnitSoldAndCheckContractClosure($unit);
+            } else {
+                Log::warning("Title transfer #{$transferId} completed but reservation has no linked contract unit (contract_unit_id is null).");
             }
 
             // Notify relevant parties
@@ -201,6 +205,26 @@ class TitleTransferService
             ->whereIn('status', ['pending', 'preparation', 'scheduled'])
             ->orderBy('scheduled_date', 'asc')
             ->get();
+    }
+
+    /**
+     * Mark a unit as sold and close the parent contract when all its units are sold.
+     */
+    protected function markUnitSoldAndCheckContractClosure(ContractUnit $unit): void
+    {
+        $unit->update(['status' => 'sold']);
+
+        $contract = $unit->secondPartyData?->contract;
+        if (!$contract) {
+            return;
+        }
+
+        $allSold = $contract->units()->exists()
+            && $contract->units()->where('status', '!=', 'sold')->doesntExist();
+
+        if ($allSold) {
+            $contract->update(['is_closed' => true]);
+        }
     }
 
     /**

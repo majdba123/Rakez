@@ -36,6 +36,7 @@ class Contract extends Model
         'notes',
         'emergency_contact_number',
         'security_guard_number',
+        'is_closed',
     ];
 
     /**
@@ -46,6 +47,7 @@ class Contract extends Model
     protected $casts = [
         'units' => 'array',
         'is_off_plan' => 'boolean',
+        'is_closed' => 'boolean',
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
         'deleted_at' => 'datetime',
