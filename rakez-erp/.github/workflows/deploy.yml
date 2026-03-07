@@ -25,6 +25,11 @@ jobs:
       - name: Install Composer dependencies
         run: composer install --no-dev --optimize-autoloader --no-interaction --prefer-dist
 
+      - name: Rebuild Laravel package discovery (exclude dev-only providers)
+        run: |
+          rm -f bootstrap/cache/packages.php bootstrap/cache/services.php
+          php artisan package:discover --ansi
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
@@ -53,6 +58,10 @@ jobs:
 
             # Install/update Composer dependencies
             composer install --no-dev --optimize-autoloader --no-interaction --prefer-dist
+
+            # Rebuild package discovery so dev-only providers (e.g. Pail) are not loaded
+            rm -f bootstrap/cache/packages.php bootstrap/cache/services.php
+            php artisan package:discover --ansi
 
             # Install NPM dependencies and build
             npm ci
