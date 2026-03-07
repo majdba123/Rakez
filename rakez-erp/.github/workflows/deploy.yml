@@ -4,7 +4,7 @@ name: Deploy to Production
 on:
   push:
     branches:
-      - main
+      - main  # Change to your main branch name (main, master, production, etc.)
 
 jobs:
   deploy:
@@ -22,22 +22,13 @@ jobs:
           extensions: mbstring, xml, ctype, json, bcmath, curl, zip, pdo, mysql
           coverage: none
 
-      - name: Get Composer cache directory
-        id: composer-cache
-        run: echo "dir=$(composer config cache-files-dir)" >> $GITHUB_OUTPUT
-
-      - name: Cache Composer dependencies
-        uses: actions/cache@v4
-        with:
-          path: ${{ steps.composer-cache.outputs.dir }}
-          key: ${{ runner.os }}-composer-${{ hashFiles('**/composer.lock') }}
-          restore-keys: ${{ runner.os }}-composer-
-
-      - name: Remove stale Laravel package discovery cache (avoids loading dev-only Pail)
-        run: rm -f bootstrap/cache/packages.php bootstrap/cache/services.php
-
       - name: Install Composer dependencies
         run: composer install --no-dev --optimize-autoloader --no-interaction --prefer-dist
+
+      - name: Rebuild Laravel package discovery (exclude dev-only providers)
+        run: |
+          rm -f bootstrap/cache/packages.php bootstrap/cache/services.php
+          php artisan package:discover --ansi
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -59,31 +50,37 @@ jobs:
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           port: ${{ secrets.SSH_PORT }}
           script: |
-            set -e
             cd /var/www/Rakez/rakez-erp
 
-            # Update code
+            # Force update to match GitHub (prevents conflicts)
             git fetch origin
             git reset --hard origin/main
 
-            # Remove discovery cache BEFORE composer so post-autoload-dump doesn't load Pail
-            rm -f bootstrap/cache/packages.php bootstrap/cache/services.php
-
-            # Composer (package:discover will run with no cache = rebuild without dev providers)
+            # Install/update Composer dependencies
             composer install --no-dev --optimize-autoloader --no-interaction --prefer-dist
 
-            # NPM and build
+            # Rebuild package discovery so dev-only providers (e.g. Pail) are not loaded
+            rm -f bootstrap/cache/packages.php bootstrap/cache/services.php
+            php artisan package:discover --ansi
+
+            # Install NPM dependencies and build
             npm ci
             npm run build
 
-            # Laravel caches (single optimize instead of four separate commands)
-            php artisan optimize
+            # Run Laravel optimizations
+            php artisan config:cache
+            php artisan route:cache
+            php artisan view:cache
+            php artisan event:cache
 
-            # Migrations
+            # Run migrations
             php artisan migrate --force
 
-            # Queue
+            # Restart queue workers (if using)
             php artisan queue:restart
+
+            # Clear and rebuild caches
+            php artisan optimize
 
             echo "Deployment completed successfully!"
 
