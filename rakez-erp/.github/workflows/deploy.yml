@@ -56,6 +56,9 @@ jobs:
 
             # Remove discovery cache so it is rebuilt from current vendor (no old providers)
             rm -f bootstrap/cache/packages.php bootstrap/cache/services.php
+            rm -f storage/pail/packages.php storage/pail/services.php
+            composer install
+            composer require fakerphp/faker
 
             # Composer (post-autoload-dump will run package:discover and rebuild cache)
             composer install --no-dev --optimize-autoloader --no-interaction --prefer-dist
