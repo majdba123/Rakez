@@ -22,6 +22,9 @@ jobs:
           extensions: mbstring, xml, ctype, json, bcmath, curl, zip, pdo, mysql
           coverage: none
 
+      - name: Remove stale package discovery cache (avoids missing providers e.g. Pail, Mccarlosen)
+        run: rm -f bootstrap/cache/packages.php bootstrap/cache/services.php
+
       - name: Install Composer dependencies
         run: composer install --no-dev --optimize-autoloader --no-interaction --prefer-dist
 
@@ -47,11 +50,14 @@ jobs:
           script: |
             cd /var/www/Rakez/rakez-erp
 
-            # Force update to match GitHub (prevents conflicts)
+            # Update code
             git fetch origin
             git reset --hard origin/main
 
-            # Install/update Composer dependencies
+            # Remove discovery cache so it is rebuilt from current vendor (no old providers)
+            rm -f bootstrap/cache/packages.php bootstrap/cache/services.php
+
+            # Composer (post-autoload-dump will run package:discover and rebuild cache)
             composer install --no-dev --optimize-autoloader --no-interaction --prefer-dist
 
             # Install NPM dependencies and build
