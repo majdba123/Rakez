@@ -36,7 +36,7 @@ class MarketingBudgetDistributionController extends Controller
 
             return response()->json([
                 'success' => true,
-                'message' => 'Budget distribution saved successfully',
+                'message' => 'تم حفظ توزيع الميزانية بنجاح',
                 'data' => $distribution->load(['marketingProject', 'employeeMarketingPlan', 'developerMarketingPlan'])
             ], 201);
         } catch (\InvalidArgumentException $e) {
@@ -47,7 +47,7 @@ class MarketingBudgetDistributionController extends Controller
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'An error occurred while saving budget distribution',
+                'message' => 'حدث خطأ أثناء حفظ توزيع الميزانية',
                 'error' => $e->getMessage()
             ], 500);
         }
@@ -76,7 +76,7 @@ class MarketingBudgetDistributionController extends Controller
         if (!$distribution) {
             return response()->json([
                 'success' => false,
-                'message' => 'Budget distribution not found'
+                'message' => 'لم يتم العثور على توزيع الميزانية'
             ], 404);
         }
 
@@ -103,7 +103,7 @@ class MarketingBudgetDistributionController extends Controller
 
             return response()->json([
                 'success' => true,
-                'message' => 'Budget distribution recalculated successfully',
+                'message' => 'تم إعادة حساب توزيع الميزانية بنجاح',
                 'data' => [
                     'distribution' => $distribution->fresh(),
                     'results' => $calculatedResults
@@ -112,7 +112,7 @@ class MarketingBudgetDistributionController extends Controller
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'An error occurred while recalculating',
+                'message' => 'حدث خطأ أثناء إعادة الحساب',
                 'error' => $e->getMessage()
             ], 500);
         }
@@ -153,7 +153,7 @@ class MarketingBudgetDistributionController extends Controller
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'An error occurred while retrieving results',
+                'message' => 'حدث خطأ أثناء جلب النتائج',
                 'error' => $e->getMessage()
             ], 500);
         }

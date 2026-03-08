@@ -310,7 +310,10 @@ class AccountingCommissionService
      */
     public function approveDistribution(int $distributionId, int $approvedBy): CommissionDistribution
     {
-        $distribution = CommissionDistribution::findOrFail($distributionId);
+        $distribution = CommissionDistribution::with([
+            'commission.contractUnit',
+            'commission.salesReservation.contract',
+        ])->findOrFail($distributionId);
 
         if ($distribution->status !== 'pending') {
             throw new Exception('Only pending distributions can be approved.');
@@ -320,11 +323,22 @@ class AccountingCommissionService
         try {
             $distribution->approve($approvedBy);
 
-            // Notify employee
+            // إشعار الموظف فور نزول العمولة من الإدارة: تم إرسال عمولة لك
             if ($distribution->user_id) {
+                $commission = $distribution->commission;
+                $projectName = $commission?->salesReservation?->contract?->project_name ?? '—';
+                $unitNumber = $commission?->contractUnit?->unit_number ?? '—';
+                $typeLabel = $this->getDistributionTypeLabel($distribution->type);
+                $message = sprintf(
+                    'تم إرسال عمولة لك بمبلغ %s ريال سعودي - المشروع: %s - الوحدة: %s - نوع العمولة: %s. تم إشعارك بالعمولة.',
+                    $distribution->amount,
+                    $projectName,
+                    $unitNumber,
+                    $typeLabel
+                );
                 UserNotification::create([
                     'user_id' => $distribution->user_id,
-                    'message' => "تم الموافقة على توزيع العمولة الخاص بك بمبلغ {$distribution->amount} ريال سعودي.",
+                    'message' => $message,
                     'status' => 'pending',
                 ]);
             }
@@ -388,15 +402,15 @@ class AccountingCommissionService
             'commission_id' => $commission->id,
             'project_name' => $commission->salesReservation->contract->project_name ?? null,
             'unit_number' => $commission->contractUnit->unit_number ?? null,
-            'final_selling_price' => $commission->final_selling_price,
-            'commission_percentage' => $commission->commission_percentage,
+            'final_selling_price' => (float) $commission->final_selling_price,
+            'commission_percentage' => (float) $commission->commission_percentage,
             'commission_source' => $commission->commission_source,
             'team_responsible' => $commission->team_responsible,
-            'total_before_tax' => $commission->total_amount,
-            'vat' => $commission->vat,
-            'marketing_expenses' => $commission->marketing_expenses,
-            'bank_fees' => $commission->bank_fees,
-            'net_amount' => $commission->net_amount,
+            'total_before_tax' => $commission->total_amount !== null ? round((float) $commission->total_amount, 2) : null,
+            'vat' => $commission->vat !== null ? round((float) $commission->vat, 2) : null,
+            'marketing_expenses' => $commission->marketing_expenses !== null ? round((float) $commission->marketing_expenses, 2) : null,
+            'bank_fees' => $commission->bank_fees !== null ? round((float) $commission->bank_fees, 2) : null,
+            'net_amount' => $commission->net_amount !== null ? round((float) $commission->net_amount, 2) : null,
             'status' => $commission->status,
             'distributions' => $distributions->map(function ($dist) {
                 return [
@@ -404,14 +418,14 @@ class AccountingCommissionService
                     'type' => $dist->type,
                     'employee_name' => $dist->user ? $dist->user->name : $dist->external_name,
                     'bank_account' => $dist->bank_account,
-                    'percentage' => $dist->percentage,
-                    'amount' => $dist->amount,
+                    'percentage' => $dist->percentage !== null ? round((float) $dist->percentage, 2) : null,
+                    'amount' => $dist->amount !== null ? round((float) $dist->amount, 2) : null,
                     'status' => $dist->status,
                     'approved_at' => $dist->approved_at,
                 ];
-            }),
-            'total_distributed_percentage' => $distributions->sum('percentage'),
-            'total_distributed_amount' => $distributions->sum('amount'),
+            })->values()->all(),
+            'total_distributed_percentage' => round((float) $distributions->sum('percentage'), 2),
+            'total_distributed_amount' => round((float) $distributions->sum('amount'), 2),
         ];
     }
 
@@ -433,18 +447,18 @@ class AccountingCommissionService
         try {
             $distribution->markAsPaid();
 
-            // Notify employee per spec 3.4.1: unit number, project, commission type
+            // إشعار الموظف فور صرف العمولة: تم إرسال عمولة لك
             if ($distribution->user_id) {
                 $commission = $distribution->commission;
                 $unitNumber = $commission?->contractUnit?->unit_number ?? '-';
                 $projectName = $commission?->salesReservation?->contract?->project_name ?? '-';
                 $typeLabel = $this->getDistributionTypeLabel($distribution->type);
                 $message = sprintf(
-                    'تم تأكيد استحقاقك عمولة على الوحدة رقم (%s)، مشروع (%s)، نوع العمولة (%s)، المبلغ: %s ريال سعودي.',
-                    $unitNumber,
+                    'تم صرف وإرسال عمولة لك: المبلغ %s ريال سعودي - المشروع: %s - الوحدة: %s - نوع العمولة: %s. تم إشعارك بالعمولة.',
+                    $distribution->amount,
                     $projectName,
-                    $typeLabel,
-                    $distribution->amount
+                    $unitNumber,
+                    $typeLabel
                 );
                 UserNotification::create([
                     'user_id' => $distribution->user_id,
@@ -462,21 +476,56 @@ class AccountingCommissionService
     }
 
     /**
+     * قائمة العمولات المُصرفة/المُرسلة للموظفين (لعرضها في المحاسبة: اسم الموظف، المشروع، المبلغ، وتم إرسال إشعار).
+     */
+    public function getReleasedCommissionDistributions(?string $fromDate = null, ?string $toDate = null, int $perPage = 25)
+    {
+        $query = CommissionDistribution::with([
+            'user:id,name',
+            'commission.contractUnit',
+            'commission.salesReservation.contract',
+        ])
+            ->whereIn('status', ['approved', 'paid'])
+            ->whereNotNull('user_id');
+
+        if ($fromDate) {
+            $query->whereDate('approved_at', '>=', $fromDate);
+        }
+        if ($toDate) {
+            $query->whereDate('approved_at', '<=', $toDate);
+        }
+
+        $query->orderBy('approved_at', 'desc');
+
+        $paginator = $query->paginate($perPage);
+        $paginator->getCollection()->transform(function ($dist) {
+            $commission = $dist->commission;
+            return [
+                'id' => $dist->id,
+                'commission_id' => $dist->commission_id,
+                'employee_id' => $dist->user_id,
+                'employee_name' => $dist->user?->name ?? $dist->external_name ?? '—',
+                'project_name' => $commission?->salesReservation?->contract?->project_name ?? '—',
+                'unit_number' => $commission?->contractUnit?->unit_number ?? '—',
+                'type' => $dist->type,
+                'type_label' => $this->getDistributionTypeLabel($dist->type),
+                'amount' => $dist->amount !== null ? round((float) $dist->amount, 2) : null,
+                'percentage' => $dist->percentage !== null ? round((float) $dist->percentage, 2) : null,
+                'status' => $dist->status,
+                'approved_at' => $dist->approved_at?->toIso8601String(),
+                'paid_at' => $dist->paid_at?->toIso8601String(),
+                'notification_sent' => true,
+            ];
+        });
+
+        return $paginator;
+    }
+
+    /**
      * Arabic label for distribution type (for notifications and display).
      */
     protected function getDistributionTypeLabel(string $type): string
     {
-        $labels = [
-            'lead_generation' => 'جلب',
-            'persuasion' => 'إقناع',
-            'closing' => 'إقفال',
-            'team_leader' => 'قائد فريق',
-            'sales_manager' => 'مدير قسم السيلز',
-            'project_manager' => 'مدير إدارة المشاريع',
-            'external_marketer' => 'مسوق خارجي',
-            'other' => 'أخرى',
-        ];
-
-        return $labels[$type] ?? $type;
+        return config("commission_distribution.type_labels.{$type}", $type);
     }
 }

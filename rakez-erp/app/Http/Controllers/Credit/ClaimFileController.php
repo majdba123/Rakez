@@ -375,6 +375,72 @@ class ClaimFileController extends Controller
     }
 
     /**
+     * List all sold units for a project (contract). For accounting: وحدات المشروع - كل الوحدات المباعة.
+     * GET /accounting/claim-files/sold-units?contract_id=2
+     */
+    public function soldUnitsByProject(Request $request): JsonResponse
+    {
+        try {
+            $contractId = (int) $request->input('contract_id');
+            if ($contractId <= 0) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'معرف العقد (contract_id) مطلوب ويجب أن يكون رقماً صحيحاً',
+                ], 422);
+            }
+
+            $items = $this->claimFileService->listSoldUnitsByContract($contractId);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'تم جلب الوحدات المباعة للمشروع بنجاح',
+                'data' => $items->values()->all(),
+            ], 200);
+        } catch (Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
+     * Download claim file PDF for a reservation. Creates claim file and/or generates PDF if missing.
+     * GET /accounting/claim-files/download-for-reservation/{reservationId}
+     */
+    public function downloadForReservation(Request $request, int $reservationId)
+    {
+        try {
+            $user = $request->user();
+            if (!$user) {
+                return response()->json(['success' => false, 'message' => 'غير مصرح'], 401);
+            }
+
+            $claimFile = $this->claimFileService->ensurePdfForReservation($reservationId, $user);
+
+            if (empty($claimFile->pdf_path) || !Storage::disk('public')->exists($claimFile->pdf_path)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'تعذر إنشاء ملف PDF',
+                ], 500);
+            }
+
+            $downloadName = sprintf(
+                'claim_file_%d_%s.pdf',
+                $claimFile->id,
+                $claimFile->created_at?->format('Y-m-d') ?? date('Y-m-d')
+            );
+            return Storage::disk('public')->download($claimFile->pdf_path, $downloadName);
+        } catch (Exception $e) {
+            $statusCode = str_contains($e->getMessage(), 'No query results') ? 404 : 500;
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage(),
+            ], $statusCode);
+        }
+    }
+
+    /**
      * Arabic label for credit_status (for candidates list).
      */
     private function creditStatusLabelAr(?string $status): string

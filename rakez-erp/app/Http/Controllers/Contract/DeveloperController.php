@@ -68,10 +68,10 @@ class DeveloperController extends Controller
     }
 
     /**
-     * Get one developer by developer_number (detail view). Same auth as list.
-     * GET /api/developers/{developer_number}
+     * Get one developer by id (contract id) or developer_number (detail view). Same auth as list.
+     * GET /api/developers/{id}  or  GET /api/developers/{developer_number}
      */
-    public function show(Request $request, string $developerNumber): JsonResponse
+    public function show(Request $request, string $idOrNumber): JsonResponse
     {
         try {
             $user = $request->user();
@@ -84,8 +84,10 @@ class DeveloperController extends Controller
 
             $this->authorize('viewAny', \App\Models\Contract::class);
 
-            $developerNumber = urldecode($developerNumber);
-            $developer = $this->developerService->getDeveloperByNumber($developerNumber, $user);
+            $idOrNumber = urldecode($idOrNumber);
+            $developer = is_numeric($idOrNumber)
+                ? $this->developerService->getDeveloperById((int) $idOrNumber, $user)
+                : $this->developerService->getDeveloperByNumber($idOrNumber, $user);
 
             if ($developer === null) {
                 return response()->json([

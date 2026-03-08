@@ -39,7 +39,7 @@ class TeamManagementController extends Controller
         if (!$employeePlan) {
             return response()->json([
                 'success' => false,
-                'message' => 'Campaign does not have an associated employee plan'
+                'message' => 'الحملة لا ترتبط بخطة موظف تسويق'
             ], 404);
         }
 
@@ -49,7 +49,7 @@ class TeamManagementController extends Controller
         if (empty($teamMembers)) {
             return response()->json([
                 'success' => false,
-                'message' => 'Team has no sales members to assign'
+                'message' => 'الفريق لا يضم أعضاء مبيعات لتعيينهم'
             ], 400);
         }
 
@@ -61,7 +61,7 @@ class TeamManagementController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => 'Campaign assigned to team successfully',
+            'message' => 'تم تعيين الحملة للفريق بنجاح',
             'data' => [
                 'team_id' => $team->id,
                 'campaign_id' => $campaign->id,
@@ -79,7 +79,7 @@ class TeamManagementController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => 'Team assigned successfully',
+            'message' => 'تم تعيين الفريق بنجاح',
             'data' => $assignments
         ]);
     }

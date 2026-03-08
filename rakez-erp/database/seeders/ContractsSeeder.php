@@ -44,6 +44,8 @@ class ContractsSeeder extends Seeder
     public function run(): void
     {
         $counts = SeedCounts::all();
+        $totalContracts = (int) $counts['contracts'];
+        $developerCount = count($this->developerList);
 
         $statuses = array_merge(
             array_fill(0, 20, 'ready'),
@@ -58,14 +60,21 @@ class ContractsSeeder extends Seeder
             User::where('type', 'project_management')->pluck('id')->all(),
             User::where('type', 'admin')->pluck('id')->all()
         );
+        if (empty($owners)) {
+            $owners = User::limit(1)->pluck('id')->all();
+        }
 
         $teamIds = Team::pluck('id')->all();
 
-        for ($i = 0; $i < $counts['contracts']; $i++) {
+        // Ensure at least one contract per developer (so /developers/{developer_number} always finds data)
+        for ($i = 0; $i < $totalContracts; $i++) {
             $status = $statuses[$i] ?? 'pending';
             $ownerId = $owners ? Arr::random($owners) : ($owners[0] ?? User::first()?->id);
             $isOffPlan = fake()->boolean(30);
-            $developer = Arr::random($this->developerList);
+            // First N contracts: one per developer; rest: random developer
+            $developer = $i < $developerCount
+                ? $this->developerList[$i]
+                : Arr::random($this->developerList);
 
             $realEstateImages = config('unsplash_images.real_estate', []);
             $logoThumbs = config('unsplash_images.logo_thumb', []);

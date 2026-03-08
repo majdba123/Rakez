@@ -2,8 +2,120 @@
 
 namespace App\Services\Marketing;
 
+use App\Models\MarketingSetting;
+
 class MarketingDistributionBreakdownService
 {
+    /** Arabic labels for platforms (printable distribution document). */
+    public const PLATFORM_NAMES_AR = [
+        'Meta'       => 'منصة انستغرام',
+        'Instagram'  => 'منصة انستغرام',
+        'Snapchat'   => 'منصة سناب',
+        'TikTok'     => 'منصة تيك توك',
+        'X'          => 'منصة تويتر X',
+        'Twitter'    => 'منصة تويتر X',
+        'YouTube'    => 'منصة جوجل (تضمن يوتيوب)',
+        'Google'     => 'منصة جوجل (تضمن يوتيوب)',
+        'LinkedIn'   => 'منصة لينكد إن',
+        'Other'      => 'منصات اخرى (بيوت - سكني - حراج ....)',
+        'Aqar'       => 'منصة عقار',
+    ];
+
+    /** Normalize platform key for aggregation (e.g. Instagram → Meta). Keys are matched case-insensitively. */
+    private const CANONICAL_PLATFORM = [
+        'instagram' => 'Meta',
+        'twitter'   => 'X',
+        'google'    => 'YouTube',
+        'snap'      => 'Snapchat',
+    ];
+
+    /**
+     * Build rows for the printable distribution table: platform (Arabic), clicks, impressions.
+     * Uses platform budget share and average CPM/CPC to compute impressions and clicks per platform.
+     *
+     * @param float $marketingValue Total marketing value (SAR)
+     * @param array $platformDistribution Platform key => percentage (e.g. ['Meta' => 25, 'TikTok' => 20])
+     * @param float|null $averageCpm Optional CPM (default from settings)
+     * @param float|null $averageCpc Optional CPC (default from settings)
+     * @return array{rows: array<int, array{index: int, platform_ar: string, clicks: int, impressions: int}>, total_clicks: int, total_impressions: int}
+     */
+    public function buildPrintableDistributionTable(
+        float $marketingValue,
+        array $platformDistribution,
+        ?float $averageCpm = null,
+        ?float $averageCpc = null
+    ): array {
+        $averageCpm = $averageCpm ?? (float) (MarketingSetting::getByKey('default_cpm') ?? MarketingSetting::getByKey('average_cpm') ?? 25);
+        $averageCpc = $averageCpc ?? (float) (MarketingSetting::getByKey('default_cpc') ?? MarketingSetting::getByKey('average_cpc') ?? 2.5);
+
+        $breakdown = $this->breakdownPlatforms($marketingValue, $platformDistribution);
+        $amounts = $breakdown['amounts'] ?? [];
+
+        $rows = [];
+        $totalClicks = 0;
+        $totalImpressions = 0;
+        $index = 1;
+
+        foreach ($amounts as $platformKey => $amountSar) {
+            $amountSar = (float) $amountSar;
+            $impressions = $averageCpm > 0 ? (int) round(($amountSar / $averageCpm) * 1000) : 0;
+            $clicks = $averageCpc > 0 ? (int) round($amountSar / $averageCpc) : 0;
+            $platformAr = self::PLATFORM_NAMES_AR[$platformKey] ?? 'منصة ' . $platformKey;
+
+            $rows[] = [
+                'index'      => $index++,
+                'platform_ar' => $platformAr,
+                'clicks'     => $clicks,
+                'impressions' => $impressions,
+            ];
+            $totalClicks += $clicks;
+            $totalImpressions += $impressions;
+        }
+
+        return [
+            'rows' => $rows,
+            'total_clicks' => $totalClicks,
+            'total_impressions' => $totalImpressions,
+        ];
+    }
+
+    /**
+     * Build printable distribution table from SAR amounts per platform (e.g. for project-level aggregate).
+     *
+     * @param array<string, float> $platformAmountsSar Platform key => amount in SAR
+     * @return array{rows: array, total_clicks: int, total_impressions: int}
+     */
+    public function buildPrintableDistributionFromAmounts(array $platformAmountsSar): array
+    {
+        $merged = $this->mergeCanonicalPlatformAmounts($platformAmountsSar);
+        $totalValue = array_sum($merged);
+        if ($totalValue <= 0) {
+            return ['rows' => [], 'total_clicks' => 0, 'total_impressions' => 0];
+        }
+        $percentages = [];
+        foreach ($merged as $platform => $amount) {
+            $percentages[$platform] = ($amount / $totalValue) * 100;
+        }
+        return $this->buildPrintableDistributionTable($totalValue, $percentages);
+    }
+
+    /**
+     * Merge platform keys to canonical (e.g. Instagram → Meta) and sum amounts.
+     *
+     * @param array<string, float> $platformAmountsSar
+     * @return array<string, float>
+     */
+    public function mergeCanonicalPlatformAmounts(array $platformAmountsSar): array
+    {
+        $merged = [];
+        foreach ($platformAmountsSar as $key => $amount) {
+            $lower = is_string($key) ? strtolower($key) : $key;
+            $canonical = self::CANONICAL_PLATFORM[$lower] ?? $key;
+            $merged[$canonical] = ($merged[$canonical] ?? 0) + (float) $amount;
+        }
+        return $merged;
+    }
+
     /**
      * Calculate SAR amounts for platforms based on marketing value and ensure the sum matches exactly.
      * Uses largest remainder method for adjustment.

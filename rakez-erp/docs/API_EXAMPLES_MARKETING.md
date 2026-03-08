@@ -184,8 +184,20 @@ The Marketing Module manages marketing campaigns, plans, budgets, and team assig
 
 ## Employee Plans
 
+### Users list (for employee dropdown)
+For the employee-plans flow, use this endpoint instead of `GET /api/hr/users` to avoid 403. Returns the same user list as the HR endpoint.
+
+**Endpoint:** `GET /api/marketing/users`  
+**Permission:** `marketing.plans.create`
+
+**Query (optional):** `is_active`, `type`, `team_id`, `department`, `search`, `per_page`, `page`
+
+**Frontend:** Call `GET /api/marketing/users` (not `/api/hr/users`) when loading the employees list for marketing employee plans.
+
+---
+
 ### List Employee Plans by Project
-**Endpoint:** `GET /api/marketing/employee-plans/project/{projectId}`  
+**Endpoint:** `GET /api/marketing/employee-plans?project_id={projectId}` or `GET /api/marketing/employee-plans/project/{projectId}`  
 **Permission:** `marketing.plans.create`
 
 **Response:**
@@ -721,6 +733,17 @@ The Marketing Module manages marketing campaigns, plans, budgets, and team assig
   }
 }
 ```
+
+### Export distribution by project (PDF) — خطة الحملات حسب المشروع فقط
+تصدير PDF لتقرير **«الحملات الإعلانية على المنصات الإلكترونية»** على مستوى المشروع دون اختيار موظف: يجمع كل خطط الموظفين التابعة للمشروع في جدول واحد (منصة، نقرات، مشاهدات، إجمالي).
+
+**Endpoint:** `GET /api/marketing/reports/distribution/project/{projectId}`  
+**Permission:** `marketing.reports.view`  
+**Parameters:** `projectId` = معرّف المشروع التسويقي (marketing_project_id).
+
+**Response:** ملف PDF للتحميل (نفس شكل تقرير توزيع المنصات: عنوان، جدول المنصات، الإجمالي، ملاحظات).
+
+**Frontend:** يكفي اختيار المشروع ثم استدعاء الرابط أعلاه لتحميل الـ PDF.
 
 ---
 

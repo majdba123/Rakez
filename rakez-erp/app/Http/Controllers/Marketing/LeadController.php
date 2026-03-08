@@ -31,7 +31,7 @@ class LeadController extends Controller
         $lead = Lead::create($request->validated());
         return response()->json([
             'success' => true,
-            'message' => 'Lead created successfully',
+            'message' => 'تم إنشاء العميل المحتمل بنجاح',
             'data' => $lead
         ], 201);
     }
@@ -43,7 +43,7 @@ class LeadController extends Controller
         $lead->update($request->validated());
         return response()->json([
             'success' => true,
-            'message' => 'Lead updated successfully',
+            'message' => 'تم تحديث العميل المحتمل بنجاح',
             'data' => $lead
         ]);
     }
@@ -62,7 +62,7 @@ class LeadController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => 'Lead converted successfully',
+            'message' => 'تم تحويل العميل المحتمل بنجاح',
             'data' => $lead->fresh(['project', 'assignedTo'])
         ]);
     }
@@ -78,7 +78,7 @@ class LeadController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => 'Lead assigned successfully',
+            'message' => 'تم تعيين العميل المحتمل بنجاح',
             'data' => $lead->fresh(['project', 'assignedTo'])
         ]);
     }

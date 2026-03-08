@@ -68,6 +68,32 @@ await fetch('/api/accounting/notifications/read-all', {
 
 ---
 
+## 2.1 Claim files – كل الوحدات المباعة + تحميل (يُنشأ عند الطلب)
+
+**كل الوحدات المباعة للمشروع:** استخدم `sold-units` لعرض كل الوحدات المباعة (مع أو بدون ملف مطالبة). زر "تحميل" يفتح رابط التحميل؛ إذا لم يكن الملف موجوداً يُنشأ تلقائياً عند الضغط.
+
+| Method | Path | Description |
+|--------|------|-------------|
+| GET | `/api/accounting/claim-files/sold-units?contract_id={id}` | كل الوحدات المباعة للمشروع |
+| GET | `/api/accounting/claim-files/download-for-reservation/{reservationId}` | تحميل PDF (يُنشأ الملف/PDF عند الطلب إن لم يكن موجوداً) |
+| GET | `/api/accounting/claim-files/candidates` | مرشحو إنشاء ملف مطالبة فقط (اختياري) |
+
+**استجابة sold-units:** كل عنصر في `data` يحتوي على: `reservation_id`, `unit_number`, `claim_amount`, `has_claim_file`, `has_pdf`, `download_path` (استخدمه للتحميل).
+
+**Frontend examples:**
+```js
+// قائمة كل الوحدات المباعة للمشروع
+const res = await fetch(`/api/accounting/claim-files/sold-units?contract_id=2`, {
+  headers: { Authorization: `Bearer ${token}`, Accept: 'application/json' },
+});
+const { data } = await res.json();
+
+// تحميل (ينشئ الملف عند الطلب إن لم يكن موجوداً)
+window.open(`${API_BASE}/accounting/claim-files/download-for-reservation/${reservationId}`, '_blank');
+```
+
+---
+
 ## 3. Sold Units & Commissions
 
 | Method | Path | Description |
@@ -207,6 +233,16 @@ await fetch(`/api/accounting/deposits/${depositId}/confirm`, {
 **GET salaries/{userId} query (required):**
 - `month` — 1–12
 - `year` — 2020–2100
+
+**GET salaries/{userId} response (تفاصيل الموظف + عمولة كل مشروع بشكل مفصل):**
+- `data.employee` — id, name, employee_name, job_title, department, team_name, phone, email, base_salary, commission_eligibility
+- `data.period` — month, year
+- `data.salary_distribution` — إن وُجد: id, base_salary, total_commissions, total_amount, status
+- `data.commissions_by_project` — **قائمة بمشروع**: لكل مشروع `project_name`, `total_commission`, و **`details`** مصفوفة سطور توضح كيف وصل الإجمالي:
+  - كل سطر: `unit_number`, `commission_type`, `commission_type_label` (عربي)، `percentage`, `amount`, `status`
+- `data.commissions_total` — إجمالي العمولات للشهر (مطابق لمجموع كل المشاريع)
+- `data.sold_units` — الوحدات المباعة (reservation_id, project_name, unit_number, commission_amount, …)
+- `data.summary` — units_sold, total_sales_value, total_commissions, base_salary, total_amount
 
 **POST salaries/{userId}/distribute body:**
 ```json

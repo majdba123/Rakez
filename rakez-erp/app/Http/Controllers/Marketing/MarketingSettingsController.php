@@ -28,7 +28,7 @@ class MarketingSettingsController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => "Setting '{$key}' updated successfully",
+            'message' => 'تم تحديث الإعداد بنجاح',
             'data' => $setting
         ]);
     }

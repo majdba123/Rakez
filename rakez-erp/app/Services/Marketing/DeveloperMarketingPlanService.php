@@ -47,11 +47,19 @@ class DeveloperMarketingPlanService
         $contract = Contract::with('info')->findOrFail($contractId);
         $durationDays = $contract->info->agreement_duration_days ?? 0;
 
+        $impressionsFormatted = number_format($plan->expected_impressions, 0, '.', ',');
+        $clicksFormatted = number_format($plan->expected_clicks, 0, '.', ',');
+        $durationTextEn = $durationDays > 0 ? "According to contract duration ({$durationDays} days)" : 'According to contract duration';
+        $durationTextAr = $durationDays > 0 ? "حسب مدة العقد ({$durationDays} يوم)" : 'حسب مدة العقد';
+
         return [
             'total_budget' => number_format($plan->marketing_value, 0, '.', ','),
-            'expected_impressions' => 'Approximately ' . number_format($plan->expected_impressions, 0, '.', ',') . ' impressions',
-            'expected_clicks' => 'Approximately ' . number_format($plan->expected_clicks, 0, '.', ',') . ' clicks',
-            'marketing_duration' => $durationDays > 0 ? "According to contract duration ({$durationDays} days)" : 'According to contract duration',
+            'expected_impressions' => 'Approximately ' . $impressionsFormatted . ' impressions',
+            'expected_clicks' => 'Approximately ' . $clicksFormatted . ' clicks',
+            'marketing_duration' => $durationTextEn,
+            'expected_impressions_ar' => 'تقريباً ' . $impressionsFormatted . ' ظهور',
+            'expected_clicks_ar' => 'تقريباً ' . $clicksFormatted . ' نقرة',
+            'marketing_duration_ar' => $durationTextAr,
             'raw_plan' => $plan
         ];
     }

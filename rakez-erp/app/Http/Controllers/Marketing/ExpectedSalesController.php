@@ -37,7 +37,7 @@ class ExpectedSalesController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => 'Conversion rate updated successfully',
+            'message' => 'تم تحديث معدل التحويل بنجاح',
             'data' => $setting
         ]);
     }

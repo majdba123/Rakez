@@ -44,6 +44,7 @@ use App\Http\Controllers\Marketing\TeamManagementController;
 use App\Http\Controllers\Marketing\LeadController;
 use App\Http\Controllers\Marketing\MarketingReportController;
 use App\Http\Controllers\Marketing\MarketingSettingsController;
+use App\Http\Controllers\Marketing\MarketingEmployeeController;
 use App\Http\Controllers\Dashboard\DashboardController;
 use App\Http\Controllers\Accounting\AccountingCommissionController;
 use App\Http\Controllers\Accounting\AccountingConfirmationController;
@@ -147,7 +148,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
 
         Route::prefix('second-party-data')->group(function () {
-            Route::get('show/{id}', [SecondPartyDataController::class, 'show'])->middleware('permission:second_party.view');
+            // GET show/{id} is only on the auth-only group above (line ~127) so sales/sales_leader can use it; controller authorizes via ContractPolicy
             Route::post('store/{id}', [SecondPartyDataController::class, 'store'])->middleware('permission:second_party.edit');
             Route::put('update/{id}', [SecondPartyDataController::class, 'update'])->middleware('permission:second_party.edit');
 
@@ -418,7 +419,11 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('developer-plans/{contractId}', [DeveloperMarketingPlanController::class, 'show'])->middleware('permission:marketing.plans.create');
         Route::post('developer-plans', [DeveloperMarketingPlanController::class, 'store'])->middleware('permission:marketing.plans.create');
 
-        // Employee Plans
+        // Users list for marketing (e.g. employee-plans dropdown) – same as GET /hr/users
+        Route::get('users', [HrUserController::class, 'index'])->middleware('permission:marketing.plans.create');
+
+        // Employee Plans (GET with query ?project_id= supported; must be before employee-plans/{planId})
+        Route::get('employee-plans', [EmployeeMarketingPlanController::class, 'index'])->middleware('permission:marketing.plans.create');
         Route::get('employee-plans/project/{projectId}', [EmployeeMarketingPlanController::class, 'index'])->middleware('permission:marketing.plans.create');
         Route::get('employee-plans/{planId}', [EmployeeMarketingPlanController::class, 'show'])->middleware('permission:marketing.plans.create');
         Route::post('employee-plans', [EmployeeMarketingPlanController::class, 'store'])->middleware('permission:marketing.plans.create');
@@ -439,6 +444,10 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('projects/{projectId}/team', [TeamManagementController::class, 'getTeam'])->middleware('permission:marketing.projects.view');
         Route::get('projects/{projectId}/recommend-employee', [TeamManagementController::class, 'recommendEmployee'])->middleware('permission:marketing.projects.view');
 
+        // Marketing Employees (view-only for marketing department)
+        Route::get('employees', [MarketingEmployeeController::class, 'index'])->middleware('permission:marketing.teams.view');
+        Route::get('employees/{id}', [MarketingEmployeeController::class, 'show'])->whereNumber('id')->middleware('permission:marketing.teams.view');
+
         // Leads
         Route::get('leads', [LeadController::class, 'index'])->middleware('permission:marketing.projects.view');
         Route::post('leads', [LeadController::class, 'store'])->middleware('permission:marketing.projects.view');
@@ -450,6 +459,8 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('reports/expected-bookings', [MarketingReportController::class, 'expectedBookingsReport'])->middleware('permission:marketing.reports.view');
         Route::get('reports/employee/{userId}', [MarketingReportController::class, 'employeePerformance'])->middleware('permission:marketing.reports.view');
         Route::get('reports/export/{planId}', [MarketingReportController::class, 'exportPlan'])->middleware('permission:marketing.reports.view');
+        Route::get('reports/distribution/project/{projectId}', [MarketingReportController::class, 'exportDistributionByProject'])->whereNumber('projectId')->middleware('permission:marketing.reports.view');
+        Route::get('reports/distribution/{planId}', [MarketingReportController::class, 'exportDistribution'])->middleware('permission:marketing.reports.view');
 
         // Settings
         Route::get('settings', [MarketingSettingsController::class, 'index'])->middleware('permission:marketing.budgets.manage');
@@ -614,8 +625,10 @@ Route::prefix('accounting')->middleware(['auth:sanctum', 'role:accounting|admin'
 
     // Commission management
     Route::get('sold-units', [AccountingCommissionController::class, 'index'])->middleware('permission:accounting.sold-units.view');
+    Route::get('commission-distribution-types', [AccountingCommissionController::class, 'distributionTypes'])->middleware('permission:accounting.sold-units.view');
     Route::get('marketers', [AccountingCommissionController::class, 'marketers'])->middleware('permission:accounting.sold-units.view');
     Route::get('sold-units/{id}', [AccountingCommissionController::class, 'show'])->middleware('permission:accounting.sold-units.view');
+    Route::get('commissions/released', [AccountingCommissionController::class, 'released'])->middleware('permission:accounting.sold-units.view');
     Route::post('sold-units/{id}/commission', [AccountingCommissionController::class, 'createManual'])->middleware('permission:accounting.sold-units.manage');
     Route::put('commissions/{id}/distributions', [AccountingCommissionController::class, 'updateDistributions'])->middleware('permission:accounting.sold-units.manage');
     Route::post('commissions/{id}/distributions/{distId}/approve', [AccountingCommissionController::class, 'approveDistribution'])->middleware('permission:accounting.commissions.approve');
@@ -640,6 +653,11 @@ Route::prefix('accounting')->middleware(['auth:sanctum', 'role:accounting|admin'
     Route::post('salaries/{userId}/distribute', [AccountingSalaryController::class, 'createDistribution'])->middleware('permission:accounting.salaries.distribute');
     Route::post('salaries/distributions/{distributionId}/approve', [AccountingSalaryController::class, 'approveDistribution'])->middleware('permission:accounting.salaries.distribute');
     Route::post('salaries/distributions/{distributionId}/paid', [AccountingSalaryController::class, 'markAsPaid'])->middleware('permission:accounting.salaries.distribute');
+
+    // Claim files: all sold units per project + download (generate if needed)
+    Route::get('claim-files/candidates', [ClaimFileController::class, 'candidates'])->middleware('permission:accounting.claim_files.view');
+    Route::get('claim-files/sold-units', [ClaimFileController::class, 'soldUnitsByProject'])->middleware('permission:accounting.claim_files.view');
+    Route::get('claim-files/download-for-reservation/{reservationId}', [ClaimFileController::class, 'downloadForReservation'])->middleware('permission:accounting.claim_files.manage');
 
     // Notifications
     Route::get('notifications', [AccountingNotificationController::class, 'index'])->middleware('permission:accounting.dashboard.view');

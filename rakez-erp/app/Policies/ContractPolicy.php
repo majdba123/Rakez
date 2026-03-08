@@ -31,7 +31,7 @@ class ContractPolicy
             return true;
         }
 
-        // Sales / sales_leader: نفس منطق الوصول حسب الفريق (مشاريع المسندة لفريقه فقط)
+        // Sales / sales_leader: team-assigned contracts, or any contract if they have second_party.view (for second-party-data endpoint)
         if ($user->hasAnyRole(['sales', 'sales_leader'])) {
             if (SalesProjectAssignment::where('leader_id', $user->id)
                 ->where('contract_id', $contract->id)
@@ -43,10 +43,15 @@ class ContractPolicy
                 $teamLeaderIds = User::where('team_id', $user->team_id)
                     ->where('is_manager', true)
                     ->pluck('id');
-                return SalesProjectAssignment::where('contract_id', $contract->id)
+                if (SalesProjectAssignment::where('contract_id', $contract->id)
                     ->whereIn('leader_id', $teamLeaderIds)
                     ->active()
-                    ->exists();
+                    ->exists()) {
+                    return true;
+                }
+            }
+            if ($user->can('second_party.view')) {
+                return true;
             }
             return false;
         }

@@ -32,7 +32,7 @@ class DeveloperMarketingPlanController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => 'Developer marketing plan saved successfully',
+            'message' => 'تم حفظ خطة تسويق المطور بنجاح',
             'data' => $plan
         ]);
     }

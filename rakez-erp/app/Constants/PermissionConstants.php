@@ -79,6 +79,7 @@ class PermissionConstants
 
     // HR
     const HR_EMPLOYEES_MANAGE = 'hr.employees.manage';
+    const HR_USERS_VIEW = 'hr.users.view';
     const HR_USERS_CREATE = 'hr.users.create';
     const HR_PERFORMANCE_VIEW = 'hr.performance.view';
     const HR_REPORTS_PRINT = 'hr.reports.print';

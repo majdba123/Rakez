@@ -24,6 +24,8 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        $this->ensureStorageDirectoriesExist();
+
         // Register Policies
         Gate::policy(\App\Models\Contract::class, \App\Policies\ContractPolicy::class);
         Gate::policy(\App\Models\ContractUnit::class, \App\Policies\ContractUnitPolicy::class);
@@ -74,6 +76,22 @@ class AppServiceProvider extends ServiceProvider
         $this->configureRateLimiting();
         $this->mapApiRoutes();
         $this->mapWebRoutes();
+    }
+
+    /**
+     * Ensure PDF and font storage directories exist (avoids mPDF warnings and font path issues).
+     */
+    protected function ensureStorageDirectoriesExist(): void
+    {
+        $dirs = [
+            storage_path('fonts'),
+            storage_path('app/mpdf'),
+        ];
+        foreach ($dirs as $dir) {
+            if (!is_dir($dir)) {
+                @mkdir($dir, 0755, true);
+            }
+        }
     }
 
     /**

@@ -41,7 +41,7 @@ class MarketingTaskController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => 'Marketing task created successfully',
+            'message' => 'تم إنشاء مهمة التسويق بنجاح',
             'data' => $task
         ], 201);
     }
@@ -53,7 +53,7 @@ class MarketingTaskController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => 'Marketing task updated successfully',
+            'message' => 'تم تحديث مهمة التسويق بنجاح',
             'data' => $task
         ]);
     }
@@ -69,7 +69,7 @@ class MarketingTaskController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => 'Task status updated successfully',
+            'message' => 'تم تحديث حالة المهمة بنجاح',
             'data' => $task
         ]);
     }

@@ -165,6 +165,64 @@ class ClaimFileService
     }
 
     /**
+     * List all sold units for a contract (project). Includes units with and without claim file.
+     * Used for "وحدات المشروع" view: show all sold, with has_claim_file / has_pdf for download.
+     */
+    public function listSoldUnitsByContract(int $contractId): \Illuminate\Support\Collection
+    {
+        $reservations = SalesReservation::with(['contract.info', 'contractUnit', 'claimFile'])
+            ->where('credit_status', 'sold')
+            ->where('contract_id', $contractId)
+            ->orderBy('confirmed_at', 'desc')
+            ->get();
+
+        return $reservations->map(function (SalesReservation $r) {
+            $claimFile = $r->claimFile;
+            $price = $r->proposed_price ?? $r->contractUnit?->price ?? null;
+            $claimAmount = $this->computeClaimAmount($price, $r->brokerage_commission_percent);
+
+            return [
+                'reservation_id' => $r->id,
+                'project_name' => $r->contract?->project_name ?? $r->contract?->info?->project_name ?? null,
+                'unit_id' => $r->contract_unit_id,
+                'unit_number' => $r->contractUnit?->unit_number ?? null,
+                'claim_amount' => $claimAmount,
+                'has_claim_file' => $claimFile !== null,
+                'claim_file_id' => $claimFile?->id,
+                'has_pdf' => $claimFile?->hasPdf() ?? false,
+                'download_path' => "accounting/claim-files/download-for-reservation/{$r->id}",
+            ];
+        });
+    }
+
+    /**
+     * Ensure claim file and PDF exist for a reservation; return claim file. For "تحميل" that generates if needed.
+     */
+    public function ensurePdfForReservation(int $reservationId, User $user): ClaimFile
+    {
+        $claimFile = $this->getClaimFileByReservation($reservationId);
+        if (!$claimFile) {
+            $claimFile = $this->generateClaimFile($reservationId, $user);
+        }
+        if (empty($claimFile->pdf_path) || !Storage::disk('public')->exists($claimFile->pdf_path)) {
+            $this->generatePdf($claimFile->id);
+            $claimFile->refresh();
+        }
+        return $claimFile;
+    }
+
+    /**
+     * Compute claim amount from unit price and commission percent.
+     */
+    public function computeClaimAmount($unitPrice, $commissionPercent): ?float
+    {
+        if ($unitPrice === null || $commissionPercent === null) {
+            return null;
+        }
+        return round((float) $unitPrice * (float) $commissionPercent / 100, 2);
+    }
+
+    /**
      * List sold reservations that do not yet have a claim file (candidates for create).
      * Excludes reservations with individual claim files and those already in combined claim files.
      */

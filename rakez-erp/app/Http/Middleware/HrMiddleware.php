@@ -32,14 +32,22 @@ class HrMiddleware
 
         $allowedTypes = ['hr', 'admin'];
 
-        if (!in_array($user->type, $allowedTypes)) {
-            return response()->json([
-                'success' => false,
-                'message' => 'غير مصرح - هذه الصلاحية متاحة فقط للموارد البشرية',
-            ], 403);
+        if (in_array($user->type, $allowedTypes)) {
+            return $next($request);
         }
 
-        return $next($request);
+        // GET /api/hr/users and GET /api/hr/users/{id}: allow if user has hr.users.view (e.g. marketing)
+        $path = $request->path();
+        $isHrUsersGet = $request->isMethod('GET')
+            && preg_match('#^(api/)?hr/users(?:/\d+)?$#', $path);
+        if ($isHrUsersGet && (method_exists($user, 'can') && $user->can('hr.users.view'))) {
+            return $next($request);
+        }
+
+        return response()->json([
+            'success' => false,
+            'message' => 'غير مصرح - هذه الصلاحية متاحة فقط للموارد البشرية',
+        ], 403);
     }
 }
 

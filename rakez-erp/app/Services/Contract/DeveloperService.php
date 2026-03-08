@@ -22,7 +22,7 @@ class DeveloperService
         $baseQuery = $this->buildContractBaseQuery($user, $search);
 
         $developerRows = $baseQuery
-            ->select('developer_number', 'developer_name')
+            ->selectRaw('MIN(contracts.id) as id, developer_number, developer_name')
             ->groupBy('developer_number', 'developer_name')
             ->orderBy('developer_name')
             ->get();
@@ -34,7 +34,8 @@ class DeveloperService
             return $this->buildDeveloperItem(
                 $row->developer_number,
                 $row->developer_name,
-                $user
+                $user,
+                (int) $row->id
             );
         });
 
@@ -57,10 +58,52 @@ class DeveloperService
             return null;
         }
 
+        // Normalize: frontend may send "+" as "(" (e.g. %28) in URL path
+        $normalized = str_replace('(', '+', $developerNumber);
+        if ($normalized !== $developerNumber) {
+            $developerNumber = $normalized;
+        }
+
         $baseQuery = $this->buildContractBaseQuery($user, null);
         $contract = $baseQuery
             ->where('developer_number', $developerNumber)
-            ->select('developer_number', 'developer_name')
+            ->select('id', 'developer_number', 'developer_name')
+            ->first();
+
+        // Fallback: try with/without leading + (e.g. 966112345005 vs +966112345005)
+        if (!$contract && !str_starts_with($developerNumber, '+')) {
+            $contract = $baseQuery
+                ->where('developer_number', '+' . $developerNumber)
+                ->select('id', 'developer_number', 'developer_name')
+                ->first();
+        } elseif (!$contract && str_starts_with($developerNumber, '+')) {
+            $contract = $baseQuery
+                ->where('developer_number', ltrim($developerNumber, '+'))
+                ->select('id', 'developer_number', 'developer_name')
+                ->first();
+        }
+
+        if (!$contract) {
+            return null;
+        }
+
+        return $this->buildDeveloperItem(
+            $contract->developer_number,
+            $contract->developer_name,
+            $user,
+            (int) $contract->id
+        );
+    }
+
+    /**
+     * Get one developer by contract id (representative id for this developer). Same shape as getDeveloperByNumber.
+     */
+    public function getDeveloperById(int $contractId, \Illuminate\Contracts\Auth\Authenticatable $user): ?array
+    {
+        $baseQuery = $this->buildContractBaseQuery($user, null);
+        $contract = $baseQuery
+            ->where('contracts.id', $contractId)
+            ->select('id', 'developer_number', 'developer_name')
             ->first();
 
         if (!$contract) {
@@ -70,7 +113,8 @@ class DeveloperService
         return $this->buildDeveloperItem(
             $contract->developer_number,
             $contract->developer_name,
-            $user
+            $user,
+            (int) $contract->id
         );
     }
 
@@ -106,7 +150,8 @@ class DeveloperService
     protected function buildDeveloperItem(
         string $developerNumber,
         string $developerName,
-        \Illuminate\Contracts\Auth\Authenticatable $user
+        \Illuminate\Contracts\Auth\Authenticatable $user,
+        ?int $representativeId = null
     ): array {
         $baseQuery = $this->buildContractBaseQuery($user, null);
 
@@ -144,7 +189,7 @@ class DeveloperService
 
         $unitsCount = $contracts->sum(fn (Contract $c) => $c->units()->count());
 
-        return [
+        $item = [
             'developer_number' => $developerNumber,
             'developer_name' => $developerName,
             'projects_count' => $contracts->count(),
@@ -152,5 +197,9 @@ class DeveloperService
             'units_count' => $unitsCount,
             'teams' => $teams->values()->all(),
         ];
+        if ($representativeId !== null) {
+            $item['id'] = $representativeId;
+        }
+        return $item;
     }
 }

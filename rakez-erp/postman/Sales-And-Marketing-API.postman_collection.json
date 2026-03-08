@@ -1,0 +1,1247 @@
+{
+	"info": {
+		"_postman_id": "rakez-sales-marketing-001",
+		"name": "Rakez ERP - Sales & Marketing API",
+		"description": "Sales and Marketing endpoints only. Sample bodies from database seeders (SalesSeeder, MarketingSeeder, NegotiationsPaymentsSeeder).",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"auth": {
+		"type": "bearer",
+		"bearer": [
+			{ "key": "token", "value": "{{token}}", "type": "string" }
+		]
+	},
+	"variable": [
+		{ "key": "base_url", "value": "http://localhost:8000/api" },
+		{ "key": "token", "value": "" }
+	],
+	"item": [
+		{
+			"name": "Auth",
+			"item": [
+				{
+					"name": "Login",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 200) {",
+									"  var j = pm.response.json();",
+									"  var t = j.access_token || j.token;",
+									"  if (t) pm.collectionVariables.set('token', t);",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [ { "key": "Accept", "value": "application/json" } ],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"email\": \"sales.leader@rakez.com\",\n  \"password\": \"password\"\n}"
+						},
+						"url": "{{base_url}}/login",
+						"description": "Use sales/marketing user email. Seeded: sales.leader@rakez.com, ahmed@rakez.com.",
+						"auth": { "type": "noauth" }
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Sales",
+			"item": [
+				{
+					"name": "Dashboard",
+					"item": [
+						{
+							"name": "Sales Dashboard",
+							"request": {
+								"method": "GET",
+								"header": [ { "key": "Accept", "value": "application/json" } ],
+								"url": "{{base_url}}/sales/dashboard"
+							},
+							"response": []
+						}
+					]
+				},
+				{
+					"name": "Projects",
+					"item": [
+						{
+							"name": "List Projects",
+							"request": {
+								"method": "GET",
+								"header": [ { "key": "Accept", "value": "application/json" } ],
+								"url": {
+									"raw": "{{base_url}}/sales/projects?scope=team&status=ready&per_page=15",
+									"host": [ "{{base_url}}" ],
+									"path": [ "sales", "projects" ],
+									"query": [
+										{ "key": "scope", "value": "team" },
+										{ "key": "status", "value": "ready" },
+										{ "key": "per_page", "value": "15" }
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Show Project",
+							"request": {
+								"method": "GET",
+								"header": [ { "key": "Accept", "value": "application/json" } ],
+								"url": "{{base_url}}/sales/projects/1"
+							},
+							"response": []
+						},
+						{
+							"name": "Project Units",
+							"request": {
+								"method": "GET",
+								"header": [ { "key": "Accept", "value": "application/json" } ],
+								"url": "{{base_url}}/sales/projects/1/units"
+							},
+							"response": []
+						},
+						{
+							"name": "Unit PDF",
+							"request": {
+								"method": "GET",
+								"header": [ { "key": "Accept", "value": "application/json" } ],
+								"url": "{{base_url}}/sales/units/1/pdf"
+							},
+							"response": []
+						},
+						{
+							"name": "Update Emergency Contacts",
+							"request": {
+								"method": "PATCH",
+								"header": [
+									{ "key": "Accept", "value": "application/json" },
+									{ "key": "Content-Type", "value": "application/json" }
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"emergency_contact_number\": \"0501234567\",\n  \"security_guard_number\": \"0507654321\"\n}"
+								},
+								"url": "{{base_url}}/sales/projects/1/emergency-contacts"
+							},
+							"response": []
+						}
+					]
+				},
+				{
+					"name": "Unit Search",
+					"item": [
+						{
+							"name": "Search Units",
+							"request": {
+								"method": "GET",
+								"header": [ { "key": "Accept", "value": "application/json" } ],
+								"url": {
+									"raw": "{{base_url}}/sales/units/search?contract_id=1&status=available&per_page=15",
+									"host": [ "{{base_url}}" ],
+									"path": [ "sales", "units", "search" ],
+									"query": [
+										{ "key": "contract_id", "value": "1" },
+										{ "key": "status", "value": "available" },
+										{ "key": "per_page", "value": "15" }
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Unit Filters",
+							"request": {
+								"method": "GET",
+								"header": [ { "key": "Accept", "value": "application/json" } ],
+								"url": "{{base_url}}/sales/units/filters"
+							},
+							"response": []
+						},
+						{
+							"name": "Reservation Context (Unit)",
+							"request": {
+								"method": "GET",
+								"header": [ { "key": "Accept", "value": "application/json" } ],
+								"url": "{{base_url}}/sales/units/1/reservation-context"
+							},
+							"response": []
+						}
+					]
+				},
+				{
+					"name": "Reservations",
+					"item": [
+						{
+							"name": "Create Reservation (Confirmed)",
+							"request": {
+								"method": "POST",
+								"header": [
+									{ "key": "Accept", "value": "application/json" },
+									{ "key": "Content-Type", "value": "application/json" }
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"contract_id\": 1,\n  \"contract_unit_id\": 1,\n  \"contract_date\": \"2025-03-08\",\n  \"reservation_type\": \"confirmed_reservation\",\n  \"client_name\": \"عبدالله المنصور\",\n  \"client_mobile\": \"0501234567\",\n  \"client_nationality\": \"Saudi\",\n  \"client_iban\": \"SA0380000000608010167519\",\n  \"payment_method\": \"bank_transfer\",\n  \"down_payment_amount\": 50000,\n  \"down_payment_status\": \"refundable\",\n  \"purchase_mechanism\": \"supported_bank\"\n}"
+								},
+								"url": "{{base_url}}/sales/reservations",
+								"description": "Sample from SalesSeeder: client_name from arabicClientNames, client_mobile 05########, payment_method bank_transfer|cash|bank_financing."
+							},
+							"response": []
+						},
+						{
+							"name": "Create Reservation (Negotiation)",
+							"request": {
+								"method": "POST",
+								"header": [
+									{ "key": "Accept", "value": "application/json" },
+									{ "key": "Content-Type", "value": "application/json" }
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"contract_id\": 1,\n  \"contract_unit_id\": 1,\n  \"contract_date\": \"2025-03-08\",\n  \"reservation_type\": \"negotiation\",\n  \"negotiation_notes\": \"طلب تخفيض السعر\",\n  \"negotiation_reason\": \"price\",\n  \"proposed_price\": 450000,\n  \"evacuation_date\": \"2025-05-08\",\n  \"client_name\": \"محمد السعيد\",\n  \"client_mobile\": \"0509876543\",\n  \"client_nationality\": \"Saudi\",\n  \"client_iban\": \"SA0380000000608010167519\",\n  \"payment_method\": \"bank_financing\",\n  \"down_payment_amount\": 80000,\n  \"down_payment_status\": \"non_refundable\",\n  \"purchase_mechanism\": \"supported_bank\"\n}"
+								},
+								"url": "{{base_url}}/sales/reservations"
+							},
+							"response": []
+						},
+						{
+							"name": "List Reservations",
+							"request": {
+								"method": "GET",
+								"header": [ { "key": "Accept", "value": "application/json" } ],
+								"url": "{{base_url}}/sales/reservations?mine=1&per_page=15"
+							},
+							"response": []
+						},
+						{
+							"name": "Show Reservation",
+							"request": {
+								"method": "GET",
+								"header": [ { "key": "Accept", "value": "application/json" } ],
+								"url": "{{base_url}}/sales/reservations/1"
+							},
+							"response": []
+						},
+						{
+							"name": "Confirm Reservation",
+							"request": {
+								"method": "POST",
+								"header": [ { "key": "Accept", "value": "application/json" } ],
+								"url": "{{base_url}}/sales/reservations/1/confirm"
+							},
+							"response": []
+						},
+						{
+							"name": "Cancel Reservation",
+							"request": {
+								"method": "POST",
+								"header": [
+									{ "key": "Accept", "value": "application/json" },
+									{ "key": "Content-Type", "value": "application/json" }
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"reason\": \"Client withdrew\"\n}"
+								},
+								"url": "{{base_url}}/sales/reservations/1/cancel"
+							},
+							"response": []
+						},
+						{
+							"name": "Add Reservation Action",
+							"request": {
+								"method": "POST",
+								"header": [
+									{ "key": "Accept", "value": "application/json" },
+									{ "key": "Content-Type", "value": "application/json" }
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"action_type\": \"lead_acquisition\",\n  \"notes\": \"First contact via Snapchat\"\n}"
+								},
+								"url": "{{base_url}}/sales/reservations/1/actions",
+								"description": "action_type: lead_acquisition | persuasion | closing (SalesSeeder)."
+							},
+							"response": []
+						},
+						{
+							"name": "Download Voucher",
+							"request": {
+								"method": "GET",
+								"header": [ { "key": "Accept", "value": "application/json" } ],
+								"url": "{{base_url}}/sales/reservations/1/voucher"
+							},
+							"response": []
+						}
+					]
+				},
+				{
+					"name": "Payment Plans",
+					"item": [
+						{
+							"name": "Get Payment Plan",
+							"request": {
+								"method": "GET",
+								"header": [ { "key": "Accept", "value": "application/json" } ],
+								"url": "{{base_url}}/sales/reservations/1/payment-plan"
+							},
+							"response": []
+						},
+						{
+							"name": "Create Payment Plan",
+							"request": {
+								"method": "POST",
+								"header": [
+									{ "key": "Accept", "value": "application/json" },
+									{ "key": "Content-Type", "value": "application/json" }
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"installments\": [\n    { \"due_date\": \"2025-04-08\", \"amount\": 50000, \"description\": \"Installment 1\" },\n    { \"due_date\": \"2025-05-08\", \"amount\": 60000, \"description\": \"Installment 2\" },\n    { \"due_date\": \"2025-06-08\", \"amount\": 70000, \"description\": \"Installment 3\" }\n  ]\n}"
+								},
+								"url": "{{base_url}}/sales/reservations/1/payment-plan",
+								"description": "Sample from NegotiationsPaymentsSeeder: due_date, amount, description."
+							},
+							"response": []
+						},
+						{
+							"name": "Update Installment",
+							"request": {
+								"method": "PUT",
+								"header": [
+									{ "key": "Accept", "value": "application/json" },
+									{ "key": "Content-Type", "value": "application/json" }
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"due_date\": \"2025-04-15\",\n  \"amount\": 55000,\n  \"description\": \"Installment 1 (updated)\",\n  \"status\": \"paid\"\n}"
+								},
+								"url": "{{base_url}}/sales/payment-installments/1"
+							},
+							"response": []
+						},
+						{
+							"name": "Delete Installment",
+							"request": {
+								"method": "DELETE",
+								"header": [ { "key": "Accept", "value": "application/json" } ],
+								"url": "{{base_url}}/sales/payment-installments/1"
+							},
+							"response": []
+						}
+					]
+				},
+				{
+					"name": "Negotiations",
+					"item": [
+						{
+							"name": "Pending Negotiations",
+							"request": {
+								"method": "GET",
+								"header": [ { "key": "Accept", "value": "application/json" } ],
+								"url": "{{base_url}}/sales/negotiations/pending"
+							},
+							"response": []
+						},
+						{
+							"name": "Approve Negotiation",
+							"request": {
+								"method": "POST",
+								"header": [
+									{ "key": "Accept", "value": "application/json" },
+									{ "key": "Content-Type", "value": "application/json" }
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"notes\": \"Approved - within margin\"\n}"
+								},
+								"url": "{{base_url}}/sales/negotiations/1/approve"
+							},
+							"response": []
+						},
+						{
+							"name": "Reject Negotiation",
+							"request": {
+								"method": "POST",
+								"header": [
+									{ "key": "Accept", "value": "application/json" },
+									{ "key": "Content-Type", "value": "application/json" }
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"reason\": \"Proposed price below minimum\"\n}"
+								},
+								"url": "{{base_url}}/sales/negotiations/1/reject"
+							},
+							"response": []
+						}
+					]
+				},
+				{
+					"name": "Targets",
+					"item": [
+						{
+							"name": "My Targets",
+							"request": {
+								"method": "GET",
+								"header": [ { "key": "Accept", "value": "application/json" } ],
+								"url": "{{base_url}}/sales/targets/my?per_page=15"
+							},
+							"response": []
+						},
+						{
+							"name": "Create Target",
+							"request": {
+								"method": "POST",
+								"header": [
+									{ "key": "Accept", "value": "application/json" },
+									{ "key": "Content-Type", "value": "application/json" }
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"marketer_id\": 1,\n  \"contract_id\": 1,\n  \"contract_unit_id\": 1,\n  \"target_type\": \"reservation\",\n  \"start_date\": \"2025-03-01\",\n  \"end_date\": \"2025-03-31\",\n  \"leader_notes\": \"Focus on units 101-105\"\n}"
+								},
+								"url": "{{base_url}}/sales/targets",
+								"description": "target_type: reservation | negotiation | closing. Optional: contract_unit_ids array (SalesSeeder)."
+							},
+							"response": []
+						},
+						{
+							"name": "Update Target Status",
+							"request": {
+								"method": "PATCH",
+								"header": [
+									{ "key": "Accept", "value": "application/json" },
+									{ "key": "Content-Type", "value": "application/json" }
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"status\": \"in_progress\"\n}"
+								},
+								"url": "{{base_url}}/sales/targets/1",
+								"description": "status: new | in_progress | completed."
+							},
+							"response": []
+						}
+					]
+				},
+				{
+					"name": "Attendance",
+					"item": [
+						{
+							"name": "My Attendance",
+							"request": {
+								"method": "GET",
+								"header": [ { "key": "Accept", "value": "application/json" } ],
+								"url": "{{base_url}}/sales/attendance/my"
+							},
+							"response": []
+						},
+						{
+							"name": "Team Attendance",
+							"request": {
+								"method": "GET",
+								"header": [ { "key": "Accept", "value": "application/json" } ],
+								"url": "{{base_url}}/sales/attendance/team?contract_id=1"
+							},
+							"response": []
+						},
+						{
+							"name": "Create Schedule",
+							"request": {
+								"method": "POST",
+								"header": [
+									{ "key": "Accept", "value": "application/json" },
+									{ "key": "Content-Type", "value": "application/json" }
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"contract_id\": 1,\n  \"user_id\": 1,\n  \"schedule_date\": \"2025-03-08\",\n  \"start_time\": \"09:00:00\",\n  \"end_time\": \"17:00:00\"\n}"
+								},
+								"url": "{{base_url}}/sales/attendance/schedules",
+								"description": "Time format: HH:mm or HH:mm:ss (SalesAttendanceSchedule seeder)."
+							},
+							"response": []
+						},
+						{
+							"name": "Project Attendance Overview",
+							"request": {
+								"method": "GET",
+								"header": [ { "key": "Accept", "value": "application/json" } ],
+								"url": "{{base_url}}/sales/attendance/project/1?date=2025-03-08"
+							},
+							"response": []
+						},
+						{
+							"name": "Bulk Store Attendance",
+							"request": {
+								"method": "POST",
+								"header": [
+									{ "key": "Accept", "value": "application/json" },
+									{ "key": "Content-Type", "value": "application/json" }
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"date\": \"2025-03-08\",\n  \"schedules\": [\n    { \"user_id\": 1, \"present\": true, \"start_time\": \"09:00\", \"end_time\": \"17:00\" },\n    { \"user_id\": 2, \"present\": false }\n  ]\n}"
+								},
+								"url": "{{base_url}}/sales/attendance/project/1/bulk"
+							},
+							"response": []
+						}
+					]
+				},
+				{
+					"name": "Team (Leader)",
+					"item": [
+						{
+							"name": "Team Projects",
+							"request": {
+								"method": "GET",
+								"header": [ { "key": "Accept", "value": "application/json" } ],
+								"url": "{{base_url}}/sales/team/projects"
+							},
+							"response": []
+						},
+						{
+							"name": "Team Members",
+							"request": {
+								"method": "GET",
+								"header": [ { "key": "Accept", "value": "application/json" } ],
+								"url": "{{base_url}}/sales/team/members"
+							},
+							"response": []
+						},
+						{
+							"name": "Team Recommendations",
+							"request": {
+								"method": "GET",
+								"header": [ { "key": "Accept", "value": "application/json" } ],
+								"url": "{{base_url}}/sales/team/recommendations"
+							},
+							"response": []
+						},
+						{
+							"name": "Rate Team Member",
+							"request": {
+								"method": "PATCH",
+								"header": [
+									{ "key": "Accept", "value": "application/json" },
+									{ "key": "Content-Type", "value": "application/json" }
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"rating\": 5\n}"
+								},
+								"url": "{{base_url}}/sales/team/members/1/rating"
+							},
+							"response": []
+						},
+						{
+							"name": "Remove Team Member",
+							"request": {
+								"method": "POST",
+								"header": [ { "key": "Accept", "value": "application/json" } ],
+								"url": "{{base_url}}/sales/team/members/1/remove"
+							},
+							"response": []
+						}
+					]
+				},
+				{
+					"name": "Marketing Tasks (Sales)",
+					"item": [
+						{
+							"name": "Task Projects",
+							"request": {
+								"method": "GET",
+								"header": [ { "key": "Accept", "value": "application/json" } ],
+								"url": "{{base_url}}/sales/tasks/projects"
+							},
+							"response": []
+						},
+						{
+							"name": "Show Project (Tasks)",
+							"request": {
+								"method": "GET",
+								"header": [ { "key": "Accept", "value": "application/json" } ],
+								"url": "{{base_url}}/sales/tasks/projects/1"
+							},
+							"response": []
+						},
+						{
+							"name": "Create Marketing Task",
+							"request": {
+								"method": "POST",
+								"header": [
+									{ "key": "Accept", "value": "application/json" },
+									{ "key": "Content-Type", "value": "application/json" }
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"contract_id\": 1,\n  \"task_name\": \"تصميم ستوري سناب\",\n  \"marketer_id\": 1,\n  \"design_link\": \"https://example.com/design.pdf\",\n  \"design_number\": \"D-001\",\n  \"design_description\": \"ستوري للمشروع الجديد\"\n}"
+								},
+								"url": "{{base_url}}/sales/marketing-tasks"
+							},
+							"response": []
+						},
+						{
+							"name": "Update Marketing Task",
+							"request": {
+								"method": "PATCH",
+								"header": [
+									{ "key": "Accept", "value": "application/json" },
+									{ "key": "Content-Type", "value": "application/json" }
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"task_name\": \"تصميم ستوري - محدث\",\n  \"design_link\": \"https://example.com/design-v2.pdf\"\n}"
+								},
+								"url": "{{base_url}}/sales/marketing-tasks/1"
+							},
+							"response": []
+						}
+					]
+				},
+				{
+					"name": "Waiting List",
+					"item": [
+						{
+							"name": "List Waiting List",
+							"request": {
+								"method": "GET",
+								"header": [ { "key": "Accept", "value": "application/json" } ],
+								"url": "{{base_url}}/sales/waiting-list?contract_id=1&per_page=15"
+							},
+							"response": []
+						},
+						{
+							"name": "Waiting List By Unit",
+							"request": {
+								"method": "GET",
+								"header": [ { "key": "Accept", "value": "application/json" } ],
+								"url": "{{base_url}}/sales/waiting-list/unit/1"
+							},
+							"response": []
+						},
+						{
+							"name": "Add to Waiting List",
+							"request": {
+								"method": "POST",
+								"header": [
+									{ "key": "Accept", "value": "application/json" },
+									{ "key": "Content-Type", "value": "application/json" }
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"contract_id\": 1,\n  \"contract_unit_id\": 1,\n  \"client_name\": \"خالد العتيبي\",\n  \"client_mobile\": \"0501112233\",\n  \"client_email\": \"client@example.com\",\n  \"priority\": 5,\n  \"notes\": \"Interested in unit 101\"\n}"
+								},
+								"url": "{{base_url}}/sales/waiting-list",
+								"description": "Sample from SalesSeeder: client_name from arabicClientNames, status waiting|converted|cancelled|expired."
+							},
+							"response": []
+						},
+						{
+							"name": "Convert Waiting List",
+							"request": {
+								"method": "POST",
+								"header": [ { "key": "Accept", "value": "application/json" } ],
+								"url": "{{base_url}}/sales/waiting-list/1/convert"
+							},
+							"response": []
+						},
+						{
+							"name": "Cancel Waiting List",
+							"request": {
+								"method": "DELETE",
+								"header": [ { "key": "Accept", "value": "application/json" } ],
+								"url": "{{base_url}}/sales/waiting-list/1"
+							},
+							"response": []
+						}
+					]
+				},
+				{
+					"name": "Insights & Analytics",
+					"item": [
+						{
+							"name": "Sold Units",
+							"request": {
+								"method": "GET",
+								"header": [ { "key": "Accept", "value": "application/json" } ],
+								"url": "{{base_url}}/sales/sold-units"
+							},
+							"response": []
+						},
+						{
+							"name": "Sold Unit Commission Summary",
+							"request": {
+								"method": "GET",
+								"header": [ { "key": "Accept", "value": "application/json" } ],
+								"url": "{{base_url}}/sales/sold-units/1/commission-summary"
+							},
+							"response": []
+						},
+						{
+							"name": "Deposits Management",
+							"request": {
+								"method": "GET",
+								"header": [ { "key": "Accept", "value": "application/json" } ],
+								"url": "{{base_url}}/sales/deposits/management"
+							},
+							"response": []
+						},
+						{
+							"name": "Deposits Follow-up",
+							"request": {
+								"method": "GET",
+								"header": [ { "key": "Accept", "value": "application/json" } ],
+								"url": "{{base_url}}/sales/deposits/follow-up"
+							},
+							"response": []
+						},
+						{
+							"name": "Analytics Dashboard",
+							"request": {
+								"method": "GET",
+								"header": [ { "key": "Accept", "value": "application/json" } ],
+								"url": "{{base_url}}/sales/analytics/dashboard"
+							},
+							"response": []
+						},
+						{
+							"name": "Analytics Sold Units",
+							"request": {
+								"method": "GET",
+								"header": [ { "key": "Accept", "value": "application/json" } ],
+								"url": "{{base_url}}/sales/analytics/sold-units"
+							},
+							"response": []
+						},
+						{
+							"name": "Deposit Stats By Project",
+							"request": {
+								"method": "GET",
+								"header": [ { "key": "Accept", "value": "application/json" } ],
+								"url": "{{base_url}}/sales/analytics/deposits/stats/project/1"
+							},
+							"response": []
+						},
+						{
+							"name": "Commission Stats By Employee",
+							"request": {
+								"method": "GET",
+								"header": [ { "key": "Accept", "value": "application/json" } ],
+								"url": "{{base_url}}/sales/analytics/commissions/stats/employee/1"
+							},
+							"response": []
+						},
+						{
+							"name": "Monthly Commission Report",
+							"request": {
+								"method": "GET",
+								"header": [ { "key": "Accept", "value": "application/json" } ],
+								"url": "{{base_url}}/sales/analytics/commissions/monthly-report"
+							},
+							"response": []
+						}
+					]
+				}
+			]
+		},
+		{
+			"name": "Marketing",
+			"item": [
+				{
+					"name": "Dashboard",
+					"item": [
+						{
+							"name": "Marketing Dashboard",
+							"request": {
+								"method": "GET",
+								"header": [ { "key": "Accept", "value": "application/json" } ],
+								"url": "{{base_url}}/marketing/dashboard"
+							},
+							"response": []
+						}
+					]
+				},
+				{
+					"name": "Projects",
+					"item": [
+						{
+							"name": "List Projects",
+							"request": {
+								"method": "GET",
+								"header": [ { "key": "Accept", "value": "application/json" } ],
+								"url": "{{base_url}}/marketing/projects?per_page=15"
+							},
+							"response": []
+						},
+						{
+							"name": "Show Project",
+							"request": {
+								"method": "GET",
+								"header": [ { "key": "Accept", "value": "application/json" } ],
+								"url": "{{base_url}}/marketing/projects/1"
+							},
+							"response": []
+						},
+						{
+							"name": "Calculate Budget",
+							"request": {
+								"method": "POST",
+								"header": [
+									{ "key": "Accept", "value": "application/json" },
+									{ "key": "Content-Type", "value": "application/json" }
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"contract_id\": 1,\n  \"marketing_percent\": 10,\n  \"marketing_value\": 150000,\n  \"average_cpm\": 25,\n  \"average_cpc\": 2.5,\n  \"conversion_rate\": 3\n}"
+								},
+								"url": "{{base_url}}/marketing/projects/calculate-budget"
+							},
+							"response": []
+						},
+						{
+							"name": "Assign Team to Project",
+							"request": {
+								"method": "POST",
+								"header": [
+									{ "key": "Accept", "value": "application/json" },
+									{ "key": "Content-Type", "value": "application/json" }
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"user_ids\": [1, 2, 3]\n}"
+								},
+								"url": "{{base_url}}/marketing/projects/1/team"
+							},
+							"response": []
+						},
+						{
+							"name": "Get Project Team",
+							"request": {
+								"method": "GET",
+								"header": [ { "key": "Accept", "value": "application/json" } ],
+								"url": "{{base_url}}/marketing/projects/1/team"
+							},
+							"response": []
+						},
+						{
+							"name": "Recommend Employee",
+							"request": {
+								"method": "GET",
+								"header": [ { "key": "Accept", "value": "application/json" } ],
+								"url": "{{base_url}}/marketing/projects/1/recommend-employee"
+							},
+							"response": []
+						}
+					]
+				},
+				{
+					"name": "Developer Plans",
+					"item": [
+						{
+							"name": "Show Developer Plan",
+							"request": {
+								"method": "GET",
+								"header": [ { "key": "Accept", "value": "application/json" } ],
+								"url": "{{base_url}}/marketing/developer-plans/1"
+							},
+							"response": []
+						},
+						{
+							"name": "Create Developer Plan",
+							"request": {
+								"method": "POST",
+								"header": [
+									{ "key": "Accept", "value": "application/json" },
+									{ "key": "Content-Type", "value": "application/json" }
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"contract_id\": 1,\n  \"marketing_value\": 150000,\n  \"average_cpm\": 25,\n  \"average_cpc\": 2.5,\n  \"conversion_rate\": 3,\n  \"expected_bookings\": 20,\n  \"notes\": \"Q1 campaign\"\n}"
+								},
+								"url": "{{base_url}}/marketing/developer-plans",
+								"description": "Sample from MarketingSeeder: DeveloperMarketingPlan per contract."
+							},
+							"response": []
+						}
+					]
+				},
+				{
+					"name": "Employee Plans",
+					"item": [
+						{
+							"name": "List Employee Plans",
+							"request": {
+								"method": "GET",
+								"header": [ { "key": "Accept", "value": "application/json" } ],
+								"url": "{{base_url}}/marketing/employee-plans/project/1?per_page=15"
+							},
+							"response": []
+						},
+						{
+							"name": "Show Employee Plan",
+							"request": {
+								"method": "GET",
+								"header": [ { "key": "Accept", "value": "application/json" } ],
+								"url": "{{base_url}}/marketing/employee-plans/1"
+							},
+							"response": []
+						},
+						{
+							"name": "Create Employee Plan",
+							"request": {
+								"method": "POST",
+								"header": [
+									{ "key": "Accept", "value": "application/json" },
+									{ "key": "Content-Type", "value": "application/json" }
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"marketing_project_id\": 1,\n  \"user_id\": 1,\n  \"commission_value\": 5000,\n  \"marketing_value\": 30000,\n  \"platform_distribution\": {\n    \"TikTok\": 20,\n    \"Meta\": 25,\n    \"Snapchat\": 25,\n    \"YouTube\": 15,\n    \"LinkedIn\": 10,\n    \"X\": 5\n  },\n  \"campaign_distribution\": {\n    \"Direct Communication\": 40,\n    \"Hand Raise\": 30,\n    \"Impression\": 20,\n    \"Sales\": 10\n  }\n}"
+								},
+								"url": "{{base_url}}/marketing/employee-plans",
+								"description": "Platform keys: TikTok,Meta,Snapchat,YouTube,LinkedIn,X. Campaign: Direct Communication,Hand Raise,Impression,Sales. Percentages must total 100 (MarketingSeeder)."
+							},
+							"response": []
+						},
+						{
+							"name": "Auto-Generate Employee Plan",
+							"request": {
+								"method": "POST",
+								"header": [
+									{ "key": "Accept", "value": "application/json" },
+									{ "key": "Content-Type", "value": "application/json" }
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"marketing_project_id\": 1,\n  \"user_id\": 1,\n  \"marketing_percent\": 15,\n  \"strategy\": \"ai\"\n}"
+								},
+								"url": "{{base_url}}/marketing/employee-plans/auto-generate"
+							},
+							"response": []
+						}
+					]
+				},
+				{
+					"name": "Expected Sales",
+					"item": [
+						{
+							"name": "Calculate Expected Sales",
+							"request": {
+								"method": "GET",
+								"header": [ { "key": "Accept", "value": "application/json" } ],
+								"url": "{{base_url}}/marketing/expected-sales/1"
+							},
+							"response": []
+						},
+						{
+							"name": "Update Conversion Rate",
+							"request": {
+								"method": "PUT",
+								"header": [
+									{ "key": "Accept", "value": "application/json" },
+									{ "key": "Content-Type", "value": "application/json" }
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"value\": 3.0\n}"
+								},
+								"url": "{{base_url}}/marketing/settings/conversion-rate"
+							},
+							"response": []
+						}
+					]
+				},
+				{
+					"name": "Tasks",
+					"item": [
+						{
+							"name": "List Tasks",
+							"request": {
+								"method": "GET",
+								"header": [ { "key": "Accept", "value": "application/json" } ],
+								"url": "{{base_url}}/marketing/tasks?date=2025-03-08&per_page=15"
+							},
+							"response": []
+						},
+						{
+							"name": "Create Task",
+							"request": {
+								"method": "POST",
+								"header": [
+									{ "key": "Accept", "value": "application/json" },
+									{ "key": "Content-Type", "value": "application/json" }
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"contract_id\": 1,\n  \"marketing_project_id\": 1,\n  \"task_name\": \"حملة سناب شات\",\n  \"marketer_id\": 1,\n  \"status\": \"new\",\n  \"design_link\": \"https://example.com/design.pdf\",\n  \"design_number\": \"D-001\"\n}"
+								},
+								"url": "{{base_url}}/marketing/tasks",
+								"description": "status: new | in_progress | completed (MarketingSeeder)."
+							},
+							"response": []
+						},
+						{
+							"name": "Update Task",
+							"request": {
+								"method": "PUT",
+								"header": [
+									{ "key": "Accept", "value": "application/json" },
+									{ "key": "Content-Type", "value": "application/json" }
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"task_name\": \"حملة سناب - محدث\",\n  \"status\": \"in_progress\"\n}"
+								},
+								"url": "{{base_url}}/marketing/tasks/1"
+							},
+							"response": []
+						},
+						{
+							"name": "Update Task Status",
+							"request": {
+								"method": "PATCH",
+								"header": [
+									{ "key": "Accept", "value": "application/json" },
+									{ "key": "Content-Type", "value": "application/json" }
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"status\": \"completed\"\n}"
+								},
+								"url": "{{base_url}}/marketing/tasks/1/status"
+							},
+							"response": []
+						}
+					]
+				},
+				{
+					"name": "Leads",
+					"item": [
+						{
+							"name": "List Leads",
+							"request": {
+								"method": "GET",
+								"header": [ { "key": "Accept", "value": "application/json" } ],
+								"url": "{{base_url}}/marketing/leads?per_page=15"
+							},
+							"response": []
+						},
+						{
+							"name": "Create Lead",
+							"request": {
+								"method": "POST",
+								"header": [
+									{ "key": "Accept", "value": "application/json" },
+									{ "key": "Content-Type", "value": "application/json" }
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"name\": \"أحمد الشهري\",\n  \"contact_info\": \"0501234567\",\n  \"source\": \"Snapchat\",\n  \"project_id\": 1,\n  \"assigned_to\": 1,\n  \"status\": \"new\",\n  \"notes\": \"From story ad\"\n}"
+								},
+								"url": "{{base_url}}/marketing/leads",
+								"description": "Sample from MarketingSeeder/LeadFactory: source Snapchat|Instagram|TikTok|Facebook, status new|contacted|qualified|lost|converted."
+							},
+							"response": []
+						},
+						{
+							"name": "Update Lead",
+							"request": {
+								"method": "PUT",
+								"header": [
+									{ "key": "Accept", "value": "application/json" },
+									{ "key": "Content-Type", "value": "application/json" }
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"name\": \"أحمد الشهري\",\n  \"contact_info\": \"0501234567\",\n  \"source\": \"Instagram\",\n  \"status\": \"qualified\",\n  \"notes\": \"Ready for reservation\"\n}"
+								},
+								"url": "{{base_url}}/marketing/leads/1"
+							},
+							"response": []
+						}
+					]
+				},
+				{
+					"name": "Reports",
+					"item": [
+						{
+							"name": "Project Performance",
+							"request": {
+								"method": "GET",
+								"header": [ { "key": "Accept", "value": "application/json" } ],
+								"url": "{{base_url}}/marketing/reports/project/1"
+							},
+							"response": []
+						},
+						{
+							"name": "Budget Report",
+							"request": {
+								"method": "GET",
+								"header": [ { "key": "Accept", "value": "application/json" } ],
+								"url": "{{base_url}}/marketing/reports/budget"
+							},
+							"response": []
+						},
+						{
+							"name": "Expected Bookings Report",
+							"request": {
+								"method": "GET",
+								"header": [ { "key": "Accept", "value": "application/json" } ],
+								"url": "{{base_url}}/marketing/reports/expected-bookings"
+							},
+							"response": []
+						},
+						{
+							"name": "Employee Performance",
+							"request": {
+								"method": "GET",
+								"header": [ { "key": "Accept", "value": "application/json" } ],
+								"url": "{{base_url}}/marketing/reports/employee/1"
+							},
+							"response": []
+						},
+						{
+							"name": "Export Plan",
+							"request": {
+								"method": "GET",
+								"header": [ { "key": "Accept", "value": "application/json" } ],
+								"url": "{{base_url}}/marketing/reports/export/1"
+							},
+							"response": []
+						}
+					]
+				},
+				{
+					"name": "Settings",
+					"item": [
+						{
+							"name": "List Settings",
+							"request": {
+								"method": "GET",
+								"header": [ { "key": "Accept", "value": "application/json" } ],
+								"url": "{{base_url}}/marketing/settings"
+							},
+							"response": []
+						},
+						{
+							"name": "Update Setting",
+							"request": {
+								"method": "PUT",
+								"header": [
+									{ "key": "Accept", "value": "application/json" },
+									{ "key": "Content-Type", "value": "application/json" }
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"value\": \"25.00\",\n  \"description\": \"Default CPM\"\n}"
+								},
+								"url": "{{base_url}}/marketing/settings/default_cpm",
+								"description": "Seeded keys: default_cpm, default_cpc, target_conversion_rate, default_campaign_budget, default_platform_split (MarketingSeeder)."
+							},
+							"response": []
+						}
+					]
+				}
+			]
+		},
+		{
+			"name": "Ads",
+			"item": [
+				{
+					"name": "Accounts",
+					"request": {
+						"method": "GET",
+						"header": [ { "key": "Accept", "value": "application/json" } ],
+						"url": "{{base_url}}/ads/accounts"
+					},
+					"response": []
+				},
+				{
+					"name": "Campaigns",
+					"request": {
+						"method": "GET",
+						"header": [ { "key": "Accept", "value": "application/json" } ],
+						"url": "{{base_url}}/ads/campaigns"
+					},
+					"response": []
+				},
+				{
+					"name": "Insights",
+					"request": {
+						"method": "GET",
+						"header": [ { "key": "Accept", "value": "application/json" } ],
+						"url": "{{base_url}}/ads/insights"
+					},
+					"response": []
+				},
+				{
+					"name": "Trigger Sync",
+					"request": {
+						"method": "POST",
+						"header": [ { "key": "Accept", "value": "application/json" } ],
+						"url": "{{base_url}}/ads/sync"
+					},
+					"response": []
+				},
+				{
+					"name": "Store Outcome",
+					"request": {
+						"method": "POST",
+						"header": [
+							{ "key": "Accept", "value": "application/json" },
+							{ "key": "Content-Type", "value": "application/json" }
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"campaign_id\": \"camp_123\",\n  \"outcome_type\": \"booking\",\n  \"value\": 1\n}"
+						},
+						"url": "{{base_url}}/ads/outcomes"
+					},
+					"response": []
+				},
+				{
+					"name": "Outcomes Status",
+					"request": {
+						"method": "GET",
+						"header": [ { "key": "Accept", "value": "application/json" } ],
+						"url": "{{base_url}}/ads/outcomes/status"
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Admin - Sales",
+			"item": [
+				{
+					"name": "Assign Project",
+					"request": {
+						"method": "POST",
+						"header": [
+							{ "key": "Accept", "value": "application/json" },
+							{ "key": "Content-Type", "value": "application/json" }
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"leader_id\": 1,\n  \"contract_id\": 1,\n  \"start_date\": \"2025-03-01\",\n  \"end_date\": \"2025-08-31\"\n}"
+						},
+						"url": "{{base_url}}/admin/sales/project-assignments",
+						"description": "Admin only. Sample from SalesSeeder: SalesProjectAssignment."
+					},
+					"response": []
+				}
+			]
+		}
+	]
+}

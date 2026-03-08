@@ -132,18 +132,21 @@ class MarketingProjectService
             return [
                 'status' => 'red',
                 'label' => 'Less than 1 month remaining',
+                'label_ar' => 'أقل من شهر متبقي',
                 'days' => $remainingDays
             ];
         } elseif ($remainingDays < 90) {
             return [
                 'status' => 'orange',
                 'label' => '1-3 months remaining',
+                'label_ar' => '1–3 أشهر متبقية',
                 'days' => $remainingDays
             ];
         } else {
             return [
                 'status' => 'green',
                 'label' => 'More than 3 months remaining',
+                'label_ar' => 'أكثر من 3 أشهر متبقية',
                 'days' => $remainingDays
             ];
         }

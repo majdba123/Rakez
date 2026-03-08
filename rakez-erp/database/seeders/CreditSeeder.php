@@ -135,7 +135,11 @@ class CreditSeeder extends Seeder
             );
         }
 
-        foreach ($soldIds as $reservationId) {
+        // Create claim files only for ~half of sold reservations so the rest appear as "candidates" (وحدات مباعة بدون ملف مطالبة)
+        $soldWithClaimFileCount = max(1, (int) ceil(count($soldIds) / 2));
+        $soldIdsWithClaimFile = array_slice($soldIds, 0, $soldWithClaimFileCount);
+
+        foreach ($soldIdsWithClaimFile as $reservationId) {
             $reservation = SalesReservation::with(['contract.info', 'contractUnit', 'marketingEmployee.team', 'titleTransfer'])
                 ->find($reservationId);
             if (!$reservation) {

@@ -60,7 +60,7 @@ class EmployeeMarketingPlanController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => 'Employee marketing plan created successfully',
+            'message' => 'تم إنشاء خطة التسويق للموظف بنجاح',
             'data' => $plan
         ]);
     }
@@ -78,7 +78,7 @@ class EmployeeMarketingPlanController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => 'Employee marketing plan auto-generated successfully',
+            'message' => 'تم إنشاء خطة التسويق للموظف تلقائياً بنجاح',
             'data' => $plan
         ]);
     }
@@ -90,7 +90,7 @@ class EmployeeMarketingPlanController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => 'Marketing plan suggestions generated successfully',
+            'message' => 'تم إنشاء اقتراحات خطة التسويق بنجاح',
             'data' => $suggestion
         ]);
     }

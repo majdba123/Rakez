@@ -11,6 +11,17 @@
       0 => 'Barryvdh\\DomPDF\\ServiceProvider',
     ),
   ),
+  'carlos-meneses/laravel-mpdf' => 
+  array (
+    'aliases' => 
+    array (
+      'PDF' => 'Mccarlosen\\LaravelMpdf\\Facades\\LaravelMpdf',
+    ),
+    'providers' => 
+    array (
+      0 => 'Mccarlosen\\LaravelMpdf\\LaravelMpdfServiceProvider',
+    ),
+  ),
   'laravel/pail' => 
   array (
     'providers' => 

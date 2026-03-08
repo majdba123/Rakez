@@ -26,8 +26,8 @@ class AccountingSalaryController extends Controller
     {
         try {
             $request->validate([
-                'month' => 'required|integer|min:1|max:12',
-                'year' => 'required|integer|min:2020|max:2100',
+                'month' => 'required|numeric|min:1|max:12',
+                'year' => 'required|numeric|min:2020|max:2100',
                 'type' => 'nullable|string',
                 'team_id' => 'nullable|exists:teams,id',
                 'commission_eligible' => 'nullable|boolean',
@@ -72,12 +72,12 @@ class AccountingSalaryController extends Controller
     {
         try {
             $request->validate([
-                'month' => 'required|integer|min:1|max:12',
-                'year' => 'required|integer|min:2020|max:2100',
+                'month' => 'required|numeric|min:1|max:12',
+                'year' => 'required|numeric|min:2020|max:2100',
             ]);
 
-            $month = $request->input('month');
-            $year = $request->input('year');
+            $month = (int) $request->input('month');
+            $year = (int) $request->input('year');
 
             $employeeData = $this->salaryService->getEmployeeSoldUnits($userId, $month, $year);
 
@@ -109,12 +109,12 @@ class AccountingSalaryController extends Controller
     {
         try {
             $request->validate([
-                'month' => 'required|integer|min:1|max:12',
-                'year' => 'required|integer|min:2020|max:2100',
+                'month' => 'required|numeric|min:1|max:12',
+                'year' => 'required|numeric|min:2020|max:2100',
             ]);
 
-            $month = $request->input('month');
-            $year = $request->input('year');
+            $month = (int) $request->input('month');
+            $year = (int) $request->input('year');
 
             $distribution = $this->salaryService->createSalaryDistribution($userId, $month, $year);
 

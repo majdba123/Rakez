@@ -64,6 +64,21 @@ class AccountingCommissionController extends Controller
     }
 
     /**
+     * List commission distribution types and labels (for frontend dropdowns).
+     * GET /api/accounting/commission-distribution-types
+     */
+    public function distributionTypes(Request $request): JsonResponse
+    {
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'types' => config('commission_distribution.types', []),
+                'type_labels' => config('commission_distribution.type_labels', []),
+            ],
+        ], 200);
+    }
+
+    /**
      * List marketers/employees for commission distribution dropdown.
      * GET /api/accounting/marketers
      */
@@ -166,7 +181,11 @@ class AccountingCommissionController extends Controller
         try {
             $request->validate([
                 'distributions' => 'required|array|min:1',
-                'distributions.*.type' => 'required|in:lead_generation,persuasion,closing,team_leader,sales_manager,project_manager,external_marketer,other',
+                'distributions.*.type' => 'required|in:' . implode(',', config('commission_distribution.types') ?: [
+                    'lead_generation', 'persuasion', 'closing', 'team_leader', 'assistant_pm',
+                    'project_manager', 'owner', 'sales_manager', 'projects_department', 'management', 'ceo',
+                    'external_marketer', 'other',
+                ]),
                 'distributions.*.percentage' => 'required|numeric|min:0|max:100',
                 'distributions.*.user_id' => 'nullable|exists:users,id',
                 'distributions.*.external_name' => 'nullable|string|max:255',
@@ -262,6 +281,48 @@ class AccountingCommissionController extends Controller
                 'success' => false,
                 'message' => $e->getMessage(),
             ], 400);
+        }
+    }
+
+    /**
+     * قائمة العمولات المُصرفة/المُرسلة (للمحاسبة: اسم الموظف، المشروع، المبلغ، تم إرسال إشعار).
+     * GET /api/accounting/commissions/released
+     */
+    public function released(Request $request): JsonResponse
+    {
+        try {
+            $request->validate([
+                'from_date' => 'nullable|date',
+                'to_date' => 'nullable|date|after_or_equal:from_date',
+                'per_page' => 'nullable|integer|min:1|max:100',
+            ]);
+            $result = $this->commissionService->getReleasedCommissionDistributions(
+                $request->input('from_date'),
+                $request->input('to_date'),
+                (int) ($request->input('per_page', 25))
+            );
+            return response()->json([
+                'success' => true,
+                'message' => 'تم جلب قائمة العمولات المُصرفة بنجاح',
+                'data' => $result->items(),
+                'meta' => [
+                    'total' => $result->total(),
+                    'per_page' => $result->perPage(),
+                    'current_page' => $result->currentPage(),
+                    'last_page' => $result->lastPage(),
+                ],
+            ], 200);
+        } catch (ValidationException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation failed.',
+                'errors' => $e->errors(),
+            ], 422);
+        } catch (Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage(),
+            ], 500);
         }
     }
 

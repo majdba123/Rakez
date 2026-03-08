@@ -1,92 +1,102 @@
 @extends('layouts.pdf')
 
-@section('title', 'ملف المطالبة - ' . ($file_data['project_name'] ?? 'غير محدد'))
+@section('title', 'مطالبة عمولة - ' . $commission->id)
 
 @section('extra-styles')
-    .ref-box { text-align: center; padding: 8px; background: #f0f0f0; font-size: 12px; font-weight: bold; margin-bottom: 15px; border: 1px solid #ddd; }
+    .totals-table { width: 100%; border-collapse: collapse; margin: 10px 0; }
+    .totals-table td { padding: 8px; border: 1px solid #ddd; font-size: 11px; }
+    .totals-table td:first-child { width: 60%; background-color: #f5f5f5; font-weight: bold; }
+    .totals-table tr:last-child td { background-color: #1B2A4A; color: #fff; font-size: 13px; font-weight: bold; }
 @endsection
 
 @section('content')
-    <p class="doc-title">ملف المطالبة / Claim File</p>
-    <p class="doc-subtitle">{{ $generated_at }}</p>
+    <p class="doc-title">مطالبة عمولة</p>
+    <p class="doc-subtitle">رقم العمولة: {{ $commission->id }} | تاريخ الإصدار: {{ $generated_at }}</p>
 
-    <div class="ref-box">
-        رقم المطالبة: {{ $claim_file->id }} | رقم الحجز: {{ $file_data['reservation_id'] }}
-    </div>
-
-    <p class="section-title">&#9670; بيانات المشروع</p>
+    <p class="section-title">&#9670; معلومات العمولة</p>
     <table class="info-table">
-        <tr><td>اسم المشروع</td><td>{{ $file_data['project_name'] ?? '-' }}</td></tr>
-        <tr><td>الموقع</td><td>{{ $file_data['project_location'] ?? '-' }}</td></tr>
-    </table>
-
-    <p class="section-title">&#9670; بيانات الوحدة</p>
-    <table class="info-table">
-        <tr><td>رقم الوحدة</td><td>{{ $file_data['unit_number'] ?? '-' }}</td></tr>
-        <tr><td>نوع الوحدة</td><td>{{ $file_data['unit_type'] ?? '-' }}</td></tr>
-        <tr><td>المساحة</td><td>{{ $file_data['unit_area'] ? $file_data['unit_area'] . ' م²' : '-' }}</td></tr>
-        <tr><td>السعر</td><td>{{ $file_data['unit_price'] ? number_format($file_data['unit_price'], 2) . ' ريال' : '-' }}</td></tr>
-    </table>
-
-    <p class="section-title">&#9670; بيانات العميل</p>
-    <table class="info-table">
-        <tr><td>اسم العميل</td><td>{{ $file_data['client_name'] ?? '-' }}</td></tr>
-        <tr><td>رقم الجوال</td><td>{{ $file_data['client_mobile'] ?? '-' }}</td></tr>
-        <tr><td>الجنسية</td><td>{{ $file_data['client_nationality'] ?? '-' }}</td></tr>
-        <tr><td>رقم الآيبان</td><td>{{ $file_data['client_iban'] ?? '-' }}</td></tr>
-    </table>
-
-    <p class="section-title">&#9670; البيانات المالية</p>
-    <table class="info-table">
-        <tr><td>مبلغ العربون</td><td>{{ $file_data['down_payment_amount'] ? number_format($file_data['down_payment_amount'], 2) . ' ريال' : '-' }}</td></tr>
-        <tr><td>حالة العربون</td><td>{{ $file_data['down_payment_status'] === 'refundable' ? 'مسترد' : 'غير مسترد' }}</td></tr>
         <tr>
-            <td>طريقة الدفع</td>
-            <td>
-                @switch($file_data['payment_method'])
-                    @case('cash') نقدي @break
-                    @case('bank_transfer') تحويل بنكي @break
-                    @case('bank_financing') تمويل بنكي @break
-                    @default {{ $file_data['payment_method'] ?? '-' }}
-                @endswitch
-            </td>
+            <td>سعر البيع النهائي</td>
+            <td>{{ number_format($commission->final_selling_price, 2) }} ريال</td>
         </tr>
         <tr>
-            <td>آلية الشراء</td>
-            <td>
-                @switch($file_data['purchase_mechanism'])
-                    @case('cash') كاش @break
-                    @case('supported_bank') بنك مدعوم @break
-                    @case('unsupported_bank') بنك غير مدعوم @break
-                    @default {{ $file_data['purchase_mechanism'] ?? '-' }}
-                @endswitch
-            </td>
+            <td>نسبة العمولة</td>
+            <td>{{ $commission->commission_percentage }}%</td>
         </tr>
-        <tr><td>نسبة عمولة السمسرة</td><td>{{ $file_data['brokerage_commission_percent'] ? $file_data['brokerage_commission_percent'] . '%' : '-' }}</td></tr>
         <tr>
-            <td>العمولة على</td>
+            <td>الحالة</td>
             <td>
-                @if($file_data['commission_payer'] === 'seller') البائع
-                @elseif($file_data['commission_payer'] === 'buyer') المشتري
-                @else -
-                @endif
+                <span class="status-badge status-{{ $commission->status }}">
+                    @if($commission->status === 'pending') معلق
+                    @elseif($commission->status === 'approved') معتمد
+                    @elseif($commission->status === 'paid') مدفوع
+                    @endif
+                </span>
             </td>
         </tr>
-        <tr><td>مبلغ الضريبة</td><td>{{ $file_data['tax_amount'] ? number_format($file_data['tax_amount'], 2) . ' ريال' : '-' }}</td></tr>
     </table>
 
-    <p class="section-title">&#9670; بيانات التسويق</p>
-    <table class="info-table">
-        <tr><td>اسم الفريق</td><td>{{ $file_data['team_name'] ?? '-' }}</td></tr>
-        <tr><td>اسم المسوق</td><td>{{ $file_data['marketer_name'] ?? '-' }}</td></tr>
+    <p class="section-title">&#9670; توزيع العمولة</p>
+    <table class="data-table">
+        <thead>
+            <tr>
+                <th>المستلم</th>
+                <th>النوع</th>
+                <th>النسبة</th>
+                <th>المبلغ</th>
+                <th>الحالة</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach($distributions as $dist)
+            <tr>
+                <td>
+                    @if($dist->recipient)
+                        {{ $dist->recipient->name }}
+                    @else
+                        {{ $dist->external_marketer_name ?? 'غير محدد' }}
+                    @endif
+                </td>
+                <td>{{ $dist->type }}</td>
+                <td>{{ $dist->percentage }}%</td>
+                <td>{{ number_format($dist->amount, 2) }} ريال</td>
+                <td>
+                    <span class="status-badge status-{{ $dist->status }}">
+                        @if($dist->status === 'pending') معلق
+                        @elseif($dist->status === 'approved') معتمد
+                        @elseif($dist->status === 'rejected') مرفوض
+                        @elseif($dist->status === 'paid') مدفوع
+                        @endif
+                    </span>
+                </td>
+            </tr>
+            @endforeach
+        </tbody>
     </table>
 
-    <p class="section-title">&#9670; التواريخ</p>
-    <table class="info-table">
-        <tr><td>تاريخ العقد</td><td>{{ $file_data['contract_date'] ?? '-' }}</td></tr>
-        <tr><td>تاريخ تأكيد الحجز</td><td>{{ $file_data['confirmed_at'] ?? '-' }}</td></tr>
-        <tr><td>تاريخ نقل الملكية</td><td>{{ $file_data['title_transfer_date'] ?? '-' }}</td></tr>
+    <p class="section-title">&#9670; الإجماليات</p>
+    <table class="totals-table">
+        <tr>
+            <td>المبلغ الإجمالي</td>
+            <td>{{ number_format($commission->total_amount, 2) }} ريال</td>
+        </tr>
+        <tr>
+            <td>ضريبة القيمة المضافة (15%)</td>
+            <td>{{ number_format($commission->vat, 2) }} ريال</td>
+        </tr>
+        <tr>
+            <td>مصاريف التسويق</td>
+            <td>{{ number_format($commission->marketing_expenses, 2) }} ريال</td>
+        </tr>
+        <tr>
+            <td>رسوم البنك</td>
+            <td>{{ number_format($commission->bank_fees, 2) }} ريال</td>
+        </tr>
+        <tr>
+            <td>صافي العمولة</td>
+            <td>{{ number_format($commission->net_amount, 2) }} ريال</td>
+        </tr>
     </table>
 
-    <p class="auto-msg">تم إنشاء هذا الملف بواسطة نظام إدارة الحجوزات والائتمان | {{ $generated_at }}</p>
+    <p class="auto-msg">هذا المستند تم إنشاؤه آلياً بواسطة نظام راكز العقاري | {{ $generated_at }}</p>
 @endsection
