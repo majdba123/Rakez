@@ -2,12 +2,10 @@
 
 namespace App\Services\Accounting;
 
-use App\Models\ContractUnit;
 use App\Models\Deposit;
 use App\Models\Contract;
 use App\Models\Commission;
 use App\Models\SalesReservation;
-use Illuminate\Support\Facades\DB;
 
 class AccountingDashboardService
 {
@@ -48,9 +46,9 @@ class AccountingDashboardService
     }
 
     /**
-     * Get total received deposits amount.
+     * Get received deposits count.
      */
-    public function getTotalReceivedDeposits(?string $from = null, ?string $to = null): float
+    public function getTotalReceivedDeposits(?string $from = null, ?string $to = null): int
     {
         $query = Deposit::whereIn('status', ['received', 'confirmed']);
 
@@ -63,13 +61,13 @@ class AccountingDashboardService
             }
         }
 
-        return (float) $query->sum('amount');
+        return $query->count();
     }
 
     /**
-     * Get total refunded deposits amount.
+     * Get refunded deposits count.
      */
-    public function getTotalRefundedDeposits(?string $from = null, ?string $to = null): float
+    public function getTotalRefundedDeposits(?string $from = null, ?string $to = null): int
     {
         $query = Deposit::where('status', 'refunded');
 
@@ -82,15 +80,15 @@ class AccountingDashboardService
             }
         }
 
-        return (float) $query->sum('amount');
+        return $query->count();
     }
 
     /**
-     * Get total value of received projects (sum of all unit prices in contracts).
+     * Get received projects count.
      */
-    public function getTotalProjectsValue(?string $from = null, ?string $to = null): float
+    public function getTotalProjectsValue(?string $from = null, ?string $to = null): int
     {
-        $query = Contract::with('secondPartyData.contractUnits');
+        $query = Contract::query();
 
         if ($from || $to) {
             if ($from) {
@@ -101,22 +99,13 @@ class AccountingDashboardService
             }
         }
 
-        $contracts = $query->get();
-        $totalValue = 0;
-
-        foreach ($contracts as $contract) {
-            if ($contract->secondPartyData && $contract->secondPartyData->contractUnits) {
-                $totalValue += $contract->secondPartyData->contractUnits->sum('price');
-            }
-        }
-
-        return (float) $totalValue;
+        return $query->count();
     }
 
     /**
-     * Get total sales value (based on final selling price of confirmed reservations).
+     * Get confirmed sales count.
      */
-    public function getTotalSalesValue(?string $from = null, ?string $to = null): float
+    public function getTotalSalesValue(?string $from = null, ?string $to = null): int
     {
         $query = SalesReservation::where('status', 'confirmed');
 
@@ -129,8 +118,7 @@ class AccountingDashboardService
             }
         }
 
-        // Sum proposed_price (final selling price)
-        return (float) $query->sum('proposed_price');
+        return $query->count();
     }
 
     /**

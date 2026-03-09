@@ -296,6 +296,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
         // My targets
         Route::get('targets/my', [SalesTargetController::class, 'my'])->middleware('permission:sales.targets.view');
+        Route::get('targets/by-project/{contractId}', [SalesTargetController::class, 'byProject'])->middleware('permission:sales.targets.view');
         Route::patch('targets/{id}', [SalesTargetController::class, 'update'])->middleware('permission:sales.targets.update');
 
         // My attendance

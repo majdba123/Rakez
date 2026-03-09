@@ -8,6 +8,26 @@ use App\Models\User;
 class SalesTargetPolicy
 {
     /**
+     * Determine if user can view team targets for a project (by contract id). Allowed if user has at least one target for this contract, or their team has targets for it.
+     */
+    public function viewTargetsByProject(User $user, int $contractId): bool
+    {
+        $hasOwnTarget = SalesTarget::where('contract_id', $contractId)
+            ->where('marketer_id', $user->id)
+            ->exists();
+        if ($hasOwnTarget) {
+            return true;
+        }
+        if ($user->team_id) {
+            $teamMemberIds = User::where('team_id', $user->team_id)->pluck('id');
+            return SalesTarget::where('contract_id', $contractId)
+                ->whereIn('marketer_id', $teamMemberIds)
+                ->exists();
+        }
+        return false;
+    }
+
+    /**
      * Determine if user can view any targets.
      */
     public function viewAny(User $user): bool

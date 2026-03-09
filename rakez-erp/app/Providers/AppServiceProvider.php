@@ -58,6 +58,10 @@ class AppServiceProvider extends ServiceProvider
             return $user->hasAnyRole(['admin', 'accounting', 'sales_leader']);
         });
 
+        Gate::define('viewTargetsByProject', function ($user, int $contractId) {
+            return app(\App\Policies\SalesTargetPolicy::class)->viewTargetsByProject($user, $contractId);
+        });
+
         // Implicitly grant "Super Admin" role all permissions
         // This works in the app by using gate-related functions like auth()->user->can() and @can()
         Gate::before(function ($user, $ability) {

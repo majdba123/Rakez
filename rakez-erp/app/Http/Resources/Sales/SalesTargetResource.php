@@ -40,6 +40,8 @@ class SalesTargetResource extends JsonResource
             },
             'leader_notes' => $this->leader_notes,
             'assigned_by' => $this->leader->name ?? 'N/A',
+            'marketer_id' => $this->marketer_id,
+            'marketer_name' => $this->relationLoaded('marketer') && $this->marketer ? $this->marketer->name : null,
         ];
     }
 }

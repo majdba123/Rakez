@@ -6,16 +6,25 @@ use App\Models\ContractUnit;
 use App\Models\SalesTarget;
 use App\Models\User;
 use Illuminate\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Collection;
 
 class SalesTargetService
 {
     /**
-     * Get targets for a marketer.
+     * Get targets for the current user. For sales leaders: all targets assigned to their team.
+     * For other sales users: only their own targets.
      */
-    public function getMyTargets(User $marketer, array $filters): LengthAwarePaginator
+    public function getMyTargets(User $user, array $filters): LengthAwarePaginator
     {
-        $query = SalesTarget::where('marketer_id', $marketer->id)
-            ->with(['contract', 'contractUnit', 'contractUnits', 'leader']);
+        $query = SalesTarget::query()
+            ->with(['contract', 'contractUnit', 'contractUnits', 'leader', 'marketer']);
+
+        if ($user->hasRole('sales_leader') && $user->team_id) {
+            $teamMemberIds = User::where('team_id', $user->team_id)->pluck('id');
+            $query->whereIn('marketer_id', $teamMemberIds);
+        } else {
+            $query->where('marketer_id', $user->id);
+        }
 
         // Apply filters
         if (!empty($filters['status'])) {
@@ -28,6 +37,51 @@ class SalesTargetService
 
         $perPage = $filters['per_page'] ?? 15;
         return $query->orderBy('start_date', 'desc')->paginate($perPage);
+    }
+
+    /**
+     * Get targets for a project (contract) for the user's team. Allowed only if the user
+     * has at least one target for this contract, or their team has targets for this contract.
+     */
+    public function getTargetsByProject(int $contractId, User $user): Collection
+    {
+        if (!$this->userCanViewTargetsByProject($user, $contractId)) {
+            throw new \Exception('You do not have access to targets for this project');
+        }
+
+        $query = SalesTarget::where('contract_id', $contractId);
+
+        if ($user->team_id) {
+            $teamMemberIds = User::where('team_id', $user->team_id)->pluck('id');
+            $query->whereIn('marketer_id', $teamMemberIds);
+        } else {
+            $query->where('marketer_id', $user->id);
+        }
+
+        return $query
+            ->with(['contract', 'contractUnit', 'contractUnits', 'leader', 'marketer'])
+            ->orderBy('start_date', 'desc')
+            ->get();
+    }
+
+    /**
+     * Check if user can view targets for a given contract (has a target for it or team has targets).
+     */
+    public function userCanViewTargetsByProject(User $user, int $contractId): bool
+    {
+        $hasOwnTarget = SalesTarget::where('contract_id', $contractId)
+            ->where('marketer_id', $user->id)
+            ->exists();
+        if ($hasOwnTarget) {
+            return true;
+        }
+        if ($user->team_id) {
+            $teamMemberIds = User::where('team_id', $user->team_id)->pluck('id');
+            return SalesTarget::where('contract_id', $contractId)
+                ->whereIn('marketer_id', $teamMemberIds)
+                ->exists();
+        }
+        return false;
     }
 
     /**
@@ -76,7 +130,7 @@ class SalesTargetService
             $target->contractUnits()->sync($unitIds);
         }
 
-        return $target->fresh(['contract', 'contractUnit', 'contractUnits', 'leader']);
+        return $target->fresh(['contract', 'contractUnit', 'contractUnits', 'leader', 'marketer']);
     }
 
     /**

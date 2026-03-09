@@ -6,9 +6,11 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Sales\StoreTargetRequest;
 use App\Http\Requests\Sales\UpdateTargetRequest;
 use App\Http\Resources\Sales\SalesTargetResource;
+use App\Models\SalesTarget;
 use App\Services\Sales\SalesTargetService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Gate;
 
 class SalesTargetController extends Controller
 {
@@ -50,6 +52,31 @@ class SalesTargetController extends Controller
     }
 
     /**
+     * List targets for a project (units assigned to team + assignee per target). Allowed if user or their team has targets for this contract.
+     */
+    public function byProject(Request $request, int $contractId): JsonResponse
+    {
+        if (! Gate::forUser($request->user())->allows('viewTargetsByProject', $contractId)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'You do not have access to targets for this project',
+            ], 403);
+        }
+        try {
+            $targets = $this->targetService->getTargetsByProject($contractId, $request->user());
+            return response()->json([
+                'success' => true,
+                'data' => SalesTargetResource::collection($targets),
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to retrieve targets: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
      * Create a new target (leader only).
      */
     public function store(StoreTargetRequest $request): JsonResponse
@@ -74,10 +101,13 @@ class SalesTargetController extends Controller
     }
 
     /**
-     * Update target status.
+     * Update target status. The employee who owns the target (marketer_id) can set status to completed to mark as achieved (e.g. unit booked or sold).
      */
     public function update(int $id, UpdateTargetRequest $request): JsonResponse
     {
+        $target = SalesTarget::findOrFail($id);
+        $this->authorize('update', $target);
+
         try {
             $target = $this->targetService->updateTarget(
                 $id,
@@ -91,11 +121,10 @@ class SalesTargetController extends Controller
                 'data' => new SalesTargetResource($target),
             ]);
         } catch (\Exception $e) {
-            $statusCode = $e->getMessage() === 'Unauthorized to update this target' ? 403 : 400;
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to update target: ' . $e->getMessage(),
-            ], $statusCode);
+            ], 400);
         }
     }
 }
