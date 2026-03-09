@@ -65,8 +65,6 @@ class UpdateContractRequest extends FormRequest
             'developer_requiment' => 'sometimes|string',
             'notes' => 'nullable|string',
             'is_off_plan' => 'sometimes|boolean',
-            'commission_percent' => 'sometimes|numeric|min:0',
-            'commission_from' => 'sometimes|string|max:255',
             // Units array validation
             'units' => 'sometimes|array|min:1',
             'units.*.type' => 'required_with:units|string|max:255',

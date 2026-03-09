@@ -43,8 +43,6 @@ class ContractResource extends JsonResource
             'project_image_url' => $this->project_image_url,
             'status' => $this->status,
             'notes' => $this->notes,
-            'commission_percent' => $this->commission_percent !== null ? (float) $this->commission_percent : null,
-            'commission_from' => $this->commission_from,
             'units' => $this->units ?? [],
             'unit_count' => $unitCount,
             'total_price' => $totalPrice,

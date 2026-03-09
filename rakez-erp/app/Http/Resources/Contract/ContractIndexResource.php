@@ -40,8 +40,6 @@ class ContractIndexResource extends JsonResource
 
             'status' => $this->status,
             'developer_requiment' => $this->developer_requiment,
-            'commission_percent' => $this->commission_percent !== null ? (float) $this->commission_percent : null,
-            'commission_from' => $this->commission_from,
             'has_photography_data' => $this->photographyDepartment ? 1 : 0,
             'has_montage_data' => $this->montageDepartment ? 1 : 0,
             'created_at' => $this->created_at?->toIso8601String(),
