@@ -67,6 +67,9 @@ class StoreContractRequest extends FormRequest
             'project_name' => 'required|string|max:255',
             'developer_requiment' => 'required|string',
             'notes' => 'nullable|string',
+            // Commission details (optional, same style as ContractInfo)
+            'commission_percent' => 'nullable|numeric|min:0',
+            'commission_from' => 'nullable|string|max:255',
             // Units array validation
             'units' => 'required|array|min:1',
             'units.*.type' => 'required|string|max:255',
