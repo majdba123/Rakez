@@ -140,7 +140,7 @@ class ExclusiveProjectsAccessTest extends BasePermissionTestCase
     }
 
     #[Test]
-    public function hr_staff_cannot_request_exclusive_project()
+    public function hr_staff_can_request_exclusive_project()
     {
         $hr = $this->createHRStaff();
         
@@ -155,7 +155,9 @@ class ExclusiveProjectsAccessTest extends BasePermissionTestCase
                 'location_district' => 'Test',
             ]);
         
-        $response->assertStatus(403);
+        $response->assertStatus(201)
+            ->assertJson(['success' => true])
+            ->assertJsonPath('data.project_name', 'HR Tower');
     }
 
     #[Test]

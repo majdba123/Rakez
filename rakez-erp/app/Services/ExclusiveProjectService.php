@@ -82,7 +82,7 @@ class ExclusiveProjectService
 
             $this->notifyManagers($request);
 
-            return $request->fresh(['requestedBy', 'requestUnits']);
+            return $request->fresh(['requestedBy']);
         } catch (Exception $e) {
             DB::rollBack();
             throw $e;
@@ -95,7 +95,7 @@ class ExclusiveProjectService
      */
     public function getRequests(array $filters = [], int $perPage = 15, ?User $user = null): LengthAwarePaginator
     {
-        $query = ExclusiveProjectRequest::with(['requestedBy', 'approvedBy', 'contract', 'requestUnits']);
+        $query = ExclusiveProjectRequest::with(['requestedBy', 'approvedBy', 'contract']);
 
         // Restrict to current user's requests unless they can approve (PM Manager / Admin see all)
         if ($user !== null && !$user->can('exclusive_projects.approve')) {
@@ -128,7 +128,7 @@ class ExclusiveProjectService
      */
     public function getRequest(int $id): ExclusiveProjectRequest
     {
-        return ExclusiveProjectRequest::with(['requestedBy', 'approvedBy', 'contract', 'requestUnits'])
+        return ExclusiveProjectRequest::with(['requestedBy', 'approvedBy', 'contract'])
             ->findOrFail($id);
     }
 

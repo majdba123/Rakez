@@ -391,12 +391,12 @@ Route::middleware('auth:sanctum')->group(function () {
         });
 
     // ==========================================
-    // EXCLUSIVE PROJECT ROUTES (All except HR)
+    // EXCLUSIVE PROJECT ROUTES (any authenticated user can create a request; approve/contract remain restricted)
     // ==========================================
     Route::prefix('exclusive-projects')->middleware(['auth:sanctum'])->group(function () {
         Route::get('/', [ExclusiveProjectController::class, 'index']);
         Route::get('/{id}', [ExclusiveProjectController::class, 'show']);
-        Route::post('/', [ExclusiveProjectController::class, 'store'])->middleware('permission:exclusive_projects.request');
+        Route::post('/', [ExclusiveProjectController::class, 'store']);
         Route::post('/{id}/approve', [ExclusiveProjectController::class, 'approve'])->middleware('permission:exclusive_projects.approve');
         Route::post('/{id}/reject', [ExclusiveProjectController::class, 'reject'])->middleware('permission:exclusive_projects.approve');
         Route::put('/{id}/contract', [ExclusiveProjectController::class, 'completeContract'])->middleware('permission:exclusive_projects.contract.complete');

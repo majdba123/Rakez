@@ -10,7 +10,8 @@ class StoreExclusiveProjectRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return $this->user()->can('exclusive_projects.request');
+        // Any authenticated user can submit an exclusive project request, regardless of role.
+        return (bool) $this->user();
     }
 
     /**

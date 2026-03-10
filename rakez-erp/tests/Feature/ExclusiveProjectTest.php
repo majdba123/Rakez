@@ -67,7 +67,7 @@ class ExclusiveProjectTest extends TestCase
     }
 
     #[Test]
-    public function hr_staff_cannot_create_exclusive_project_request()
+    public function hr_staff_can_create_exclusive_project_request()
     {
         $data = [
             'project_name' => 'Luxury Towers',
@@ -79,7 +79,13 @@ class ExclusiveProjectTest extends TestCase
         $response = $this->actingAs($this->hrStaff, 'sanctum')
             ->postJson('/api/exclusive-projects', $data);
 
-        $response->assertStatus(403);
+        $response->assertStatus(201)
+            ->assertJson(['success' => true])
+            ->assertJsonPath('data.project_name', 'Luxury Towers');
+        $this->assertDatabaseHas('exclusive_project_requests', [
+            'project_name' => 'Luxury Towers',
+            'requested_by' => $this->hrStaff->id,
+        ]);
     }
 
     #[Test]
