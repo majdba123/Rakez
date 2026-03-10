@@ -48,8 +48,7 @@ class InventoryAgencyOverviewService
                 'contract_id' => $cid,
                 'project_name' => $row->project_name,
                 'status' => $row->status,
-                'lat' => $row->lat !== null ? (float) $row->lat : null,
-                'lng' => $row->lng !== null ? (float) $row->lng : null,
+                'location_url' => $row->location_url,
                 'agency_date' => $agencyDate?->toDateString(),
                 'color' => $color,
                 'unit_price_range' => $ranges ? [

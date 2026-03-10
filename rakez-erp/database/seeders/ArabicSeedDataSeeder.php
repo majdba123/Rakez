@@ -116,7 +116,7 @@ class ArabicSeedDataSeeder extends Seeder
                     'bedrooms' => $bedrooms,
                     'bathrooms' => $bathrooms,
                     'private_area_m2' => $privateArea,
-                    'total_area_m2' => $area + $privateArea,
+                    // total_area_m2 set by ContractUnit model (area + private_area_m2)
                     'facade' => $facades[$i % count($facades)],
                     'price' => rand(500000, 2000000),
                     'status' => 'available',

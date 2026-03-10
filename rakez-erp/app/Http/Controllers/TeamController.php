@@ -166,8 +166,7 @@ class TeamController extends Controller
                         'contract_id' => (int) $row->contract_id,
                         'project_name' => $row->project_name,
                         'status' => $row->status,
-                        'lat' => $row->lat !== null ? (float) $row->lat : null,
-                        'lng' => $row->lng !== null ? (float) $row->lng : null,
+                        'location_url' => $row->location_url,
                     ];
                 }),
                 'meta' => [

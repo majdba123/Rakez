@@ -33,8 +33,7 @@ class ContractInfoResource extends JsonResource
             'gregorian_date' => $this->gregorian_date?->toDateString(),
             'hijri_date' => $this->hijri_date,
             'contract_city' => $this->contract_city,
-            'lat' => $this->lat !== null ? (float) $this->lat : null,
-            'lng' => $this->lng !== null ? (float) $this->lng : null,
+            'location_url' => $this->location_url,
             'agreement_duration_days' => (int) $this->agreement_duration_days,
             // Commission details
             'commission_percent' => (float) $this->commission_percent,

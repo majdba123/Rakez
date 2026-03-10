@@ -84,14 +84,21 @@ class ContractUnitService
             return strtolower(trim($col));
         }, $header);
 
-        // Map CSV columns to database fields
+        // Map CSV columns to database fields (Arabic/English headers supported)
         $columnMap = [
             'unit_type' => ['unit_type', 'type', 'نوع_الوحدة', 'نوع'],
             'unit_number' => ['unit_number', 'number', 'رقم_الوحدة', 'رقم'],
             'status' => ['status', 'الحالة'],
             'price' => ['price', 'unit_price', 'السعر', 'سعر_الوحدة'],
             'area' => ['area', 'size', 'المساحة'],
+            'floor' => ['floor', 'الطابق'],
+            'bedrooms' => ['bedrooms', 'غرف', 'عدد_الغرف'],
+            'bathrooms' => ['bathrooms', 'حمامات', 'عدد_الحمامات'],
+            'private_area_m2' => ['private_area_m2', 'private_area', 'المساحة_الخاصة', 'الشرفة'],
+            'view' => ['view', 'facade', 'الواجهة', 'الاتجاه'],
             'description' => ['description', 'desc', 'الوصف', 'ملاحظات'],
+            'description_en' => ['description_en', 'description en', 'الوصف_انجليزي'],
+            'description_ar' => ['description_ar', 'description ar', 'الوصف_عربي'],
         ];
 
         // Find column indices
@@ -125,10 +132,15 @@ class ContractUnitService
                 if (isset($row[$index]) && $row[$index] !== '') {
                     $value = trim($row[$index]);
 
-                    // Type casting
                     switch ($field) {
                         case 'price':
+                        case 'area':
+                        case 'private_area_m2':
                             $unitData[$field] = (float) $value;
+                            break;
+                        case 'bedrooms':
+                        case 'bathrooms':
+                            $unitData[$field] = (int) $value;
                             break;
                         default:
                             $unitData[$field] = $value;
@@ -136,7 +148,15 @@ class ContractUnitService
                 }
             }
 
-            // Create unit
+            // Map single "description" column to description_en for backward compatibility
+            if (isset($unitData['description'])) {
+                if (! isset($unitData['description_en'])) {
+                    $unitData['description_en'] = $unitData['description'];
+                }
+                unset($unitData['description']);
+            }
+
+            // Create unit (total_area_m2 is set by model from area + private_area_m2)
             ContractUnit::create($unitData);
             $unitsCreated++;
         }
@@ -239,14 +259,20 @@ class ContractUnitService
             // Check authorization - only the employee who processed can update
             $this->authorizeUnitModification($unit->secondPartyData);
 
-            // Filter only allowed fields
+            // Filter only allowed fields (total_area_m2 is computed in model as area + private_area_m2)
             $allowedFields = [
                 'unit_type',
                 'unit_number',
                 'status',
                 'price',
                 'area',
-                'description',
+                'floor',
+                'bedrooms',
+                'bathrooms',
+                'private_area_m2',
+                'view',
+                'description_en',
+                'description_ar',
             ];
 
             $filteredData = array_intersect_key($data, array_flip($allowedFields));

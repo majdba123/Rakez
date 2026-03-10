@@ -115,7 +115,7 @@ class ContractService
     }
 
     /**
-     * High-performance: get only contract locations (lat/lng) for a team.
+     * High-performance: get only contract locations (location_url) for a team.
      * Uses joins to avoid heavy eager-loading and large payloads.
      */
     public function getContractLocationsByTeam(int $teamId, ?string $status = null, int $perPage = 200): LengthAwarePaginator
@@ -129,8 +129,7 @@ class ContractService
                     'contracts.id as contract_id',
                     'contracts.project_name',
                     'contracts.status',
-                    'contract_infos.lat',
-                    'contract_infos.lng',
+                    'contract_infos.location_url',
                     'contracts.created_at',
                 ]);
 
@@ -147,7 +146,7 @@ class ContractService
     }
 
     /**
-     * High-performance: get only contract locations (lat/lng) across all contracts,
+     * High-performance: get only contract locations (location_url) across all contracts,
      * with filters equivalent to adminIndex/getContractsForAdmin.
      */
     public function getContractLocationsForAdmin(array $filters = [], int $perPage = 200): LengthAwarePaginator
@@ -159,8 +158,7 @@ class ContractService
                     'contracts.id as contract_id',
                     'contracts.project_name',
                     'contracts.status',
-                    'contract_infos.lat',
-                    'contract_infos.lng',
+                    'contract_infos.location_url',
                     'contracts.created_at',
                 ]);
 
@@ -245,7 +243,7 @@ class ContractService
     public function getContractsAgencyOverviewForAdmin(array $filters = [], int $perPage = 50): LengthAwarePaginator
     {
         try {
-            // LEFT JOIN so we return all contracts; agency_date/lat/lng can be null when contract_info is missing or agency_date not set
+            // LEFT JOIN so we return all contracts; agency_date/location_url can be null when contract_info is missing or agency_date not set
             $query = Contract::query()
                 ->leftJoin('contract_infos', function ($join) {
                     $join->on('contract_infos.contract_id', '=', 'contracts.id')
@@ -258,8 +256,7 @@ class ContractService
                     'contracts.city',
                     'contracts.district',
                     'contract_infos.agency_date',
-                    'contract_infos.lat',
-                    'contract_infos.lng',
+                    'contract_infos.location_url',
                     'contracts.created_at',
                 ]);
 

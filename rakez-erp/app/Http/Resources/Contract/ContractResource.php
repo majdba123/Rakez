@@ -46,6 +46,9 @@ class ContractResource extends JsonResource
             'units' => $this->units ?? [],
             'unit_count' => $unitCount,
             'total_price' => $totalPrice,
+            'commission_percent' => $this->commission_percent !== null ? (float) $this->commission_percent : null,
+            'commission_from' => $this->commission_from,
+
             'created_at' => $this->created_at?->toIso8601String(),
             'updated_at' => $this->updated_at?->toIso8601String(),
 

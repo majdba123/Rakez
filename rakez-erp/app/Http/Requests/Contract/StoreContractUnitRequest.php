@@ -18,8 +18,14 @@ class StoreContractUnitRequest extends FormRequest
             'unit_number' => 'required|string|max:255',
             'status' => 'nullable|string|in:pending,sold,reserved,available',
             'price' => 'required|numeric|min:0',
-            'area' => 'nullable|string|max:255',
-            'description' => 'nullable|string|max:1000',
+            'area' => 'nullable|numeric|min:0',
+            'floor' => 'nullable|string|max:255',
+            'bedrooms' => 'nullable|integer|min:0',
+            'bathrooms' => 'nullable|integer|min:0',
+            'private_area_m2' => 'nullable|numeric|min:0',
+            'view' => 'nullable|string|max:100',
+            'description_en' => 'nullable|string|max:1000',
+            'description_ar' => 'nullable|string|max:1000',
         ];
     }
 
