@@ -122,6 +122,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::delete('/contracts/{id}', [ContractController::class, 'destroy']);
 
         Route::post('/contracts/store/info/{id}', [ContractInfoController::class, 'store']);
+        Route::put('/contracts/update/info/{id}', [ContractInfoController::class, 'update']);
 
         // Sales / project-tracker: view second-party-data and photography-department (authorized via ContractPolicy in controller)
         Route::get('/second-party-data/show/{id}', [SecondPartyDataController::class, 'show']);
