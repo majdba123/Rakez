@@ -390,4 +390,34 @@ class ContractController extends Controller
             ], $statusCode);
         }
     }
+
+    /**
+     * Get teams assigned to a contract.
+     * GET /hr/teams/getTeamsForContract/{contractId}
+     */
+    public function getTeamsForContract(int $contractId): JsonResponse
+    {
+        try {
+            $teams = $this->contractService->getContractTeams($contractId);
+
+            return response()->json([
+                'success' => true,
+                'data' => $teams,
+            ], 200);
+        } catch (Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage(),
+            ], str_contains($e->getMessage(), 'No query results') || str_contains($e->getMessage(), 'Contract not found') ? 404 : 500);
+        }
+    }
+
+    /**
+     * Get teams assigned to a contract (project_management context).
+     * GET /project_management/teams/index/{contractId}
+     */
+    public function getTeamsForContract_HR(int $contractId): JsonResponse
+    {
+        return $this->getTeamsForContract($contractId);
+    }
 }
