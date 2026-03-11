@@ -234,7 +234,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
         Route::prefix('teams')->group(function () {
 
-            Route::get('/', [HrTeamController::class, 'index']);
+            Route::get('/', [MontageDepartmentController::class, 'team_index']);
 
         });
 

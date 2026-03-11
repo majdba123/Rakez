@@ -10,7 +10,9 @@ use App\Services\Contract\MontageDepartmentService;
 use App\Events\Marketing\ImageUploadedEvent;
 use Illuminate\Http\JsonResponse;
 use Exception;
-
+use App\Models\Team;
+use App\Http\Responses\ApiResponse;
+use Illuminate\Http\Request;
 /**
  * قسم المونتاج - Montage Department Controller
  */
@@ -21,6 +23,60 @@ class MontageDepartmentController extends Controller
     public function __construct(MontageDepartmentService $montageDepartmentService)
     {
         $this->montageDepartmentService = $montageDepartmentService;
+    }
+
+    public function team_index(Request $request): JsonResponse
+    {
+        try {
+            $year = (int) $request->input('year', now()->year);
+            $month = (int) $request->input('month', now()->month);
+            $perPage = ApiResponse::getPerPage($request);
+
+            $teams = Team::with(['members', 'contracts'])
+                ->orderBy('created_at', 'desc')
+                ->paginate($perPage);
+
+            $teamsData = $teams->getCollection()->map(function ($team) use ($year, $month) {
+                return [
+                    'id' => $team->id,
+                    'name' => $team->name,
+                    'description' => $team->description,
+                    'members_count' => $team->members->count(),
+                    'marketers' => $team->marketers()->get()->map(fn($m) => [
+                        'id' => $m->id,
+                        'name' => $m->name,
+                    ]),
+                    'created_at' => $team->created_at,
+                ];
+            });
+
+            $teams->setCollection($teamsData);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'تم جلب قائمة الفرق بنجاح',
+                'data' => $teams->items(),
+                'meta' => [
+                    'pagination' => [
+                        'total' => $teams->total(),
+                        'count' => $teams->count(),
+                        'per_page' => $teams->perPage(),
+                        'current_page' => $teams->currentPage(),
+                        'total_pages' => $teams->lastPage(),
+                        'has_more_pages' => $teams->hasMorePages(),
+                    ],
+                    'period' => [
+                        'year' => $year,
+                        'month' => $month,
+                    ],
+                ],
+            ], 200);
+        } catch (Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage(),
+            ], 500);
+        }
     }
 
     public function store(StoreMontageDepartmentRequest $request, int $contractId): JsonResponse
