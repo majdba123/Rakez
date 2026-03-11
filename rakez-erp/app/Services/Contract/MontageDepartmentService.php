@@ -108,7 +108,7 @@ class MontageDepartmentService
             $isPmManager = $user  && ($user->is_manager ?? false);
 
             if (!$isAdmin && !$isPmManager) {
-                throw new Exception('غير مصرح - هذه الصلاحية متاحة فقط لمدير إدارة المشاريع');
+                throw new Exception('غير مصرح - هذه الصلاحية متاحة فقط لمدير إدارة المونتاج');
             }
 
             $record->update([
