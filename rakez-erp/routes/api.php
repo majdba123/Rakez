@@ -232,6 +232,12 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::get('/show/{id}', [ContractController::class, 'show'])->middleware('permission:contracts.view');
         });
 
+        Route::prefix('teams')->group(function () {
+
+            Route::get('/', [HrTeamController::class, 'index']);
+
+        });
+
         // Second Party Data - view only
         Route::prefix('second-party-data')->group(function () {
             Route::get('show/{id}', [SecondPartyDataController::class, 'show'])->middleware('permission:second_party.view');
