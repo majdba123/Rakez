@@ -87,5 +87,43 @@ class MontageDepartmentService
 
         return $contract->montageDepartment?->load('processedByUser');
     }
+
+    /**
+     * Approve montage department (project_management manager or admin only)
+     * اعتماد بيانات قسم المونتاج
+     */
+    public function approveByContractId(int $contractId): MontageDepartment
+    {
+        DB::beginTransaction();
+        try {
+            $contract = $this->getAuthorizedContract($contractId);
+            $record = $contract->montageDepartment;
+
+            if (!$record) {
+                throw new Exception('بيانات قسم المونتاج غير موجودة لهذا العقد');
+            }
+
+            $user = Auth::user();
+            $isAdmin = $user && $user->type === 'admin';
+            $isPmManager = $user && ($user->is_manager ?? false);
+
+            if (!$isAdmin && !$isPmManager) {
+                throw new Exception('غير مصرح - هذه الصلاحية متاحة فقط لمدير  المونتاج');
+            }
+
+            $record->update([
+                'status' => 'approved',
+                'processed_by' => Auth::id(),
+                'processed_at' => now(),
+            ]);
+
+            DB::commit();
+
+            return $record->fresh()->load('processedByUser');
+        } catch (Exception $e) {
+            DB::rollBack();
+            throw $e;
+        }
+    }
 }
 

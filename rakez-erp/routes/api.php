@@ -171,6 +171,13 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::put('update/{contractId}', [BoardsDepartmentController::class, 'update'])->middleware('permission:departments.boards.edit');
         });
 
+        Route::prefix('montage-department')->group(function () {
+            Route::get('show/{contractId}', [MontageDepartmentController::class, 'show'])->middleware('permission:departments.montage.view');
+            Route::post('store/{contractId}', [MontageDepartmentController::class, 'store'])->middleware('permission:departments.montage.edit');
+            Route::put('update/{contractId}', [MontageDepartmentController::class, 'update'])->middleware('permission:departments.montage.edit');
+            Route::patch('approve/{contractId}', [MontageDepartmentController::class, 'approve']);
+        });
+
         Route::prefix('photography-department')->group(function () {
             Route::get('show/{contractId}', [PhotographyDepartmentController::class, 'show'])->middleware('permission:departments.photography.view');
             Route::post('store/{contractId}', [PhotographyDepartmentController::class, 'store'])->middleware('permission:departments.photography.edit');
@@ -246,6 +253,7 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::get('show/{contractId}', [MontageDepartmentController::class, 'show'])->middleware('permission:departments.montage.view');
             Route::post('store/{contractId}', [MontageDepartmentController::class, 'store'])->middleware('permission:departments.montage.edit');
             Route::put('update/{contractId}', [MontageDepartmentController::class, 'update'])->middleware('permission:departments.montage.edit');
+            Route::patch('approve/{contractId}', [MontageDepartmentController::class, 'approve'])->middleware('permission:departments.montage.edit');
         });
 
         // Photography Department - قسم التصوير

@@ -21,6 +21,7 @@ class MontageDepartment extends Model
         'image_url',           // رابط الصورة
         'video_url',           // رابط الفيديو
         'description',         // الوصف
+        'status',              // الحالة (pending/approved)
         'processed_by',        // معالج بواسطة
         'processed_at',        // تاريخ المعالجة
     ];

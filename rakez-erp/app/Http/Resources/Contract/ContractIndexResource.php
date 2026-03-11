@@ -45,6 +45,11 @@ class ContractIndexResource extends JsonResource
             'created_at' => $this->created_at?->toIso8601String(),
             'updated_at' => $this->updated_at?->toIso8601String(),
             'user' => new UserResource($this->whenLoaded('user')),
+            // Only include when second party data has advertiser section URL (رقم المعلن)
+            'advertiser_section_url' => $this->when(
+                $this->relationLoaded('secondPartyData') && $this->secondPartyData && trim((string) ($this->secondPartyData->advertiser_section_url ?? '')) !== '',
+                $this->secondPartyData->advertiser_section_url
+            ),
         ];
     }
 }

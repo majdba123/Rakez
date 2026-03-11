@@ -99,5 +99,30 @@ class MontageDepartmentController extends Controller
             ], $statusCode);
         }
     }
+
+    /**
+     * Approve montage department (project_management manager or admin only)
+     * اعتماد بيانات قسم المونتاج
+     */
+    public function approve(int $contractId): JsonResponse
+    {
+        try {
+            $montageDepartment = $this->montageDepartmentService->approveByContractId($contractId);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'تم اعتماد بيانات قسم المونتاج بنجاح',
+                'data' => new MontageDepartmentResource($montageDepartment),
+            ], 200);
+        } catch (Exception $e) {
+            $statusCode = str_contains($e->getMessage(), 'غير موجودة') ? 404 : 500;
+            $statusCode = str_contains($e->getMessage(), 'غير مصرح') ? 403 : $statusCode;
+
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage(),
+            ], $statusCode);
+        }
+    }
 }
 

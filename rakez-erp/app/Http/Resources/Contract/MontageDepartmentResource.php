@@ -18,6 +18,7 @@ class MontageDepartmentResource extends JsonResource
             'image_url' => $this->image_url,
             'video_url' => $this->video_url,
             'description' => $this->description,
+            'status' => $this->status ?? 'pending',
 
             'processed_by' => $this->when($this->processedByUser, [
                 'id' => $this->processedByUser?->id,
