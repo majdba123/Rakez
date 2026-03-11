@@ -24,7 +24,7 @@ class ContractUnit extends Model
         'bathrooms',
         'private_area_m2',
         // total_area_m2 is computed as area + private_area_m2 (set in boot saving, accessor below)
-        'view',
+        'facade', // DB column (view/facade/orientation)
         'description_en',
         'description_ar',
 
@@ -44,6 +44,14 @@ class ContractUnit extends Model
         static::saving(function (ContractUnit $model) {
             $model->total_area_m2 = (float) ($model->area ?? 0) + (float) ($model->private_area_m2 ?? 0);
         });
+    }
+
+    /**
+     * Alias for facade (API and resources use "view" / "orientation").
+     */
+    public function getViewAttribute(): ?string
+    {
+        return $this->attributes['facade'] ?? null;
     }
 
     /**

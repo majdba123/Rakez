@@ -81,6 +81,10 @@ class ContractUnitController extends Controller
             $this->authorize('update', $contract);
 
             $data = $request->validated();
+            if (array_key_exists('view', $data)) {
+                $data['facade'] = $data['view'];
+                unset($data['view']);
+            }
             $unit = $this->contractUnitService->addUnit($contractId, $data);
 
             return response()->json([
@@ -101,6 +105,10 @@ class ContractUnitController extends Controller
             $this->authorize('update', $unit);
 
             $data = $request->validated();
+            if (array_key_exists('view', $data)) {
+                $data['facade'] = $data['view'];
+                unset($data['view']);
+            }
             $unit = $this->contractUnitService->updateUnit($unitId, $data);
 
             return response()->json([

@@ -95,7 +95,7 @@ class ContractUnitService
             'bedrooms' => ['bedrooms', 'غرف', 'عدد_الغرف'],
             'bathrooms' => ['bathrooms', 'حمامات', 'عدد_الحمامات'],
             'private_area_m2' => ['private_area_m2', 'private_area', 'المساحة_الخاصة', 'الشرفة'],
-            'view' => ['view', 'facade', 'الواجهة', 'الاتجاه'],
+            'facade' => ['view', 'facade', 'الواجهة', 'الاتجاه'],
             'description' => ['description', 'desc', 'الوصف', 'ملاحظات'],
             'description_en' => ['description_en', 'description en', 'الوصف_انجليزي'],
             'description_ar' => ['description_ar', 'description ar', 'الوصف_عربي'],
@@ -270,7 +270,7 @@ class ContractUnitService
                 'bedrooms',
                 'bathrooms',
                 'private_area_m2',
-                'view',
+                'facade',
                 'description_en',
                 'description_ar',
             ];
