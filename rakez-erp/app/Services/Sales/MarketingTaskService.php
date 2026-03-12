@@ -15,13 +15,19 @@ class MarketingTaskService
     ) {}
     /**
      * Get projects for task management (leader only).
+     * أي مشروع اكتمل عقده يظهر (بما فيها غير المُسنَدة لفريق) ليكون متاحاً في كل الأقسام.
      */
     public function getTaskProjects(User $leader): Collection
     {
-        return Contract::where('status', 'ready')
-            ->whereHas('salesProjectAssignments', function ($q) use ($leader) {
-                $q->where('leader_id', $leader->id);
-            })->with(['montageDepartment', 'photographyDepartment', 'boardsDepartment'])->get();
+        return Contract::whereIn('status', ['ready', 'completed'])
+            ->where(function ($q) use ($leader) {
+                $q->whereDoesntHave('salesProjectAssignments', function ($aq) {
+                    $aq->active();
+                })->orWhereHas('salesProjectAssignments', function ($aq) use ($leader) {
+                    $aq->where('leader_id', $leader->id)->active();
+                });
+            })
+            ->with(['montageDepartment', 'photographyDepartment', 'boardsDepartment'])->get();
     }
 
     /**
@@ -90,13 +96,22 @@ class MarketingTaskService
     }
 
     /**
-     * Check if leader has access to a project.
+     * Check if leader has access to a project (assigned to him or unassigned so he can take it).
      */
     protected function leaderHasAccessToProject(User $leader, int $contractId): bool
     {
-        return \App\Models\SalesProjectAssignment::where('leader_id', $leader->id)
+        $assigned = \App\Models\SalesProjectAssignment::where('leader_id', $leader->id)
             ->where('contract_id', $contractId)
+            ->active()
             ->exists();
+        if ($assigned) {
+            return true;
+        }
+        $contract = Contract::find($contractId);
+        if (!$contract || !in_array($contract->status, ['ready', 'completed'], true)) {
+            return false;
+        }
+        return !\App\Models\SalesProjectAssignment::where('contract_id', $contractId)->active()->exists();
     }
 
     /**
