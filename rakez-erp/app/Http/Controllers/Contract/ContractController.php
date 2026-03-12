@@ -46,9 +46,7 @@ class ContractController extends Controller
             ];
 
             // Apply access control filters
-            if ($user->can('contracts.view_all')) {
-                // Can view all, no user filter enforced
-            } elseif ($user->isManager() && $user->team) {
+           if ($user->isManager() && $user->team) {
                 // Manager sees team contracts
                 // Note: Service needs to support team filtering.
                 // For now, we'll filter by the manager's ID to avoid breaking,
