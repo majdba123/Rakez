@@ -45,6 +45,7 @@ class MontageDepartmentController extends Controller
                     'marketers' => $team->marketers()->get()->map(fn($m) => [
                         'id' => $m->id,
                         'name' => $m->name,
+                        'phone' => $m->phone,
                     ]),
                     'created_at' => $team->created_at,
                 ];
