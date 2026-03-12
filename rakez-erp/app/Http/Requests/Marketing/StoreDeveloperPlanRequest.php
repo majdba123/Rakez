@@ -22,6 +22,13 @@ class StoreDeveloperPlanRequest extends FormRequest
             'conversion_rate' => 'nullable|numeric|min:0|max:100',
             'expected_bookings' => 'nullable|integer|min:0',
             'notes' => 'nullable|string|max:1000',
+            'platforms' => 'nullable|array',
+            'platforms.*.platform_key' => 'nullable|string|max:100',
+            'platforms.*.platform_name_ar' => 'nullable|string|max:255',
+            'platforms.*.cpm' => 'nullable|numeric|min:0',
+            'platforms.*.cpc' => 'nullable|numeric|min:0',
+            'platforms.*.views' => 'nullable|integer|min:0',
+            'platforms.*.clicks' => 'nullable|integer|min:0',
         ];
     }
 }

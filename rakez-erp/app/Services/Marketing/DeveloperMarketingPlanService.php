@@ -29,6 +29,10 @@ class DeveloperMarketingPlanService
             $payload['marketing_percent'] = $marketingPercent;
         }
 
+        if (isset($data['platforms']) && is_array($data['platforms'])) {
+            $payload['platforms'] = $this->normalizePlatforms($data['platforms']);
+        }
+
         return DeveloperMarketingPlan::updateOrCreate(
             ['contract_id' => $contractId],
             $payload
@@ -72,6 +76,7 @@ class DeveloperMarketingPlanService
                 'expected_impressions_ar' => null,
                 'expected_clicks_ar' => null,
                 'raw_plan' => null,
+                'platforms' => [],
             ];
         }
 
@@ -81,7 +86,7 @@ class DeveloperMarketingPlanService
         $durationTextEn = $durationDays > 0 ? "According to contract duration ({$durationDays} days)" : 'According to contract duration';
         $durationTextAr = $durationDays > 0 ? "حسب مدة العقد ({$durationDays} يوم)" : 'حسب مدة العقد';
 
-        return [
+        $response = [
             'contract' => $contractData,
             'plan' => $plan,
             'total_budget' => number_format($plan->marketing_value, 0, '.', ','),
@@ -93,6 +98,25 @@ class DeveloperMarketingPlanService
             'marketing_duration_ar' => $durationTextAr,
             'raw_plan' => $plan,
         ];
+        $response['platforms'] = !empty($plan->platforms) ? $plan->platforms : [];
+        return $response;
+    }
+
+    /**
+     * Normalize platforms array from request: ensure each item has platform_key, cpm, cpc, views, clicks.
+     */
+    protected function normalizePlatforms(array $platforms): array
+    {
+        return array_values(array_map(function ($p) {
+            return [
+                'platform_key' => $p['platform_key'] ?? $p['platform'] ?? '',
+                'platform_name_ar' => $p['platform_name_ar'] ?? $p['platform_name'] ?? '',
+                'cpm' => isset($p['cpm']) ? (float) $p['cpm'] : null,
+                'cpc' => isset($p['cpc']) ? (float) $p['cpc'] : null,
+                'views' => isset($p['views']) ? (int) $p['views'] : null,
+                'clicks' => isset($p['clicks']) ? (int) $p['clicks'] : null,
+            ];
+        }, $platforms));
     }
 
     /**
