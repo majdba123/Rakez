@@ -1,6 +1,7 @@
 <?php
 
 $salesBasePermissions = [
+    'contracts.view',
     'tasks.create',
     'sales.dashboard.view',
     'sales.projects.view',
@@ -128,6 +129,8 @@ return [
         'marketing.reports.view' => 'View performance and budget reports.',
         'marketing.teams.view' => 'View marketing teams.',
         'marketing.teams.manage' => 'Manage marketing teams and assign campaigns.',
+        'marketing.ads.view' => 'View ads accounts, campaigns, insights and outcomes (Marketing).',
+        'marketing.ads.manage' => 'Sync ads and manage outcomes (Marketing).',
 
         // Exclusive Projects
         'exclusive_projects.view' => 'View exclusive project requests.',
@@ -146,6 +149,7 @@ return [
         // Credit
         'credit.dashboard.view' => 'View Credit department dashboard KPIs.',
         'credit.bookings.view' => 'View bookings in Credit department.',
+        'credit.financing.view' => 'View financing details for a booking (Credit).',
         'credit.financing.manage' => 'Manage bank financing tracker stages.',
         'credit.title_transfer.manage' => 'Manage title transfer process.',
         'credit.claim_files.view' => 'View claim files list and details (Credit).',
@@ -244,6 +248,8 @@ return [
             'marketing.reports.view',
             'marketing.teams.view',
             'marketing.teams.manage',
+            'marketing.ads.view',
+            'marketing.ads.manage',
             'exclusive_projects.view',
             'exclusive_projects.request',
             'exclusive_projects.approve',
@@ -251,6 +257,7 @@ return [
             'exclusive_projects.contract.export',
             'credit.dashboard.view',
             'credit.bookings.view',
+            'credit.financing.view',
             'credit.financing.manage',
             'credit.title_transfer.manage',
             'credit.claim_files.view',
@@ -333,6 +340,7 @@ return [
             'tasks.create',
         ],
         'marketing' => [
+            'contracts.view',
             'marketing.dashboard.view',
             'marketing.projects.view',
             'marketing.plans.create',
@@ -342,6 +350,8 @@ return [
             'marketing.reports.view',
             'marketing.teams.view',
             'marketing.teams.manage',
+            'marketing.ads.view',
+            'marketing.ads.manage',
             'hr.users.view',
             'notifications.view',
             'exclusive_projects.view',
@@ -372,11 +382,14 @@ return [
             // NO exclusive project permissions
         ],
         'credit' => [
+            'contracts.view',
             'credit.dashboard.view',
             'credit.bookings.view',
+            'credit.financing.view',
             'credit.financing.manage',
             'credit.title_transfer.manage',
-            // claim_files: moved to accounting only
+            'credit.claim_files.view',
+            'credit.claim_files.manage',
             'credit.payment_plan.manage',
             'notifications.view',
             'exclusive_projects.view',
@@ -387,6 +400,7 @@ return [
             'tasks.create',
         ],
         'accounting' => [
+            'contracts.view',
             'contracts.view_all',
             'accounting.dashboard.view',
             'accounting.claim_files.view',

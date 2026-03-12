@@ -96,6 +96,8 @@ class ContractsSeeder extends Seeder
                 'security_guard_number' => '05' . fake()->numerify('########'),
                 'notes' => 'مشروع سكني ضمن خطة التطوير - وحدات متنوعة وتشطيبات ممتازة.',
                 'developer_requiment' => 'متطلبات المطور: جودة عالية في التشطيب والالتزام بمواعيد التسليم.',
+                'commission_percent' => fake()->randomFloat(2, 2, 4),
+                'commission_from' => 'المالك',
             ]);
 
             ContractInfo::factory()->create([

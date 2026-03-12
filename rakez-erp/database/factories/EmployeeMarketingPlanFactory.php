@@ -18,6 +18,8 @@ class EmployeeMarketingPlanFactory extends Factory
             'user_id' => User::factory(),
             'commission_value' => $this->faker->randomFloat(2, 1000, 50000),
             'marketing_value' => $this->faker->randomFloat(2, 10000, 100000),
+            'marketing_percent' => $this->faker->randomFloat(2, 6, 10),
+            'direct_contact_percent' => $this->faker->randomFloat(2, 10, 30),
             'platform_distribution' => null,
             'campaign_distribution' => null,
             'campaign_distribution_by_platform' => null,

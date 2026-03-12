@@ -4,13 +4,15 @@ namespace App\Http\Controllers\Marketing;
 
 use App\Http\Controllers\Controller;
 use App\Services\Marketing\DeveloperMarketingPlanService;
+use App\Services\Marketing\MarketingProjectService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class DeveloperMarketingPlanController extends Controller
 {
     public function __construct(
-        private DeveloperMarketingPlanService $planService
+        private DeveloperMarketingPlanService $planService,
+        private MarketingProjectService $projectService
     ) {}
 
     public function show(int $contractId): JsonResponse
@@ -21,10 +23,75 @@ class DeveloperMarketingPlanController extends Controller
         ]);
     }
 
+    /**
+     * Developer plan PDF data (unified report shape). JSON only; frontend uses buildDocumentPdf(payload).
+     * GET /api/marketing/reports/developer-plan/{contractId}/pdf-data
+     */
+    public function pdfData(int $contractId): JsonResponse
+    {
+        try {
+            $planData = $this->planService->getPlanForDeveloper($contractId);
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+            return response()->json(['success' => false, 'message' => 'Contract or plan not found'], 404);
+        }
+        $contract = $planData['contract'] ?? [];
+        $plan = $planData['raw_plan'] ?? $planData['plan'] ?? null;
+
+        $sections = [];
+        $sections[] = [
+            'sectionTitle' => 'بيانات العقد',
+            'infoRows' => [
+                ['نسبة السعي %', (string) ($contract['commission_percent'] ?? '')],
+                ['متوسط سعر الوحدة', (string) ($contract['average_unit_price'] ?? '')],
+            ],
+        ];
+        if ($plan) {
+            $sections[] = [
+                'sectionTitle' => 'خطة التسويق',
+                'infoRows' => [
+                    ['ميزانية التسويق', $planData['total_budget'] ?? (string) ($plan->marketing_value ?? '')],
+                    ['مدة التسويق', $planData['marketing_duration_ar'] ?? ''],
+                    ['الظهور المتوقع', $planData['expected_impressions_ar'] ?? ''],
+                    ['النقرات المتوقعة', $planData['expected_clicks_ar'] ?? ''],
+                ],
+            ];
+        }
+
+        $payload = [
+            'title' => 'خطة تسويق المطور',
+            'subtitle' => '',
+            'sections' => $sections,
+            'footer' => '',
+        ];
+        return response()->json($payload, 200, ['Content-Type' => 'application/json']);
+    }
+
+    /**
+     * حساب ميزانية الحملة: عمولة = نسبة السعي في العقد × متوسط سعر الوحدات، ميزانية الحملة = عمولة × نسبة التسويق (6%-10%).
+     */
+    public function calculateBudget(Request $request): JsonResponse
+    {
+        $request->validate([
+            'contract_id' => 'required|exists:contracts,id',
+            'marketing_percent' => 'required|numeric|min:6|max:10',
+            'unit_price' => 'nullable|numeric|min:0',
+        ]);
+
+        $data = $this->projectService->calculateCampaignBudget(
+            (int) $request->input('contract_id'),
+            $request->only(['marketing_percent', 'unit_price'])
+        );
+
+        return response()->json([
+            'success' => true,
+            'data' => $data
+        ]);
+    }
+
     public function store(\App\Http\Requests\Marketing\StoreDeveloperPlanRequest $request): JsonResponse
     {
         $validated = $request->validated();
-        
+
         $plan = $this->planService->createOrUpdatePlan(
             $validated['contract_id'],
             $validated

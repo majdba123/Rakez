@@ -22,7 +22,7 @@ class SalesProjectService
             'montageDepartment',
             'salesProjectAssignments.leader',
             'user'
-        ]);
+        ])->whereIn('status', ['ready', 'completed']);
 
         // Apply filters
         if (!empty($filters['q'])) {
@@ -188,8 +188,8 @@ class SalesProjectService
      */
     protected function computeProjectSalesStatus(Contract $contract): string
     {
-        // Check if contract status is ready OR approved (for tests)
-        if ($contract->status !== 'ready' && $contract->status !== 'approved') {
+        // Check if contract status is ready, completed, or approved (for tests)
+        if (!in_array($contract->status, ['ready', 'completed', 'approved'], true)) {
             return self::SALES_STATUS_PENDING;
         }
 
@@ -316,32 +316,40 @@ class SalesProjectService
 
     /**
      * Apply scope filter to query.
-     * - sales_leader: scope 'all' = see all projects (مدير مبيعات يرى كل المشاريع); 'me' = assigned to me; 'team' = assigned to leaders in my team.
-     * - sales: scope 'me' / 'team' / 'all' as per existing logic.
+     * أي مشروع اكتمل عقده (ready/completed) يظهر في القائمة، بما فيها المشاريع غير المُسنَدة لفريق.
+     * - sales_leader: scope 'all' = كل المشاريع (غير معينة أو معينة لي أو لفريقي); 'me' = معينة لي أو غير معينة; 'team' = معينة لفريقي أو غير معينة.
+     * - sales: scope 'me' / 'team' = مشاريع الفريق أو غير المُسنَدة.
      */
     protected function applyScopeFilter($query, string $scope, User $user): void
     {
+        $unassignedCondition = function ($q) {
+            $q->whereDoesntHave('salesProjectAssignments', function ($aq) {
+                $aq->active();
+            });
+        };
+
         if ($user->hasRole('sales_leader')) {
             if ($scope === 'all') {
-                // مدير المبيعات: عرض المشاريع الجاهزة للتسويق التي ليست معينة لفريق آخر (غير معينة أو معينة لي أو لفريقي)
                 $leaderIds = collect([$user->id]);
                 if ($user->team_id) {
                     $leaderIds = $leaderIds->merge(
                         User::where('team_id', $user->team_id)->where('is_manager', true)->pluck('id')
                     );
                 }
-                $query->where(function ($q) use ($leaderIds) {
-                    $q->whereDoesntHave('salesProjectAssignments', function ($aq) {
-                        $aq->active();
-                    })->orWhereHas('salesProjectAssignments', function ($aq) use ($leaderIds) {
-                        $aq->whereIn('leader_id', $leaderIds)->active();
-                    });
+                $query->where(function ($q) use ($leaderIds, $unassignedCondition) {
+                    $q->where($unassignedCondition)
+                        ->orWhereHas('salesProjectAssignments', function ($aq) use ($leaderIds) {
+                            $aq->whereIn('leader_id', $leaderIds)->active();
+                        });
                 });
                 return;
             }
             if ($scope === 'me') {
-                $query->whereHas('salesProjectAssignments', function ($q) use ($user) {
-                    $q->where('leader_id', $user->id)->active();
+                $query->where(function ($q) use ($user, $unassignedCondition) {
+                    $q->where($unassignedCondition)
+                        ->orWhereHas('salesProjectAssignments', function ($aq) use ($user) {
+                            $aq->where('leader_id', $user->id)->active();
+                        });
                 });
                 return;
             }
@@ -350,12 +358,18 @@ class SalesProjectService
                     $teamLeaderIds = User::where('team_id', $user->team_id)
                         ->where('is_manager', true)
                         ->pluck('id');
-                    $query->whereHas('salesProjectAssignments', function ($q) use ($teamLeaderIds) {
-                        $q->whereIn('leader_id', $teamLeaderIds)->active();
+                    $query->where(function ($q) use ($teamLeaderIds, $unassignedCondition) {
+                        $q->where($unassignedCondition)
+                            ->orWhereHas('salesProjectAssignments', function ($aq) use ($teamLeaderIds) {
+                                $aq->whereIn('leader_id', $teamLeaderIds)->active();
+                            });
                     });
                 } else {
-                    $query->whereHas('salesProjectAssignments', function ($q) use ($user) {
-                        $q->where('leader_id', $user->id)->active();
+                    $query->where(function ($q) use ($user, $unassignedCondition) {
+                        $q->where($unassignedCondition)
+                            ->orWhereHas('salesProjectAssignments', function ($aq) use ($user) {
+                                $aq->where('leader_id', $user->id)->active();
+                            });
                     });
                 }
                 return;
@@ -363,40 +377,48 @@ class SalesProjectService
             return;
         }
 
-        // For other roles (e.g. sales staff): scope 'me' = team-assigned projects only; scope 'team' = same
+        // For other roles (e.g. sales staff): include unassigned so all completed contracts appear everywhere
         if ($scope === 'me') {
             if ($user->isSalesLeader()) {
-                $query->whereHas('salesProjectAssignments', function ($q) use ($user) {
-                    $q->where('leader_id', $user->id)->active();
+                $query->where(function ($q) use ($user, $unassignedCondition) {
+                    $q->where($unassignedCondition)
+                        ->orWhereHas('salesProjectAssignments', function ($aq) use ($user) {
+                            $aq->where('leader_id', $user->id)->active();
+                        });
                 });
             } else {
-                // Non-leader sales: only projects assigned to leaders in the same team (team_id)
                 if ($user->team_id) {
                     $teamLeaderIds = User::where('team_id', $user->team_id)
                         ->where('is_manager', true)
                         ->pluck('id');
-                    $query->whereHas('salesProjectAssignments', function ($q) use ($teamLeaderIds) {
-                        $q->whereIn('leader_id', $teamLeaderIds)->active();
+                    $query->where(function ($q) use ($teamLeaderIds, $unassignedCondition) {
+                        $q->where($unassignedCondition)
+                            ->orWhereHas('salesProjectAssignments', function ($aq) use ($teamLeaderIds) {
+                                $aq->whereIn('leader_id', $teamLeaderIds)->active();
+                            });
                     });
                 } else {
-                    $query->whereRaw('0 = 1'); // no team_id => no projects for scope 'me'
+                    $query->where($unassignedCondition);
                 }
             }
         } elseif ($scope === 'team' && $user->team_id) {
             $teamLeaderIds = User::where('team_id', $user->team_id)
                 ->where('is_manager', true)
                 ->pluck('id');
-            $query->whereHas('salesProjectAssignments', function ($q) use ($teamLeaderIds) {
-                $q->whereIn('leader_id', $teamLeaderIds)->active();
+            $query->where(function ($q) use ($teamLeaderIds, $unassignedCondition) {
+                $q->where($unassignedCondition)
+                    ->orWhereHas('salesProjectAssignments', function ($aq) use ($teamLeaderIds) {
+                        $aq->whereIn('leader_id', $teamLeaderIds)->active();
+                    });
             });
         }
-        // 'all' scope has no filter
+        // scope 'all' for non-leader: no extra filter (all ready/completed projects already in base query)
     }
 
     /**
      * Check if the user can access a contract (project) for viewing details or units.
-     * Admin: always. Sales leader (مدير مبيعات): if project assigned to him or to a leader in his team.
-     * Sales staff (موظف مبيعات): if contract is assigned to a leader in their team.
+     * Admin: always. Sales leader (مدير مبيعات): if project assigned to him or to a leader in his team,
+     * or if project has no active assignment (so they can view and assign it). Sales staff: if assigned to their team.
      */
     public function userCanAccessContract(User $user, int $contractId): bool
     {
@@ -415,10 +437,20 @@ class SalesProjectService
                 $teamLeaderIds = User::where('team_id', $user->team_id)
                     ->where('is_manager', true)
                     ->pluck('id');
-                return \App\Models\SalesProjectAssignment::where('contract_id', $contractId)
+                if (\App\Models\SalesProjectAssignment::where('contract_id', $contractId)
                     ->whereIn('leader_id', $teamLeaderIds)
                     ->active()
-                    ->exists();
+                    ->exists()) {
+                    return true;
+                }
+            }
+            // Unassigned completed projects: allow sales_leader to view so they can assign (e.g. from exclusive flow)
+            $contract = Contract::find($contractId);
+            if ($contract && in_array($contract->status, ['ready', 'completed'], true)) {
+                $hasActiveAssignment = \App\Models\SalesProjectAssignment::where('contract_id', $contractId)->active()->exists();
+                if (!$hasActiveAssignment) {
+                    return true;
+                }
             }
             return false;
         }
@@ -439,11 +471,12 @@ class SalesProjectService
      */
     public function getTeamProjects(User $leader): \Illuminate\Database\Eloquent\Collection
     {
-        // Strictly restrict to assigned projects for leaders (active assignments only)
-        return Contract::whereHas('salesProjectAssignments', function ($q) use ($leader) {
-            $q->where('leader_id', $leader->id)
-              ->active();
-        })->with(['secondPartyData.contractUnits', 'salesProjectAssignments.leader', 'user'])->get();
+        // Assigned projects for this leader (active assignments only); include ready and completed contracts
+        return Contract::whereIn('status', ['ready', 'completed'])
+            ->whereHas('salesProjectAssignments', function ($q) use ($leader) {
+                $q->where('leader_id', $leader->id)
+                  ->active();
+            })->with(['secondPartyData.contractUnits', 'salesProjectAssignments.leader', 'user'])->get();
     }
 
     /**
@@ -455,10 +488,11 @@ class SalesProjectService
      */
     public function listTeamProjectsPaginated(User $leader, int $perPage = 15): LengthAwarePaginator
     {
-        $query = Contract::whereHas('salesProjectAssignments', function ($q) use ($leader) {
-            $q->where('leader_id', $leader->id)
-              ->active();
-        })->with(['secondPartyData.contractUnits', 'salesProjectAssignments.leader', 'user'])->orderBy('created_at', 'desc');
+        $query = Contract::whereIn('status', ['ready', 'completed'])
+            ->whereHas('salesProjectAssignments', function ($q) use ($leader) {
+                $q->where('leader_id', $leader->id)
+                  ->active();
+            })->with(['secondPartyData.contractUnits', 'salesProjectAssignments.leader', 'user'])->orderBy('created_at', 'desc');
 
         $projects = $query->paginate($perPage);
 
@@ -609,7 +643,7 @@ class SalesProjectService
         $this->applyScopeFilter($query, $scope, $user);
 
         return $query
-            ->whereIn('status', ['ready', 'approved'])
+            ->whereIn('status', ['ready', 'completed', 'approved'])
             ->whereHas('secondPartyData.contractUnits')
             ->whereDoesntHave('secondPartyData.contractUnits', function (Builder $q) {
                 $q->whereNull('price')->orWhere('price', '<=', 0);

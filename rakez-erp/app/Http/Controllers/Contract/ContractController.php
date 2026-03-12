@@ -12,6 +12,7 @@ use App\Models\Contract;
 use App\Services\Contract\ContractService;
 use App\Services\Contract\InventoryAgencyOverviewService;
 use App\Services\Contract\InventoryDashboardService;
+use App\Services\Pdf\ContractPdfDataService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Exception;
@@ -21,7 +22,8 @@ class ContractController extends Controller
     public function __construct(
         protected ContractService $contractService,
         protected InventoryAgencyOverviewService $inventoryAgencyOverviewService,
-        protected InventoryDashboardService $inventoryDashboardService
+        protected InventoryDashboardService $inventoryDashboardService,
+        protected ContractPdfDataService $pdfDataService
     ) {
     }
 
@@ -160,7 +162,55 @@ class ContractController extends Controller
         }
     }
 
+    /**
+     * Contract fill data for PDF template (عقد حصري — ملء قالب).
+     * GET /api/contracts/{id}/fill-data — returns JSON only; frontend uses downloadFilledContract(contractData).
+     */
+    public function fillData(int $id): JsonResponse
+    {
+        try {
+            $contract = $this->contractService->getContractById($id, null);
+            $this->authorize('view', $contract);
+            $data = $this->pdfDataService->getFillData($contract);
+            return response()->json($data, 200, ['Content-Type' => 'application/json']);
+        } catch (\Illuminate\Auth\Access\AuthorizationException $e) {
+            return response()->json(['success' => false, 'message' => $e->getMessage()], 403);
+        } catch (Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage(),
+            ], $e->getMessage() === 'Contract not found' ? 404 : 500);
+        }
+    }
 
+    /**
+     * Contract summary for PDF (ملخص عقد — إدارة مشاريع).
+     * GET /api/contracts/{id}/summary-pdf-data — returns JSON only; frontend uses generateContractSummaryPdf(contract).
+     */
+    public function summaryPdfData(int $id): JsonResponse
+    {
+        try {
+            $contract = $this->contractService->getContractById($id, null);
+            $this->authorize('view', $contract);
+            $data = [
+                'project_name' => (string) ($contract->project_name ?? ''),
+                'developer_name' => (string) ($contract->developer_name ?? ''),
+                'city' => (string) ($contract->city ?? ''),
+                'district' => (string) ($contract->district ?? ''),
+                'status' => (string) ($contract->status ?? ''),
+                'notes' => (string) ($contract->notes ?? ''),
+                'created_at' => $contract->created_at?->toIso8601String() ?? '',
+            ];
+            return response()->json($data, 200, ['Content-Type' => 'application/json']);
+        } catch (\Illuminate\Auth\Access\AuthorizationException $e) {
+            return response()->json(['success' => false, 'message' => $e->getMessage()], 403);
+        } catch (Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage(),
+            ], $e->getMessage() === 'Contract not found' ? 404 : 500);
+        }
+    }
 
     public function update(UpdateContractRequest $request, int $id): JsonResponse
     {

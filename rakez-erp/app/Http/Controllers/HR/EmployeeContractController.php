@@ -115,6 +115,34 @@ class EmployeeContractController extends Controller
     }
 
     /**
+     * HR contract PDF data (عقد موظف). JSON only; frontend uses same fill-data or report shape to build PDF.
+     * GET /api/hr/contracts/{id}/pdf-data
+     */
+    public function pdfData(int $id): JsonResponse
+    {
+        try {
+            $contract = EmployeeContract::with('employee')->findOrFail($id);
+            $data = array_merge(
+                $contract->contract_data ?? [],
+                [
+                    'id' => $contract->id,
+                    'employee_name' => (string) ($contract->employee?->name ?? ''),
+                    'start_date' => $contract->start_date?->format('Y-m-d') ?? '',
+                    'end_date' => $contract->end_date?->format('Y-m-d') ?? '',
+                    'status' => (string) ($contract->status ?? ''),
+                ]
+            );
+            return response()->json($data, 200, ['Content-Type' => 'application/json']);
+        } catch (Exception $e) {
+            $statusCode = str_contains($e->getMessage(), 'No query results') ? 404 : 500;
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage(),
+            ], $statusCode);
+        }
+    }
+
+    /**
      * Get contract details.
      * GET /hr/contracts/{id}
      */

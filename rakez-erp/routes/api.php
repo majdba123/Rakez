@@ -118,6 +118,8 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/contracts/index', [ContractController::class, 'index']);
         Route::post('/contracts/store', [ContractController::class, 'store']);
         Route::get('/contracts/show/{id}', [ContractController::class, 'show']);
+        Route::get('/contracts/{id}/fill-data', [ContractController::class, 'fillData']);
+        Route::get('/contracts/{id}/summary-pdf-data', [ContractController::class, 'summaryPdfData']);
         Route::put('/contracts/update/{id}', [ContractController::class, 'update']);
         Route::delete('/contracts/{id}', [ContractController::class, 'destroy']);
 
@@ -292,6 +294,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('projects/{contractId}', [SalesProjectController::class, 'show'])->middleware('permission:sales.projects.view');
         Route::get('projects/{contractId}/units', [SalesProjectController::class, 'units'])->middleware('permission:sales.projects.view');
         Route::get('units/{id}/pdf', [SalesProjectController::class, 'unitPdf'])->middleware('permission:sales.projects.view');
+        Route::get('units/{unitId}/pdf-data', [SalesProjectController::class, 'unitPdfData'])->middleware('permission:sales.projects.view')->whereNumber('unitId');
 
         // Unit Search (cross-project)
         Route::get('units/search', [SalesUnitSearchController::class, 'search'])->middleware('permission:sales.projects.view');
@@ -308,6 +311,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('reservations/{id}/cancel', [SalesReservationController::class, 'cancel'])->middleware('permission:sales.reservations.cancel');
         Route::post('reservations/{id}/actions', [SalesReservationController::class, 'storeAction'])->middleware('permission:sales.reservations.view');
         Route::get('reservations/{id}/voucher', [SalesReservationController::class, 'downloadVoucher'])->middleware('permission:sales.reservations.view');
+        Route::get('reservations/{id}/voucher-data', [SalesReservationController::class, 'voucherData'])->middleware('permission:sales.reservations.view');
 
         // My targets
         Route::get('targets/my', [SalesTargetController::class, 'my'])->middleware('permission:sales.targets.view');
@@ -433,6 +437,8 @@ Route::middleware('auth:sanctum')->group(function () {
 
         // Developer Plans
         Route::get('developer-plans/{contractId}', [DeveloperMarketingPlanController::class, 'show'])->middleware('permission:marketing.plans.create');
+        Route::get('reports/developer-plan/{contractId}/pdf-data', [DeveloperMarketingPlanController::class, 'pdfData'])->middleware('permission:marketing.reports.view')->whereNumber('contractId');
+        Route::post('developer-plans/calculate-budget', [DeveloperMarketingPlanController::class, 'calculateBudget'])->middleware('permission:marketing.plans.create');
         Route::post('developer-plans', [DeveloperMarketingPlanController::class, 'store'])->middleware('permission:marketing.plans.create');
 
         // Users list for marketing (e.g. employee-plans dropdown) – same as GET /hr/users
@@ -441,6 +447,7 @@ Route::middleware('auth:sanctum')->group(function () {
         // Employee Plans (GET with query ?project_id= supported; must be before employee-plans/{planId})
         Route::get('employee-plans', [EmployeeMarketingPlanController::class, 'index'])->middleware('permission:marketing.plans.create');
         Route::get('employee-plans/project/{projectId}', [EmployeeMarketingPlanController::class, 'index'])->middleware('permission:marketing.plans.create');
+        Route::get('employee-plans/pdf-data', [EmployeeMarketingPlanController::class, 'pdfData'])->middleware('permission:marketing.reports.view');
         Route::get('employee-plans/{planId}', [EmployeeMarketingPlanController::class, 'show'])->middleware('permission:marketing.plans.create');
         Route::post('employee-plans', [EmployeeMarketingPlanController::class, 'store'])->middleware('permission:marketing.plans.create');
         Route::post('employee-plans/auto-generate', [EmployeeMarketingPlanController::class, 'autoGenerate'])->middleware('permission:marketing.plans.create');
@@ -514,6 +521,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::put('/update_employee/{id}', [RegisterController::class, 'update_employee']);
         Route::delete('/delete_employee/{id}', [RegisterController::class, 'delete_employee']);
 
+        Route::get('contracts/{id}/pdf-data', [EmployeeContractController::class, 'pdfData'])->whereNumber('id');
         Route::prefix('users')->group(function () {
             Route::get('/', [HrUserController::class, 'index']);
             Route::post('/', [HrUserController::class, 'store']);
@@ -644,6 +652,7 @@ Route::prefix('accounting')->middleware(['auth:sanctum', 'role:accounting|admin'
     Route::get('commission-distribution-types', [AccountingCommissionController::class, 'distributionTypes'])->middleware('permission:accounting.sold-units.view');
     Route::get('marketers', [AccountingCommissionController::class, 'marketers'])->middleware('permission:accounting.sold-units.view');
     Route::get('sold-units/{id}', [AccountingCommissionController::class, 'show'])->middleware('permission:accounting.sold-units.view');
+    Route::get('commissions/{id}/pdf-data', [AccountingCommissionController::class, 'commissionPdfData'])->middleware('permission:accounting.sold-units.view')->whereNumber('id');
     Route::get('commissions/released', [AccountingCommissionController::class, 'released'])->middleware('permission:accounting.sold-units.view');
     Route::post('sold-units/{id}/commission', [AccountingCommissionController::class, 'createManual'])->middleware('permission:accounting.sold-units.manage');
     Route::put('commissions/{id}/distributions', [AccountingCommissionController::class, 'updateDistributions'])->middleware('permission:accounting.sold-units.manage');
@@ -654,6 +663,7 @@ Route::prefix('accounting')->middleware(['auth:sanctum', 'role:accounting|admin'
 
     // Deposit management
     Route::get('deposits/pending', [AccountingDepositController::class, 'pending'])->middleware('permission:accounting.deposits.view');
+    Route::get('deposits/{id}/pdf-data', [AccountingDepositController::class, 'depositPdfData'])->middleware('permission:accounting.deposits.view')->whereNumber('id');
     Route::get('deposits/follow-up', [AccountingDepositController::class, 'followUp'])->middleware('permission:accounting.deposits.view');
     Route::post('deposits/{id}/confirm', [AccountingDepositController::class, 'confirm'])->middleware('permission:accounting.deposits.manage');
     Route::post('deposits/{id}/refund', [AccountingDepositController::class, 'refund'])->middleware('permission:accounting.deposits.manage');
@@ -736,17 +746,17 @@ Route::prefix('credit')->middleware(['auth:sanctum', 'role:credit|admin'])->grou
 // AI CALLING ROUTES
 // ==========================================
 Route::prefix('ai/calls')->middleware(['auth:sanctum', 'role:admin|sales|sales_leader|marketing'])->group(function () {
-    Route::get('/', [AiCallController::class, 'index'])->middleware('permission:ai.calls.view');
-    Route::get('/analytics', [AiCallController::class, 'analytics'])->middleware('permission:ai.calls.view');
-    Route::get('/scripts', [AiCallController::class, 'scripts'])->middleware('permission:ai.calls.view');
-    Route::post('/scripts', [AiCallController::class, 'storeScript'])->middleware('permission:ai.scripts.manage');
-    Route::put('/scripts/{id}', [AiCallController::class, 'updateScript'])->middleware('permission:ai.scripts.manage');
-    Route::delete('/scripts/{id}', [AiCallController::class, 'deleteScript'])->middleware('permission:ai.scripts.manage');
-    Route::post('/initiate', [AiCallController::class, 'initiate'])->middleware('permission:ai.calls.initiate');
-    Route::post('/bulk', [AiCallController::class, 'bulkInitiate'])->middleware('permission:ai.calls.initiate');
-    Route::get('/{id}', [AiCallController::class, 'show'])->middleware('permission:ai.calls.view');
-    Route::get('/{id}/transcript', [AiCallController::class, 'transcript'])->middleware('permission:ai.calls.view');
-    Route::post('/{id}/retry', [AiCallController::class, 'retry'])->middleware('permission:ai.calls.initiate');
+    Route::get('/', [AiCallController::class, 'index'])->middleware('permission:ai-calls.manage');
+    Route::get('/analytics', [AiCallController::class, 'analytics'])->middleware('permission:ai-calls.manage');
+    Route::get('/scripts', [AiCallController::class, 'scripts'])->middleware('permission:ai-calls.manage');
+    Route::post('/scripts', [AiCallController::class, 'storeScript'])->middleware('permission:ai-calls.manage');
+    Route::put('/scripts/{id}', [AiCallController::class, 'updateScript'])->middleware('permission:ai-calls.manage');
+    Route::delete('/scripts/{id}', [AiCallController::class, 'deleteScript'])->middleware('permission:ai-calls.manage');
+    Route::post('/initiate', [AiCallController::class, 'initiate'])->middleware('permission:ai-calls.manage');
+    Route::post('/bulk', [AiCallController::class, 'bulkInitiate'])->middleware('permission:ai-calls.manage');
+    Route::get('/{id}', [AiCallController::class, 'show'])->middleware('permission:ai-calls.manage');
+    Route::get('/{id}/transcript', [AiCallController::class, 'transcript'])->middleware('permission:ai-calls.manage');
+    Route::post('/{id}/retry', [AiCallController::class, 'retry'])->middleware('permission:ai-calls.manage');
 });
 
 // ==========================================

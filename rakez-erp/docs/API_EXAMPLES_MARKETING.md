@@ -129,26 +129,82 @@ The Marketing Module manages marketing campaigns, plans, budgets, and team assig
 
 ## Developer Plans
 
-### Get Developer Plan
+### Get Developer Plan (بيانات خطة المطور)
 **Endpoint:** `GET /api/marketing/developer-plans/{contractId}`  
 **Permission:** `marketing.plans.create`
+
+يعيد دائماً بيانات العقد المستخدمة في "حساب ميزانية الحملة":
+- **`data.contract.commission_percent`** — نسبة السعي في العقد (من العقد)
+- **`data.contract.average_unit_price`** — متوسط سعر الوحدات (ريال)
+
+**مصدر نسبة السعي في الخادم:** تُقرأ من العقد الفعلي: تفاصيل العقد (`contract_infos.commission_percent`) أولاً، ثم جدول العقود (`contracts.commission_percent`). إذا ظهرت القيمة 0 فالمشكلة من البيانات — يجب تخزين نسبة السعي عند إنشاء/تحديث العقد (مثلاً 2.5 أو 3) في أحد الجدولين.
+
+**Frontend:** عند اختيار رقم العقد، استدعِ هذا الـ endpoint واملأ:
+- "نسبة السعي في العقد" من `data.contract.commission_percent`
+- "متوسط سعر الوحدات (ريال)" من `data.contract.average_unit_price`
+- يمكن إظهار تنبيه عندما `commission_percent === 0` و `average_unit_price > 0` لتنبيه المستخدم أن المشكلة من بيانات العقد.
+
+**Response (مع أو بدون خطة محفوظة):**
+```json
+{
+  "success": true,
+  "data": {
+    "contract": {
+      "commission_percent": 2.5,
+      "average_unit_price": 850000
+    },
+    "plan": null,
+    "total_budget": null,
+    "expected_impressions": null,
+    "expected_clicks": null,
+    "marketing_duration": null,
+    "marketing_duration_ar": null,
+    "expected_impressions_ar": null,
+    "expected_clicks_ar": null,
+    "raw_plan": null
+  }
+}
+```
+
+عند وجود خطة محفوظة يُعاد أيضاً `plan` و `raw_plan` و `total_budget` و `expected_impressions` وغيرها.
+
+### حساب ميزانية الحملة (لخطة المطور)
+**Endpoint:** `POST /api/marketing/developer-plans/calculate-budget`  
+**Permission:** `marketing.plans.create`
+
+**قاعدة العمل:** نسبة التسويق (6%-10%) **لازم يدخلها الموظف** قبل ما تنحسب ميزانية الحملة. لا تُحسب الميزانية ولا تُعرض في "قيمة التسويق / ميزانية الحملة" إلا بعد إدخال نسبة التسويق من موظف قسم التسويق.
+
+الصيغة: **عمولة = نسبة السعي في العقد × متوسط سعر الوحدات** ثم **ميزانية الحملة = عمولة × نسبة التسويق (6%-10%)**.
+
+**مصدر نسبة السعي:** الخادم يقرأ نسبة السعي من العقد الفعلي (نفس مصدر `GET developer-plans/{contractId}`: تفاصيل العقد ثم جدول العقود). إن كانت النسبة مخزنة في قاعدة البيانات فستُستخدم في الحساب؛ إن كانت 0 فستكون ميزانية الحملة 0 حتى تُحدَّث بيانات العقد.
+
+**Request:**
+```json
+{
+  "contract_id": 26,
+  "marketing_percent": 7.5,
+  "unit_price": 850000
+}
+```
+- `marketing_percent` **مطلوب** (6–10) — يدخله موظف التسويق؛ الحساب لا يتم بدونه.
+- `unit_price` اختياري؛ إن لم يُرسل يُستخدم متوسط السعر من العقد.
 
 **Response:**
 ```json
 {
   "success": true,
   "data": {
-    "id": 1,
-    "contract_id": 5,
-    "marketing_value": 100000,
-    "average_cpm": 15.50,
-    "average_cpc": 2.30,
-    "conversion_rate": 2.5,
-    "expected_bookings": 1087,
-    "notes": "Campaign targeting Riyadh residents"
+    "commission_percent": 2.5,
+    "commission_value": 21250,
+    "marketing_percent": 7.5,
+    "marketing_value": 1593.75,
+    "daily_budget": 53.125,
+    "monthly_budget": 53.125
   }
 }
 ```
+
+**Frontend:** عند إدخال "نسبة التسويق (6-10%)" اضغط "تطبيق كميزانية الحملة": استدعِ هذا الـ endpoint ثم اعرض `data.marketing_value` في "ميزانية الحملة (محسوبة)" و/أو في "قيمة التسويق / ميزانية الحملة".
 
 ### Create/Update Developer Plan
 **Endpoint:** `POST /api/marketing/developer-plans`  
@@ -159,6 +215,7 @@ The Marketing Module manages marketing campaigns, plans, budgets, and team assig
 {
   "contract_id": 5,
   "marketing_value": 100000,
+  "marketing_percent": 7.5,
   "average_cpm": 15.50,
   "average_cpc": 2.30,
   "conversion_rate": 2.5,
@@ -166,6 +223,7 @@ The Marketing Module manages marketing campaigns, plans, budgets, and team assig
   "notes": "Campaign targeting Riyadh residents"
 }
 ```
+- `marketing_percent` اختياري (6–10)، يُحفظ في الخطة.
 
 **Response:**
 ```json

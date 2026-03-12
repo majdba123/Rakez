@@ -18,6 +18,7 @@ class DeveloperMarketingPlan extends Model
         'direct_contact_percent',
         'expected_impressions',
         'expected_clicks',
+        'platforms',
     ];
 
     protected $casts = [
@@ -28,6 +29,7 @@ class DeveloperMarketingPlan extends Model
         'direct_contact_percent' => 'decimal:2',
         'expected_impressions' => 'integer',
         'expected_clicks' => 'integer',
+        'platforms' => 'array',
     ];
 
     public function contract()

@@ -37,7 +37,7 @@ class EmployeeMarketingPlanService
             $availableUnitsValue = ContractUnit::where('second_party_data_id', $contract->secondPartyData->id ?? 0)
                 ->where('status', 'available')
                 ->sum('price');
-            $commissionPercent = $contract->info->commission_percent ?? 0;
+            $commissionPercent = $contract->getEffectiveCommissionPercent();
             $commissionValue = $this->calculateCommissionValue($availableUnitsValue, $commissionPercent);
         }
 
@@ -136,7 +136,7 @@ class EmployeeMarketingPlanService
             ->where('status', 'available')
             ->sum('price');
             
-        $commissionPercent = $contract->info->commission_percent ?? 2.5;
+        $commissionPercent = $contract->getEffectiveCommissionPercent() ?: 2.5;
         $commissionValue = $this->calculateCommissionValue($availableUnitsValue, $commissionPercent);
         
         $marketingPercent = $marketingPercent ?? 10;

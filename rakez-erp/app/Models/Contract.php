@@ -57,6 +57,20 @@ class Contract extends Model
     ];
 
     /**
+     * نسبة السعي الفعالة للعقد: من تفاصيل العقد (contract_infos) أولاً، ثم من جدول العقود.
+     * يُستخدم في خطة المطور وحساب ميزانية الحملة.
+     */
+    public function getEffectiveCommissionPercent(): float
+    {
+        $this->loadMissing('info');
+        $info = $this->info;
+        $fromInfo = $info !== null && $info->commission_percent !== null ? (float) $info->commission_percent : null;
+        $fromContract = $this->commission_percent !== null ? (float) $this->commission_percent : null;
+
+        return (float) ($fromInfo ?? $fromContract ?? 0);
+    }
+
+    /**
      * Get the user that owns the contract.
      */
     public function user()
