@@ -12,13 +12,17 @@ class DeveloperMarketingPlanFactory extends Factory
 
     public function definition(): array
     {
+        $marketingValue = $this->faker->randomFloat(2, 10000, 500000);
+        $averageCpm = $this->faker->randomFloat(2, 10, 50);
+        $averageCpc = $this->faker->randomFloat(2, 1, 5);
         return [
             'contract_id' => Contract::factory(),
-            'average_cpm' => $this->faker->randomFloat(2, 5, 50),
-            'average_cpc' => $this->faker->randomFloat(2, 0.5, 5),
-            'marketing_value' => $this->faker->randomFloat(2, 100000, 1000000),
-            'expected_impressions' => $this->faker->numberBetween(10000, 1000000),
-            'expected_clicks' => $this->faker->numberBetween(100, 10000),
+            'average_cpm' => $averageCpm,
+            'average_cpc' => $averageCpc,
+            'marketing_value' => $marketingValue,
+            'marketing_percent' => $this->faker->randomFloat(2, 6, 10),
+            'expected_impressions' => (int) ($marketingValue / $averageCpm * 1000),
+            'expected_clicks' => (int) ($marketingValue / $averageCpc),
         ];
     }
 }

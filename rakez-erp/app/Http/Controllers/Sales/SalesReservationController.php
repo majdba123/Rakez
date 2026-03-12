@@ -216,6 +216,76 @@ class SalesReservationController extends Controller
     }
 
     /**
+     * Reservation voucher data for PDF (سند حجز). JSON only; frontend uses generateReservationVoucherPdf(...).
+     * GET /api/sales/reservations/{id}/voucher-data
+     */
+    public function voucherData(int $id): JsonResponse
+    {
+        try {
+            $reservation = SalesReservation::with([
+                'contract',
+                'contractUnit',
+                'marketingEmployee.team',
+            ])->findOrFail($id);
+
+            $user = request()->user();
+            if ($reservation->marketing_employee_id !== $user->id && !$user->hasRole('admin')) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Unauthorized to view this voucher',
+                ], 403);
+            }
+
+            $contract = $reservation->contract;
+            $unit = $reservation->contractUnit;
+            $employee = $reservation->marketingEmployee;
+
+            $data = [
+                'reservation' => [
+                    'id' => $reservation->id,
+                    'reservation_type' => $reservation->reservation_type ?? 'confirmed_reservation',
+                    'payment_method' => $reservation->payment_method ?? '',
+                    'purchase_mechanism' => $reservation->purchase_mechanism ?? '',
+                    'down_payment_status' => $reservation->down_payment_status ?? '',
+                    'down_payment_amount' => $reservation->down_payment_amount ? (float) $reservation->down_payment_amount : 0,
+                    'contract_date' => $reservation->contract_date?->format('Y-m-d') ?? '',
+                    'client_name' => (string) ($reservation->client_name ?? ''),
+                    'client_mobile' => (string) ($reservation->client_mobile ?? ''),
+                    'client_nationality' => (string) ($reservation->client_nationality ?? ''),
+                    'client_iban' => (string) ($reservation->client_iban ?? ''),
+                    'negotiation_notes' => (string) ($reservation->negotiation_notes ?? ''),
+                ],
+                'project' => [
+                    'name' => (string) ($contract?->project_name ?? ''),
+                    'city' => (string) ($contract?->city ?? ''),
+                    'district' => (string) ($contract?->district ?? ''),
+                    'developer_name' => (string) ($contract?->developer_name ?? ''),
+                ],
+                'unit' => [
+                    'number' => (string) ($unit?->unit_number ?? ''),
+                    'type' => (string) ($unit?->unit_type ?? ''),
+                    'area' => $unit ? (string) $unit->area : '',
+                    'floor' => $unit && $unit->floor !== null ? (string) $unit->floor : '',
+                    'price' => $unit && $unit->price !== null ? (float) $unit->price : 0,
+                ],
+                'employee' => [
+                    'name' => (string) ($employee?->name ?? ''),
+                    'team' => (string) ($employee?->team?->name ?? ''),
+                ],
+            ];
+
+            return response()->json($data, 200, ['Content-Type' => 'application/json']);
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+            return response()->json(['success' => false, 'message' => 'Reservation not found'], 404);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
      * Download reservation voucher.
      */
     public function downloadVoucher(int $id): Response

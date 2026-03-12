@@ -31,7 +31,7 @@ class MarketingProjectResource extends JsonResource
             'advertiser_number' => (!empty($info?->agency_number)) ? 'Available' : 'Pending',
             'advertiser_number_value' => $info?->agency_number,
             'advertiser_number_status' => (!empty($info?->agency_number)) ? 'Available' : 'Pending',
-            'commission_percent' => $info?->commission_percent ?? 0,
+            'commission_percent' => $contract->getEffectiveCommissionPercent(),
             'total_available_value' => $availableUnits->sum('price'),
             'media_links' => $contract->projectMedia
                 ->filter(function ($media) {

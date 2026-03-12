@@ -18,9 +18,10 @@ class MarketingTaskService
      */
     public function getTaskProjects(User $leader): Collection
     {
-        return Contract::whereHas('salesProjectAssignments', function ($q) use ($leader) {
-            $q->where('leader_id', $leader->id);
-        })->with(['montageDepartment', 'photographyDepartment', 'boardsDepartment'])->get();
+        return Contract::where('status', 'ready')
+            ->whereHas('salesProjectAssignments', function ($q) use ($leader) {
+                $q->where('leader_id', $leader->id);
+            })->with(['montageDepartment', 'photographyDepartment', 'boardsDepartment'])->get();
     }
 
     /**

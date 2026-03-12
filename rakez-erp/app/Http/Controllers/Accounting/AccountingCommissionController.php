@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Accounting;
 
 use App\Http\Controllers\Controller;
+use App\Models\Commission;
 use App\Models\CommissionDistribution;
 use App\Services\Accounting\AccountingCommissionService;
 use Illuminate\Http\JsonResponse;
@@ -128,6 +129,54 @@ class AccountingCommissionController extends Controller
                 'success' => false,
                 'message' => $e->getMessage(),
             ], $statusCode);
+        }
+    }
+
+    /**
+     * Commission claim PDF data (مطالبة عمولة). JSON only; frontend uses generateCommissionClaimPdf(commission, distributions).
+     * GET /api/accounting/commissions/{id}/pdf-data or /api/commission-claims/{id}/pdf-data
+     */
+    public function commissionPdfData(int $id): JsonResponse
+    {
+        try {
+            $commission = Commission::with(['distributions.user'])->findOrFail($id);
+
+            $distributions = $commission->distributions->map(function (CommissionDistribution $d) {
+                return [
+                    'recipient' => [
+                        'name' => $d->user ? (string) $d->user->name : (string) ($d->external_name ?? ''),
+                    ],
+                    'external_marketer_name' => (string) ($d->external_name ?? ''),
+                    'type' => (string) ($d->type ?? ''),
+                    'percentage' => $d->percentage !== null ? (float) $d->percentage : 0,
+                    'amount' => $d->amount !== null ? (float) $d->amount : 0,
+                    'status' => (string) ($d->status ?? ''),
+                ];
+            })->values()->all();
+
+            $data = [
+                'commission' => [
+                    'id' => $commission->id,
+                    'final_selling_price' => $commission->final_selling_price !== null ? (float) $commission->final_selling_price : 0,
+                    'commission_percentage' => $commission->commission_percentage !== null ? (float) $commission->commission_percentage : 0,
+                    'status' => (string) ($commission->status ?? 'pending'),
+                    'total_amount' => $commission->total_amount !== null ? (float) $commission->total_amount : 0,
+                    'vat' => $commission->vat !== null ? (float) $commission->vat : 0,
+                    'marketing_expenses' => $commission->marketing_expenses !== null ? (float) $commission->marketing_expenses : 0,
+                    'bank_fees' => $commission->bank_fees !== null ? (float) $commission->bank_fees : 0,
+                    'net_amount' => $commission->net_amount !== null ? (float) $commission->net_amount : 0,
+                ],
+                'distributions' => $distributions,
+            ];
+
+            return response()->json($data, 200, ['Content-Type' => 'application/json']);
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+            return response()->json(['success' => false, 'message' => 'Commission not found'], 404);
+        } catch (Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage(),
+            ], 500);
         }
     }
 

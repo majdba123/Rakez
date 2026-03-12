@@ -29,6 +29,8 @@ class ContractFactory extends Factory
             'developer_requiment' => $this->faker->sentence(),
             'status' => 'pending',
             'notes' => $this->faker->sentence(),
+            'commission_percent' => $this->faker->randomFloat(2, 2, 4),
+            'commission_from' => $this->faker->randomElement(['المالك', 'المشتري', 'الطرفين']),
         ];
     }
 }

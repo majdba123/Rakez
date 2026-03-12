@@ -5,6 +5,7 @@ namespace Database\Seeders;
 use Illuminate\Database\Seeder;
 use App\Models\User;
 use App\Models\Contract;
+use App\Models\ContractInfo;
 use App\Models\ContractUnit;
 use App\Models\SecondPartyData;
 use Illuminate\Support\Facades\Hash;
@@ -91,7 +92,21 @@ class ArabicSeedDataSeeder extends Seeder
                 'project_image_url' => $projectImage,
                 'emergency_contact_number' => '0500000001',
                 'security_guard_number' => '0500000002',
+                'commission_percent' => round(rand(20, 40) / 10, 2),
+                'commission_from' => 'المالك',
             ]));
+
+            ContractInfo::create([
+                'contract_id' => $contract->id,
+                'contract_number' => 'ER-' . str_pad((string) $contract->id, 4, '0', STR_PAD_LEFT),
+                'first_party_name' => 'Rakez',
+                'first_party_phone' => '0500000000',
+                'agreement_duration_days' => rand(90, 365),
+                'agreement_duration_months' => rand(3, 12),
+                'commission_percent' => $contract->commission_percent ?? 2.5,
+                'commission_from' => 'المالك',
+                'avg_property_value' => rand(600000, 2000000),
+            ]);
 
             $logoUrl = $logoThumbs ? Arr::random($logoThumbs) : 'https://via.placeholder.com/150';
             // Create Second Party Data for each contract
@@ -195,12 +210,13 @@ class ArabicSeedDataSeeder extends Seeder
             'updated_at' => now(),
         ]);
 
-        // Developer Marketing Plans
+        // Developer Marketing Plans (commission_percent and avg_property_value come from contract/info so budget calc works)
         DB::table('developer_marketing_plans')->insert([
             'contract_id' => Contract::first()->id,
             'average_cpm' => 25.00,
             'average_cpc' => 2.50,
             'marketing_value' => 35000.00,
+            'marketing_percent' => 7.50,
             'expected_impressions' => 1400000,
             'expected_clicks' => 14000,
             'created_at' => now(),

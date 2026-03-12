@@ -125,7 +125,7 @@ class DeveloperService
         \Illuminate\Contracts\Auth\Authenticatable $user,
         ?string $search = null
     ): \Illuminate\Database\Eloquent\Builder {
-        $query = Contract::query();
+        $query = Contract::query()->where('status', 'ready');
 
         if ($user->can('contracts.view_all')) {
             // no user filter

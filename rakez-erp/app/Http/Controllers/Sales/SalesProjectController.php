@@ -32,8 +32,8 @@ class SalesProjectController extends Controller
     {
         try {
             $user = $request->user();
-            // مدير مبيعات: فقط مشاريع المسندة لفريقه. موظف مبيعات: فقط المسندة لفريق المستخدم.
-            $defaultScope = $user->hasRole('sales_leader') ? 'team' : 'me';
+            // مدير مبيعات: افتراضياً كل المشاريع المكتملة (بما فيها غير المُسنَدة) لتمكين الإسناد. موظف مبيعات: مشاريع الفريق.
+            $defaultScope = $user->hasRole('sales_leader') ? 'all' : 'me';
             $filters = [
                 'status' => $request->query('status'),
                 'q' => $request->query('q'),
@@ -130,6 +130,63 @@ class SalesProjectController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to retrieve units: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
+     * Unit PDF data (تفاصيل وحدة). JSON only; frontend uses generateUnitDetailsPdf(unit, { projectName }).
+     * GET /api/sales/units/{unitId}/pdf-data
+     */
+    public function unitPdfData(Request $request, int $unitId): JsonResponse
+    {
+        try {
+            $unit = ContractUnit::with('secondPartyData.contract')->findOrFail($unitId);
+            $contract = $unit->secondPartyData?->contract;
+
+            if (!$contract) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Unit has no associated project',
+                ], 404);
+            }
+
+            if (!$this->projectService->userCanAccessContract($request->user(), $contract->id)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'You do not have access to this unit',
+                ], 403);
+            }
+
+            $totalArea = (float) ($unit->area ?? 0) + (float) ($unit->private_area_m2 ?? 0);
+            $price = $unit->price !== null ? (float) $unit->price : 0;
+
+            $data = [
+                'unit' => [
+                    'unit_number' => (string) ($unit->unit_number ?? ''),
+                    'id' => $unit->id,
+                    'status' => (string) ($unit->status ?? 'available'),
+                    'floor' => $unit->floor !== null ? (int) $unit->floor : 0,
+                    'area' => $unit->area !== null ? (float) $unit->area : 0,
+                    'private_area' => $unit->private_area_m2 !== null ? (float) $unit->private_area_m2 : 0,
+                    'total_area' => $totalArea,
+                    'bedrooms' => $unit->bedrooms !== null ? (int) $unit->bedrooms : 0,
+                    'rooms' => ($unit->bedrooms ?? 0) + ($unit->bathrooms ?? 0),
+                    'facade' => (string) ($unit->view ?? ''),
+                    'view' => (string) ($unit->view ?? ''),
+                    'price' => $price,
+                    'total_price' => $price,
+                ],
+                'projectName' => (string) ($contract->project_name ?? ''),
+            ];
+
+            return response()->json($data, 200, ['Content-Type' => 'application/json']);
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+            return response()->json(['success' => false, 'message' => 'Unit not found'], 404);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage(),
             ], 500);
         }
     }

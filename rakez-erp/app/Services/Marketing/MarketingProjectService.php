@@ -74,7 +74,7 @@ class MarketingProjectService
                 'pending' => $pendingUnits->count(),
             ],
             'avg_unit_price' => $info ? (float) ($info->avg_property_value ?? 0) : 0,
-            'commission_percent' => $info ? (float) ($info->commission_percent ?? 0) : 0,
+            'commission_percent' => $contract->getEffectiveCommissionPercent(),
             'total_available_value' => (float) $availableUnits->sum('price'),
             'advertiser_number' => (!empty($info?->agency_number)) ? 'Available' : 'Pending',
             'advertiser_number_value' => $info?->agency_number ?? null,
@@ -87,8 +87,8 @@ class MarketingProjectService
         $info = $contract->info;
 
         $unitPrice = $inputs['unit_price'] ?? ($info->avg_property_value ?? 0);
-        $commissionPercent = $info->commission_percent ?? 0;
-        
+        $commissionPercent = $contract->getEffectiveCommissionPercent();
+
         $commissionValue = $unitPrice * ($commissionPercent / 100);
 
         // Get marketing percent from inputs, or fallback to 10%

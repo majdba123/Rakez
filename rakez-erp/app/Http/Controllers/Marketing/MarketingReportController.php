@@ -252,7 +252,7 @@ class MarketingReportController extends Controller
     public function exportDeveloperPlan(int $contractId, Request $request): StreamedResponse|BinaryFileResponse|JsonResponse|Response
     {
         $planData = $this->developerPlanService->getPlanForDeveloper($contractId);
-        if (!$planData) {
+        if (empty($planData['raw_plan']) || !$planData['plan']) {
             return response()->json([
                 'success' => false,
                 'message' => 'لم يتم العثور على خطة تسويق المطور لهذا العقد',

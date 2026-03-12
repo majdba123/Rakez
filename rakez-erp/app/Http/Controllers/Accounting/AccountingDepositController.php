@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Accounting;
 
 use App\Http\Controllers\Controller;
+use App\Models\Deposit;
 use App\Services\Accounting\AccountingDepositService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -120,6 +121,48 @@ class AccountingDepositController extends Controller
                 'message' => 'Validation failed.',
                 'errors' => $e->errors(),
             ], 422);
+        } catch (Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
+     * Deposit claim PDF data (مطالبة عربون). JSON only; frontend uses generateDepositClaimPdf(deposit).
+     * GET /api/accounting/deposits/{id}/pdf-data or /api/deposit-claims/{id}/pdf-data
+     */
+    public function depositPdfData(int $id): JsonResponse
+    {
+        try {
+            $deposit = Deposit::with(['contract', 'contractUnit', 'confirmedBy'])->findOrFail($id);
+
+            $data = [
+                'id' => $deposit->id,
+                'commission_source' => (string) ($deposit->commission_source ?? ''),
+                'payment_method' => (string) ($deposit->payment_method ?? ''),
+                'payment_date' => $deposit->payment_date?->format('Y-m-d') ?? '',
+                'status' => (string) ($deposit->status ?? 'pending'),
+                'notes' => (string) ($deposit->notes ?? ''),
+                'contract' => [
+                    'project_name' => (string) ($deposit->contract?->project_name ?? ''),
+                ],
+                'contractUnit' => [
+                    'unit_type' => (string) ($deposit->contractUnit?->unit_type ?? ''),
+                    'unit_number' => (string) ($deposit->contractUnit?->unit_number ?? ''),
+                ],
+                'confirmedBy' => [
+                    'name' => (string) ($deposit->confirmedBy?->name ?? ''),
+                ],
+                'confirmed_at' => $deposit->confirmed_at?->toIso8601String() ?? null,
+                'refund_reason' => null,
+                'refunded_at' => $deposit->refunded_at?->toIso8601String() ?? null,
+            ];
+
+            return response()->json($data, 200, ['Content-Type' => 'application/json']);
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+            return response()->json(['success' => false, 'message' => 'Deposit not found'], 404);
         } catch (Exception $e) {
             return response()->json([
                 'success' => false,
