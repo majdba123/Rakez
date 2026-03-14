@@ -65,6 +65,7 @@ class StoreContractRequest extends FormRequest
             'city' => 'required|string|max:255',
             'district' => 'required|string|max:255',
             'project_name' => 'required|string|max:255',
+            'project_image_url' => 'nullable|string|max:500',
             'developer_requiment' => 'required|string',
             'notes' => 'nullable|string',
             // Commission details (optional, same style as ContractInfo)

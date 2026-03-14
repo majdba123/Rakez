@@ -1,0 +1,231 @@
+{
+  "info": {
+    "_postman_id": "manager-api-collection-001",
+    "name": "Rakez ERP - Manager API",
+    "description": "Manager API - Managers (is_manager=true) or Admin can access. Employees, reviews, and tasks. Requires auth (Bearer token).",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:8000" },
+    { "key": "token", "value": "" },
+    { "key": "employeeId", "value": "1" },
+    { "key": "reviewId", "value": "1" },
+    { "key": "is_active", "value": "" },
+    { "key": "type", "value": "" },
+    { "key": "team_id", "value": "" },
+    { "key": "department", "value": "" },
+    { "key": "search", "value": "" },
+    { "key": "sort_by", "value": "created_at" },
+    { "key": "sort_order", "value": "desc" },
+    { "key": "per_page", "value": "15" },
+    { "key": "comment", "value": "تقييم إيجابي - أداء ممتاز" },
+    { "key": "taskId", "value": "1" },
+    { "key": "task_status", "value": "" },
+    { "key": "assigned_to", "value": "" },
+    { "key": "section", "value": "" }
+  ],
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      { "key": "token", "value": "{{token}}", "type": "string" }
+    ]
+  },
+  "item": [
+    {
+      "name": "Manager - Employees",
+      "item": [
+        {
+          "name": "List Employees",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Accept", "value": "application/json" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/manager/employees?is_active={{is_active}}&type={{type}}&team_id={{team_id}}&department={{department}}&search={{search}}&sort_by={{sort_by}}&sort_order={{sort_order}}&per_page={{per_page}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "manager", "employees"],
+              "query": [
+                { "key": "is_active", "value": "{{is_active}}", "description": "Filter: true/false" },
+                { "key": "type", "value": "{{type}}", "description": "Filter by employee type (sales, hr, etc.)" },
+                { "key": "team_id", "value": "{{team_id}}", "description": "Filter by team ID" },
+                { "key": "department", "value": "{{department}}", "description": "Filter by department" },
+                { "key": "search", "value": "{{search}}", "description": "Search in name, email, phone" },
+                { "key": "sort_by", "value": "{{sort_by}}", "description": "id|name|email|type|created_at|updated_at" },
+                { "key": "sort_order", "value": "{{sort_order}}", "description": "asc|desc" },
+                { "key": "per_page", "value": "{{per_page}}", "description": "1-100" }
+              ]
+            },
+            "description": "List employees. Type is a filter only. Query params: is_active, type, team_id, department, search, sort_by, sort_order, per_page"
+          }
+        },
+        {
+          "name": "Show Employee",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Accept", "value": "application/json" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/manager/employees/{{employeeId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "manager", "employees", "{{employeeId}}"]
+            },
+            "description": "Get single employee by ID."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Manager - Reviews",
+      "item": [
+        {
+          "name": "List Reviews (by employee)",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Accept", "value": "application/json" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/manager/employees/{{employeeId}}/reviews?per_page={{per_page}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "manager", "employees", "{{employeeId}}", "reviews"],
+              "query": [
+                { "key": "per_page", "value": "{{per_page}}", "description": "1-100" }
+              ]
+            },
+            "description": "Get all reviews for an employee."
+          }
+        },
+        {
+          "name": "Show Review",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Accept", "value": "application/json" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/manager/employees/{{employeeId}}/reviews/{{reviewId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "manager", "employees", "{{employeeId}}", "reviews", "{{reviewId}}"]
+            },
+            "description": "Get single review by employee ID and review ID."
+          }
+        },
+        {
+          "name": "Create Review",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"comment\": \"{{comment}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/manager/employees/{{employeeId}}/reviews",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "manager", "employees", "{{employeeId}}", "reviews"]
+            },
+            "description": "Add a review for an employee. Only managers can add. Body: { comment: string, max 2000 chars }"
+          }
+        },
+        {
+          "name": "Update Review",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"comment\": \"{{comment}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/manager/employees/{{employeeId}}/reviews/{{reviewId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "manager", "employees", "{{employeeId}}", "reviews", "{{reviewId}}"]
+            },
+            "description": "Update a review. Only the manager who created it can update. Body: { comment: string, max 2000 chars }"
+          }
+        },
+        {
+          "name": "Delete Review",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              { "key": "Accept", "value": "application/json" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/manager/employees/{{employeeId}}/reviews/{{reviewId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "manager", "employees", "{{employeeId}}", "reviews", "{{reviewId}}"]
+            },
+            "description": "Delete a review. Only the manager who created it can delete."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Manager - Tasks",
+      "item": [
+        {
+          "name": "List Tasks (employees)",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Accept", "value": "application/json" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/manager/tasks?status={{task_status}}&assigned_to={{assigned_to}}&section={{section}}&sort_by=due_at&sort_order=asc&per_page={{per_page}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "manager", "tasks"],
+              "query": [
+                { "key": "status", "value": "{{task_status}}", "description": "in_progress|completed|could_not_complete" },
+                { "key": "assigned_to", "value": "{{assigned_to}}", "description": "Filter by assignee user ID" },
+                { "key": "section", "value": "{{section}}", "description": "Filter by section" },
+                { "key": "sort_by", "value": "due_at", "description": "id|task_name|due_at|status|created_at" },
+                { "key": "sort_order", "value": "asc", "description": "asc|desc" },
+                { "key": "per_page", "value": "{{per_page}}", "description": "1-100" }
+              ]
+            },
+            "description": "List tasks of manager's employees (same team)."
+          }
+        },
+        {
+          "name": "Show Task",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Accept", "value": "application/json" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/manager/tasks/{{taskId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "manager", "tasks", "{{taskId}}"]
+            },
+            "description": "Show single task by ID. Manager can only view tasks of their team's employees."
+          }
+        },
+        {
+          "name": "Task Statistics",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Accept", "value": "application/json" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/manager/tasks/statistics",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "manager", "tasks", "statistics"]
+            },
+            "description": "Get task statistics: total, in_progress, completed, could_not_complete for manager's employees."
+          }
+        }
+      ]
+    }
+  ]
+}

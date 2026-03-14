@@ -297,7 +297,7 @@ class HrUserController extends Controller
 
             return response()->json([
                 'success' => true,
-                'message' => $validated['is_active'] 
+                'message' => $validated['is_active']
                     ? 'تم تفعيل حساب الموظف بنجاح'
                     : 'تم تعطيل حساب الموظف بنجاح',
                 'data' => [

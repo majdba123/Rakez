@@ -59,6 +59,7 @@ class UpdateContractRequest extends FormRequest
     {
         return [
             'project_name' => 'sometimes|string|max:255',
+            'project_image_url' => 'nullable|string|max:500',
             'developer_name' => 'sometimes|string|max:255',
             'city' => 'sometimes|string|max:255',
             'district' => 'sometimes|string|max:255',

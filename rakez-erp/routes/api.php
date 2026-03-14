@@ -68,6 +68,8 @@ use App\Http\Controllers\Sales\NegotiationApprovalController;
 use App\Http\Controllers\Sales\PaymentPlanController;
 use App\Http\Controllers\HR\HrTeamController;
 use App\Http\Controllers\HR\HrUserController;
+use App\Http\Controllers\HR\ManagerEmployeeController;
+use App\Http\Controllers\HR\ManagerTaskController;
 use App\Http\Controllers\HR\HrDashboardController;
 use App\Http\Controllers\HR\HrReportController;
 use App\Http\Controllers\HR\EmployeeContractController;
@@ -97,6 +99,21 @@ Route::middleware('auth:sanctum')->group(function () {
     });
 
     Route::post('/logout', [LoginController::class, 'logout']);
+
+    // Manager API - separate from hr; managers see only employees of their type
+    Route::prefix('manager')->middleware('auth:sanctum')->group(function () {
+        Route::get('employees', [ManagerEmployeeController::class, 'index']);
+        Route::get('employees/{id}', [ManagerEmployeeController::class, 'show'])->whereNumber('id');
+        Route::get('employees/{employeeId}/reviews', [ManagerEmployeeController::class, 'indexReviews'])->whereNumber('employeeId');
+        Route::post('employees/{id}/reviews', [ManagerEmployeeController::class, 'storeReview'])->whereNumber('id');
+        Route::get('employees/{employeeId}/reviews/{reviewId}', [ManagerEmployeeController::class, 'showReview'])->whereNumber(['employeeId', 'reviewId']);
+        Route::put('employees/{employeeId}/reviews/{reviewId}', [ManagerEmployeeController::class, 'updateReview'])->whereNumber(['employeeId', 'reviewId']);
+        Route::delete('employees/{employeeId}/reviews/{reviewId}', [ManagerEmployeeController::class, 'deleteReview'])->whereNumber(['employeeId', 'reviewId']);
+
+        Route::get('tasks/statistics', [ManagerTaskController::class, 'statistics']);
+        Route::get('tasks', [ManagerTaskController::class, 'index']);
+        Route::get('tasks/{id}', [ManagerTaskController::class, 'show'])->whereNumber('id');
+    });
 
     // Teams list for any authenticated user (must be before role-restricted project_management group)
     Route::get('/project_management/teams/index', [TeamController::class, 'index']);
@@ -522,6 +539,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::delete('/delete_employee/{id}', [RegisterController::class, 'delete_employee']);
 
         Route::get('contracts/{id}/pdf-data', [EmployeeContractController::class, 'pdfData'])->whereNumber('id');
+
         Route::prefix('users')->group(function () {
             Route::get('/', [HrUserController::class, 'index']);
             Route::post('/', [HrUserController::class, 'store']);

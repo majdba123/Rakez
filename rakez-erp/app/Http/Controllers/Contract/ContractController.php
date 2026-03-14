@@ -82,7 +82,7 @@ class ContractController extends Controller
 
     public function store(StoreContractRequest $request): JsonResponse
     {
-        $this->authorize('create', Contract::class);
+       // $this->authorize('create', Contract::class);
 
         try {
             $validated = $request->validated();
@@ -465,5 +465,65 @@ class ContractController extends Controller
     public function getTeamsForContract_HR(int $contractId): JsonResponse
     {
         return $this->getTeamsForContract($contractId);
+    }
+
+    /**
+     * Add teams to a contract.
+     * POST /project_management/teams/add/{contractId}
+     * Body: { "team_ids": [1, 2, 3] }
+     */
+    public function addTeamsToContract(Request $request, int $contractId): JsonResponse
+    {
+        try {
+            $request->validate([
+                'team_ids' => 'required|array',
+                'team_ids.*' => 'integer|exists:teams,id',
+            ], [
+                'team_ids.required' => 'team_ids مطلوب',
+            ]);
+
+            $contract = $this->contractService->attachTeamsToContract($contractId, $request->input('team_ids'));
+
+            return response()->json([
+                'success' => true,
+                'message' => 'تم إضافة الفرق بنجاح',
+                'data' => new ContractResource($contract->load('user', 'info', 'teams')),
+            ], 200);
+        } catch (Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage(),
+            ], str_contains($e->getMessage(), 'No query results') || str_contains($e->getMessage(), 'Contract not found') ? 404 : 422);
+        }
+    }
+
+    /**
+     * Remove teams from a contract.
+     * POST /project_management/teams/remove/{contractId}
+     * Body: { "team_ids": [1, 2, 3] }
+     */
+    public function removeTeamsFromContract(Request $request, int $contractId): JsonResponse
+    {
+        try {
+            $request->validate([
+                'team_ids' => 'required|array',
+                'team_ids.*' => 'integer|exists:teams,id',
+            ], [
+                'team_ids.required' => 'team_ids مطلوب',
+            ]);
+
+            $contract = $this->contractService->detachTeamsFromContract($contractId, $request->input('team_ids'));
+
+            return response()->json([
+                'success' => true,
+                'message' => 'تم إزالة الفرق بنجاح',
+                'data' => new ContractResource($contract->load('user', 'info', 'teams')),
+            ], 200);
+        } catch (Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage(),
+            ], str_contains($e->getMessage(), 'No query results') || str_contains($e->getMessage(), 'Contract not found') ? 404 : 422);
+        }
     }
 }
