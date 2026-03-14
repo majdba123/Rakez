@@ -155,15 +155,11 @@ class ManagerEmployeeController extends Controller
      */
     public function storeReview(Request $request, int $id): JsonResponse
     {
+        if ($err = $this->ensureManager($request)) {
+            return $err;
+        }
         try {
             $currentUser = $request->user();
-            if (!$currentUser) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'غير مصرح - يرجى تسجيل الدخول',
-                ], 401);
-            }
-
             $request->validate([
                 'comment' => 'required|string|max:2000',
             ], [
