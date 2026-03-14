@@ -13,19 +13,23 @@ use Exception;
 class ManagerTaskService
 {
     /**
-     * Get task query scoped to manager's team employees.
-     * Tasks where assigned_to is in manager's team (users with team_id = manager.team_id).
+     * Get task query. Admin sees all tasks; manager sees only tasks of their team's employees.
      */
-    private function tasksForManager(User $manager)
+    private function tasksForUser(User $user)
     {
-        if (!$manager->team_id) {
-            return Task::query()->whereRaw('1 = 0'); // No team = no tasks
+        $base = Task::with(['team:id,name', 'assignee:id,name,email', 'creator:id,name']);
+
+        if ($user->isAdmin()) {
+            return $base;
         }
 
-        $teamMemberIds = User::where('team_id', $manager->team_id)->pluck('id');
+        if (!$user->team_id) {
+            return Task::query()->whereRaw('1 = 0'); // Manager with no team = no tasks
+        }
 
-        return Task::with(['team:id,name', 'assignee:id,name,email', 'creator:id,name'])
-            ->whereIn('assigned_to', $teamMemberIds);
+        $teamMemberIds = User::where('team_id', $user->team_id)->pluck('id');
+
+        return $base->whereIn('assigned_to', $teamMemberIds);
     }
 
     /**
@@ -35,7 +39,7 @@ class ManagerTaskService
      */
     public function listTasks(User $manager, array $filters = [], int $perPage = 15): LengthAwarePaginator
     {
-        $query = $this->tasksForManager($manager);
+        $query = $this->tasksForUser($manager);
 
         if (isset($filters['status']) && $filters['status'] !== null && $filters['status'] !== '') {
             $query->where('status', $filters['status']);
@@ -68,7 +72,7 @@ class ManagerTaskService
      */
     public function showTask(User $manager, int $taskId): Task
     {
-        $task = $this->tasksForManager($manager)->find($taskId);
+        $task = $this->tasksForUser($manager)->find($taskId);
 
         if (!$task) {
             throw new Exception('المهمة غير موجودة أو لا يمكنك الوصول إليها.');
@@ -82,7 +86,7 @@ class ManagerTaskService
      */
     public function getStatistics(User $manager): array
     {
-        $query = $this->tasksForManager($manager);
+        $query = $this->tasksForUser($manager);
 
         $total = (clone $query)->count();
         $inProgress = (clone $query)->where('status', Task::STATUS_IN_PROGRESS)->count();

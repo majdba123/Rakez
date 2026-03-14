@@ -2,7 +2,7 @@
   "info": {
     "_postman_id": "manager-api-collection-001",
     "name": "Rakez ERP - Manager API",
-    "description": "Manager API - Only users with is_manager=true can access. Employees, reviews, and tasks of manager's team. Requires auth (Bearer token).",
+    "description": "Manager API - Managers (is_manager=true) or Admin can access. Employees, reviews, and tasks. Requires auth (Bearer token).",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [

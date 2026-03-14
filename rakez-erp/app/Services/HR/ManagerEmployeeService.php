@@ -97,8 +97,8 @@ class ManagerEmployeeService
      */
     public function addReview(User $manager, int $employeeId, string $comment): ManagerEmployeeReview
     {
-        if (!$manager->isManager()) {
-            throw new Exception('غير مصرح - فقط المديرون يمكنهم إضافة تقييمات.');
+        if (!$manager->isManager() && !$manager->isAdmin()) {
+            throw new Exception('غير مصرح - فقط المديرون أو الأدمن يمكنهم إضافة تقييمات.');
         }
 
         $employee = User::find($employeeId);
@@ -160,7 +160,7 @@ class ManagerEmployeeService
             throw new Exception('التقييم غير موجود.');
         }
 
-        if ($review->manager_id !== $manager->id) {
+        if ($review->manager_id !== $manager->id && !$manager->isAdmin()) {
             throw new Exception('غير مصرح - لا يمكنك تعديل تقييم لم تضفه أنت.');
         }
 
@@ -182,7 +182,7 @@ class ManagerEmployeeService
             throw new Exception('التقييم غير موجود.');
         }
 
-        if ($review->manager_id !== $manager->id) {
+        if ($review->manager_id !== $manager->id && !$manager->isAdmin()) {
             throw new Exception('غير مصرح - لا يمكنك حذف تقييم لم تضفه أنت.');
         }
 

@@ -20,7 +20,7 @@ class ManagerEmployeeController extends Controller
     }
 
     /**
-     * Ensure user is authenticated and is a manager.
+     * Ensure user is authenticated and is a manager or admin.
      */
     private function ensureManager(Request $request): ?JsonResponse
     {
@@ -28,8 +28,8 @@ class ManagerEmployeeController extends Controller
         if (!$user) {
             return response()->json(['success' => false, 'message' => 'غير مصرح - يرجى تسجيل الدخول'], 401);
         }
-        if (!$user->isManager()) {
-            return response()->json(['success' => false, 'message' => 'غير مصرح - هذه الصلاحية للمديرين فقط.'], 403);
+        if (!$user->isManager() && !$user->isAdmin()) {
+            return response()->json(['success' => false, 'message' => 'غير مصرح - هذه الصلاحية للمديرين أو الأدمن فقط.'], 403);
         }
         return null;
     }
