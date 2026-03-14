@@ -69,6 +69,7 @@ use App\Http\Controllers\Sales\PaymentPlanController;
 use App\Http\Controllers\HR\HrTeamController;
 use App\Http\Controllers\HR\HrUserController;
 use App\Http\Controllers\HR\ManagerEmployeeController;
+use App\Http\Controllers\HR\ManagerTaskController;
 use App\Http\Controllers\HR\HrDashboardController;
 use App\Http\Controllers\HR\HrReportController;
 use App\Http\Controllers\HR\EmployeeContractController;
@@ -108,6 +109,10 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('employees/{employeeId}/reviews/{reviewId}', [ManagerEmployeeController::class, 'showReview'])->whereNumber(['employeeId', 'reviewId']);
         Route::put('employees/{employeeId}/reviews/{reviewId}', [ManagerEmployeeController::class, 'updateReview'])->whereNumber(['employeeId', 'reviewId']);
         Route::delete('employees/{employeeId}/reviews/{reviewId}', [ManagerEmployeeController::class, 'deleteReview'])->whereNumber(['employeeId', 'reviewId']);
+
+        Route::get('tasks/statistics', [ManagerTaskController::class, 'statistics']);
+        Route::get('tasks', [ManagerTaskController::class, 'index']);
+        Route::get('tasks/{id}', [ManagerTaskController::class, 'show'])->whereNumber('id');
     });
 
     // Teams list for any authenticated user (must be before role-restricted project_management group)

@@ -8,14 +8,13 @@ use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Exception;
 
 /**
- * Service for listing employees with manager-based filtering.
- * When the requesting user is a manager (is_manager=true), only employees
- * with the same type as the manager are returned.
+ * Service for manager API. Only users with is_manager=true can access.
+ * Type is a filter only (query param) - no automatic filter by manager's type.
  */
 class ManagerEmployeeService
 {
     /**
-     * List employees. If the requesting user is a manager, filter by same type.
+     * List employees. Type is a filter only (from request).
      *
      * @param  array<string, mixed>  $filters
      */
@@ -24,12 +23,7 @@ class ManagerEmployeeService
         try {
             $query = User::with(['team', 'warnings']);
 
-            // Manager filter: only employees with same type as the manager
-            if ($requestingUser->isManager() && $requestingUser->type !== null) {
-                $query->where('type', $requestingUser->type);
-            }
-
-            // Apply request filters
+            // Apply request filters (type is filter only)
             if (isset($filters['is_active']) && $filters['is_active'] !== null && $filters['is_active'] !== '') {
                 $query->where('is_active', filter_var($filters['is_active'], FILTER_VALIDATE_BOOLEAN));
             }
@@ -76,9 +70,9 @@ class ManagerEmployeeService
     }
 
     /**
-     * Get a single employee. Managers can only view employees of their type.
+     * Get a single employee.
      *
-     * @throws Exception When employee not found or manager cannot access (different type)
+     * @throws Exception When employee not found
      */
     public function showEmployee(User $requestingUser, int $id): User
     {
@@ -93,20 +87,13 @@ class ManagerEmployeeService
             throw new Exception('Employee not found.');
         }
 
-        // Manager can only view employees of same type
-        if ($requestingUser->isManager() && $requestingUser->type !== null) {
-            if ($user->type !== $requestingUser->type) {
-                throw new Exception('غير مصرح - لا يمكنك عرض موظف من نوع آخر.');
-            }
-        }
-
         return $user;
     }
 
     /**
-     * Add a review for an employee. Only managers can add reviews, and only for employees of their type.
+     * Add a review for an employee. Only managers can add reviews.
      *
-     * @throws Exception When not a manager, employee not found, or employee is different type
+     * @throws Exception When not a manager or employee not found
      */
     public function addReview(User $manager, int $employeeId, string $comment): ManagerEmployeeReview
     {
@@ -119,10 +106,6 @@ class ManagerEmployeeService
             throw new Exception('الموظف غير موجود.');
         }
 
-        if ($manager->type !== null && $employee->type !== $manager->type) {
-            throw new Exception('غير مصرح - لا يمكنك إضافة تقييم لموظف من نوع آخر.');
-        }
-
         return ManagerEmployeeReview::create([
             'employee_id' => $employeeId,
             'manager_id' => $manager->id,
@@ -131,7 +114,7 @@ class ManagerEmployeeService
     }
 
     /**
-     * Get all reviews for an employee. Managers can only view if employee is same type.
+     * Get all reviews for an employee.
      *
      * @return LengthAwarePaginator<ManagerEmployeeReview>
      */
@@ -146,7 +129,7 @@ class ManagerEmployeeService
     }
 
     /**
-     * Get a single review by id. Manager can view if employee is same type.
+     * Get a single review by id.
      */
     public function showReview(User $requestingUser, int $employeeId, int $reviewId): ManagerEmployeeReview
     {
@@ -207,19 +190,13 @@ class ManagerEmployeeService
     }
 
     /**
-     * Ensure the requesting user can access the employee (for viewing reviews).
+     * Ensure the employee exists (for viewing reviews).
      */
     private function ensureCanAccessEmployee(User $requestingUser, int $employeeId): void
     {
         $employee = User::find($employeeId);
         if (!$employee) {
             throw new Exception('الموظف غير موجود.');
-        }
-
-        if ($requestingUser->isManager() && $requestingUser->type !== null) {
-            if ($employee->type !== $requestingUser->type) {
-                throw new Exception('غير مصرح - لا يمكنك الوصول لتقييمات موظف من نوع آخر.');
-            }
         }
     }
 }

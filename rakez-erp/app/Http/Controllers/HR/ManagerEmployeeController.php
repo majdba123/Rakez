@@ -9,9 +9,8 @@ use Illuminate\Http\Request;
 use Exception;
 
 /**
- * Controller for manager-scoped employee listing.
- * When the authenticated user is a manager (is_manager=true),
- * only employees with the same type are returned.
+ * Controller for manager API. Only users with is_manager=true can access.
+ * Type is a filter only (query param).
  */
 class ManagerEmployeeController extends Controller
 {
@@ -21,20 +20,31 @@ class ManagerEmployeeController extends Controller
     }
 
     /**
-     * List employees. Managers see only employees of their type.
-     * GET /hr/manager/employees
+     * Ensure user is authenticated and is a manager.
+     */
+    private function ensureManager(Request $request): ?JsonResponse
+    {
+        $user = $request->user();
+        if (!$user) {
+            return response()->json(['success' => false, 'message' => 'غير مصرح - يرجى تسجيل الدخول'], 401);
+        }
+        if (!$user->isManager()) {
+            return response()->json(['success' => false, 'message' => 'غير مصرح - هذه الصلاحية للمديرين فقط.'], 403);
+        }
+        return null;
+    }
+
+    /**
+     * List employees. Type is a filter only.
+     * GET /manager/employees
      */
     public function index(Request $request): JsonResponse
     {
+        if ($err = $this->ensureManager($request)) {
+            return $err;
+        }
         try {
             $user = $request->user();
-            if (!$user) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'غير مصرح - يرجى تسجيل الدخول',
-                ], 401);
-            }
-
             $filters = [
                 'is_active' => $request->input('is_active'),
                 'type' => $request->input('type'),
@@ -69,20 +79,16 @@ class ManagerEmployeeController extends Controller
     }
 
     /**
-     * Show a single employee. Managers can only view employees of their type.
+     * Show a single employee.
      * GET /manager/employees/{id}
      */
     public function show(Request $request, int $id): JsonResponse
     {
+        if ($err = $this->ensureManager($request)) {
+            return $err;
+        }
         try {
             $currentUser = $request->user();
-            if (!$currentUser) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'غير مصرح - يرجى تسجيل الدخول',
-                ], 401);
-            }
-
             $user = $this->managerEmployeeService->showEmployee($currentUser, $id);
 
             return response()->json([
@@ -203,12 +209,11 @@ class ManagerEmployeeController extends Controller
      */
     public function indexReviews(Request $request, int $employeeId): JsonResponse
     {
+        if ($err = $this->ensureManager($request)) {
+            return $err;
+        }
         try {
             $currentUser = $request->user();
-            if (!$currentUser) {
-                return response()->json(['success' => false, 'message' => 'غير مصرح - يرجى تسجيل الدخول'], 401);
-            }
-
             $perPage = min((int) $request->input('per_page', 15), 100);
             $reviews = $this->managerEmployeeService->getReviewsForEmployee($currentUser, $employeeId, $perPage);
 
@@ -237,12 +242,11 @@ class ManagerEmployeeController extends Controller
      */
     public function showReview(Request $request, int $employeeId, int $reviewId): JsonResponse
     {
+        if ($err = $this->ensureManager($request)) {
+            return $err;
+        }
         try {
             $currentUser = $request->user();
-            if (!$currentUser) {
-                return response()->json(['success' => false, 'message' => 'غير مصرح - يرجى تسجيل الدخول'], 401);
-            }
-
             $review = $this->managerEmployeeService->showReview($currentUser, $employeeId, $reviewId);
 
             return response()->json([
@@ -265,12 +269,11 @@ class ManagerEmployeeController extends Controller
      */
     public function updateReview(Request $request, int $employeeId, int $reviewId): JsonResponse
     {
+        if ($err = $this->ensureManager($request)) {
+            return $err;
+        }
         try {
             $currentUser = $request->user();
-            if (!$currentUser) {
-                return response()->json(['success' => false, 'message' => 'غير مصرح - يرجى تسجيل الدخول'], 401);
-            }
-
             $request->validate([
                 'comment' => 'required|string|max:2000',
             ], ['comment.required' => 'التعليق مطلوب']);
@@ -301,12 +304,11 @@ class ManagerEmployeeController extends Controller
      */
     public function deleteReview(Request $request, int $employeeId, int $reviewId): JsonResponse
     {
+        if ($err = $this->ensureManager($request)) {
+            return $err;
+        }
         try {
             $currentUser = $request->user();
-            if (!$currentUser) {
-                return response()->json(['success' => false, 'message' => 'غير مصرح - يرجى تسجيل الدخول'], 401);
-            }
-
             $this->managerEmployeeService->deleteReview($currentUser, $employeeId, $reviewId);
 
             return response()->json([
