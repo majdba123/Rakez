@@ -84,7 +84,7 @@ class ContractController extends Controller
 
     public function store(StoreContractRequest $request): JsonResponse
     {
-        $this->authorize('create', Contract::class);
+       // $this->authorize('create', Contract::class);
 
         try {
             $validated = $request->validated();
