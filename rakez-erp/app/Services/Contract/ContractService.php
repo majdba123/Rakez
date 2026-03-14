@@ -53,7 +53,25 @@ class ContractService
                 $query->byDeveloper($filters['developer_name']);
             }
 
+            // Filter by has photography department
+            if (isset($filters['has_photography'])) {
+                $has = (string) $filters['has_photography'];
+                if ($has === '1' || $has === 'true') {
+                    $query->whereHas('photographyDepartment');
+                } elseif ($has === '0' || $has === 'false') {
+                    $query->whereDoesntHave('photographyDepartment');
+                }
+            }
 
+            // Filter by has montage department
+            if (isset($filters['has_montage'])) {
+                $has = (string) $filters['has_montage'];
+                if ($has === '1' || $has === 'true') {
+                    $query->whereHas('montageDepartment');
+                } elseif ($has === '0' || $has === 'false') {
+                    $query->whereDoesntHave('montageDepartment');
+                }
+            }
 
             // Sort by latest
             $query->orderBy('created_at', 'desc');
