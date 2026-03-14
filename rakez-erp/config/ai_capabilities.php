@@ -1,7 +1,7 @@
 <?php
 
 $salesBasePermissions = [
-    'contracts.view',
+    'contracts.view_all',
     'tasks.create',
     'sales.dashboard.view',
     'sales.projects.view',
@@ -45,7 +45,7 @@ return [
         'Never show data or steps that imply performing restricted actions',
     ],
     'definitions' => [
-        'contracts.view' => 'View contract lists and details.',
+        'contracts.view_all' => 'View contract lists and details.',
         'contracts.view_all' => 'View all contracts across users.',
         'contracts.create' => 'Create new contracts.',
         'contracts.approve' => 'Approve or reject contracts.',
@@ -176,7 +176,7 @@ return [
     // In production, use DB permissions (Spatie or custom) as the source of truth
     'bootstrap_role_map' => [
         'admin' => [
-            'contracts.view',
+            'contracts.view_all',
             'contracts.view_all',
             'contracts.create',
             'contracts.approve',
@@ -284,7 +284,7 @@ return [
         ],
         'project_management' => [
             // Staff permissions (base)
-            'contracts.view',
+            'contracts.view_all',
             'contracts.view_all',
             'contracts.approve',
             'units.view',
@@ -314,7 +314,7 @@ return [
             // Manager permissions added dynamically when is_manager=true
         ],
         'editor' => [
-            'contracts.view',
+            'contracts.view_all',
             'contracts.view_all',
             'departments.montage.view',
             'departments.montage.edit',
@@ -329,7 +329,7 @@ return [
             'tasks.create',
         ],
         'developer' => [
-            'contracts.view',
+            'contracts.view_all',
             'contracts.create',
             'notifications.view',
             'exclusive_projects.view',
@@ -340,7 +340,7 @@ return [
             'tasks.create',
         ],
         'marketing' => [
-            'contracts.view',
+           'contracts.view_all',
             'marketing.dashboard.view',
             'marketing.projects.view',
             'marketing.plans.create',
@@ -382,7 +382,7 @@ return [
             // NO exclusive project permissions
         ],
         'credit' => [
-            'contracts.view',
+            'contracts.view_all',
             'credit.dashboard.view',
             'credit.bookings.view',
             'credit.financing.view',
@@ -400,7 +400,7 @@ return [
             'tasks.create',
         ],
         'accounting' => [
-            'contracts.view',
+            'contracts.view_all',
             'contracts.view_all',
             'accounting.dashboard.view',
             'accounting.claim_files.view',
@@ -425,7 +425,7 @@ return [
         ],
         'inventory' => [
             // Needed for /api/inventory/* routes we added
-            'contracts.view',
+            'contracts.view_all',
             'contracts.view_all',
             'units.view',
             'second_party.view',
@@ -438,7 +438,7 @@ return [
             'tasks.create',
         ],
         'default' => [
-            'contracts.view',
+            'contracts.view_all',
             'notifications.view',
             'use-ai-assistant',
             'tasks.create',

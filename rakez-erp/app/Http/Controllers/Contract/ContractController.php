@@ -45,19 +45,15 @@ class ContractController extends Controller
                 'project_name' => $request->input('project_name'),
             ];
 
-            // Apply access control filters
+            // Apply access control filters: all users see own contracts + contracts with status approved/ready/completed
             if ($user->can('contracts.view_all')) {
                 // Can view all, no user filter enforced
             } elseif ($user->isManager() && $user->team) {
-                // Manager sees team contracts
-                // Note: Service needs to support team filtering.
-                // For now, we'll filter by the manager's ID to avoid breaking,
-                // but ideally this should pass the team or list of user IDs.
-                // Assuming for now we default to own contracts if service doesn't support team yet.
                 $filters['user_id'] = $user->id;
+                $filters['include_public_status_contracts'] = true;
             } else {
-                // Regular user sees only their own
                 $filters['user_id'] = $user->id;
+                $filters['include_public_status_contracts'] = true;
             }
 
             $perPage = $request->input('per_page', 15);
