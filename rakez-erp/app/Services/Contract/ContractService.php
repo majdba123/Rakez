@@ -667,9 +667,7 @@ class ContractService
             }
 
             // If contract has info and status is still approved, mark as completed
-            if ($contract->status == 'approved') {
-                $contract->update(['status' => 'completed']);
-            }
+
 
             DB::commit();
             return $info->fresh();

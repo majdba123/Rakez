@@ -424,7 +424,6 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // ==========================================
     // EXCLUSIVE PROJECT ROUTES (any authenticated user can create a request; approve/contract remain restricted)
-    // ==========================================
     Route::prefix('exclusive-projects')->middleware(['auth:sanctum'])->group(function () {
         Route::get('/', [ExclusiveProjectController::class, 'index']);
         Route::get('/{id}', [ExclusiveProjectController::class, 'show']);
@@ -523,7 +522,7 @@ Route::middleware('auth:sanctum')->group(function () {
         }
 
         return response()->file($filePath);
-    })->where('path', '.*');
+        })->where('path', '.*');
     });
 
 
