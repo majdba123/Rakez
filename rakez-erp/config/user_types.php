@@ -9,16 +9,19 @@ return [
     | Keep in sync with: register service, RegisterUser, UpdateUser, HrUserController.
     */
     'numeric_map' => [
-        0 => 'marketing',
         1 => 'admin',
-        2 => 'project_acquisition',
-        3 => 'project_management',
-        4 => 'editor',
-        5 => 'sales',
-        6 => 'accounting',
-        7 => 'credit',
+        2 => 'project_management',
+        3 => 'editor',
+        4 => 'developer',
+        5 => 'marketing',
+        6 => 'sales',
+        7 => 'sales_leader',
         8 => 'hr',
-        9 => 'inventory',
+        9 => 'credit',
+        10 => 'accounting',
+        11 => 'inventory',
+        12 => 'default',
+        13 => 'accountant',
     ],
 
     /*
@@ -27,16 +30,19 @@ return [
     |--------------------------------------------------------------------------
     */
     'all' => [
-        'marketing',
         'admin',
-        'project_acquisition',
         'project_management',
         'editor',
+        'developer',
+        'marketing',
         'sales',
-        'accounting',
-        'credit',
+        'sales_leader',
         'hr',
+        'credit',
+        'accounting',
         'inventory',
+        'default',
+        'accountant',
     ],
 
     /*
@@ -44,7 +50,7 @@ return [
     | Valid Numeric IDs for validation
     |--------------------------------------------------------------------------
     */
-    'valid_ids' => [0, 1, 2, 3, 4, 5, 6, 7, 8, 9],
+    'valid_ids' => [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13],
 
     /*
     |--------------------------------------------------------------------------
@@ -55,6 +61,6 @@ return [
         'hr' => ['hr', 'admin'],
         'inventory' => ['inventory', 'admin'],
         'marketing' => ['marketing', 'admin'],
-        'sales' => ['sales', 'admin'],
+        'sales' => ['sales', 'sales_leader', 'admin'],
     ],
 ];

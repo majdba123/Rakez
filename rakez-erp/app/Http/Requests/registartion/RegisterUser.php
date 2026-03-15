@@ -33,7 +33,7 @@ class RegisterUser extends FormRequest
             'type' => [
                 'required',
                 'integer',
-                Rule::in(config('user_types.valid_ids', [0,1,2,3,4,5,6,7,8,9])),
+                Rule::in(config('user_types.valid_ids', range(1, 13))),
                 function (string $attribute, mixed $value, \Closure $fail) {
                     // Only admin can create an employee with type=admin (1)
                     if ((int) $value === 1) {
