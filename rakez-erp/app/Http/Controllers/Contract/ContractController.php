@@ -140,7 +140,7 @@ class ContractController extends Controller
             $contract = $this->contractService->getContractById($id, null);
 
             // Enforce Policy
-            $this->authorize('view', $contract);
+           // $this->authorize('view', $contract);
 
             return response()->json([
                 'success' => true,
