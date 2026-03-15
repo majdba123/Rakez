@@ -175,7 +175,7 @@ class HrUserController extends Controller
             'email' => 'required|email|unique:users,email',
             'phone' => 'required|string|max:20',
             'password' => 'required|string|min:8',
-            'type' => 'required|integer|between:0,7',
+            'type' => ['required', 'integer', Rule::in(config('user_types.valid_ids', range(0, 9)))],
             'is_manager' => 'nullable|boolean',
             'team_id' => 'nullable|integer|exists:teams,id',
             'identity_number' => 'nullable|string|max:20',

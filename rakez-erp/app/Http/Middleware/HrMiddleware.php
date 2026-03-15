@@ -30,7 +30,7 @@ class HrMiddleware
             ], 401);
         }
 
-        $allowedTypes = ['hr', 'admin'];
+        $allowedTypes = config('user_types.middleware_allowed.hr', ['hr', 'admin']);
 
         if (in_array($user->type, $allowedTypes)) {
             return $next($request);

@@ -31,7 +31,7 @@ class UpdateUser extends FormRequest
             'type' => [
                 'sometimes',
                 'integer',
-                Rule::in([0,1,2,3,4,5,6,7,8]),
+                Rule::in(config('user_types.valid_ids', [0,1,2,3,4,5,6,7,8,9])),
                 function (string $attribute, mixed $value, \Closure $fail) {
                     // Only admin can set employee type=admin (1)
                     if ((int) $value === 1) {
@@ -76,7 +76,7 @@ class UpdateUser extends FormRequest
             'phone.max' => 'رقم الهاتف يجب ألا يتجاوز 20 رقماً',
             'password.min' => 'كلمة المرور يجب أن تكون على الأقل 6 أحرف',
             'type.integer' => 'نوع المستخدم يجب أن يكون رقماً',
-            'type.between' => 'نوع المستخدم يجب أن يكون بين 0 و 7',
+            'type.between' => 'نوع المستخدم يجب أن يكون بين 0 و 9',
             'role.exists' => 'The selected role does not exist.',
             'is_manager.boolean' => 'قيمة المدير يجب أن تكون صحيحة أو خاطئة',
         ];

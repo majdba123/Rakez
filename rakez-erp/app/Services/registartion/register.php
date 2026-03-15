@@ -55,18 +55,8 @@ class register
                 }
             }
 
-            // Add user type
-            $typeNames = [
-                0 => 'marketing',
-                1 => 'admin',
-                2 => 'project_acquisition',
-                3 => 'project_management',
-                4 => 'editor',
-                5 => 'sales',
-                6 => 'accounting',
-                7 => 'credit',
-                8 => 'inventory'
-            ];
+            // Add user type (from central config)
+            $typeNames = config('user_types.numeric_map', []);
 
             if (!isset($data['type']) || !array_key_exists($data['type'], $typeNames)) {
                 throw new \InvalidArgumentException('نوع المستخدم غير صالح');
@@ -117,18 +107,8 @@ class register
         ];
         $query->select($select);
 
-        // Map numeric type filter to stored type name to be tolerant of both forms
-        $typeNames = [
-            0 => 'marketing',
-            1 => 'admin',
-            2 => 'project_acquisition',
-            3 => 'project_management',
-            4 => 'editor',
-            5 => 'sales',
-            6 => 'accounting',
-            7 => 'credit',
-            8 => 'HR',
-        ];
+        // Map numeric type filter to stored type name (from central config)
+        $typeNames = config('user_types.numeric_map', []);
         // Filter by type
         if (isset($filters['type'])) {
             $typeFilter = $filters['type'];
@@ -247,18 +227,9 @@ class register
                 $updateData['password'] = Hash::make($data['password']);
             }
 
-            // Update type if provided
+            // Update type if provided (from central config)
             if (isset($data['type'])) {
-                $typeNames = [
-                    0 => 'marketing',
-                    1 => 'admin',
-                    2 => 'project_acquisition',
-                    3 => 'project_management',
-                    4 => 'editor',
-                    5 => 'sales',
-                    6 => 'accounting',
-                    7 => 'credit',
-                ];
+                $typeNames = config('user_types.numeric_map', []);
 
                 if (!array_key_exists($data['type'], $typeNames)) {
                     throw new \InvalidArgumentException('نوع المستخدم غير صالح');

@@ -30,8 +30,7 @@ class SalesMiddleware
             ], 401);
         }
 
-        // Allow sales and admin users
-        $allowedTypes = ['sales', 'admin'];
+        $allowedTypes = config('user_types.middleware_allowed.sales', ['sales', 'admin']);
 
         if (!in_array($user->type, $allowedTypes)) {
             return response()->json([

@@ -15,8 +15,9 @@ class MarketingMiddleware
      */
     public function handle(Request $request, Closure $next): Response
     {
-        if ($request->user() && ($request->user()->type === 'marketing' || $request->user()->type === 'admin')) {
-        return $next($request);
+        $allowedTypes = config('user_types.middleware_allowed.marketing', ['marketing', 'admin']);
+        if ($request->user() && in_array($request->user()->type, $allowedTypes, true)) {
+            return $next($request);
         }
 
         return response()->json([

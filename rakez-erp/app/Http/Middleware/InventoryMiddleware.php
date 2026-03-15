@@ -30,7 +30,7 @@ class InventoryMiddleware
             ], 401);
         }
 
-        $allowedTypes = ['inventory', 'admin'];
+        $allowedTypes = config('user_types.middleware_allowed.inventory', ['inventory', 'admin']);
 
         if (!in_array($user->type, $allowedTypes, true)) {
             return response()->json([
