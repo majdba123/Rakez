@@ -35,9 +35,6 @@ class ContractInfoResource extends JsonResource
             'contract_city' => $this->contract_city,
             'location_url' => $this->location_url,
             'agreement_duration_days' => (int) $this->agreement_duration_days,
-            // Commission details
-            'commission_percent' => (float) $this->commission_percent,
-            'commission_from' => $this->commission_from,
             // Agency details
             'agency_number' => $this->agency_number,
             'agency_date' => $this->agency_date?->toDateString(),

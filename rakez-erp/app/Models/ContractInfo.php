@@ -27,8 +27,6 @@ class ContractInfo extends Model
         'location_url',
         'agreement_duration_days',
         'agreement_duration_months',
-        'commission_percent',
-        'commission_from',
         'agency_number',
         'agency_date',
         'avg_property_value',
@@ -47,7 +45,6 @@ class ContractInfo extends Model
     protected $casts = [
         'agreement_duration_days' => 'integer',
         'agreement_duration_months' => 'integer',
-        'commission_percent' => 'decimal:2',
         'avg_property_value' => 'decimal:2',
         'units_count' => 'integer',
         'area' => 'decimal:2',
