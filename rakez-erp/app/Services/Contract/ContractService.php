@@ -15,9 +15,7 @@ use Exception;
 
 class ContractService
 {
-    /**
-     * Get all contracts with filters for users
-     */
+
     public function getContracts(array $filters = [], int $perPage = 15): LengthAwarePaginator
     {
         try {
@@ -666,6 +664,11 @@ class ContractService
                     unset($data[$field]);
                 }
                 $info->update($data);
+            }
+
+            // If contract has info and status is still approved, mark as completed
+            if ($contract->status === 'approved') {
+                $contract->update(['status' => 'completed']);
             }
 
             DB::commit();
