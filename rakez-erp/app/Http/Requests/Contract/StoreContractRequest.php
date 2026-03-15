@@ -61,7 +61,7 @@ class StoreContractRequest extends FormRequest
     {
         return [
             'developer_name' => 'required|string|max:255',
-            'developer_number' => 'required|string|max:255|unique:contracts,developer_number',
+            'developer_number' => 'required|string|max:255',
             'city' => 'required|string|max:255',
             'district' => 'required|string|max:255',
             'project_name' => 'required|string|max:255',
@@ -89,7 +89,6 @@ class StoreContractRequest extends FormRequest
             'project_name.string' => 'اسم المشروع يجب أن يكون نصًا',
             'project_name.max' => 'اسم المشروع لا يجب أن يتجاوز 255 حرف',
             'developer_number.required' => 'رقم المطور مطلوب',
-            'developer_number.unique' => 'رقم المطور مستخدم بالفعل',
             'city.required' => 'المدينة مطلوبة',
             'district.required' => 'الحي مطلوب',
             'units.required' => 'يجب إضافة وحدة واحدة على الأقل',
