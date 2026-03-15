@@ -622,7 +622,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
 
         // My tasks (system-wide tasks assigned to current user) and task metadata
-        Route::middleware('auth:sanctum')->group(function () {
+    Route::middleware('auth:sanctum')->group(function () {
             Route::get('/my-tasks', [MyTasksController::class, 'index']);
             Route::get('/requested-tasks', [MyTasksController::class, 'requestedTasks']);
             Route::patch('/my-tasks/{id}/status', [MyTasksController::class, 'updateStatus'])->whereNumber('id');
