@@ -240,9 +240,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
     });
 
-    // ==========================================
-    // EDITOR ROUTES - صلاحيات المحرر
-    // ==========================================
+
     Route::prefix('editor')->middleware(['auth:sanctum', 'role:editor|admin'])->group(function () {
 
         // Contracts - view all & individual contract
@@ -298,9 +296,10 @@ Route::middleware('auth:sanctum')->group(function () {
 
     });
 
-    // ==========================================
-    // SALES DEPARTMENT ROUTES
-    // ==========================================
+
+
+
+
     Route::prefix('sales')->middleware(['auth:sanctum', 'role:sales|sales_leader|admin'])->group(function () {
 
         // Dashboard
@@ -387,7 +386,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
 
             // Create an admin prefix group with admin middleware
-        Route::prefix('admin')->middleware(['auth:sanctum', 'role:admin'])->group(function () {
+    Route::prefix('admin')->middleware(['auth:sanctum', 'role:admin'])->group(function () {
 
             Route::prefix('employees')->group(function () {
                 Route::get('/roles', [RegisterController::class, 'list_roles'])->middleware('permission:employees.manage');
@@ -404,9 +403,6 @@ Route::middleware('auth:sanctum')->group(function () {
                 Route::patch('adminUpdateStatus/{id}', [ContractController::class, 'adminUpdateStatus'])->middleware('permission:contracts.approve');
             });
 
-            // ==========================================
-            // ADMIN NOTIFICATIONS API
-            // ==========================================
             Route::prefix('notifications')->group(function () {
                 // Get admin's own notifications
                 Route::get('/', [NotificationController::class, 'getAdminNotifications'])->middleware('permission:notifications.view');
@@ -441,7 +437,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // ==========================================
     // MARKETING DEPARTMENT ROUTES
-    // ==========================================
+
     Route::prefix('marketing')->middleware(['auth:sanctum', 'role:marketing|admin'])->group(function () {
 
         // Dashboard
@@ -599,7 +595,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
 
 
-        Route::prefix('inventory')->middleware(['auth:sanctum', 'inventory'])->group(function () {
+    Route::prefix('inventory')->middleware(['auth:sanctum', 'inventory'])->group(function () {
 
             // Contracts
             Route::prefix('contracts')->group(function () {
@@ -660,7 +656,6 @@ Route::middleware('auth:sanctum')->group(function () {
 
 // ==========================================
 // ACCOUNTING DEPARTMENT ROUTES
-// ==========================================
 Route::prefix('accounting')->middleware(['auth:sanctum', 'role:accounting|admin'])->group(function () {
 
     Route::get('dashboard', [AccountingDashboardController::class, 'index'])->middleware('permission:accounting.dashboard.view');
@@ -711,7 +706,6 @@ Route::prefix('accounting')->middleware(['auth:sanctum', 'role:accounting|admin'
 
 // ==========================================
 // CREDIT DEPARTMENT ROUTES
-// ==========================================
 Route::prefix('credit')->middleware(['auth:sanctum', 'role:credit|admin'])->group(function () {
 
     // Dashboard
@@ -762,7 +756,6 @@ Route::prefix('credit')->middleware(['auth:sanctum', 'role:credit|admin'])->grou
 
 // ==========================================
 // AI CALLING ROUTES
-// ==========================================
 Route::prefix('ai/calls')->middleware(['auth:sanctum', 'role:admin|sales|sales_leader|marketing'])->group(function () {
     Route::get('/', [AiCallController::class, 'index'])->middleware('permission:ai-calls.manage');
     Route::get('/analytics', [AiCallController::class, 'analytics'])->middleware('permission:ai-calls.manage');
@@ -779,7 +772,6 @@ Route::prefix('ai/calls')->middleware(['auth:sanctum', 'role:admin|sales|sales_l
 
 // ==========================================
 // ASSISTANT KNOWLEDGE BASE (Admin only)
-// ==========================================
 Route::prefix('ai/knowledge')->middleware(['auth:sanctum', 'role:admin'])->group(function () {
     Route::get('/', [AssistantKnowledgeController::class, 'index']);
     Route::post('/', [AssistantKnowledgeController::class, 'store']);
@@ -792,7 +784,6 @@ Route::post('/ai/assistant/chat', [AssistantChatController::class, 'chat'])->mid
 
 // ==========================================
 // TWILIO WEBHOOKS (Signed by Twilio - no user auth)
-// ==========================================
 Route::prefix('webhooks/twilio')->middleware([\App\Http\Middleware\ValidateTwilioSignature::class])->group(function () {
     Route::post('/voice/{callId}', [TwilioWebhookController::class, 'handleVoice']);
     Route::post('/gather/{callId}', [TwilioWebhookController::class, 'handleGather']);
@@ -802,7 +793,6 @@ Route::prefix('webhooks/twilio')->middleware([\App\Http\Middleware\ValidateTwili
 
 // ==========================================
 // ADS PLATFORM ROUTES
-// ==========================================
 Route::prefix('ads')->middleware(['auth:sanctum', 'role:admin|marketing'])->group(function () {
     Route::get('accounts', [AdsInsightsController::class, 'accounts'])->middleware('permission:marketing.ads.view');
     Route::get('campaigns', [AdsInsightsController::class, 'campaigns'])->middleware('permission:marketing.ads.view');
@@ -814,7 +804,6 @@ Route::prefix('ads')->middleware(['auth:sanctum', 'role:admin|marketing'])->grou
 
 // ==========================================
 // SALES - Negotiation & Payment Plans
-// ==========================================
 Route::prefix('sales')->middleware(['auth:sanctum', 'role:sales|sales_leader|admin'])->group(function () {
 
     // Negotiation Approvals

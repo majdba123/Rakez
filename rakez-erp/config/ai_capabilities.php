@@ -1,6 +1,7 @@
 <?php
 
 $salesBasePermissions = [
+    'contracts.view',
     'contracts.view_all',
     'tasks.create',
     'sales.dashboard.view',
@@ -45,8 +46,8 @@ return [
         'Never show data or steps that imply performing restricted actions',
     ],
     'definitions' => [
-        'contracts.view_all' => 'View contract lists and details.',
-        'contracts.view_all' => 'View all contracts across users.',
+        'contracts.view' => 'View own contracts and developers list (ContractPolicy).',
+        'contracts.view_all' => 'View all contract lists and details.',
         'contracts.create' => 'Create new contracts.',
         'contracts.approve' => 'Approve or reject contracts.',
         'contracts.delete' => 'Delete contracts.',
@@ -176,7 +177,7 @@ return [
     // In production, use DB permissions (Spatie or custom) as the source of truth
     'bootstrap_role_map' => [
         'admin' => [
-            'contracts.view_all',
+            'contracts.view',
             'contracts.view_all',
             'contracts.create',
             'contracts.approve',
@@ -284,7 +285,7 @@ return [
         ],
         'project_management' => [
             // Staff permissions (base)
-            'contracts.view_all',
+            'contracts.view',
             'contracts.view_all',
             'contracts.approve',
             'units.view',
@@ -314,10 +315,14 @@ return [
             // Manager permissions added dynamically when is_manager=true
         ],
         'editor' => [
-            'contracts.view_all',
+            'contracts.view',
             'contracts.view_all',
             'departments.montage.view',
             'departments.montage.edit',
+            'departments.boards.view',
+            'departments.boards.edit',
+            'departments.photography.view',
+            'departments.photography.edit',
             'notifications.view',
             'editing.projects.view',
             'editing.media.upload',
@@ -327,8 +332,10 @@ return [
             'exclusive_projects.contract.export',
             'use-ai-assistant',
             'tasks.create',
+            'second_party.view',
         ],
         'developer' => [
+            'contracts.view',
             'contracts.view_all',
             'contracts.create',
             'notifications.view',
@@ -382,6 +389,7 @@ return [
             // NO exclusive project permissions
         ],
         'credit' => [
+            'contracts.view',
             'contracts.view_all',
             'credit.dashboard.view',
             'credit.bookings.view',
@@ -400,7 +408,7 @@ return [
             'tasks.create',
         ],
         'accounting' => [
-            'contracts.view_all',
+            'contracts.view',
             'contracts.view_all',
             'accounting.dashboard.view',
             'accounting.claim_files.view',
@@ -425,7 +433,7 @@ return [
         ],
         'inventory' => [
             // Needed for /api/inventory/* routes we added
-            'contracts.view_all',
+            'contracts.view',
             'contracts.view_all',
             'units.view',
             'second_party.view',
@@ -438,8 +446,30 @@ return [
             'tasks.create',
         ],
         'default' => [
+            'contracts.view',
             'contracts.view_all',
             'notifications.view',
+            'use-ai-assistant',
+            'tasks.create',
+        ],
+        'accountant' => [
+            'contracts.view',
+            'contracts.view_all',
+            'accounting.dashboard.view',
+            'accounting.claim_files.view',
+            'accounting.claim_files.manage',
+            'accounting.notifications.view',
+            'accounting.sold-units.view',
+            'accounting.commissions.approve',
+            'accounting.deposits.view',
+            'accounting.deposits.manage',
+            'accounting.salaries.view',
+            'accounting.salaries.distribute',
+            'notifications.view',
+            'exclusive_projects.view',
+            'exclusive_projects.request',
+            'exclusive_projects.contract.complete',
+            'exclusive_projects.contract.export',
             'use-ai-assistant',
             'tasks.create',
         ],
