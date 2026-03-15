@@ -248,7 +248,7 @@ Route::middleware('auth:sanctum')->group(function () {
         // Contracts - view all & individual contract
         Route::prefix('contracts')->group(function () {
             Route::get('/index', [ContractController::class, 'adminIndex'])->middleware('permission:contracts.view_all');
-            Route::get('/show/{id}', [ContractController::class, 'show'])->middleware('permission:contracts.view');
+            Route::get('/show/{id}', [ContractController::class, 'show']);
         });
 
         Route::prefix('teams')->group(function () {
