@@ -37,7 +37,7 @@ class RolesAndPermissionsSeeder extends Seeder
 
             $roleMap = config('ai_capabilities.bootstrap_role_map', []);
 
-            // Ensure admin has all permissions
+            // Ensure admin has ALL permissions from definitions (Gate::before also bypasses for admin)
             $roleMap['admin'] = $allPermissions;
 
             foreach ($roleMap as $roleName => $permissions) {

@@ -172,11 +172,30 @@ return [
         'accounting.salaries.view' => 'View employee salaries and commissions.',
         'accounting.salaries.distribute' => 'Create and manage salary distributions.',
         'accounting.down_payment.confirm' => 'Confirm down payments.',
+
+        // Commission & Deposit (CommissionRolesSeeder - also in definitions for admin sync)
+        'commissions.view' => 'View commissions.',
+        'commissions.create' => 'Create commissions.',
+        'commissions.update' => 'Update commissions.',
+        'commissions.delete' => 'Delete commissions.',
+        'commissions.approve' => 'Approve commissions.',
+        'commissions.mark_paid' => 'Mark commission as paid.',
+        'commission_distributions.approve' => 'Approve commission distributions.',
+        'commission_distributions.reject' => 'Reject commission distributions.',
+        'deposits.view' => 'View deposits.',
+        'deposits.create' => 'Create deposits.',
+        'deposits.update' => 'Update deposits.',
+        'deposits.delete' => 'Delete deposits.',
+        'deposits.confirm_receipt' => 'Confirm deposit receipt.',
+        'deposits.refund' => 'Refund deposit.',
     ],
     // Bootstrap role map - ONLY for migration/seeding, NOT a runtime dependency
     // In production, use DB permissions (Spatie or custom) as the source of truth
+    // NOTE: RolesAndPermissionsSeeder overwrites admin with ALL permissions from definitions (array_keys).
+    // AppServiceProvider Gate::before also grants admin full bypass - admin always passes can() checks.
     'bootstrap_role_map' => [
         'admin' => [
+            // Admin gets ALL permissions - seeder overwrites with array_keys($definitions)
             'contracts.view',
             'contracts.view_all',
             'contracts.create',

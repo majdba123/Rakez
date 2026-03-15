@@ -32,8 +32,8 @@ class ContractInfoController extends Controller
         try {
             $data = $request->validated();
 
-            // Check permission and eager-load relations to avoid extra queries
-            $contract = $this->contractService->getContractById($contractId, auth()->id());
+            // Check permission: only owner, admin, project_management can store contract info
+            $contract = $this->contractService->getContractById($contractId, auth()->id(), forContractInfo: true);
 
             // Prevent creating a new ContractInfo if one already exists
             if ($contract->info) {
@@ -77,10 +77,10 @@ class ContractInfoController extends Controller
         try {
             $data = $request->validated();
 
-            // Check permission and eager-load relations to avoid extra queries
-            $contract = $this->contractService->getContractById($contractId, auth()->id());
+            // Check permission: only owner, admin, project_management can update contract info
+            $contract = $this->contractService->getContractById($contractId, auth()->id(), forContractInfo: true);
 
-            $info = $this->contractService->updateContractInfo($contractId, $data, $contract);
+            $info = $this->contractService->updateContractInfo($contractId, $data, auth()->id());
 
             return response()->json([
                 'success' => true,

@@ -17,6 +17,7 @@ class DatabaseSeeder extends Seeder
             ArabicSeedDataSeeder::class,
             RolesAndPermissionsSeeder::class,
             CommissionRolesSeeder::class,
+            UserTypesSeeder::class,
           //  TeamsSeeder::class,
           //  UsersSeeder::class,
          //   TasksSeeder::class,

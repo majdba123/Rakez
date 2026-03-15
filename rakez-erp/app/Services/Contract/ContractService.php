@@ -421,7 +421,7 @@ class ContractService
     }
 
 
-    public function getContractById(int $id, int $userId = null): Contract
+    public function getContractById(int $id, int $userId = null, bool $forContractInfo = false): Contract
     {
         try {
             // Eager-load related data to prevent N+1 queries
@@ -434,9 +434,9 @@ class ContractService
                 'montageDepartment.processedByUser',
             ])->findOrFail($id);
 
-            // Authorization check
+            // Authorization check (forContractInfo: only owner, admin, project_management)
             if ($userId) {
-                $this->authorizeContractAccess($contract, $userId);
+                $this->authorizeContractAccess($contract, $userId, $forContractInfo);
             }
 
             return $contract;
@@ -446,12 +446,12 @@ class ContractService
     }
 
 
-    private function authorizeContractAccess(Contract $contract, int $userId): void
+    private function authorizeContractAccess(Contract $contract, int $userId, bool $forContractInfo = false): void
     {
         $authUser = Auth::user();
-        $isAdmin = $authUser && isset($authUser->type) && $authUser->type === 'admin';
-        $isProjectManagement = $authUser && isset($authUser->type) && $authUser->type === 'project_management';
-        $isEditor = $authUser && isset($authUser->type) && $authUser->type === 'editor';
+        $isAdmin = $authUser && (($authUser->type ?? '') === 'admin' || $authUser->hasRole('admin'));
+        $isProjectManagement = $authUser && (($authUser->type ?? '') === 'project_management' || $authUser->hasRole('project_management'));
+        $isEditor = !$forContractInfo && $authUser && (($authUser->type ?? '') === 'editor' || $authUser->hasRole('editor'));
 
         if (!$contract->isOwnedBy($userId) && !$isAdmin && !$isProjectManagement && !$isEditor) {
             throw new Exception('Unauthorized to access this contract.');
@@ -634,7 +634,7 @@ class ContractService
     }
 
     /**
-     * Update contract info
+     * Update contract info (only owner, admin, project_management)
      */
     public function updateContractInfo(int $contractId, array $data, int $userId = null): ContractInfo
     {
@@ -642,9 +642,9 @@ class ContractService
         try {
             $contract = Contract::with(['user', 'info'])->findOrFail($contractId);
 
-            // Authorization check
+            // Authorization: only owner, admin, project_management
             if ($userId) {
-                $this->authorizeContractAccess($contract, $userId);
+                $this->authorizeContractAccess($contract, $userId, forContractInfo: true);
             }
 
             $info = $contract->info;
