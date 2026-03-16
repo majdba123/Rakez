@@ -99,6 +99,7 @@ class ContractUnitService
             'description' => ['description', 'desc', 'الوصف', 'ملاحظات'],
             'description_en' => ['description_en', 'description en', 'الوصف_انجليزي'],
             'description_ar' => ['description_ar', 'description ar', 'الوصف_عربي'],
+            'diagrames' => ['diagrames', 'diagrams', 'المخططات'],
         ];
 
         // Find column indices
@@ -273,6 +274,7 @@ class ContractUnitService
                 'facade',
                 'description_en',
                 'description_ar',
+                'diagrames',
             ];
 
             $filteredData = array_intersect_key($data, array_flip($allowedFields));

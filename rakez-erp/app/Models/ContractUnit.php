@@ -27,6 +27,7 @@ class ContractUnit extends Model
         'facade', // DB column (view/facade/orientation)
         'description_en',
         'description_ar',
+        'diagrames',
 
     ];
 

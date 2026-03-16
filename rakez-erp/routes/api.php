@@ -282,9 +282,9 @@ Route::middleware('auth:sanctum')->group(function () {
         // Photography Department - قسم التصوير
         Route::prefix('photography-department')->group(function () {
             Route::get('show/{contractId}', [PhotographyDepartmentController::class, 'show'])->middleware('permission:departments.photography.view');
-            Route::post('store/{contractId}', [PhotographyDepartmentController::class, 'store'])->middleware('permission:departments.photography.edit');
-            Route::put('update/{contractId}', [PhotographyDepartmentController::class, 'update'])->middleware('permission:departments.photography.edit');
-            Route::patch('approve/{contractId}', [PhotographyDepartmentController::class, 'approve'])->middleware('permission:departments.photography.edit');
+          //  Route::post('store/{contractId}', [PhotographyDepartmentController::class, 'store'])->middleware('permission:departments.photography.edit');
+          //  Route::put('update/{contractId}', [PhotographyDepartmentController::class, 'update'])->middleware('permission:departments.photography.edit');
+           // Route::patch('approve/{contractId}', [PhotographyDepartmentController::class, 'approve'])->middleware('permission:departments.photography.edit');
         });
 
         // Boards Department - قسم اللوحات

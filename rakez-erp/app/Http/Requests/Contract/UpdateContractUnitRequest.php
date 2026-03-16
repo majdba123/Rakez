@@ -26,6 +26,7 @@ class UpdateContractUnitRequest extends FormRequest
             'view' => 'nullable|string|max:100',
             'description_en' => 'nullable|string|max:1000',
             'description_ar' => 'nullable|string|max:1000',
+            'diagrames' => 'nullable|string|max:2000',
         ];
     }
 

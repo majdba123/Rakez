@@ -43,6 +43,7 @@ class ContractUnitResource extends JsonResource
             'description' => $this->description_en ?? $this->description_ar ?? null,
             'description_en' => $this->description_en ?? null,
             'description_ar' => $this->description_ar ?? null,
+            'diagrames' => $this->diagrames ?? null,
             'created_at' => $this->created_at?->toIso8601String(),
             'updated_at' => $this->updated_at?->toIso8601String(),
         ];

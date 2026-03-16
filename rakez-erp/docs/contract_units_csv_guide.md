@@ -23,6 +23,7 @@ At least **unit_type**, **unit_number**, and **price** are recommended. Other co
 | description_en   | الوصف_انجليزي             | No       | English description |
 | description_ar   | الوصف_عربي               | No       | Arabic description |
 | description      | الوصف، ملاحظات            | No       | Stored as description_en if description_en is empty |
+| diagrames        | diagrams، المخططات        | No       | Unit diagrams (URLs or paths) |
 
 ## Sample CSV (English headers)
 Use the file **`contract_units_upload_sample.csv`** in the project root for testing.
