@@ -337,6 +337,9 @@ Route::middleware('auth:sanctum')->group(function () {
         // My attendance
         Route::get('attendance/my', [SalesAttendanceController::class, 'my'])->middleware('permission:sales.attendance.view');
 
+        // My assignments (for sales leaders)
+        Route::get('assignments/my', [SalesProjectController::class, 'getMyAssignments'])->middleware('permission:sales.team.manage');
+
         // Team management (leader only)
         Route::middleware('permission:sales.team.manage')->group(function () {
             Route::get('team/projects', [SalesProjectController::class, 'teamProjects']);

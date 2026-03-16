@@ -9,13 +9,13 @@ use App\Models\ContractInfo;
 class MarketingProjectService
 {
     /**
-     * المشاريع التسويقية = عقود مكتملة المراحل (status = ready).
-     * العقد يصبح مشروعاً تسويقياً فقط بعد اكتمال جميع المتطلبات في المتتبع.
+     * Marketing projects = contracts with status = completed.
+     * Marketing user sees all completed contracts (no team/user filter).
      */
-    public const COMPLETED_CONTRACT_STATUS = 'ready';
+    public const COMPLETED_CONTRACT_STATUS = 'completed';
 
     /**
-     * Get marketing projects whose contracts are fully ready.
+     * Get all marketing projects whose contracts are completed. Every marketing user sees the same list.
      *
      * @param int $perPage
      * @return \Illuminate\Contracts\Pagination\LengthAwarePaginator

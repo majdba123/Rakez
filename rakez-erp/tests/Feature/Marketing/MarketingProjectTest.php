@@ -27,7 +27,7 @@ class MarketingProjectTest extends TestCase
     #[Test]
     public function it_can_list_marketing_projects()
     {
-        $project = Contract::factory()->create(['status' => 'approved']);
+        $project = Contract::factory()->create(['status' => 'completed']);
         ContractInfo::factory()->create([
             'contract_id' => $project->id,
             'avg_property_value' => 500000,
@@ -82,7 +82,7 @@ class MarketingProjectTest extends TestCase
     #[Test]
     public function it_can_show_project_details_with_duration_status()
     {
-        $contract = Contract::factory()->create(['status' => 'approved']);
+        $contract = Contract::factory()->create(['status' => 'completed']);
         ContractInfo::factory()->create([
             'contract_id' => $contract->id,
             'agreement_duration_days' => 100,

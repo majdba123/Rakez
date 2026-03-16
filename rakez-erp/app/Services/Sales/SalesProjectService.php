@@ -17,12 +17,13 @@ class SalesProjectService
      */
     public function getProjects(array $filters, User $user): LengthAwarePaginator
     {
+        // عرض عقود مكتملة ضمنياً فقط في قائمة مشاريع السيلز
         $query = Contract::with([
             'secondPartyData.contractUnits',
             'montageDepartment',
             'salesProjectAssignments.leader',
             'user'
-        ])->whereIn('status', ['ready', 'completed']);
+        ])->where('status', 'completed');
 
         // Apply filters
         if (!empty($filters['q'])) {
@@ -37,8 +38,8 @@ class SalesProjectService
             $query->where('district', $filters['district']);
         }
 
-        // Apply scope filter
-        $this->applyScopeFilter($query, $filters['scope'] ?? 'me', $user);
+        // Sales user sees all completed contracts (no assignment/scope filter).
+        // applyScopeFilter intentionally not applied so every sales user sees the same list.
 
         $perPage = $filters['per_page'] ?? 15;
         $contracts = $query->orderBy('created_at', 'desc')->paginate($perPage);
@@ -417,12 +418,17 @@ class SalesProjectService
 
     /**
      * Check if the user can access a contract (project) for viewing details or units.
-     * Admin: always. Sales leader (مدير مبيعات): if project assigned to him or to a leader in his team,
-     * or if project has no active assignment (so they can view and assign it). Sales staff: if assigned to their team.
+     * Admin: always. أي مستخدم مبيعات (عادي أو قائد) يمكنه رؤية العقود المكتملة ضمنياً في المشاريع.
+     * Sales leader: أيضاً إذا مُسنَد له أو لفريقه أو غير مُسنَد. Sales staff: إذا مُسنَد لفريقه أو العقد مكتمل.
      */
     public function userCanAccessContract(User $user, int $contractId): bool
     {
         if ($user->hasRole('admin')) {
+            return true;
+        }
+        $contract = Contract::find($contractId);
+        // عقود جاهزة أو مكتملة: أي مستخدم مبيعات (عادي أو قائد) يمكنه رؤيتها ضمن المشاريع
+        if ($contract && in_array($contract->status, ['ready', 'completed'], true) && ($user->hasRole('sales_leader') || $user->hasRole('sales'))) {
             return true;
         }
         if ($user->hasRole('sales_leader')) {
@@ -444,8 +450,7 @@ class SalesProjectService
                     return true;
                 }
             }
-            // Unassigned completed projects: allow sales_leader to view so they can assign (e.g. from exclusive flow)
-            $contract = Contract::find($contractId);
+            // Unassigned ready/completed: allow sales_leader to view so they can assign
             if ($contract && in_array($contract->status, ['ready', 'completed'], true)) {
                 $hasActiveAssignment = \App\Models\SalesProjectAssignment::where('contract_id', $contractId)->active()->exists();
                 if (!$hasActiveAssignment) {
@@ -471,8 +476,8 @@ class SalesProjectService
      */
     public function getTeamProjects(User $leader): \Illuminate\Database\Eloquent\Collection
     {
-        // Assigned projects for this leader (active assignments only); include ready and completed contracts
-        return Contract::whereIn('status', ['ready', 'completed'])
+        // Assigned projects for this leader (active assignments only); عقود مكتملة ضمنياً فقط
+        return Contract::where('status', 'completed')
             ->whereHas('salesProjectAssignments', function ($q) use ($leader) {
                 $q->where('leader_id', $leader->id)
                   ->active();
@@ -488,7 +493,8 @@ class SalesProjectService
      */
     public function listTeamProjectsPaginated(User $leader, int $perPage = 15): LengthAwarePaginator
     {
-        $query = Contract::whereIn('status', ['ready', 'completed'])
+        // عقود مكتملة ضمنياً فقط
+        $query = Contract::where('status', 'completed')
             ->whereHas('salesProjectAssignments', function ($q) use ($leader) {
                 $q->where('leader_id', $leader->id)
                   ->active();

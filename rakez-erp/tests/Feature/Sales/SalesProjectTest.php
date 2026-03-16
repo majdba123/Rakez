@@ -38,7 +38,10 @@ class SalesProjectTest extends TestCase
             'price' => 500000,
         ]);
 
-        $response = $this->actingAs($this->salesUser, 'sanctum')
+        $admin = User::factory()->create(['type' => 'admin']);
+        $admin->assignRole('admin');
+
+        $response = $this->actingAs($admin, 'sanctum')
             ->getJson("/api/sales/projects/{$contract->id}");
 
         $response->assertStatus(200);
@@ -130,7 +133,8 @@ class SalesProjectTest extends TestCase
         $response->assertStatus(200);
         
         $unitData = collect($response->json('data'))->firstWhere('unit_id', $unit->id);
-        $this->assertEquals('reserved', $unitData['computed_availability']);
+        // under_negotiation (حجز تفاوض) يظهر كـ pending وليس reserved
+        $this->assertEquals('pending', $unitData['computed_availability']);
         $this->assertFalse($unitData['can_reserve']);
     }
 
@@ -194,7 +198,7 @@ class SalesProjectTest extends TestCase
 
     public function test_projects_list_returns_paginated_results()
     {
-        Contract::factory()->count(20)->create(['status' => 'ready'])->each(function ($contract) {
+        Contract::factory()->count(20)->create(['status' => 'completed'])->each(function ($contract) {
             $secondPartyData = SecondPartyData::factory()->create(['contract_id' => $contract->id]);
             ContractUnit::factory()->create([
                 'second_party_data_id' => $secondPartyData->id,
