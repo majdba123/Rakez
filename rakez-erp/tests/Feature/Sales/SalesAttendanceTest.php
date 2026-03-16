@@ -36,7 +36,7 @@ class SalesAttendanceTest extends TestCase
         ]);
         $this->employee->assignRole('sales');
 
-        $this->contract = Contract::factory()->create(['status' => 'ready']);
+        $this->contract = Contract::factory()->create(['status' => 'completed']);
     }
 
     public function test_employee_can_view_their_schedules()
@@ -177,7 +177,7 @@ class SalesAttendanceTest extends TestCase
 
     public function test_filter_team_schedules_by_project()
     {
-        $anotherContract = Contract::factory()->create(['status' => 'ready']);
+        $anotherContract = Contract::factory()->create(['status' => 'completed']);
 
         SalesAttendanceSchedule::factory()->count(2)->create([
             'contract_id' => $this->contract->id,

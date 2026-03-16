@@ -19,7 +19,7 @@ class SalesProjectDetailResource extends JsonResource
 
         $salesStatus = $this->sales_status ?? 'pending';
         $contractStatus = $this->status;
-        $isReady = in_array($contractStatus, ['ready', 'approved']);
+        $isReady = $contractStatus === 'completed';
 
         $cardFields = $this->relationLoaded('secondPartyData')
             ? SalesProjectResource::cardFieldsFromContract($this->resource, $salesStatus)

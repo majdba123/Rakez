@@ -33,7 +33,7 @@ class SalesReservationDoubleBookingTest extends TestCase
 
     protected function createReservableUnit(): array
     {
-        $contract = Contract::factory()->create(['status' => 'ready']);
+        $contract = Contract::factory()->create(['status' => 'completed']);
         $secondPartyData = SecondPartyData::factory()->create(['contract_id' => $contract->id]);
         
         $unit = ContractUnit::factory()->create([

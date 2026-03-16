@@ -36,7 +36,7 @@ class MarketingTaskTest extends TestCase
         ]);
         $this->marketer->assignRole('sales');
 
-        $this->contract = Contract::factory()->create(['status' => 'ready']);
+        $this->contract = Contract::factory()->create(['status' => 'completed']);
         
         // Assign leader to project
         \App\Models\SalesProjectAssignment::create([

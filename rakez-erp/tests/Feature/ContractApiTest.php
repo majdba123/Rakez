@@ -156,24 +156,32 @@ class ContractApiTest extends TestCase
             ->assertJsonPath('data.status', 'approved');
     }
 
-    public function test_project_management_can_update_status_to_ready()
+    public function test_project_management_can_mark_contract_as_ready()
     {
         $pm = User::factory()->create(['type' => 'project_management']);
         $pm->syncRolesFromType();
         
-        // Contract must be approved first, and have requirements for 'ready' status
+        // Contract must be approved and pass checkMarketingReadiness (all tracker stages complete)
         $contract = Contract::factory()->create(['status' => 'approved']);
-        
-        // Mock requirements: SecondPartyData and Units
         $secondParty = \App\Models\SecondPartyData::factory()->create(['contract_id' => $contract->id]);
         \App\Models\ContractUnit::factory()->create(['second_party_data_id' => $secondParty->id]);
+        \App\Models\ContractInfo::create([
+            'contract_id' => $contract->id,
+            'contract_number' => 'ER-TEST-001',
+            'first_party_name' => 'Rakez',
+            'second_party_name' => 'Test',
+        ]);
+        \App\Models\BoardsDepartment::create(['contract_id' => $contract->id, 'processed_at' => now()]);
+        \App\Models\PhotographyDepartment::create(['contract_id' => $contract->id, 'status' => 'approved']);
+        \App\Models\MontageDepartment::create(['contract_id' => $contract->id, 'processed_at' => now()]);
 
         $response = $this->actingAs($pm)->patchJson("/api/contracts/update-status/{$contract->id}", [
             'status' => 'ready'
         ]);
 
+        // "Mark as ready" keeps contract status 'approved' and creates marketing project
         $response->assertStatus(200)
-            ->assertJsonPath('data.status', 'ready');
+            ->assertJsonPath('data.status', 'approved');
     }
 
     public function test_user_can_update_contract_to_mark_as_off_plan()

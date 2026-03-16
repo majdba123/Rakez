@@ -48,8 +48,7 @@ class ContractsSeeder extends Seeder
         $developerCount = count($this->developerList);
 
         $statuses = array_merge(
-            array_fill(0, 20, 'ready'),
-            array_fill(0, 15, 'approved'),
+            array_fill(0, 35, 'approved'),
             array_fill(0, 10, 'pending'),
             array_fill(0, 3, 'rejected'),
             array_fill(0, 2, 'completed')

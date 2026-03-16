@@ -21,7 +21,7 @@ class SalesSeeder extends Seeder
     {
         $counts = SeedCounts::all();
 
-        $readyContracts = Contract::where('status', 'ready')->pluck('id')->all();
+        $readyContracts = Contract::where('status', 'completed')->pluck('id')->all();
         // Use only sales users with team_id set so marketing details (فريق المشروع، فريق البائع) are populated
         $salesUsers = User::where('type', 'sales')->whereNotNull('team_id')->pluck('id')->all();
         if (empty($salesUsers)) {

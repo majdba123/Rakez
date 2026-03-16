@@ -47,7 +47,7 @@ class ContractController extends Controller
                 'has_montage' => $request->input('has_montage'),
             ];
 
-            // Apply access control filters: all users see own contracts + contracts with status approved/ready/completed
+            // Apply access control filters: all users see own contracts + contracts with status approved/completed
             if ($user->can('contracts.view_all')) {
                 // Can view all, no user filter enforced
             } elseif ($user->isManager() && $user->team) {
@@ -418,7 +418,7 @@ class ContractController extends Controller
                 'status' => 'required|string|in:ready,rejected',
             ], [
                 'status.required' => 'الحالة مطلوبة',
-                'status.in' => 'الحالة يجب أن تكون: ready أو rejected',
+                'status.in' => 'الحالة يجب أن تكون: جاهز أو مرفوض',
             ]);
 
             $contract = $this->contractService->updateContractStatusByProjectManagement($id, $request->status);

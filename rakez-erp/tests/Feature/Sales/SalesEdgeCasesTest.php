@@ -32,7 +32,7 @@ class SalesEdgeCasesTest extends TestCase
         $this->marketer = User::factory()->create(['type' => 'sales', 'team' => 'Team A']);
         $this->marketer->assignRole('sales');
 
-        $this->contract = Contract::factory()->create(['status' => 'ready']);
+        $this->contract = Contract::factory()->create(['status' => 'completed']);
         $spd = SecondPartyData::factory()->create(['contract_id' => $this->contract->id]);
         ContractUnit::factory()->create(['second_party_data_id' => $spd->id, 'price' => 1000]);
     }

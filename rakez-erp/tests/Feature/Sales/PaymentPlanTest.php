@@ -56,7 +56,7 @@ class PaymentPlanTest extends TestCase
         $admin = User::factory()->create(['type' => 'admin']);
         $this->offPlanContract = Contract::factory()->create([
             'user_id' => $admin->id,
-            'status' => 'approved',
+            'status' => 'completed',
             'is_off_plan' => true, // Off-plan project
         ]);
 
@@ -122,7 +122,7 @@ class PaymentPlanTest extends TestCase
         $admin = User::factory()->create(['type' => 'admin']);
         $regularContract = Contract::factory()->create([
             'user_id' => $admin->id,
-            'status' => 'approved',
+            'status' => 'completed',
             'is_off_plan' => false,
         ]);
 
