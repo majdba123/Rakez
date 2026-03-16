@@ -12,7 +12,7 @@ return new class extends Migration
             $table->dropColumn(['commission_percent', 'commission_from']);
         });
     }
-g
+
     public function down(): void
     {
         Schema::table('contract_infos', function (Blueprint $table) {
