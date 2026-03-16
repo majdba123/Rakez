@@ -47,7 +47,7 @@ class SalesProjectService
         // Compute sales status for each project
         $contracts->getCollection()->transform(function ($contract) {
             $contract->sales_status = $this->computeProjectSalesStatus($contract);
-            $contract->total_units = $contract->secondPartyData->contractUnits()->count() ?? 0;
+            $contract->total_units = $contract->secondPartyData ? $contract->secondPartyData->contractUnits()->count() : 0;
             $contract->available_units = $this->getAvailableUnitsCount($contract);
             $contract->reserved_units = $this->getReservedUnitsCount($contract);
             $contract->remaining_days = $this->getProjectRemainingDays($contract);
@@ -86,7 +86,7 @@ class SalesProjectService
         ])->findOrFail($contractId);
 
         $contract->sales_status = $this->computeProjectSalesStatus($contract);
-        $contract->total_units = $contract->secondPartyData->contractUnits()->count() ?? 0;
+        $contract->total_units = $contract->secondPartyData ? $contract->secondPartyData->contractUnits()->count() : 0;
         $contract->available_units = $this->getAvailableUnitsCount($contract);
         $contract->reserved_units = $this->getReservedUnitsCount($contract);
         $contract->remaining_days = $this->getProjectRemainingDays($contract);
@@ -555,7 +555,7 @@ class SalesProjectService
         // Compute sales status for each project
         $projects->transform(function ($contract) {
             $contract->sales_status = $this->computeProjectSalesStatus($contract);
-            $contract->total_units = $contract->secondPartyData->contractUnits()->count() ?? 0;
+            $contract->total_units = $contract->secondPartyData ? $contract->secondPartyData->contractUnits()->count() : 0;
             $contract->available_units = $this->getAvailableUnitsCount($contract);
             $contract->reserved_units = $this->getReservedUnitsCount($contract);
             $contract->remaining_days = $this->getProjectRemainingDays($contract);
