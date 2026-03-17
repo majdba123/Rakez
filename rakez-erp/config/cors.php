@@ -21,7 +21,7 @@ return [
     'allowed_origins' => [
 
         'https://www.rakez.com.sa',
-
+        'https://rakez.com.sa',
         'rakez.com.sa',
         'www.rakez.com.sa',
 
