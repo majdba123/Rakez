@@ -7,6 +7,12 @@ use App\Infrastructure\Ads\Persistence\Models\AdsInsightRow;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 
+/**
+ * Aggregates campaign performance from synced platform API data only.
+ * All metrics (spend, impressions, clicks, conversions, revenue, reach) come from
+ * ads_insight_rows, which are populated 100% by SyncInsightsJob from Meta/Snap/TikTok APIs.
+ * No static or mock data is used.
+ */
 class CampaignPerformanceAggregator
 {
     /**

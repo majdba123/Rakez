@@ -6,6 +6,10 @@ use App\Domain\Ads\Ports\TokenStorePort;
 use App\Domain\Ads\ValueObjects\Platform;
 use App\Infrastructure\Ads\BaseAdsClient;
 
+/**
+ * Snapchat Ads API client (HTTP). Official PHP SDK: https://github.com/Snapchat/business-sdk-php
+ * (add via Composer VCS if you prefer SDK over HTTP).
+ */
 class SnapClient extends BaseAdsClient
 {
     private string $adsBaseUrl;

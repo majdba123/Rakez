@@ -14,7 +14,7 @@ class AdsSyncCommand extends Command
         {action : sync-campaigns|sync-insights|publish-outcomes}
         {--platform= : meta|snap|tiktok (empty = all active)}
         {--account= : specific account ID}
-        {--days=7 : lookback days for insights}';
+        {--days= : lookback days for insights (default from config ads_platforms.sync.insights_lookback_days)}';
 
     protected $description = 'Dispatch Ads platform sync jobs';
 
@@ -55,7 +55,7 @@ class AdsSyncCommand extends Command
                 'sync-insights' => SyncInsightsJob::dispatch(
                     $account->platform,
                     $account->account_id,
-                    now()->subDays((int) $this->option('days'))->toDateString(),
+                    now()->subDays((int) ($this->option('days') ?: config('ads_platforms.sync.insights_lookback_days', 30)))->toDateString(),
                     now()->toDateString(),
                     ['campaign', 'adset', 'ad'],
                 ),

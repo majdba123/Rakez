@@ -16,6 +16,7 @@ class SalesTargetResource extends JsonResource
         }
 
         return [
+            'item_type' => 'target',
             'target_id' => $this->id,
             'contract_id' => $this->contract_id,
             'project_name' => $this->contract->project_name ?? 'N/A',

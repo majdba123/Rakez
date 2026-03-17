@@ -3,6 +3,7 @@
 namespace App\Services\Sales;
 
 use App\Models\ContractUnit;
+use App\Models\SalesProjectAssignment;
 use App\Models\SalesTarget;
 use App\Models\User;
 use Illuminate\Pagination\LengthAwarePaginator;
@@ -10,32 +11,63 @@ use Illuminate\Support\Collection;
 
 class SalesTargetService
 {
-    /**
-     * Get targets for the current user. For sales leaders: all targets assigned to their team.
-     * For other sales users: only their own targets.
-     */
-    public function getMyTargets(User $user, array $filters): LengthAwarePaginator
-    {
-        $query = SalesTarget::query()
-            ->with(['contract', 'contractUnit', 'contractUnits', 'leader', 'marketer']);
+    public const MY_CONTENT_ASSIGNMENTS = 'assignments';
+    public const MY_CONTENT_TARGETS = 'targets';
 
-        if ($user->hasRole('sales_leader') && $user->team_id) {
-            $teamMemberIds = User::where('team_id', $user->team_id)->pluck('id');
-            $query->whereIn('marketer_id', $teamMemberIds);
-        } else {
-            $query->where('marketer_id', $user->id);
+    /**
+     * Get content for "my" targets page. For sales leaders: projects assigned to their team (assignments).
+     * For other sales users: only their own targets.
+     *
+     * @return array{type: string, paginator: LengthAwarePaginator}
+     */
+    public function getMyTargets(User $user, array $filters): array
+    {
+        if ($user->hasRole('sales_leader')) {
+            return [
+                'type' => self::MY_CONTENT_ASSIGNMENTS,
+                'paginator' => $this->getAssignedProjectsForLeader($user, $filters),
+            ];
         }
 
-        // Apply filters
+        $query = SalesTarget::query()
+            ->with(['contract', 'contractUnit', 'contractUnits', 'leader', 'marketer'])
+            ->where('marketer_id', $user->id);
+
         if (!empty($filters['status'])) {
             $query->where('status', $filters['status']);
         }
-
         if (!empty($filters['from']) || !empty($filters['to'])) {
             $query->dateRange($filters['from'] ?? null, $filters['to'] ?? null);
         }
 
-        $perPage = $filters['per_page'] ?? 15;
+        $perPage = (int) ($filters['per_page'] ?? 15);
+        return [
+            'type' => self::MY_CONTENT_TARGETS,
+            'paginator' => $query->orderBy('start_date', 'desc')->paginate($perPage),
+        ];
+    }
+
+    /**
+     * Get projects assigned to the leader (for sales leader "my" page).
+     */
+    public function getAssignedProjectsForLeader(User $leader, array $filters): LengthAwarePaginator
+    {
+        $query = SalesProjectAssignment::query()
+            ->where('leader_id', $leader->id)
+            ->with(['contract', 'assignedBy']);
+
+        if (!empty($filters['from'])) {
+            $query->where(function ($q) use ($filters) {
+                $q->whereNull('end_date')->orWhereDate('end_date', '>=', $filters['from']);
+            });
+        }
+        if (!empty($filters['to'])) {
+            $query->where(function ($q) use ($filters) {
+                $q->whereNull('start_date')->orWhereDate('start_date', '<=', $filters['to']);
+            });
+        }
+
+        $perPage = (int) ($filters['per_page'] ?? 15);
         return $query->orderBy('start_date', 'desc')->paginate($perPage);
     }
 
@@ -65,7 +97,7 @@ class SalesTargetService
     }
 
     /**
-     * Check if user can view targets for a given contract (has a target for it or team has targets).
+     * Check if user can view targets for a given contract (has a target for it, team has targets, or leader has assignment).
      */
     public function userCanViewTargetsByProject(User $user, int $contractId): bool
     {
@@ -77,9 +109,13 @@ class SalesTargetService
         }
         if ($user->team_id) {
             $teamMemberIds = User::where('team_id', $user->team_id)->pluck('id');
-            return SalesTarget::where('contract_id', $contractId)
-                ->whereIn('marketer_id', $teamMemberIds)
-                ->exists();
+            if (SalesTarget::where('contract_id', $contractId)->whereIn('marketer_id', $teamMemberIds)->exists()) {
+                return true;
+            }
+        }
+        // Leader can view by-project for contracts assigned to them (even if no targets yet).
+        if ($user->hasRole('sales_leader')) {
+            return SalesProjectAssignment::where('leader_id', $user->id)->where('contract_id', $contractId)->exists();
         }
         return false;
     }

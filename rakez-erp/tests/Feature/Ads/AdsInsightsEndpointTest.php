@@ -144,4 +144,80 @@ class AdsInsightsEndpointTest extends TestCase
         $this->getJson('/api/ads/insights')->assertStatus(401);
         $this->postJson('/api/ads/sync')->assertStatus(401);
     }
+
+    public function test_insights_endpoint_filters_by_level_campaign(): void
+    {
+        $user = $this->createMarketingUser();
+        $this->grantPermissions($user, ['marketing.ads.view']);
+        $this->seedInsightRows('meta', 3);
+        \App\Infrastructure\Ads\Persistence\Models\AdsInsightRow::create([
+            'platform' => 'meta',
+            'account_id' => 'act_123456',
+            'level' => 'adset',
+            'entity_id' => 'adset_1',
+            'date_start' => now()->toDateString(),
+            'date_stop' => now()->toDateString(),
+            'breakdown_hash' => 'none',
+            'impressions' => 100,
+            'clicks' => 10,
+            'spend' => 5.0,
+            'conversions' => 0,
+            'revenue' => 0,
+            'reach' => 80,
+        ]);
+
+        $response = $this->actingAs($user, 'sanctum')
+            ->getJson('/api/ads/insights?platform=meta&level=campaign');
+
+        $response->assertOk();
+        $data = $response->json('data');
+        $this->assertNotEmpty($data);
+        foreach ($data as $row) {
+            $this->assertSame('campaign', $row['level']);
+        }
+    }
+
+    public function test_insights_endpoint_filters_by_level_adset(): void
+    {
+        $user = $this->createMarketingUser();
+        $this->grantPermissions($user, ['marketing.ads.view']);
+        \App\Infrastructure\Ads\Persistence\Models\AdsInsightRow::create([
+            'platform' => 'snap',
+            'account_id' => 'snap_1',
+            'level' => 'adset',
+            'entity_id' => 'adset_1',
+            'date_start' => now()->toDateString(),
+            'date_stop' => now()->toDateString(),
+            'breakdown_hash' => 'none',
+            'impressions' => 200,
+            'clicks' => 20,
+            'spend' => 10.0,
+            'conversions' => 0,
+            'revenue' => 0,
+            'reach' => 150,
+        ]);
+        \App\Infrastructure\Ads\Persistence\Models\AdsInsightRow::create([
+            'platform' => 'snap',
+            'account_id' => 'snap_1',
+            'level' => 'campaign',
+            'entity_id' => 'camp_1',
+            'date_start' => now()->toDateString(),
+            'date_stop' => now()->toDateString(),
+            'breakdown_hash' => 'none',
+            'impressions' => 500,
+            'clicks' => 50,
+            'spend' => 25.0,
+            'conversions' => 0,
+            'revenue' => 0,
+            'reach' => 400,
+        ]);
+
+        $response = $this->actingAs($user, 'sanctum')
+            ->getJson('/api/ads/insights?platform=snap&level=adset');
+
+        $response->assertOk();
+        $data = $response->json('data');
+        $this->assertCount(1, $data);
+        $this->assertSame('adset', $data[0]['level']);
+    }
 }

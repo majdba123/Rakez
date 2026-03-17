@@ -221,6 +221,22 @@ class SalesTargetTest extends TestCase
         $this->assertCount(1, $response->json('data'));
     }
 
+    public function test_leader_sees_assigned_projects_on_my()
+    {
+        $response = $this->actingAs($this->leader, 'sanctum')
+            ->getJson('/api/sales/targets/my');
+
+        $response->assertStatus(200)
+            ->assertJson(['success' => true]);
+        $data = $response->json('data');
+        $this->assertNotEmpty($data, 'Leader should see at least the assigned project');
+        $first = $data[0];
+        $this->assertSame('project_assignment', $first['item_type'] ?? null);
+        $this->assertSame($this->contract->id, $first['contract_id']);
+        $this->assertArrayHasKey('project_name', $first);
+        $this->assertArrayHasKey('assignment_id', $first);
+    }
+
     public function test_target_can_be_project_level_without_unit()
     {
         $data = [

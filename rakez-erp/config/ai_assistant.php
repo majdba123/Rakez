@@ -45,4 +45,31 @@ return [
     'retention' => [
         'days' => (int) env('AI_RETENTION_DAYS', 90),
     ],
+
+    'embeddings' => [
+        'model' => env('OPENAI_EMBEDDING_MODEL', 'text-embedding-3-small'),
+        'dimensions' => (int) env('OPENAI_EMBEDDING_DIMENSIONS', 1536),
+        'batch_size' => (int) env('OPENAI_EMBEDDING_BATCH_SIZE', 100),
+    ],
+
+    'rag' => [
+        'chunk_max_tokens' => (int) env('AI_RAG_CHUNK_MAX_TOKENS', 500),
+        'chunk_overlap_tokens' => (int) env('AI_RAG_CHUNK_OVERLAP_TOKENS', 50),
+        'search_limit' => (int) env('AI_RAG_SEARCH_LIMIT', 5),
+        'min_similarity' => (float) env('AI_RAG_MIN_SIMILARITY', 0.7),
+    ],
+
+    'circuit_breaker' => [
+        'failure_threshold' => (int) env('AI_CB_FAILURE_THRESHOLD', 5),
+        'timeout_seconds' => (int) env('AI_CB_TIMEOUT_SECONDS', 60),
+        'half_open_max_attempts' => (int) env('AI_CB_HALF_OPEN_MAX', 3),
+    ],
+
+    'smart_rate_limits' => [
+        'admin' => 120,
+        'sales_leader' => 60,
+        'sales' => 30,
+        'marketing' => 30,
+        'default' => 15,
+    ],
 ];

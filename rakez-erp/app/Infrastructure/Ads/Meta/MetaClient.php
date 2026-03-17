@@ -4,29 +4,24 @@ namespace App\Infrastructure\Ads\Meta;
 
 use App\Domain\Ads\Ports\TokenStorePort;
 use App\Domain\Ads\ValueObjects\Platform;
-use App\Infrastructure\Ads\BaseAdsClient;
+use FacebookAds\Api;
+use FacebookAds\Http\RequestInterface;
+use FacebookAds\Session;
+use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 
-class MetaClient extends BaseAdsClient
+/**
+ * Meta (Facebook) Ads API client using the official Facebook PHP Business SDK.
+ * All requests go through the SDK (facebook/php-business-sdk).
+ */
+class MetaClient
 {
     private string $apiVersion;
-
-    private string $graphBaseUrl;
 
     public function __construct(
         protected readonly TokenStorePort $tokenStore,
     ) {
         $this->apiVersion = config('ads_platforms.meta.api_version', 'v22.0');
-        $this->graphBaseUrl = config('ads_platforms.meta.base_url', 'https://graph.facebook.com');
-    }
-
-    protected function baseUrl(): string
-    {
-        return "{$this->graphBaseUrl}/{$this->apiVersion}";
-    }
-
-    protected function defaultHeaders(): array
-    {
-        return [];
     }
 
     public function getAccessToken(?string $accountId = null): string
@@ -38,50 +33,95 @@ class MetaClient extends BaseAdsClient
     }
 
     /**
-     * Generic Graph API GET request with pagination support.
+     * Ensure the SDK Api is initialized with the given account's token.
+     */
+    private function apiForAccount(?string $accountId = null): Api
+    {
+        $appId = config('ads_platforms.meta.app_id');
+        $appSecret = config('ads_platforms.meta.app_secret');
+        $token = $this->getAccessToken($accountId);
+
+        if (! $appId || ! $appSecret) {
+            throw new \RuntimeException('META_APP_ID and META_APP_SECRET are required to use the Meta Business SDK.');
+        }
+
+        $session = new Session($appId, $appSecret, $token);
+        $current = Api::instance();
+
+        if ($current === null) {
+            Api::init($appId, $appSecret, $token, false);
+
+            return Api::instance();
+        }
+
+        return $current->getCopyWithSession($session);
+    }
+
+    /**
+     * GET request via the Meta Business SDK.
      */
     public function get(string $endpoint, array $params = [], ?string $accountId = null): array
     {
-        $params['access_token'] = $this->getAccessToken($accountId);
-
+        $api = $this->apiForAccount($accountId);
         $this->logRequest('GET', $endpoint, ['params' => array_diff_key($params, ['access_token' => ''])]);
 
-        return $this->http()->get($endpoint, $params)->throw()->json();
+        $request = $api->prepareRequest($endpoint, RequestInterface::METHOD_GET, $params);
+        $response = $api->executeRequest($request);
+
+        if ($response->getStatusCode() >= 400) {
+            $body = $response->getContent();
+            Log::error('Meta Ads API Error', [
+                'endpoint' => $endpoint,
+                'status' => $response->getStatusCode(),
+                'body' => $body,
+            ]);
+            throw new \RuntimeException('Meta API error: ' . ($body['error']['message'] ?? $response->getBody()));
+        }
+
+        return $response->getContent() ?? [];
     }
 
     /**
-     * POST request to Graph API.
+     * POST request via the Meta Business SDK.
      */
     public function post(string $endpoint, array $data = [], ?string $accountId = null): array
     {
-        $data['access_token'] = $this->getAccessToken($accountId);
-
+        $api = $this->apiForAccount($accountId);
         $this->logRequest('POST', $endpoint);
 
-        return $this->http()->post($endpoint, $data)->throw()->json();
+        $request = $api->prepareRequest($endpoint, RequestInterface::METHOD_POST, $data);
+        $response = $api->executeRequest($request);
+
+        if ($response->getStatusCode() >= 400) {
+            $body = $response->getContent();
+            Log::error('Meta Ads API Error', [
+                'endpoint' => $endpoint,
+                'status' => $response->getStatusCode(),
+                'body' => $body,
+            ]);
+            throw new \RuntimeException('Meta API error: ' . ($body['error']['message'] ?? $response->getBody()));
+        }
+
+        return $response->getContent() ?? [];
     }
 
     /**
-     * Paginate through cursor-based results from the Graph API.
+     * Paginate through cursor-based results. First page via SDK, next pages via next_link.
      *
      * @return \Generator<array>
      */
     public function paginate(string $endpoint, array $params = [], ?string $accountId = null): \Generator
     {
-        $params['access_token'] = $this->getAccessToken($accountId);
+        $params['limit'] = $params['limit'] ?? 500;
         $url = $endpoint;
-        $isFirstRequest = true;
+        $isFirst = true;
 
         do {
-            if ($isFirstRequest) {
-                $response = $this->http()->get($url, $params)->throw()->json();
-                $isFirstRequest = false;
+            if ($isFirst) {
+                $response = $this->get($url, $params, $accountId);
+                $isFirst = false;
             } else {
-                $response = $this->http()
-                    ->withHeaders($this->defaultHeaders())
-                    ->get($url)
-                    ->throw()
-                    ->json();
+                $response = Http::timeout(30)->get($url)->throw()->json();
             }
 
             foreach ($response['data'] ?? [] as $item) {
@@ -93,20 +133,21 @@ class MetaClient extends BaseAdsClient
     }
 
     /**
-     * Submit an async insight report and poll until complete.
+     * Submit an async insight report and poll until complete (via SDK).
      */
     public function asyncInsightReport(string $objectId, array $params = [], ?string $accountId = null): array
     {
-        $params['access_token'] = $this->getAccessToken($accountId);
+        $api = $this->apiForAccount($accountId);
+        $endpoint = $objectId . '/insights';
+        $this->logRequest('POST', $endpoint);
 
-        $response = $this->http()
-            ->post("{$objectId}/insights", $params)
-            ->throw()
-            ->json();
+        $request = $api->prepareRequest($endpoint, RequestInterface::METHOD_POST, $params);
+        $response = $api->executeRequest($request);
+        $content = $response->getContent();
 
-        $reportRunId = $response['report_run_id'] ?? null;
+        $reportRunId = $content['report_run_id'] ?? null;
         if (! $reportRunId) {
-            return $response['data'] ?? [];
+            return $content['data'] ?? [];
         }
 
         return $this->pollAsyncReport($reportRunId, $accountId);
@@ -114,7 +155,7 @@ class MetaClient extends BaseAdsClient
 
     private function pollAsyncReport(string $reportRunId, ?string $accountId): array
     {
-        $token = $this->getAccessToken($accountId);
+        $api = $this->apiForAccount($accountId);
         $maxAttempts = 60;
         $attempt = 0;
 
@@ -123,28 +164,31 @@ class MetaClient extends BaseAdsClient
             $waitSeconds = min(2 ** $attempt, 60);
             sleep($waitSeconds);
 
-            $status = $this->http()
-                ->get($reportRunId, ['access_token' => $token])
-                ->throw()
-                ->json();
+            $request = $api->prepareRequest($reportRunId, RequestInterface::METHOD_GET, []);
+            $response = $api->executeRequest($request);
+            $status = $response->getContent();
 
             $state = $status['async_status'] ?? 'UNKNOWN';
 
             if ($state === 'Job Completed') {
                 $results = [];
-                foreach ($this->paginate("{$reportRunId}/insights", [], $accountId) as $row) {
+                foreach ($this->paginate($reportRunId . '/insights', [], $accountId) as $row) {
                     $results[] = $row;
                 }
-
                 return $results;
             }
 
             if ($state === 'Job Failed') {
-                $this->logError("Meta async report {$reportRunId} failed", $status);
+                Log::error("Meta async report {$reportRunId} failed", $status);
                 throw new \RuntimeException("Meta async insight report failed: {$reportRunId}");
             }
         } while ($attempt < $maxAttempts);
 
         throw new \RuntimeException("Meta async insight report timed out: {$reportRunId}");
+    }
+
+    private function logRequest(string $method, string $url, array $context = []): void
+    {
+        Log::debug("Meta Ads API [{$method}] {$url}", $context);
     }
 }

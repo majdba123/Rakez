@@ -10,6 +10,10 @@ use App\Jobs\Ads\SyncInsightsJob;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
+/**
+ * Ads insights and campaigns API. All data returned here comes from platform API sync only
+ * (SyncCampaignStructureJob, SyncInsightsJob) — 100% real Meta/Snap/TikTok data, no mock data.
+ */
 class AdsInsightsController
 {
     /**

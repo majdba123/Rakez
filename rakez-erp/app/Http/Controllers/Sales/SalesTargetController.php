@@ -19,7 +19,7 @@ class SalesTargetController extends Controller
     ) {}
 
     /**
-     * List my targets.
+     * List my targets. Sales leader: projects assigned to their team. Sales: targets assigned to them by leader.
      */
     public function my(Request $request): JsonResponse
     {
@@ -31,16 +31,23 @@ class SalesTargetController extends Controller
                 'per_page' => $request->query('per_page', 15),
             ];
 
-            $targets = $this->targetService->getMyTargets($request->user(), $filters);
+            $result = $this->targetService->getMyTargets($request->user(), $filters);
+            $paginator = $result['paginator'];
+
+            if ($result['type'] === \App\Services\Sales\SalesTargetService::MY_CONTENT_ASSIGNMENTS) {
+                $data = \App\Http\Resources\Sales\SalesProjectAssignmentResource::collection($paginator->items());
+            } else {
+                $data = SalesTargetResource::collection($paginator->items());
+            }
 
             return response()->json([
                 'success' => true,
-                'data' => SalesTargetResource::collection($targets->items()),
+                'data' => $data,
                 'meta' => [
-                    'current_page' => $targets->currentPage(),
-                    'last_page' => $targets->lastPage(),
-                    'per_page' => $targets->perPage(),
-                    'total' => $targets->total(),
+                    'current_page' => $paginator->currentPage(),
+                    'last_page' => $paginator->lastPage(),
+                    'per_page' => $paginator->perPage(),
+                    'total' => $paginator->total(),
                 ],
             ]);
         } catch (\Exception $e) {

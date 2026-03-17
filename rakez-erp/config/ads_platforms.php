@@ -3,12 +3,15 @@
 return [
 
     'meta' => [
+        'app_id' => env('META_APP_ID'),
+        'app_secret' => env('META_APP_SECRET'),
         'access_token' => env('META_ADS_ACCESS_TOKEN'),
         'pixel_id' => env('META_PIXEL_ID'),
         'ad_account_id' => env('META_AD_ACCOUNT_ID'),
         'api_version' => env('META_API_VERSION', 'v22.0'),
         'base_url' => 'https://graph.facebook.com',
         'test_event_code' => env('META_TEST_EVENT_CODE'),
+        // Lead Ads retrieval requires token with leads_retrieval, pages_manage_ads, pages_read_engagement, pages_show_list, ads_management
     ],
 
     'snap' => [
@@ -33,9 +36,10 @@ return [
         'auth_url' => 'https://open.tiktokapis.com/v2/oauth/token/',
     ],
 
+    // All insights/campaign data is fetched 100% from platform APIs (Meta, Snap, TikTok) and stored in ads_* tables. No static or mock data.
     'sync' => [
         'campaign_structure_interval' => env('ADS_CAMPAIGN_SYNC_HOURS', 6),
-        'insights_lookback_days' => env('ADS_INSIGHTS_LOOKBACK_DAYS', 7),
+        'insights_lookback_days' => env('ADS_INSIGHTS_LOOKBACK_DAYS', 30),
         'outcome_publish_interval_seconds' => env('ADS_OUTCOME_INTERVAL', 60),
     ],
 

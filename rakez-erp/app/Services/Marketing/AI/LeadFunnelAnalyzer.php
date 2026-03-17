@@ -7,6 +7,12 @@ use App\Models\Lead;
 use App\Models\SalesReservation;
 use Illuminate\Support\Facades\DB;
 
+/**
+ * Builds funnel and platform comparison from real data only.
+ * Ads metrics (spend, impressions, clicks) come from ads_insight_rows — 100% synced from
+ * platform APIs (Meta, Snap, TikTok) via SyncInsightsJob. Leads and sales from CRM tables.
+ * All analysis is based on actual synced data, not estimates or static benchmarks.
+ */
 class LeadFunnelAnalyzer
 {
     public function __construct(

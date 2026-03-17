@@ -38,5 +38,6 @@
         <!-- AI Assistant Configuration -->
         <env name="OPENAI_API_KEY" value="test-fake-key-not-used"/>
         <env name="AI_ENABLED" value="true"/>
+        <!-- Twilio real integration tests read TWILIO_* from .env when TWILIO_REAL_TESTS=true -->
     </php>
 </phpunit>
