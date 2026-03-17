@@ -158,10 +158,10 @@ $pmUser = one(User::class, ['email' => 'pm@rakez.com']);
 $editorUser = one(User::class, ['email' => 'editor@rakez.com']);
 $developerUser = one(User::class, ['email' => 'developer@rakez.com']);
 
-$readyContract = one(Contract::class, ['status' => 'ready']);
+$readyContract = one(Contract::class, ['status' => 'approved']);
 $approvedContract = one(Contract::class, ['status' => 'approved']);
 $pendingContract = one(Contract::class, ['status' => 'pending']);
-$offPlanContract = Contract::where('status', 'ready')->where('is_off_plan', true)->orderBy('id')->first();
+$offPlanContract = Contract::where('status', 'approved')->where('is_off_plan', true)->orderBy('id')->first();
 $baseContract = $readyContract ?? $approvedContract ?? Contract::orderBy('id')->first();
 $baseContractId = rid($baseContract);
 

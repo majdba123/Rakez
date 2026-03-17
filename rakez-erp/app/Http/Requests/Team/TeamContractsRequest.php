@@ -18,7 +18,7 @@ class TeamContractsRequest extends FormRequest
             'status' => [
                 'nullable',
                 'string',
-                Rule::in(['pending', 'approved', 'rejected', 'completed', 'ready']),
+                Rule::in(['pending', 'approved', 'rejected', 'completed']),
             ],
             'per_page' => 'nullable|integer|min:1|max:100',
         ];

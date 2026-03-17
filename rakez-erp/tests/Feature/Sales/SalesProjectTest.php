@@ -50,7 +50,7 @@ class SalesProjectTest extends TestCase
 
     public function test_project_status_pending_when_units_have_zero_price()
     {
-        $contract = Contract::factory()->create(['status' => 'ready']);
+        $contract = Contract::factory()->create(['status' => 'completed']);
         $secondPartyData = SecondPartyData::factory()->create(['contract_id' => $contract->id]);
         
         ContractUnit::factory()->create([
@@ -72,7 +72,7 @@ class SalesProjectTest extends TestCase
 
     public function test_project_status_available_when_ready_and_all_units_priced()
     {
-        $contract = Contract::factory()->create(['status' => 'ready']);
+        $contract = Contract::factory()->create(['status' => 'completed']);
         $secondPartyData = SecondPartyData::factory()->create(['contract_id' => $contract->id]);
         
         ContractUnit::factory()->count(3)->create([
@@ -89,7 +89,7 @@ class SalesProjectTest extends TestCase
 
     public function test_unit_can_reserve_when_project_available_and_no_reservation()
     {
-        $contract = Contract::factory()->create(['status' => 'ready']);
+        $contract = Contract::factory()->create(['status' => 'completed']);
         $secondPartyData = SecondPartyData::factory()->create(['contract_id' => $contract->id]);
         
         $unit = ContractUnit::factory()->create([
@@ -110,7 +110,7 @@ class SalesProjectTest extends TestCase
 
     public function test_unit_cannot_reserve_when_active_reservation_exists()
     {
-        $contract = Contract::factory()->create(['status' => 'ready']);
+        $contract = Contract::factory()->create(['status' => 'completed']);
         $secondPartyData = SecondPartyData::factory()->create(['contract_id' => $contract->id]);
         
         $unit = ContractUnit::factory()->create([
@@ -140,7 +140,7 @@ class SalesProjectTest extends TestCase
 
     public function test_unit_computed_availability_reserved_when_confirmed()
     {
-        $contract = Contract::factory()->create(['status' => 'ready']);
+        $contract = Contract::factory()->create(['status' => 'completed']);
         $secondPartyData = SecondPartyData::factory()->create(['contract_id' => $contract->id]);
         
         $unit = ContractUnit::factory()->create([
@@ -169,7 +169,7 @@ class SalesProjectTest extends TestCase
 
     public function test_cancelled_reservation_does_not_affect_availability()
     {
-        $contract = Contract::factory()->create(['status' => 'ready']);
+        $contract = Contract::factory()->create(['status' => 'completed']);
         $secondPartyData = SecondPartyData::factory()->create(['contract_id' => $contract->id]);
         
         $unit = ContractUnit::factory()->create([
@@ -227,7 +227,7 @@ class SalesProjectTest extends TestCase
 
     public function test_project_units_can_be_filtered_by_floor()
     {
-        $contract = Contract::factory()->create(['status' => 'ready']);
+        $contract = Contract::factory()->create(['status' => 'completed']);
         $secondPartyData = SecondPartyData::factory()->create(['contract_id' => $contract->id]);
         
         ContractUnit::factory()->create([
@@ -251,7 +251,7 @@ class SalesProjectTest extends TestCase
 
     public function test_reservation_context_provides_complete_data()
     {
-        $contract = Contract::factory()->create(['status' => 'ready']);
+        $contract = Contract::factory()->create(['status' => 'completed']);
         $secondPartyData = SecondPartyData::factory()->create(['contract_id' => $contract->id]);
         
         $unit = ContractUnit::factory()->create([
@@ -292,7 +292,7 @@ class SalesProjectTest extends TestCase
         $leader = User::factory()->create(['type' => 'sales', 'is_manager' => true]);
         $leader->assignRole('sales_leader');
         
-        $contract = Contract::factory()->create(['status' => 'ready']);
+        $contract = Contract::factory()->create(['status' => 'completed']);
         
         $response = $this->actingAs($admin, 'sanctum')
             ->postJson('/api/admin/sales/project-assignments', [
@@ -322,8 +322,8 @@ class SalesProjectTest extends TestCase
         $leader = User::factory()->create(['type' => 'sales', 'is_manager' => true]);
         $leader->assignRole('sales_leader');
         
-        $contract1 = Contract::factory()->create(['status' => 'ready']);
-        $contract2 = Contract::factory()->create(['status' => 'ready']);
+        $contract1 = Contract::factory()->create(['status' => 'completed']);
+        $contract2 = Contract::factory()->create(['status' => 'completed']);
         
         // Create first assignment
         SalesProjectAssignment::create([
@@ -352,8 +352,8 @@ class SalesProjectTest extends TestCase
         $leader = User::factory()->create(['type' => 'sales', 'is_manager' => true]);
         $leader->assignRole('sales_leader');
         
-        $contract1 = Contract::factory()->create(['status' => 'ready']);
-        $contract2 = Contract::factory()->create(['status' => 'ready']);
+        $contract1 = Contract::factory()->create(['status' => 'completed']);
+        $contract2 = Contract::factory()->create(['status' => 'completed']);
         
         SalesProjectAssignment::create([
             'leader_id' => $leader->id,
@@ -381,7 +381,7 @@ class SalesProjectTest extends TestCase
 
     public function test_project_shows_remaining_days()
     {
-        $contract = Contract::factory()->create(['status' => 'ready']);
+        $contract = Contract::factory()->create(['status' => 'completed']);
         $contractInfo = ContractInfo::factory()->create([
             'contract_id' => $contract->id,
             'agreement_duration_days' => 180,
@@ -413,7 +413,7 @@ class SalesProjectTest extends TestCase
         $salesUser2 = User::factory()->create(['type' => 'sales']);
         $salesUser2->assignRole('sales');
         
-        $contract = Contract::factory()->create(['status' => 'ready']);
+        $contract = Contract::factory()->create(['status' => 'completed']);
         $secondPartyData = SecondPartyData::factory()->create(['contract_id' => $contract->id]);
         
         $unit1 = ContractUnit::factory()->create([

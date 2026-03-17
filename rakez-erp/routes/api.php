@@ -20,6 +20,7 @@ use App\Http\Controllers\Contract\MontageDepartmentController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\Dashboard\ProjectManagementDashboardController;
 use App\Http\Controllers\AI\AIAssistantController;
+use App\Http\Controllers\AI\DocumentController;
 use App\Http\Controllers\Sales\SalesDashboardController;
 use App\Http\Controllers\Sales\SalesProjectController;
 use App\Http\Controllers\Sales\SalesReservationController;
@@ -63,6 +64,7 @@ use App\Http\Controllers\AI\AssistantChatController;
 use App\Http\Controllers\AI\AssistantKnowledgeController;
 use App\Http\Controllers\AI\TwilioWebhookController;
 use App\Http\Controllers\Ads\AdsInsightsController;
+use App\Http\Controllers\Ads\AdsLeadsController;
 use App\Http\Controllers\Ads\AdsOutcomeController;
 use App\Http\Controllers\Sales\NegotiationApprovalController;
 use App\Http\Controllers\Sales\PaymentPlanController;
@@ -128,6 +130,16 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/conversations', [AIAssistantController::class, 'conversations']);
         Route::delete('/conversations/{sessionId}', [AIAssistantController::class, 'deleteSession']);
         Route::get('/sections', [AIAssistantController::class, 'sections']);
+
+        // RAG Document Management
+        Route::prefix('documents')->group(function () {
+            Route::post('/', [DocumentController::class, 'store']);
+            Route::get('/', [DocumentController::class, 'index']);
+            Route::get('/{id}', [DocumentController::class, 'show']);
+            Route::delete('/{id}', [DocumentController::class, 'destroy']);
+            Route::post('/{id}/reindex', [DocumentController::class, 'reindex']);
+            Route::post('/search', [DocumentController::class, 'search']);
+        });
     });
 
     // Contract Routes - Protected routes (user contracts + sales for project-tracker)
@@ -799,6 +811,9 @@ Route::prefix('ads')->middleware(['auth:sanctum', 'role:admin|marketing'])->grou
     Route::get('accounts', [AdsInsightsController::class, 'accounts'])->middleware('permission:marketing.ads.view');
     Route::get('campaigns', [AdsInsightsController::class, 'campaigns'])->middleware('permission:marketing.ads.view');
     Route::get('insights', [AdsInsightsController::class, 'insights'])->middleware('permission:marketing.ads.view');
+    Route::get('leads', [AdsLeadsController::class, 'index'])->middleware('permission:marketing.ads.view');
+    Route::get('leads/export', [AdsLeadsController::class, 'export'])->middleware('permission:marketing.ads.view');
+    Route::post('leads/export-snap', [AdsLeadsController::class, 'exportSnap'])->middleware('permission:marketing.ads.view');
     Route::post('sync', [AdsInsightsController::class, 'triggerSync'])->middleware('permission:marketing.ads.manage');
     Route::post('outcomes', [AdsOutcomeController::class, 'store'])->middleware('permission:marketing.ads.manage');
     Route::get('outcomes/status', [AdsOutcomeController::class, 'status'])->middleware('permission:marketing.ads.view');

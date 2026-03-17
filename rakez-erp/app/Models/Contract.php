@@ -180,11 +180,11 @@ class Contract extends Model
     }
 
     /**
-     * Check if contract is ready (all stages completed).
+     * Check if contract is ready for sales/marketing (completed only).
      */
     public function isReady(): bool
     {
-        return $this->status === 'ready';
+        return $this->status === 'completed';
     }
 
     /**

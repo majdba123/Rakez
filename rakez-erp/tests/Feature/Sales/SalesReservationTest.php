@@ -30,7 +30,7 @@ class SalesReservationTest extends TestCase
         $this->salesUser = User::factory()->create(['type' => 'sales']);
         $this->salesUser->assignRole('sales');
 
-        $this->contract = Contract::factory()->create(['status' => 'ready']);
+        $this->contract = Contract::factory()->create(['status' => 'completed']);
         $secondPartyData = SecondPartyData::factory()->create(['contract_id' => $this->contract->id]);
         
         $this->unit = ContractUnit::factory()->create([

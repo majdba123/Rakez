@@ -189,8 +189,8 @@ class SalesProjectService
      */
     protected function computeProjectSalesStatus(Contract $contract): string
     {
-        // Check if contract status is ready, completed, or approved (for tests)
-        if (!in_array($contract->status, ['ready', 'completed', 'approved'], true)) {
+        // Check if contract status is completed (available for sales)
+        if ($contract->status !== 'completed') {
             return self::SALES_STATUS_PENDING;
         }
 
@@ -317,7 +317,7 @@ class SalesProjectService
 
     /**
      * Apply scope filter to query.
-     * أي مشروع اكتمل عقده (ready/completed) يظهر في القائمة، بما فيها المشاريع غير المُسنَدة لفريق.
+     * أي مشروع عقده completed يظهر في القائمة، بما فيها المشاريع غير المُسنَدة لفريق.
      * - sales_leader: scope 'all' = كل المشاريع (غير معينة أو معينة لي أو لفريقي); 'me' = معينة لي أو غير معينة; 'team' = معينة لفريقي أو غير معينة.
      * - sales: scope 'me' / 'team' = مشاريع الفريق أو غير المُسنَدة.
      */
@@ -413,13 +413,12 @@ class SalesProjectService
                     });
             });
         }
-        // scope 'all' for non-leader: no extra filter (all ready/completed projects already in base query)
+        // scope 'all' for non-leader: no extra filter (all completed projects already in base query)
     }
 
     /**
      * Check if the user can access a contract (project) for viewing details or units.
-     * Admin: always. أي مستخدم مبيعات (عادي أو قائد) يمكنه رؤية العقود المكتملة ضمنياً في المشاريع.
-     * Sales leader: أيضاً إذا مُسنَد له أو لفريقه أو غير مُسنَد. Sales staff: إذا مُسنَد لفريقه أو العقد مكتمل.
+     * Admin: always. Any completed contract: any sales or sales_leader can access (no assignment condition).
      */
     public function userCanAccessContract(User $user, int $contractId): bool
     {
@@ -427,65 +426,28 @@ class SalesProjectService
             return true;
         }
         $contract = Contract::find($contractId);
-        // عقود جاهزة أو مكتملة: أي مستخدم مبيعات (عادي أو قائد) يمكنه رؤيتها ضمن المشاريع
-        if ($contract && in_array($contract->status, ['ready', 'completed'], true) && ($user->hasRole('sales_leader') || $user->hasRole('sales'))) {
-            return true;
-        }
-        if ($user->hasRole('sales_leader')) {
-            $hasDirect = \App\Models\SalesProjectAssignment::where('leader_id', $user->id)
-                ->where('contract_id', $contractId)
-                ->active()
-                ->exists();
-            if ($hasDirect) {
-                return true;
-            }
-            if ($user->team_id) {
-                $teamLeaderIds = User::where('team_id', $user->team_id)
-                    ->where('is_manager', true)
-                    ->pluck('id');
-                if (\App\Models\SalesProjectAssignment::where('contract_id', $contractId)
-                    ->whereIn('leader_id', $teamLeaderIds)
-                    ->active()
-                    ->exists()) {
-                    return true;
-                }
-            }
-            // Unassigned ready/completed: allow sales_leader to view so they can assign
-            if ($contract && in_array($contract->status, ['ready', 'completed'], true)) {
-                $hasActiveAssignment = \App\Models\SalesProjectAssignment::where('contract_id', $contractId)->active()->exists();
-                if (!$hasActiveAssignment) {
-                    return true;
-                }
-            }
+        if (!$contract) {
             return false;
         }
-        if ($user->team_id) {
-            $teamLeaderIds = User::where('team_id', $user->team_id)
-                ->where('is_manager', true)
-                ->pluck('id');
-            return \App\Models\SalesProjectAssignment::where('contract_id', $contractId)
-                ->whereIn('leader_id', $teamLeaderIds)
-                ->active()
-                ->exists();
+        if ($contract->status === 'completed' && ($user->hasRole('sales_leader') || $user->hasRole('sales'))) {
+            return true;
         }
         return false;
     }
 
     /**
-     * Get team projects for a leader.
+     * Get team projects for a leader (all completed contracts, no assignment condition).
      */
     public function getTeamProjects(User $leader): \Illuminate\Database\Eloquent\Collection
     {
-        // Assigned projects for this leader (active assignments only); عقود مكتملة ضمنياً فقط
         return Contract::where('status', 'completed')
-            ->whereHas('salesProjectAssignments', function ($q) use ($leader) {
-                $q->where('leader_id', $leader->id)
-                  ->active();
-            })->with(['secondPartyData.contractUnits', 'salesProjectAssignments.leader', 'user'])->get();
+            ->with(['secondPartyData.contractUnits', 'salesProjectAssignments.leader', 'user'])
+            ->orderBy('created_at', 'desc')
+            ->get();
     }
 
     /**
-     * Get team projects for leader (paginated).
+     * Get team projects for leader (paginated). All completed contracts, no assignment condition.
      *
      * @param User $leader
      * @param int $perPage
@@ -493,12 +455,9 @@ class SalesProjectService
      */
     public function listTeamProjectsPaginated(User $leader, int $perPage = 15): LengthAwarePaginator
     {
-        // عقود مكتملة ضمنياً فقط
         $query = Contract::where('status', 'completed')
-            ->whereHas('salesProjectAssignments', function ($q) use ($leader) {
-                $q->where('leader_id', $leader->id)
-                  ->active();
-            })->with(['secondPartyData.contractUnits', 'salesProjectAssignments.leader', 'user'])->orderBy('created_at', 'desc');
+            ->with(['secondPartyData.contractUnits', 'salesProjectAssignments.leader', 'user'])
+            ->orderBy('created_at', 'desc');
 
         $projects = $query->paginate($perPage);
 
@@ -637,19 +596,12 @@ class SalesProjectService
     }
 
     /**
-     * Count projects currently under marketing based on sales availability logic.
-     * Project is considered under marketing when:
-     * - Contract status is ready/approved
-     * - Has units
-     * - All units are priced (> 0)
+     * Count projects currently under marketing (all completed with units and priced, no scope/assignment).
      */
     public function countProjectsUnderMarketing(string $scope, User $user): int
     {
-        $query = Contract::query();
-        $this->applyScopeFilter($query, $scope, $user);
-
-        return $query
-            ->whereIn('status', ['ready', 'completed', 'approved'])
+        return Contract::query()
+            ->where('status', 'completed')
             ->whereHas('secondPartyData.contractUnits')
             ->whereDoesntHave('secondPartyData.contractUnits', function (Builder $q) {
                 $q->whereNull('price')->orWhere('price', '<=', 0);

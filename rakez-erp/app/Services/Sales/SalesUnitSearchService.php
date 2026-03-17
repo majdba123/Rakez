@@ -233,44 +233,13 @@ class SalesUnitSearchService
     }
 
     /**
-     * Replicates the same access logic used in SalesProjectService::applyScopeFilter
-     * to determine which contract IDs the user can access.
+     * Contract IDs the user can access. Sales/sales_leader: all completed contracts (no assignment condition).
      */
     protected function getAccessibleContractIds(User $user): array
     {
-        $leaderIds = collect();
-
-        if ($user->hasRole('sales_leader')) {
-            $leaderIds->push($user->id);
-            if ($user->team_id) {
-                $leaderIds = $leaderIds->merge(
-                    User::where('team_id', $user->team_id)
-                        ->where('is_manager', true)
-                        ->pluck('id')
-                );
-            }
-        } elseif ($user->team_id) {
-            $leaderIds = User::where('team_id', $user->team_id)
-                ->where('is_manager', true)
-                ->pluck('id');
+        if ($user->hasRole('sales_leader') || $user->hasRole('sales')) {
+            return \App\Models\Contract::where('status', 'completed')->pluck('id')->all();
         }
-
-        if ($leaderIds->isEmpty()) {
-            return [];
-        }
-
-        $today = now()->toDateString();
-
-        return \App\Models\SalesProjectAssignment::whereIn('leader_id', $leaderIds->unique())
-            ->where(function ($q) use ($today) {
-                $q->whereNull('start_date')->orWhere('start_date', '<=', $today);
-            })
-            ->where(function ($q) use ($today) {
-                $q->whereNull('end_date')->orWhere('end_date', '>=', $today);
-            })
-            ->pluck('contract_id')
-            ->unique()
-            ->values()
-            ->all();
+        return [];
     }
 }

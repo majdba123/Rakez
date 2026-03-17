@@ -61,7 +61,7 @@ class NegotiationApprovalTest extends TestCase
         // Create contract and unit
         $this->contract = Contract::factory()->create([
             'user_id' => $this->admin->id,
-            'status' => 'approved',
+            'status' => 'completed',
             'is_off_plan' => false,
         ]);
 

@@ -25,7 +25,7 @@ class MarketingSeeder extends Seeder
     {
         $counts = SeedCounts::all();
 
-        $readyContracts = Contract::where('status', 'ready')->pluck('id')->all();
+        $readyContracts = Contract::where('status', 'completed')->pluck('id')->all();
         if (count($readyContracts) > $counts['marketing_projects']) {
             $readyContracts = array_slice($readyContracts, 0, $counts['marketing_projects']);
         }

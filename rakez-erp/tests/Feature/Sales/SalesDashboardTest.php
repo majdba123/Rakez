@@ -50,7 +50,7 @@ class SalesDashboardTest extends TestCase
     public function test_dashboard_returns_kpi_counts()
     {
         // Create test data
-        $contract = Contract::factory()->create(['status' => 'ready']);
+        $contract = Contract::factory()->create(['status' => 'completed']);
         $secondPartyData = SecondPartyData::factory()->create(['contract_id' => $contract->id]);
         
         $unit1 = ContractUnit::factory()->create([
@@ -105,7 +105,7 @@ class SalesDashboardTest extends TestCase
 
     public function test_dashboard_scope_me_filters_by_employee()
     {
-        $contract = Contract::factory()->create(['status' => 'ready']);
+        $contract = Contract::factory()->create(['status' => 'completed']);
         $secondPartyData = SecondPartyData::factory()->create(['contract_id' => $contract->id]);
         
         $unit1 = ContractUnit::factory()->create([
@@ -148,7 +148,7 @@ class SalesDashboardTest extends TestCase
 
     public function test_dashboard_scope_team_filters_by_team()
     {
-        $contract = Contract::factory()->create(['status' => 'ready']);
+        $contract = Contract::factory()->create(['status' => 'completed']);
         $secondPartyData = SecondPartyData::factory()->create(['contract_id' => $contract->id]);
         
         $unit1 = ContractUnit::factory()->create([
@@ -206,7 +206,7 @@ class SalesDashboardTest extends TestCase
 
     public function test_dashboard_calculates_percent_confirmed_correctly()
     {
-        $contract = Contract::factory()->create(['status' => 'ready']);
+        $contract = Contract::factory()->create(['status' => 'completed']);
         $secondPartyData = SecondPartyData::factory()->create(['contract_id' => $contract->id]);
         
         $units = ContractUnit::factory()->count(5)->create([
@@ -247,7 +247,7 @@ class SalesDashboardTest extends TestCase
 
     public function test_dashboard_date_range_filters_correctly()
     {
-        $contract = Contract::factory()->create(['status' => 'ready']);
+        $contract = Contract::factory()->create(['status' => 'completed']);
         $secondPartyData = SecondPartyData::factory()->create(['contract_id' => $contract->id]);
         
         $unit1 = ContractUnit::factory()->create([
@@ -308,7 +308,7 @@ class SalesDashboardTest extends TestCase
 
     public function test_projects_under_marketing_counts_only_sales_available_projects()
     {
-        $availableContract = Contract::factory()->create(['status' => 'ready']);
+        $availableContract = Contract::factory()->create(['status' => 'completed']);
         $availableSecondParty = SecondPartyData::factory()->create(['contract_id' => $availableContract->id]);
         ContractUnit::factory()->create([
             'second_party_data_id' => $availableSecondParty->id,
@@ -316,7 +316,7 @@ class SalesDashboardTest extends TestCase
             'status' => 'available',
         ]);
 
-        $pendingContract = Contract::factory()->create(['status' => 'ready']);
+        $pendingContract = Contract::factory()->create(['status' => 'completed']);
         $pendingSecondParty = SecondPartyData::factory()->create(['contract_id' => $pendingContract->id]);
         ContractUnit::factory()->create([
             'second_party_data_id' => $pendingSecondParty->id,
@@ -333,7 +333,7 @@ class SalesDashboardTest extends TestCase
 
     public function test_dashboard_returns_financial_kpis()
     {
-        $contract = Contract::factory()->create(['status' => 'ready']);
+        $contract = Contract::factory()->create(['status' => 'completed']);
         $secondPartyData = SecondPartyData::factory()->create(['contract_id' => $contract->id]);
         $unit = ContractUnit::factory()->create([
             'second_party_data_id' => $secondPartyData->id,

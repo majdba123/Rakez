@@ -45,7 +45,7 @@ class SalesDashboardService
             ->whereDoesntHave('activeSalesReservations')
             ->count();
 
-        // Projects under marketing: contracts that are sales-available (priced + ready/approved)
+        // Projects under marketing: contracts that are sales-available (priced + completed)
         $projectsUnderMarketing = $this->salesProjectService->countProjectsUnderMarketing($scope, $user);
 
         // Confirmed and negotiation counts
@@ -102,7 +102,7 @@ class SalesDashboardService
         return [
             'kpi_version' => 'v2',
             'definitions' => [
-                'projects_under_marketing' => 'Contracts with ready/approved status and all units priced',
+                'projects_under_marketing' => 'Contracts with completed status and all units priced',
                 'percent_confirmed' => 'confirmed_count / (confirmed_count + negotiation_count) * 100',
                 'total_received_projects_value' => 'Sum of unit prices for projects with confirmed reservations in selected scope',
             ],

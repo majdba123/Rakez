@@ -687,7 +687,7 @@ class ContractService
             $contract = Contract::with(['user', 'info'])->findOrFail($id);
 
             // Validate status
-            $validStatuses = ['pending', 'approved', 'rejected', 'completed', 'ready'];
+            $validStatuses = ['pending', 'approved', 'rejected', 'completed'];
             if (!in_array($status, $validStatuses)) {
                 throw new Exception('Invalid status. Must be one of: ' . implode(', ', $validStatuses));
             }
@@ -709,11 +709,10 @@ class ContractService
 
     /**
      * Update contract status by Project Management.
-     * Can update approved contracts to 'ready' or 'rejected'.
+     * Can "mark as ready" (confirm readiness) or reject approved contracts.
      *
-     * For 'ready': ALL project tracker stages must be complete
-     * (documents, departments, units, info) — the contract then
-     * automatically becomes a marketing project.
+     * For 'ready' action: ALL project tracker stages must be complete;
+     * contract stays 'approved' and a marketing project is created.
      */
     public function updateContractStatusByProjectManagement(int $id, string $status): Contract
     {
@@ -730,7 +729,7 @@ class ContractService
 
             $allowedStatuses = ['ready', 'rejected'];
             if (!in_array($status, $allowedStatuses)) {
-                throw new Exception('الحالة يجب أن تكون: ready أو rejected');
+                throw new Exception('الحالة يجب أن تكون: جاهز أو مرفوض');
             }
 
             if (!$contract->isApproved()) {
@@ -748,9 +747,12 @@ class ContractService
                 }
             }
 
-            $contract->update(['status' => $status]);
+            if ($status === 'rejected') {
+                $contract->update(['status' => $status]);
+            }
+            // When status === 'ready': leave contract as 'approved', only create marketing project below
 
-            // عند التحويل لجاهز، يصبح تلقائياً مشروعاً تسويقياً
+            // عند تعيين جاهز، يصبح تلقائياً مشروعاً تسويقياً (الحالة تبقى approved)
             if ($status === 'ready') {
                 MarketingProject::firstOrCreate(
                     ['contract_id' => $contract->id],

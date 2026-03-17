@@ -1,20 +1,18 @@
 /**
  * Map UI/localized contract status to API filter value for GET /api/contracts/admin-index
  * Used by project_management and admin (contracts.view_all).
- * API accepts: pending | approved | rejected | ready | completed
+ * API accepts: pending | approved | rejected | completed
  */
 
 const UI_TO_API_STATUS = {
   pending: 'pending',
   approved: 'approved',
   rejected: 'rejected',
-  ready: 'ready',
   completed: 'completed',
   // Arabic labels → API
   'قيد الانتظار': 'pending',
   'معتمد': 'approved',
   'مرفوض': 'rejected',
-  'جاهز': 'ready',
   'مكتمل': 'completed',
 };
 

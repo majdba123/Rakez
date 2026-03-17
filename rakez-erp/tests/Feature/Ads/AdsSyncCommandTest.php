@@ -86,4 +86,22 @@ class AdsSyncCommandTest extends TestCase
             return $job->accountId === 'act_111';
         });
     }
+
+    public function test_sync_insights_without_days_uses_config_default(): void
+    {
+        Queue::fake();
+        $this->createPlatformAccount('meta', 'act_111');
+
+        config(['ads_platforms.sync.insights_lookback_days' => 14]);
+        $expectedStart = now()->subDays(14)->toDateString();
+        $expectedEnd = now()->toDateString();
+
+        $this->artisan('ads:sync', ['action' => 'sync-insights'])
+            ->assertExitCode(0);
+
+        Queue::assertPushed(SyncInsightsJob::class, 1);
+        Queue::assertPushed(SyncInsightsJob::class, function (SyncInsightsJob $job) use ($expectedStart, $expectedEnd) {
+            return $job->dateStart === $expectedStart && $job->dateEnd === $expectedEnd;
+        });
+    }
 }

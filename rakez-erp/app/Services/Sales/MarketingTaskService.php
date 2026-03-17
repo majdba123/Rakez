@@ -14,20 +14,14 @@ class MarketingTaskService
         private readonly MarketingNotificationService $notificationService
     ) {}
     /**
-     * Get projects for task management (leader only).
-     * أي مشروع اكتمل عقده يظهر (بما فيها غير المُسنَدة لفريق) ليكون متاحاً في كل الأقسام.
+     * Get projects for task management (leader only). All completed contracts, no assignment condition.
      */
     public function getTaskProjects(User $leader): Collection
     {
-        return Contract::whereIn('status', ['ready', 'completed'])
-            ->where(function ($q) use ($leader) {
-                $q->whereDoesntHave('salesProjectAssignments', function ($aq) {
-                    $aq->active();
-                })->orWhereHas('salesProjectAssignments', function ($aq) use ($leader) {
-                    $aq->where('leader_id', $leader->id)->active();
-                });
-            })
-            ->with(['montageDepartment', 'photographyDepartment', 'boardsDepartment'])->get();
+        return Contract::where('status', 'completed')
+            ->with(['montageDepartment', 'photographyDepartment', 'boardsDepartment'])
+            ->orderBy('created_at', 'desc')
+            ->get();
     }
 
     /**
@@ -96,22 +90,12 @@ class MarketingTaskService
     }
 
     /**
-     * Check if leader has access to a project (assigned to him or unassigned so he can take it).
+     * Check if leader has access to a project. Any completed contract: any leader can access (no assignment condition).
      */
     protected function leaderHasAccessToProject(User $leader, int $contractId): bool
     {
-        $assigned = \App\Models\SalesProjectAssignment::where('leader_id', $leader->id)
-            ->where('contract_id', $contractId)
-            ->active()
-            ->exists();
-        if ($assigned) {
-            return true;
-        }
         $contract = Contract::find($contractId);
-        if (!$contract || !in_array($contract->status, ['ready', 'completed'], true)) {
-            return false;
-        }
-        return !\App\Models\SalesProjectAssignment::where('contract_id', $contractId)->active()->exists();
+        return $contract && $contract->status === 'completed';
     }
 
     /**

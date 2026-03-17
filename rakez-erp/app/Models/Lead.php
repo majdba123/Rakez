@@ -16,6 +16,7 @@ class Lead extends Model
         'source',
         'campaign_platform',
         'campaign_id',
+        'platform_lead_id',
         'campaign_type',
         'lead_score',
         'utm_source',

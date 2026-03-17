@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(xargs grep:*)",
+      "Bash(find /c/Users/Yusuf/OneDrive/Desktop/Rakez/rakez-erp/app/Models -type f -name *AI* -o -name *Conversation* -o -name *Assistant* -o -name *Knowledge*)",
+      "Bash(php artisan:*)",
+      "Bash(composer show:*)"
+    ]
+  }
+}

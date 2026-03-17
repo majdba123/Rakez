@@ -26,15 +26,15 @@ import { mapStatusForApi } from '@/utils/contractStatusMap'; // أو المسا�
 ```js
 /**
  * Map UI status to API filter for GET /api/contracts/admin-index
- * API values: pending | approved | rejected | ready | completed
+ * API values: pending | approved | rejected | completed
  */
 function mapStatusForApi(uiStatus) {
   if (uiStatus == null || uiStatus === '') return undefined;
   const map = {
     pending: 'pending', approved: 'approved', rejected: 'rejected',
-    ready: 'ready', completed: 'completed',
+    completed: 'completed',
     'قيد الانتظار': 'pending', 'معتمد': 'approved', 'مرفوض': 'rejected',
-    'جاهز': 'ready', 'مكتمل': 'completed',
+    'مكتمل': 'completed',
   };
   const s = String(uiStatus).trim();
   return map[s] ?? s;
@@ -47,4 +47,4 @@ function mapStatusForApi(uiStatus) {
 params.status = mapStatusForApi(selectedStatus);
 ```
 
-قيم الـ status المقبولة في الـ API: `pending`, `approved`, `rejected`, `ready`, `completed`.
+قيم الـ status المقبولة في الـ API: `pending`, `approved`, `rejected`, `completed`.

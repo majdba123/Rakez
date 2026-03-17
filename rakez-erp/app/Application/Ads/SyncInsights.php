@@ -6,6 +6,7 @@ use App\Domain\Ads\Ports\AdsReadPort;
 use App\Domain\Ads\Ports\InsightStorePort;
 use App\Domain\Ads\ValueObjects\DateRange;
 
+/** Fetches insights 100% from platform API (Meta/Snap/TikTok); no mock data. */
 final class SyncInsights
 {
     public function __construct(

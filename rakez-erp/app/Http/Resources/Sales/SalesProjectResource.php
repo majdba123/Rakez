@@ -20,7 +20,7 @@ class SalesProjectResource extends JsonResource
 
         $salesStatus = $this->sales_status ?? 'pending';
         $contractStatus = $this->status;
-        $isReady = in_array($contractStatus, ['ready', 'approved']);
+        $isReady = $contractStatus === 'completed';
         $totalUnits = (int) ($this->total_units ?? 0);
         $availableUnits = (int) ($this->available_units ?? 0);
         $reservedUnits = (int) ($this->reserved_units ?? 0);

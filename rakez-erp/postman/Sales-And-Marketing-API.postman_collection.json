@@ -77,12 +77,12 @@
 								"method": "GET",
 								"header": [ { "key": "Accept", "value": "application/json" } ],
 								"url": {
-									"raw": "{{base_url}}/sales/projects?scope=team&status=ready&per_page=15",
+									"raw": "{{base_url}}/sales/projects?scope=team&status=completed&per_page=15",
 									"host": [ "{{base_url}}" ],
 									"path": [ "sales", "projects" ],
 									"query": [
 										{ "key": "scope", "value": "team" },
-										{ "key": "status", "value": "ready" },
+										{ "key": "status", "value": "completed" },
 										{ "key": "per_page", "value": "15" }
 									]
 								}
