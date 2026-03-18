@@ -18,14 +18,7 @@ class MarketingProjectController extends Controller
     public function index(Request $request): JsonResponse
     {
         $perPage = ApiResponse::getPerPage($request);
-        $filters = [
-            'q' => $request->query('q'),
-            'city' => $request->query('city'),
-            'district' => $request->query('district'),
-            'status' => $request->query('status'), // filters by units status (available/pending/reserved/sold)
-        ];
-
-        $paginator = $this->projectService->getProjects($filters, $perPage);
+        $paginator = $this->projectService->getProjectsWithCompletedContracts($perPage);
         $data = MarketingProjectResource::collection($paginator->items())->resolve();
 
         return response()->json([
@@ -60,7 +53,7 @@ class MarketingProjectController extends Controller
     public function calculateBudget(\App\Http\Requests\Marketing\CalculateBudgetRequest $request): JsonResponse
     {
         $validated = $request->validated();
-        
+
         return response()->json([
             'success' => true,
             'data' => $this->projectService->calculateCampaignBudget(

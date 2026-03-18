@@ -236,7 +236,9 @@ class SalesUnitSearchService
      */
     protected function getAccessibleContractIds(User $user): array
     {
-        if ($user->hasRole('sales_leader') || $user->hasRole('sales')) {
+        // Sales users (leaders + staff) can search across all completed contracts' units,
+        // regardless of whether a specific project/contract is assigned to them.
+        if ($user->type === 'sales') {
             return \App\Models\Contract::where('status', 'completed')->pluck('id')->all();
         }
         return [];

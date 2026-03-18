@@ -22,7 +22,7 @@ class SalesTargetService
      */
     public function getMyTargets(User $user, array $filters): array
     {
-        if ($user->hasRole('sales_leader')) {
+        if ($user->isSalesLeader()) {
             return [
                 'type' => self::MY_CONTENT_ASSIGNMENTS,
                 'paginator' => $this->getAssignedProjectsForLeader($user, $filters),
@@ -116,7 +116,7 @@ class SalesTargetService
             }
         }
         // Leader can view by-project for contracts assigned to them (even if no targets yet).
-        if ($user->hasRole('sales_leader')) {
+        if ($user->isSalesLeader()) {
             $accessibleLeaderIds = $this->getAccessibleLeaderIdsForLeader($user);
             return SalesProjectAssignment::whereIn('leader_id', $accessibleLeaderIds)
                 ->where('contract_id', $contractId)

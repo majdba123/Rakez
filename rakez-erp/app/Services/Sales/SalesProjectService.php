@@ -429,7 +429,8 @@ class SalesProjectService
         if (!$contract) {
             return false;
         }
-        if ($contract->status === 'completed' && ($user->hasRole('sales_leader') || $user->hasRole('sales'))) {
+        // Sales leaders + sales staff can access completed contracts.
+        if ($contract->status === 'completed' && $user->type === 'sales') {
             return true;
         }
         return false;

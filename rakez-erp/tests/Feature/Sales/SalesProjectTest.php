@@ -7,6 +7,7 @@ use App\Models\ContractInfo;
 use App\Models\ContractUnit;
 use App\Models\SalesProjectAssignment;
 use App\Models\SalesReservation;
+use App\Models\SalesTarget;
 use App\Models\SecondPartyData;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -32,7 +33,7 @@ class SalesProjectTest extends TestCase
     {
         $contract = Contract::factory()->create(['status' => 'pending']);
         $secondPartyData = SecondPartyData::factory()->create(['contract_id' => $contract->id]);
-        
+
         ContractUnit::factory()->create([
             'second_party_data_id' => $secondPartyData->id,
             'price' => 500000,
@@ -52,7 +53,7 @@ class SalesProjectTest extends TestCase
     {
         $contract = Contract::factory()->create(['status' => 'completed']);
         $secondPartyData = SecondPartyData::factory()->create(['contract_id' => $contract->id]);
-        
+
         ContractUnit::factory()->create([
             'second_party_data_id' => $secondPartyData->id,
             'price' => 0,
@@ -74,7 +75,7 @@ class SalesProjectTest extends TestCase
     {
         $contract = Contract::factory()->create(['status' => 'completed']);
         $secondPartyData = SecondPartyData::factory()->create(['contract_id' => $contract->id]);
-        
+
         ContractUnit::factory()->count(3)->create([
             'second_party_data_id' => $secondPartyData->id,
             'price' => 500000,
@@ -91,7 +92,7 @@ class SalesProjectTest extends TestCase
     {
         $contract = Contract::factory()->create(['status' => 'completed']);
         $secondPartyData = SecondPartyData::factory()->create(['contract_id' => $contract->id]);
-        
+
         $unit = ContractUnit::factory()->create([
             'second_party_data_id' => $secondPartyData->id,
             'status' => 'available',
@@ -102,7 +103,7 @@ class SalesProjectTest extends TestCase
             ->getJson("/api/sales/projects/{$contract->id}/units");
 
         $response->assertStatus(200);
-        
+
         $unitData = collect($response->json('data'))->firstWhere('unit_id', $unit->id);
         $this->assertEquals('available', $unitData['computed_availability']);
         $this->assertTrue($unitData['can_reserve']);
@@ -112,7 +113,7 @@ class SalesProjectTest extends TestCase
     {
         $contract = Contract::factory()->create(['status' => 'completed']);
         $secondPartyData = SecondPartyData::factory()->create(['contract_id' => $contract->id]);
-        
+
         $unit = ContractUnit::factory()->create([
             'second_party_data_id' => $secondPartyData->id,
             'status' => 'available',
@@ -131,7 +132,7 @@ class SalesProjectTest extends TestCase
             ->getJson("/api/sales/projects/{$contract->id}/units");
 
         $response->assertStatus(200);
-        
+
         $unitData = collect($response->json('data'))->firstWhere('unit_id', $unit->id);
         // under_negotiation (حجز تفاوض) يظهر كـ pending وليس reserved
         $this->assertEquals('pending', $unitData['computed_availability']);
@@ -142,7 +143,7 @@ class SalesProjectTest extends TestCase
     {
         $contract = Contract::factory()->create(['status' => 'completed']);
         $secondPartyData = SecondPartyData::factory()->create(['contract_id' => $contract->id]);
-        
+
         $unit = ContractUnit::factory()->create([
             'second_party_data_id' => $secondPartyData->id,
             'status' => 'available',
@@ -161,7 +162,7 @@ class SalesProjectTest extends TestCase
             ->getJson("/api/sales/projects/{$contract->id}/units");
 
         $response->assertStatus(200);
-        
+
         $unitData = collect($response->json('data'))->firstWhere('unit_id', $unit->id);
         $this->assertEquals('reserved', $unitData['computed_availability']);
         $this->assertFalse($unitData['can_reserve']);
@@ -171,7 +172,7 @@ class SalesProjectTest extends TestCase
     {
         $contract = Contract::factory()->create(['status' => 'completed']);
         $secondPartyData = SecondPartyData::factory()->create(['contract_id' => $contract->id]);
-        
+
         $unit = ContractUnit::factory()->create([
             'second_party_data_id' => $secondPartyData->id,
             'status' => 'available',
@@ -190,7 +191,7 @@ class SalesProjectTest extends TestCase
             ->getJson("/api/sales/projects/{$contract->id}/units");
 
         $response->assertStatus(200);
-        
+
         $unitData = collect($response->json('data'))->firstWhere('unit_id', $unit->id);
         $this->assertEquals('available', $unitData['computed_availability']);
         $this->assertTrue($unitData['can_reserve']);
@@ -198,11 +199,21 @@ class SalesProjectTest extends TestCase
 
     public function test_projects_list_returns_paginated_results()
     {
+        $leader = User::factory()->create(['type' => 'sales', 'is_manager' => true]);
+
         Contract::factory()->count(20)->create(['status' => 'completed'])->each(function ($contract) {
             $secondPartyData = SecondPartyData::factory()->create(['contract_id' => $contract->id]);
             ContractUnit::factory()->create([
                 'second_party_data_id' => $secondPartyData->id,
                 'price' => 500000,
+            ]);
+
+            // Seed sales target so projects visibility matches SalesProjectService filtering.
+            SalesTarget::factory()->create([
+                'leader_id' => $leader->id,
+                'marketer_id' => $this->salesUser->id,
+                'contract_id' => $contract->id,
+                'contract_unit_id' => null,
             ]);
         });
 
@@ -229,7 +240,7 @@ class SalesProjectTest extends TestCase
     {
         $contract = Contract::factory()->create(['status' => 'completed']);
         $secondPartyData = SecondPartyData::factory()->create(['contract_id' => $contract->id]);
-        
+
         ContractUnit::factory()->create([
             'second_party_data_id' => $secondPartyData->id,
             'floor' => '1',
@@ -253,7 +264,7 @@ class SalesProjectTest extends TestCase
     {
         $contract = Contract::factory()->create(['status' => 'completed']);
         $secondPartyData = SecondPartyData::factory()->create(['contract_id' => $contract->id]);
-        
+
         $unit = ContractUnit::factory()->create([
             'second_party_data_id' => $secondPartyData->id,
             'price' => 500000,
@@ -288,12 +299,12 @@ class SalesProjectTest extends TestCase
     {
         $admin = User::factory()->create(['type' => 'admin']);
         $admin->assignRole('admin');
-        
+
         $leader = User::factory()->create(['type' => 'sales', 'is_manager' => true]);
         $leader->assignRole('sales_leader');
-        
+
         $contract = Contract::factory()->create(['status' => 'completed']);
-        
+
         $response = $this->actingAs($admin, 'sanctum')
             ->postJson('/api/admin/sales/project-assignments', [
                 'leader_id' => $leader->id,
@@ -304,11 +315,11 @@ class SalesProjectTest extends TestCase
 
         $response->assertStatus(201)
             ->assertJson(['success' => true]);
-        
+
         $assignment = SalesProjectAssignment::where('leader_id', $leader->id)
             ->where('contract_id', $contract->id)
             ->first();
-        
+
         $this->assertNotNull($assignment);
         $this->assertEquals('2026-02-01', $assignment->start_date->toDateString());
         $this->assertEquals('2026-08-01', $assignment->end_date->toDateString());
@@ -318,13 +329,13 @@ class SalesProjectTest extends TestCase
     {
         $admin = User::factory()->create(['type' => 'admin']);
         $admin->assignRole('admin');
-        
+
         $leader = User::factory()->create(['type' => 'sales', 'is_manager' => true]);
         $leader->assignRole('sales_leader');
-        
+
         $contract1 = Contract::factory()->create(['status' => 'completed']);
         $contract2 = Contract::factory()->create(['status' => 'completed']);
-        
+
         // Create first assignment
         SalesProjectAssignment::create([
             'leader_id' => $leader->id,
@@ -333,7 +344,7 @@ class SalesProjectTest extends TestCase
             'start_date' => '2026-02-01',
             'end_date' => '2026-08-01',
         ]);
-        
+
         // Try to create overlapping assignment
         $response = $this->actingAs($admin, 'sanctum')
             ->postJson('/api/admin/sales/project-assignments', [
@@ -351,10 +362,10 @@ class SalesProjectTest extends TestCase
     {
         $leader = User::factory()->create(['type' => 'sales', 'is_manager' => true]);
         $leader->assignRole('sales_leader');
-        
+
         $contract1 = Contract::factory()->create(['status' => 'completed']);
         $contract2 = Contract::factory()->create(['status' => 'completed']);
-        
+
         SalesProjectAssignment::create([
             'leader_id' => $leader->id,
             'contract_id' => $contract1->id,
@@ -362,7 +373,7 @@ class SalesProjectTest extends TestCase
             'start_date' => now()->subDays(10)->toDateString(),
             'end_date' => now()->addDays(30)->toDateString(),
         ]);
-        
+
         SalesProjectAssignment::create([
             'leader_id' => $leader->id,
             'contract_id' => $contract2->id,
@@ -370,7 +381,7 @@ class SalesProjectTest extends TestCase
             'start_date' => now()->addDays(60)->toDateString(),
             'end_date' => now()->addDays(120)->toDateString(),
         ]);
-        
+
         $response = $this->actingAs($leader, 'sanctum')
             ->getJson('/api/sales/assignments/my');
 
@@ -387,7 +398,7 @@ class SalesProjectTest extends TestCase
             'agreement_duration_days' => 180,
             'created_at' => now()->subDays(30),
         ]);
-        
+
         $secondPartyData = SecondPartyData::factory()->create(['contract_id' => $contract->id]);
         ContractUnit::factory()->create([
             'second_party_data_id' => $secondPartyData->id,
@@ -409,23 +420,23 @@ class SalesProjectTest extends TestCase
     {
         $salesUser1 = User::factory()->create(['type' => 'sales']);
         $salesUser1->assignRole('sales');
-        
+
         $salesUser2 = User::factory()->create(['type' => 'sales']);
         $salesUser2->assignRole('sales');
-        
+
         $contract = Contract::factory()->create(['status' => 'completed']);
         $secondPartyData = SecondPartyData::factory()->create(['contract_id' => $contract->id]);
-        
+
         $unit1 = ContractUnit::factory()->create([
             'second_party_data_id' => $secondPartyData->id,
             'price' => 500000,
         ]);
-        
+
         $unit2 = ContractUnit::factory()->create([
             'second_party_data_id' => $secondPartyData->id,
             'price' => 600000,
         ]);
-        
+
         // Create reservations for both users
         SalesReservation::factory()->create([
             'contract_id' => $contract->id,
@@ -433,21 +444,21 @@ class SalesProjectTest extends TestCase
             'marketing_employee_id' => $salesUser1->id,
             'status' => 'confirmed',
         ]);
-        
+
         SalesReservation::factory()->create([
             'contract_id' => $contract->id,
             'contract_unit_id' => $unit2->id,
             'marketing_employee_id' => $salesUser2->id,
             'status' => 'confirmed',
         ]);
-        
+
         // User1 should only see their own reservation
         $response = $this->actingAs($salesUser1, 'sanctum')
             ->getJson('/api/sales/reservations');
 
         $response->assertStatus(200)
             ->assertJson(['success' => true]);
-        
+
         $reservations = $response->json('data');
         $this->assertCount(1, $reservations);
         $this->assertEquals($salesUser1->id, $reservations[0]['marketing_employee_id']);

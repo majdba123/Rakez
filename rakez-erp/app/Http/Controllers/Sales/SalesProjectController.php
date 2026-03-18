@@ -33,7 +33,7 @@ class SalesProjectController extends Controller
         try {
             $user = $request->user();
             // مدير مبيعات: افتراضياً كل المشاريع المكتملة (بما فيها غير المُسنَدة) لتمكين الإسناد. موظف مبيعات: مشاريع الفريق.
-            $defaultScope = $user->hasRole('sales_leader') ? 'all' : 'me';
+            $defaultScope = $user->isSalesLeader() ? 'all' : 'me';
             $filters = [
                 'status' => $request->query('status'),
                 'q' => $request->query('q'),
