@@ -18,7 +18,14 @@ class MarketingProjectController extends Controller
     public function index(Request $request): JsonResponse
     {
         $perPage = ApiResponse::getPerPage($request);
-        $paginator = $this->projectService->getProjectsWithCompletedContracts($perPage);
+        $filters = [
+            'q' => $request->query('q'),
+            'city' => $request->query('city'),
+            'district' => $request->query('district'),
+            'status' => $request->query('status'), // filters by units status (available/pending/reserved/sold)
+        ];
+
+        $paginator = $this->projectService->getProjects($filters, $perPage);
         $data = MarketingProjectResource::collection($paginator->items())->resolve();
 
         return response()->json([

@@ -100,7 +100,7 @@ class SalesProjectService
     public function getProjectUnits(int $contractId, array $filters): LengthAwarePaginator
     {
         $contract = Contract::with('secondPartyData')->findOrFail($contractId);
-        
+
         if (!$contract->secondPartyData) {
             throw new \Exception('Project has no units data');
         }
@@ -126,7 +126,7 @@ class SalesProjectService
 
         // Compute availability for each unit
         $projectSalesStatus = $this->computeProjectSalesStatus($contract);
-        
+
         $units->getCollection()->transform(function ($unit) use ($projectSalesStatus) {
             $availability = $this->computeUnitAvailability($unit, $projectSalesStatus);
             $unit->computed_availability = $availability['status'];
@@ -159,7 +159,7 @@ class SalesProjectService
     public function updateEmergencyContacts(int $contractId, array $data, User $user): Contract
     {
         $contract = Contract::findOrFail($contractId);
-        
+
         // Authorization: Check if user has permission to manage team (leader)
         if (!$user->hasPermissionTo('sales.team.manage') && !$user->hasRole('admin')) {
             throw new \Exception('Unauthorized to update emergency contacts');
@@ -170,12 +170,12 @@ class SalesProjectService
             $assignment = \App\Models\SalesProjectAssignment::where('contract_id', $contractId)
                 ->where('leader_id', $user->id)
                 ->first();
-                
+
             if (!$assignment) {
                 throw new \Exception('Unauthorized: You are not assigned to this project');
             }
         }
-        
+
         $contract->update([
             'emergency_contact_number' => $data['emergency_contact_number'] ?? $contract->emergency_contact_number,
             'security_guard_number' => $data['security_guard_number'] ?? $contract->security_guard_number,
@@ -208,7 +208,7 @@ class SalesProjectService
         // Check if all units have price > 0
         // Use the relationship directly to avoid collection caching issues in tests
         $unitsQuery = $secondPartyData->contractUnits();
-        
+
         // If unitsQuery is empty, try to refresh relation
         if ($unitsQuery->count() === 0) {
             $secondPartyData->unsetRelation('contractUnits');
@@ -510,7 +510,7 @@ class SalesProjectService
     public function listTeamProjects(User $leader): \Illuminate\Database\Eloquent\Collection
     {
         $projects = $this->getTeamProjects($leader);
-        
+
         // Compute sales status for each project
         $projects->transform(function ($contract) {
             $contract->sales_status = $this->computeProjectSalesStatus($contract);
@@ -579,7 +579,7 @@ class SalesProjectService
     public function getProjectRemainingDays(Contract $contract): ?int
     {
         $contractInfo = $contract->info;
-        
+
         if (!$contractInfo || !$contractInfo->agreement_duration_days) {
             return null;
         }
@@ -588,9 +588,9 @@ class SalesProjectService
         $startDate = $contractInfo->created_at;
         $durationDays = $contractInfo->agreement_duration_days;
         $endDate = $startDate->copy()->addDays($durationDays);
-        
+
         $remainingDays = (int) now()->diffInDays($endDate, false);
-        
+
         // Return null if expired (negative days)
         return $remainingDays >= 0 ? $remainingDays : null;
     }

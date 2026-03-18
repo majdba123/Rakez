@@ -5,6 +5,7 @@ namespace App\Services\Marketing;
 use App\Models\Contract;
 use App\Models\MarketingProject;
 use App\Models\ContractInfo;
+use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 
 class MarketingProjectService
 {
@@ -22,7 +23,20 @@ class MarketingProjectService
      */
     public function getProjectsWithCompletedContracts(int $perPage = 15)
     {
-        return MarketingProject::whereHas('contract', function ($query) {
+        return $this->getProjects([], $perPage);
+    }
+
+    /**
+     * Marketing projects list:
+     * - Base: contracts with status=completed
+     * - No assignment/team filter (every marketing user sees same list)
+     * - Optional filters: q/city/district applied on contract fields
+     * - Optional status filter applied on contract units status (available/pending/reserved/sold)
+     */
+    public function getProjects(array $filters, int $perPage = 15): LengthAwarePaginator
+    {
+        $query = MarketingProject::query()
+            ->whereHas('contract', function ($query) {
                 $query->where('status', self::COMPLETED_CONTRACT_STATUS);
             })
             ->with([
@@ -32,8 +46,34 @@ class MarketingProjectService
                 'contract.units',
                 'teamLeader',
             ])
-            ->orderBy('created_at', 'desc')
-            ->paginate($perPage);
+            ->orderBy('created_at', 'desc');
+
+        if (!empty($filters['q'])) {
+            $query->whereHas('contract', function ($q) use ($filters) {
+                $q->where('project_name', 'like', '%' . $filters['q'] . '%');
+            });
+        }
+
+        if (!empty($filters['city'])) {
+            $query->whereHas('contract', function ($q) use ($filters) {
+                $q->where('city', $filters['city']);
+            });
+        }
+
+        if (!empty($filters['district'])) {
+            $query->whereHas('contract', function ($q) use ($filters) {
+                $q->where('district', $filters['district']);
+            });
+        }
+
+        // Units status filter (available/reserved/sold/pending)
+        if (!empty($filters['status'])) {
+            $query->whereHas('contract.units', function ($q) use ($filters) {
+                $q->where('status', $filters['status']);
+            });
+        }
+
+        return $query->paginate($perPage);
     }
 
     public function getProjectDetails($contractId)

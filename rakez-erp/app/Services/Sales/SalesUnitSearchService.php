@@ -136,9 +136,8 @@ class SalesUnitSearchService
             $query->where('contracts.district', 'LIKE', '%' . $filters['district'] . '%');
         }
 
-        if (!empty($filters['project_id'])) {
-            $query->where('contracts.id', $filters['project_id']);
-        }
+        // Intentionally ignore project_id to allow searching units across all completed contracts.
+        // (The endpoint already applies authorization scope + optional q/city/district filters.)
 
         if (!empty($filters['status'])) {
             $query->where('contract_units.status', $filters['status']);

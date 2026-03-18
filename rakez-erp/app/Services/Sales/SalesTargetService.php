@@ -52,8 +52,10 @@ class SalesTargetService
      */
     public function getAssignedProjectsForLeader(User $leader, array $filters): LengthAwarePaginator
     {
+        $accessibleLeaderIds = $this->getAccessibleLeaderIdsForLeader($leader);
+
         $query = SalesProjectAssignment::query()
-            ->where('leader_id', $leader->id)
+            ->whereIn('leader_id', $accessibleLeaderIds)
             ->with(['contract', 'assignedBy']);
 
         if (!empty($filters['from'])) {
@@ -115,7 +117,10 @@ class SalesTargetService
         }
         // Leader can view by-project for contracts assigned to them (even if no targets yet).
         if ($user->hasRole('sales_leader')) {
-            return SalesProjectAssignment::where('leader_id', $user->id)->where('contract_id', $contractId)->exists();
+            $accessibleLeaderIds = $this->getAccessibleLeaderIdsForLeader($user);
+            return SalesProjectAssignment::whereIn('leader_id', $accessibleLeaderIds)
+                ->where('contract_id', $contractId)
+                ->exists();
         }
         return false;
     }
@@ -132,8 +137,18 @@ class SalesTargetService
 
         // Validate marketer is in same team (use team_id for consistency)
         $marketer = User::findOrFail($data['marketer_id']);
-        if ($marketer->team_id !== $leader->team_id || $marketer->team_id === null) {
-            throw new \Exception('Marketer must be in the same team as leader');
+        $leaderTeamId = $leader->team_id;
+        $marketerTeamId = $marketer->team_id;
+
+        // Prefer team_id when both exist, otherwise fallback to `team` name (used by some tests/factories).
+        if ($leaderTeamId !== null && $marketerTeamId !== null) {
+            if ($marketerTeamId !== $leaderTeamId) {
+                throw new \Exception('Marketer must be in the same team as leader');
+            }
+        } else {
+            if (empty($leader->team) || empty($marketer->team) || $marketer->team !== $leader->team) {
+                throw new \Exception('Marketer must be in the same team as leader');
+            }
         }
 
         // Normalize unit ids: support contract_unit_ids (array) or contract_unit_id (single)
@@ -199,8 +214,33 @@ class SalesTargetService
      */
     protected function leaderHasAccessToProject(User $leader, int $contractId): bool
     {
-        return \App\Models\SalesProjectAssignment::where('leader_id', $leader->id)
+        $accessibleLeaderIds = $this->getAccessibleLeaderIdsForLeader($leader);
+        return \App\Models\SalesProjectAssignment::whereIn('leader_id', $accessibleLeaderIds)
             ->where('contract_id', $contractId)
             ->exists();
+    }
+
+    /**
+     * A sales leader should be able to see/manage projects assigned to their team leaders.
+     * If the leader has a team_id: include all users in that team where is_manager=true.
+     * Otherwise: return only the leader id.
+     */
+    protected function getAccessibleLeaderIdsForLeader(User $leader): array
+    {
+        if (empty($leader->team_id)) {
+            return [$leader->id];
+        }
+
+        $leaderIds = \App\Models\User::where('team_id', $leader->team_id)
+            ->where('is_manager', true)
+            ->pluck('id')
+            ->all();
+
+        // Always include the requesting leader (safety).
+        if (!in_array($leader->id, $leaderIds, true)) {
+            $leaderIds[] = $leader->id;
+        }
+
+        return array_values(array_unique(array_map('intval', $leaderIds)));
     }
 }
