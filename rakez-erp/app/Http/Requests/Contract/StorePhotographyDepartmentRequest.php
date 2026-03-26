@@ -18,9 +18,9 @@ class StorePhotographyDepartmentRequest extends FormRequest
     {
         return [
             // رابط الصورة
-            'image_url' => 'required|url|max:500',
+            'image_url' => 'nullable|url|max:500',
             // رابط الفيديو
-            'video_url' => 'required|url|max:500',
+            'video_url' => 'nullable|url|max:500',
             // الوصف
             'description' => 'nullable|string|max:2000',
         ];

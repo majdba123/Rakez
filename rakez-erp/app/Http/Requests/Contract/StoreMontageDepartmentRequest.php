@@ -17,8 +17,8 @@ class StoreMontageDepartmentRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'image_url' => 'required|url|max:500',
-            'video_url' => 'required|url|max:500',
+            'image_url' => 'nullable|url|max:500',
+            'video_url' => 'nullable|url|max:500',
             'description' => 'nullable|string|max:2000',
         ];
     }
