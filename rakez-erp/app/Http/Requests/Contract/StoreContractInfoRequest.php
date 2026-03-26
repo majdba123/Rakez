@@ -36,7 +36,16 @@ class StoreContractInfoRequest extends FormRequest
             'second_party_role' => 'nullable|string|max:255',
             'second_party_phone' => 'nullable|string|max:255',
             'second_party_email' => 'nullable|string|email|max:255',
-
         ];
     }
+
+    public function messages(): array
+    {
+        return [
+            'gregorian_date.date' => 'يجب أن يكون تاريخ العقد بالتواريخ الميلادية',
+            'hijri_date.string' => 'يجب أن يكون تاريخ العقد بالتواريخ الهجرية',
+        ];
+    }
+
+
 }

@@ -255,8 +255,8 @@ class Contract extends Model
         }
 
         // 5 – قسم المونتاج
-        if (!$this->montageDepartment || !$this->montageDepartment->processed_at) {
-            $missing[] = 'يجب إتمام معالجة قسم المونتاج';
+        if (!$this->montageDepartment || ($this->montageDepartment->status ?? 'pending') !== 'approved') {
+            $missing[] = 'يجب اعتماد قسم المونتاج (الحالة: معتمد)';
         }
 
         return [

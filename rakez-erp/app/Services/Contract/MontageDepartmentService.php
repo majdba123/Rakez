@@ -86,10 +86,10 @@ class MontageDepartmentService
     }
 
     /**
-     * Approve montage department (project_management manager or admin only)
-     * اعتماد بيانات قسم المونتاج
+     * Approve or reject montage department (project_management manager or admin only)
+     * اعتماد أو رفض بيانات قسم المونتاج
      */
-    public function approveByContractId(int $contractId): MontageDepartment
+    public function approveByContractId(int $contractId, bool $approved, ?string $rejectionComment = null): MontageDepartment
     {
         DB::beginTransaction();
         try {
@@ -108,11 +108,21 @@ class MontageDepartmentService
                 throw new Exception('غير مصرح - هذه الصلاحية متاحة فقط لمدير إدارة المونتاج');
             }
 
-            $record->update([
-                'status' => 'approved',
-                'processed_by' => Auth::id(),
-                'processed_at' => now(),
-            ]);
+            if ($approved) {
+                $record->update([
+                    'status' => 'approved',
+                    'rejection_comment' => null,
+                    'processed_by' => Auth::id(),
+                    'processed_at' => now(),
+                ]);
+            } else {
+                $record->update([
+                    'status' => 'rejected',
+                    'rejection_comment' => $rejectionComment !== null ? trim($rejectionComment) : null,
+                    'processed_by' => Auth::id(),
+                    'processed_at' => now(),
+                ]);
+            }
 
             DB::commit();
 

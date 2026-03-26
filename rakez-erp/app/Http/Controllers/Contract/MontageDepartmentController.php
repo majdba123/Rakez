@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Contract;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Contract\ApproveMontageDepartmentRequest;
 use App\Http\Requests\Contract\StoreMontageDepartmentRequest;
 use App\Http\Requests\Contract\UpdateMontageDepartmentRequest;
 use App\Http\Resources\Contract\MontageDepartmentResource;
@@ -158,17 +159,27 @@ class MontageDepartmentController extends Controller
     }
 
     /**
-     * Approve montage department (project_management manager or admin only)
-     * اعتماد بيانات قسم المونتاج
+     * Approve or reject montage department (project_management manager or admin only)
+     * اعتماد أو رفض بيانات قسم المونتاج — يلزم JSON: approved (bool)، وعند الرفض comment (سبب الرفض)
      */
-    public function approve(int $contractId): JsonResponse
+    public function approve(ApproveMontageDepartmentRequest $request, int $contractId): JsonResponse
     {
         try {
-            $montageDepartment = $this->montageDepartmentService->approveByContractId($contractId);
+            $validated = $request->validated();
+            $approved = (bool) $validated['approved'];
+            $comment = isset($validated['comment']) ? (string) $validated['comment'] : null;
+
+            $montageDepartment = $this->montageDepartmentService->approveByContractId(
+                $contractId,
+                $approved,
+                $comment
+            );
 
             return response()->json([
                 'success' => true,
-                'message' => 'تم اعتماد بيانات قسم المونتاج بنجاح',
+                'message' => $approved
+                    ? 'تم اعتماد بيانات قسم المونتاج بنجاح'
+                    : 'تم رفض بيانات قسم المونتاج',
                 'data' => new MontageDepartmentResource($montageDepartment),
             ], 200);
         } catch (Exception $e) {
