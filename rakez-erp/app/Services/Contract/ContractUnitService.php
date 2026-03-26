@@ -27,9 +27,9 @@ class ContractUnitService
 
             // Contract must have SecondPartyData
             $secondPartyData = $contract->secondPartyData;
-            if (!$secondPartyData) {
+           /* if (!$secondPartyData) {
                 throw new Exception('يجب إضافة بيانات الطرف الثاني قبل رفع ملف الوحدات');
-            }
+            }*/
 
             // Delete old units if exist (replace with new)
             if ($secondPartyData->contractUnits()->exists()) {
@@ -220,9 +220,9 @@ class ContractUnitService
 
             // Contract must have SecondPartyData
             $secondPartyData = $contract->secondPartyData;
-            if (!$secondPartyData) {
+          /*  if (!$secondPartyData) {
                 throw new Exception('يجب إضافة بيانات الطرف الثاني قبل إضافة الوحدات');
-            }
+            }*/
 
             // Check authorization - only the employee who processed can add
             $this->authorizeUnitModification($secondPartyData);
