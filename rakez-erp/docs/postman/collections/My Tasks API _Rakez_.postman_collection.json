@@ -1,0 +1,348 @@
+{
+  "info": {
+    "_postman_id": "b12e7f95-d397-47b0-9c79-e419fb4fe027",
+    "name": "My Tasks API (Rakez)",
+    "description": "**Base URL** is collection variable `rakezApiBase` (default: local `php artisan serve`).\n\n- **Local:** `http://127.0.0.1:8000/api` (already set)\n- **Production:** set `rakezApiBase` to `https://api.rakez.com.sa/api`\n\nUse **No environment** or ensure your environment does **not** define an empty `rakezApiBase`.\n\n**Flow:** Login → Task sections → Users by section → Create task → …\n\n**422 section mismatch:** `assigned_to` must be a user whose `type` equals `section`.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const json = pm.response.json();",
+                  "    if (json.access_token) {",
+                  "        pm.collectionVariables.set('token', json.access_token);",
+                  "    }",
+                  "}"
+                ],
+                "type": "text/javascript",
+                "id": "b8e30738-5669-4f37-91b2-bbd63aec03c8"
+              }
+            }
+          ],
+          "id": "4eddac7f-0a84-43e0-a13c-e641b06758e4",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{email}}\",\n  \"password\": \"{{password}}\"\n}"
+            },
+            "url": {
+              "raw": "{{rakezApiBase}}/login",
+              "host": [
+                "{{rakezApiBase}}"
+              ],
+              "path": [
+                "login"
+              ]
+            },
+            "description": "On success, saves `access_token` to collection variable `token`."
+          },
+          "response": []
+        },
+        {
+          "name": "Logout",
+          "id": "3ef515eb-3445-499d-ba46-5575569ed976",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{rakezApiBase}}/logout",
+              "host": [
+                "{{rakezApiBase}}"
+              ],
+              "path": [
+                "logout"
+              ]
+            },
+            "description": "Uses Bearer `{{token}}`."
+          },
+          "response": []
+        }
+      ],
+      "id": "20a87a93-70ab-4b2f-a4dd-9d4dc4de6a05"
+    },
+    {
+      "name": "Task sections",
+      "id": "63c16623-c254-4d81-af24-075857592585",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{rakezApiBase}}/tasks/sections",
+          "host": [
+            "{{rakezApiBase}}"
+          ],
+          "path": [
+            "tasks",
+            "sections"
+          ]
+        },
+        "description": "Use `data[].value` as `section` for the next request."
+      },
+      "response": []
+    },
+    {
+      "name": "Users by section",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "if (pm.response.code === 200) {",
+              "    const json = pm.response.json();",
+              "    const users = json.data;",
+              "    if (Array.isArray(users) && users.length > 0 && users[0].id != null) {",
+              "        pm.collectionVariables.set('assigneeUserId', String(users[0].id));",
+              "        console.log('assigneeUserId set to', users[0].id, users[0].name || '');",
+              "    }",
+              "}"
+            ],
+            "type": "text/javascript",
+            "id": "53c8033c-1014-44fa-ae89-d0065c8c6395"
+          }
+        }
+      ],
+      "id": "3e178675-aa9b-4f96-9c02-b17a685cb305",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{rakezApiBase}}/tasks/sections/{{section}}/users",
+          "host": [
+            "{{rakezApiBase}}"
+          ],
+          "path": [
+            "tasks",
+            "sections",
+            "{{section}}",
+            "users"
+          ]
+        },
+        "description": "After Send, check **Console**: first user’s `id` is saved to `assigneeUserId`. Change `section` first if needed."
+      },
+      "response": []
+    },
+    {
+      "name": "Create task",
+      "id": "4e2f5102-6f6f-4a1b-8f83-d41589ea2734",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"task_name\": \"Follow up with client\",\n  \"section\": \"{{section}}\",\n  \"due_at\": \"2026-03-30 14:30:00\",\n  \"assigned_to\": {{assigneeUserId}}\n}"
+        },
+        "url": {
+          "raw": "{{rakezApiBase}}/tasks",
+          "host": [
+            "{{rakezApiBase}}"
+          ],
+          "path": [
+            "tasks"
+          ]
+        },
+        "description": "Run **Users by section** first so `assigneeUserId` matches `section`. `due_at` must include date and time (HH:mm)."
+      },
+      "response": []
+    },
+    {
+      "name": "List my tasks",
+      "id": "ebab62f6-a82a-4dae-a40f-c0d51a853b6d",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{rakezApiBase}}/my-tasks?per_page=10",
+          "host": [
+            "{{rakezApiBase}}"
+          ],
+          "path": [
+            "my-tasks"
+          ],
+          "query": [
+            {
+              "key": "per_page",
+              "value": "10"
+            }
+          ]
+        },
+        "description": "Optional: add `&status=` filter. `per_page` 1–100."
+      },
+      "response": []
+    },
+    {
+      "name": "List requested tasks",
+      "id": "152414d8-f294-46b7-918b-8a248489d98e",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{rakezApiBase}}/requested-tasks?per_page=10",
+          "host": [
+            "{{rakezApiBase}}"
+          ],
+          "path": [
+            "requested-tasks"
+          ],
+          "query": [
+            {
+              "key": "per_page",
+              "value": "10"
+            }
+          ]
+        },
+        "description": "Tasks you created for others. Optional `&status=`."
+      },
+      "response": []
+    },
+    {
+      "name": "Update my task status",
+      "id": "b839da86-f5e4-47ee-8aea-d887e8e40011",
+      "request": {
+        "method": "PATCH",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"status\": \"completed\",\n  \"cannot_complete_reason\": null\n}"
+        },
+        "url": {
+          "raw": "{{rakezApiBase}}/my-tasks/{{taskId}}/status",
+          "host": [
+            "{{rakezApiBase}}"
+          ],
+          "path": [
+            "my-tasks",
+            "{{taskId}}",
+            "status"
+          ]
+        },
+        "description": "`status`: in_progress | completed | could_not_complete."
+      },
+      "response": []
+    }
+  ],
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{token}}",
+        "type": "string"
+      }
+    ]
+  },
+  "variable": [
+    {
+      "id": "33ecf29b-0e5b-4a8c-ac0a-aa6c5430b49f",
+      "key": "rakezApiBase",
+      "value": "http://127.0.0.1:8000/api",
+      "description": {
+        "content": "Local: http://127.0.0.1:8000/api · Production: https://api.rakez.com.sa/api",
+        "type": "text/plain"
+      }
+    },
+    {
+      "id": "c95103db-4838-4076-87f7-f96f5f598db9",
+      "key": "token",
+      "value": ""
+    },
+    {
+      "id": "05da52d4-01e5-4299-bfe2-61dc99af5a42",
+      "key": "email",
+      "value": ""
+    },
+    {
+      "id": "7f5d5389-04a6-41a8-bcc2-60beca802810",
+      "key": "password",
+      "value": ""
+    },
+    {
+      "id": "7dda505b-852b-4943-82ef-afa1838514bf",
+      "key": "section",
+      "value": "sales",
+      "description": {
+        "content": "Must match a `value` from Task sections",
+        "type": "text/plain"
+      }
+    },
+    {
+      "id": "361950df-47cd-49e5-bcd5-560cd585daa7",
+      "key": "assigneeUserId",
+      "value": "0",
+      "description": {
+        "content": "Set by Users by section test script, or paste an `id` from that response",
+        "type": "text/plain"
+      }
+    },
+    {
+      "id": "e2493786-5d37-48b2-896c-5565de701f8a",
+      "key": "taskId",
+      "value": "1"
+    }
+  ]
+}
