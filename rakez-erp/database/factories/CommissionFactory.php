@@ -19,7 +19,7 @@ class CommissionFactory extends Factory
         $vat = ($totalAmount * 15) / 100;
         $marketingExpenses = $this->faker->numberBetween(0, 5000);
         $bankFees = $this->faker->numberBetween(0, 1000);
-        $netAmount = $totalAmount - $vat - $marketingExpenses - $bankFees;
+        $netAmount = $totalAmount;
 
         return [
             'contract_unit_id' => ContractUnit::factory(),

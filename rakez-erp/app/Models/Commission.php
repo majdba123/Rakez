@@ -65,11 +65,13 @@ class Commission extends Model
     }
 
     /**
-     * Calculate net amount after deductions.
+     * Amount available for distribution equals gross commission (total_amount).
+     * VAT and marketing/bank fees are borne by the client and kept on the record for reference only;
+     * they are not deducted from the commission pool.
      */
     public function calculateNetAmount(): void
     {
-        $this->net_amount = $this->total_amount - $this->vat - $this->marketing_expenses - $this->bank_fees;
+        $this->net_amount = $this->total_amount;
     }
 
     /**
@@ -81,7 +83,7 @@ class Commission extends Model
     }
 
     /**
-     * Calculate VAT (15% of total amount).
+     * Calculate VAT (15% of commission gross) for informational / client-side reference only.
      */
     public function calculateVAT(): void
     {

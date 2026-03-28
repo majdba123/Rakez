@@ -91,12 +91,6 @@ class CommissionService
             throw CommissionException::cannotModifyApproved();
         }
 
-        // Validate expenses don't exceed total amount
-        $totalExpenses = $marketingExpenses + $bankFees;
-        if ($totalExpenses > $commission->total_amount) {
-            throw CommissionException::expensesExceedAmount();
-        }
-
         DB::beginTransaction();
         try {
             $commission->marketing_expenses = $marketingExpenses;

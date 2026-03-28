@@ -58,7 +58,7 @@ class CommissionDistribution extends Model
     }
 
     /**
-     * Calculate amount based on commission net amount and percentage.
+     * Calculate amount from the distributable commission base (commission net_amount, equal to gross total_amount).
      */
     public function calculateAmount(): void
     {

@@ -44,7 +44,7 @@ class CommissionCalculationTest extends TestCase
     }
 
     /**
-     * Test net amount calculation after deductions.
+     * Test distributable net equals gross commission (VAT/expenses are not deducted from the pool).
      */
     public function test_calculates_net_amount_correctly(): void
     {
@@ -57,7 +57,7 @@ class CommissionCalculationTest extends TestCase
 
         $commission->calculateNetAmount();
 
-        $this->assertEquals(20000, $commission->net_amount);
+        $this->assertEquals(25000, $commission->net_amount);
     }
 
     /**
@@ -80,9 +80,9 @@ class CommissionCalculationTest extends TestCase
         $commission->calculateVAT();
         $this->assertEquals(2250, $commission->vat);
 
-        // Calculate net
+        // Calculate net (distributable = gross)
         $commission->calculateNetAmount();
-        $this->assertEquals(12150, $commission->net_amount);
+        $this->assertEquals(15000, $commission->net_amount);
     }
 
     /**
@@ -103,11 +103,11 @@ class CommissionCalculationTest extends TestCase
 
         $this->assertEquals(20000, $commission->total_amount);
         $this->assertEquals(3000, $commission->vat);
-        $this->assertEquals(17000, $commission->net_amount);
+        $this->assertEquals(20000, $commission->net_amount);
     }
 
     /**
-     * Test commission with high expenses.
+     * Test commission with high recorded expenses (informational only; does not reduce distributable net).
      */
     public function test_commission_with_high_expenses(): void
     {
@@ -124,7 +124,7 @@ class CommissionCalculationTest extends TestCase
 
         $this->assertEquals(20000, $commission->total_amount);
         $this->assertEquals(3000, $commission->vat);
-        $this->assertEquals(11000, $commission->net_amount);
+        $this->assertEquals(20000, $commission->net_amount);
     }
 
     /**
@@ -186,5 +186,6 @@ class CommissionCalculationTest extends TestCase
         // Verify the calculations are correct
         $expectedTotal = 23299.9997;
         $this->assertEqualsWithDelta($expectedTotal, $commission->total_amount, 0.01);
+        $this->assertEqualsWithDelta($expectedTotal, $commission->net_amount, 0.01);
     }
 }

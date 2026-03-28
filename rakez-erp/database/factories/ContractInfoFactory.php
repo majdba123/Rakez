@@ -23,8 +23,6 @@ class ContractInfoFactory extends Factory
             'second_party_phone' => $this->faker->phoneNumber,
             'agreement_duration_days' => $this->faker->numberBetween(90, 365),
             'agreement_duration_months' => $this->faker->numberBetween(3, 12),
-            'commission_percent' => $this->faker->randomFloat(2, 2, 4),
-            'commission_from' => $this->faker->randomElement(['المالك', 'المشتري', 'الطرفين']),
             'avg_property_value' => $this->faker->randomFloat(2, 500000, 2500000),
         ];
     }

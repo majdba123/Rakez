@@ -103,8 +103,6 @@ class ArabicSeedDataSeeder extends Seeder
                 'first_party_phone' => '0500000000',
                 'agreement_duration_days' => rand(90, 365),
                 'agreement_duration_months' => rand(3, 12),
-                'commission_percent' => $contract->commission_percent ?? 2.5,
-                'commission_from' => 'المالك',
                 'avg_property_value' => rand(600000, 2000000),
             ]);
 
@@ -210,7 +208,7 @@ class ArabicSeedDataSeeder extends Seeder
             'updated_at' => now(),
         ]);
 
-        // Developer Marketing Plans (commission_percent and avg_property_value come from contract/info so budget calc works)
+        // Developer Marketing Plans (effective commission % reads from contracts.commission_percent; avg from contract_infos)
         DB::table('developer_marketing_plans')->insert([
             'contract_id' => Contract::first()->id,
             'average_cpm' => 25.00,
