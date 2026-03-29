@@ -34,7 +34,7 @@ class EmployeeMarketingPlanService
         $commissionValue = $inputs['commission_value'] ?? null;
 
         if ($commissionValue === null) {
-            $availableUnitsValue = ContractUnit::where('second_party_data_id', $contract->secondPartyData->id ?? 0)
+            $availableUnitsValue = ContractUnit::where('contract_id', $contract->id)
                 ->where('status', 'available')
                 ->sum('price');
             $commissionPercent = $contract->getEffectiveCommissionPercent();
@@ -132,7 +132,7 @@ class EmployeeMarketingPlanService
         $contract = $project->contract;
         
         // Use ContractUnit status 'available' to calculate potential commission
-        $availableUnitsValue = ContractUnit::where('second_party_data_id', $contract->secondPartyData->id ?? 0)
+        $availableUnitsValue = ContractUnit::where('contract_id', $contract->id)
             ->where('status', 'available')
             ->sum('price');
             

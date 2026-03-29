@@ -10,7 +10,6 @@ use App\Models\SalesReservation;
 use App\Models\SalesReservationAction;
 use App\Models\SalesTarget;
 use App\Models\SalesWaitingList;
-use App\Models\SecondPartyData;
 use App\Models\User;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Arr;
@@ -249,21 +248,10 @@ class SalesSeeder extends Seeder
     private function buildContractUnitsMap(array $contractIds): array
     {
         $map = [];
-        $secondParties = SecondPartyData::whereIn('contract_id', $contractIds)->get(['id', 'contract_id']);
-        $secondPartyIds = $secondParties->pluck('id')->all();
-        $units = ContractUnit::whereIn('second_party_data_id', $secondPartyIds)->get(['id', 'second_party_data_id']);
-
-        $contractBySecondParty = [];
-        foreach ($secondParties as $secondParty) {
-            $contractBySecondParty[$secondParty->id] = $secondParty->contract_id;
-        }
+        $units = ContractUnit::whereIn('contract_id', $contractIds)->get(['id', 'contract_id']);
 
         foreach ($units as $unit) {
-            $contractId = $contractBySecondParty[$unit->second_party_data_id] ?? null;
-            if (!$contractId) {
-                continue;
-            }
-            $map[$contractId][] = $unit->id;
+            $map[$unit->contract_id][] = $unit->id;
         }
 
         foreach ($contractIds as $contractId) {

@@ -141,8 +141,8 @@ class SalesProjectController extends Controller
     public function unitPdfData(Request $request, int $unitId): JsonResponse
     {
         try {
-            $unit = ContractUnit::with('secondPartyData.contract')->findOrFail($unitId);
-            $contract = $unit->secondPartyData?->contract;
+            $unit = ContractUnit::with('contract')->findOrFail($unitId);
+            $contract = $unit->contract;
 
             if (!$contract) {
                 return response()->json([
@@ -198,8 +198,8 @@ class SalesProjectController extends Controller
     public function unitPdf(int $id): Response|JsonResponse
     {
         try {
-            $unit = ContractUnit::with('secondPartyData.contract')->findOrFail($id);
-            $contract = $unit->secondPartyData?->contract;
+            $unit = ContractUnit::with('contract')->findOrFail($id);
+            $contract = $unit->contract;
 
             if (!$contract) {
                 return response()->json([

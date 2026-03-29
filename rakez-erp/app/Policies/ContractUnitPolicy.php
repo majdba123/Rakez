@@ -22,7 +22,7 @@ class ContractUnitPolicy
     public function view(User $user, ContractUnit $contractUnit): bool
     {
         // Delegate to Contract policy
-        $contract = $contractUnit->secondPartyData->contract ?? null;
+        $contract = $contractUnit->contract ?? null;
         
         if (!$contract) {
             // Orphaned unit? Only allow if has general view permission
@@ -49,7 +49,7 @@ class ContractUnitPolicy
             return false;
         }
 
-        $contract = $contractUnit->secondPartyData->contract ?? null;
+        $contract = $contractUnit->contract ?? null;
         
         if (!$contract) {
             return false;
@@ -67,7 +67,7 @@ class ContractUnitPolicy
             return false;
         }
 
-        $contract = $contractUnit->secondPartyData->contract ?? null;
+        $contract = $contractUnit->contract ?? null;
         
         if (!$contract) {
             return false;

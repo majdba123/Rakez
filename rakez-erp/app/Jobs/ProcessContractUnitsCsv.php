@@ -3,7 +3,6 @@
 namespace App\Jobs;
 
 use App\Models\ContractUnit;
-use App\Models\SecondPartyData;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
@@ -21,15 +20,15 @@ class ProcessContractUnitsCsv implements ShouldQueue
     public int $tries = 3;
     public int $timeout = 300; // 5 minutes
 
-    protected int $secondPartyDataId;
+    protected int $contractId;
     protected string $filePath;
 
     /**
      * Create a new job instance.
      */
-    public function __construct(int $secondPartyDataId, string $filePath)
+    public function __construct(int $contractId, string $filePath)
     {
-        $this->secondPartyDataId = $secondPartyDataId;
+        $this->contractId = $contractId;
         $this->filePath = $filePath;
     }
 
@@ -40,9 +39,6 @@ class ProcessContractUnitsCsv implements ShouldQueue
     {
         DB::beginTransaction();
         try {
-            $secondPartyData = SecondPartyData::findOrFail($this->secondPartyDataId);
-
-            // Read CSV file
             $fullPath = Storage::disk('local')->path($this->filePath);
 
             if (!file_exists($fullPath)) {
@@ -55,7 +51,6 @@ class ProcessContractUnitsCsv implements ShouldQueue
                 throw new Exception('فشل في فتح ملف CSV');
             }
 
-            // Read header row
             $header = fgetcsv($file);
 
             if ($header === false) {
@@ -63,12 +58,10 @@ class ProcessContractUnitsCsv implements ShouldQueue
                 throw new Exception('ملف CSV فارغ أو تالف');
             }
 
-            // Normalize header (trim and lowercase)
             $header = array_map(function ($col) {
                 return strtolower(trim($col));
             }, $header);
 
-            // Map CSV columns to database fields
             $columnMap = [
                 'unit_type' => ['unit_type', 'type', 'نوع_الوحدة', 'نوع'],
                 'unit_number' => ['unit_number', 'number', 'رقم_الوحدة', 'رقم'],
@@ -80,7 +73,6 @@ class ProcessContractUnitsCsv implements ShouldQueue
                 'description' => ['description', 'desc', 'الوصف', 'ملاحظات'],
             ];
 
-            // Find column indices
             $columnIndices = [];
             foreach ($columnMap as $field => $possibleNames) {
                 foreach ($possibleNames as $name) {
@@ -95,27 +87,23 @@ class ProcessContractUnitsCsv implements ShouldQueue
             $rowCount = 0;
             $errors = [];
 
-            // Process each row
             while (($row = fgetcsv($file)) !== false) {
                 $rowCount++;
 
                 try {
-                    // Skip empty rows
                     if (empty(array_filter($row))) {
                         continue;
                     }
 
                     $unitData = [
-                        'second_party_data_id' => $this->secondPartyDataId,
+                        'contract_id' => $this->contractId,
                         'status' => 'pending',
                     ];
 
-                    // Map CSV data to unit fields
                     foreach ($columnIndices as $field => $index) {
                         if (isset($row[$index]) && $row[$index] !== '') {
                             $value = trim($row[$index]);
 
-                            // Type casting
                             switch ($field) {
                                 case 'count':
                                     $unitData[$field] = (int) $value;
@@ -131,7 +119,6 @@ class ProcessContractUnitsCsv implements ShouldQueue
                         }
                     }
 
-                    // Create unit
                     ContractUnit::create($unitData);
 
                 } catch (Exception $e) {
@@ -142,12 +129,11 @@ class ProcessContractUnitsCsv implements ShouldQueue
 
             fclose($file);
 
-            // Delete temp file after processing
             Storage::disk('local')->delete($this->filePath);
 
             DB::commit();
 
-            Log::info("CSV processed successfully for SecondPartyData ID: {$this->secondPartyDataId}. Rows: {$rowCount}");
+            Log::info("CSV processed successfully for contract ID: {$this->contractId}. Rows: {$rowCount}");
 
             if (!empty($errors)) {
                 Log::warning("CSV processing completed with errors", ['errors' => $errors]);
@@ -156,31 +142,25 @@ class ProcessContractUnitsCsv implements ShouldQueue
         } catch (Exception $e) {
             DB::rollBack();
 
-            // Clean up file on failure
             if (Storage::disk('local')->exists($this->filePath)) {
                 Storage::disk('local')->delete($this->filePath);
             }
 
-            Log::error("CSV processing failed for SecondPartyData ID: {$this->secondPartyDataId}. Error: " . $e->getMessage());
+            Log::error("CSV processing failed for contract ID: {$this->contractId}. Error: " . $e->getMessage());
 
             throw $e;
         }
     }
 
-    /**
-     * Handle a job failure.
-     */
     public function failed(Exception $exception): void
     {
-        // Clean up file on failure
         if (Storage::disk('local')->exists($this->filePath)) {
             Storage::disk('local')->delete($this->filePath);
         }
 
-        Log::error("ProcessContractUnitsCsv job failed for SecondPartyData ID: {$this->secondPartyDataId}", [
+        Log::error("ProcessContractUnitsCsv job failed for contract ID: {$this->contractId}", [
             'error' => $exception->getMessage(),
             'trace' => $exception->getTraceAsString(),
         ]);
     }
 }
-

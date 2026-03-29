@@ -207,7 +207,7 @@ class ProjectManagementAccessTest extends BasePermissionTestCase
     public function update_contract_unit_accessible_by_pm_staff()
     {
         $pmStaff = $this->createProjectManagementStaff();
-        $unit = $this->contract->units()->first();
+        $unit = $this->contract->contractUnits()->first();
         
         $response = $this->actingAs($pmStaff, 'sanctum')
             ->putJson("/api/contracts/units/update/{$unit->id}", [
@@ -221,7 +221,7 @@ class ProjectManagementAccessTest extends BasePermissionTestCase
     public function delete_contract_unit_accessible_by_pm_staff()
     {
         $pmStaff = $this->createProjectManagementStaff();
-        $unit = $this->contract->units()->first();
+        $unit = $this->contract->contractUnits()->first();
         
         $response = $this->actingAs($pmStaff, 'sanctum')
             ->deleteJson("/api/contracts/units/delete/{$unit->id}");

@@ -54,13 +54,13 @@ class SalesDashboardTest extends TestCase
         $secondPartyData = SecondPartyData::factory()->create(['contract_id' => $contract->id]);
         
         $unit1 = ContractUnit::factory()->create([
-            'second_party_data_id' => $secondPartyData->id,
+            'contract_id' => $secondPartyData->contract_id,
             'status' => 'available',
             'price' => 500000,
         ]);
 
         $unit2 = ContractUnit::factory()->create([
-            'second_party_data_id' => $secondPartyData->id,
+            'contract_id' => $secondPartyData->contract_id,
             'status' => 'available',
             'price' => 600000,
         ]);
@@ -109,13 +109,13 @@ class SalesDashboardTest extends TestCase
         $secondPartyData = SecondPartyData::factory()->create(['contract_id' => $contract->id]);
         
         $unit1 = ContractUnit::factory()->create([
-            'second_party_data_id' => $secondPartyData->id,
+            'contract_id' => $secondPartyData->contract_id,
             'status' => 'available',
             'price' => 500000,
         ]);
 
         $unit2 = ContractUnit::factory()->create([
-            'second_party_data_id' => $secondPartyData->id,
+            'contract_id' => $secondPartyData->contract_id,
             'status' => 'available',
             'price' => 600000,
         ]);
@@ -152,19 +152,19 @@ class SalesDashboardTest extends TestCase
         $secondPartyData = SecondPartyData::factory()->create(['contract_id' => $contract->id]);
         
         $unit1 = ContractUnit::factory()->create([
-            'second_party_data_id' => $secondPartyData->id,
+            'contract_id' => $secondPartyData->contract_id,
             'status' => 'available',
             'price' => 500000,
         ]);
 
         $unit2 = ContractUnit::factory()->create([
-            'second_party_data_id' => $secondPartyData->id,
+            'contract_id' => $secondPartyData->contract_id,
             'status' => 'available',
             'price' => 600000,
         ]);
 
         $unit3 = ContractUnit::factory()->create([
-            'second_party_data_id' => $secondPartyData->id,
+            'contract_id' => $secondPartyData->contract_id,
             'status' => 'available',
             'price' => 700000,
         ]);
@@ -210,7 +210,7 @@ class SalesDashboardTest extends TestCase
         $secondPartyData = SecondPartyData::factory()->create(['contract_id' => $contract->id]);
         
         $units = ContractUnit::factory()->count(5)->create([
-            'second_party_data_id' => $secondPartyData->id,
+            'contract_id' => $secondPartyData->contract_id,
             'status' => 'available',
             'price' => 500000,
         ]);
@@ -251,13 +251,13 @@ class SalesDashboardTest extends TestCase
         $secondPartyData = SecondPartyData::factory()->create(['contract_id' => $contract->id]);
         
         $unit1 = ContractUnit::factory()->create([
-            'second_party_data_id' => $secondPartyData->id,
+            'contract_id' => $secondPartyData->contract_id,
             'status' => 'available',
             'price' => 500000,
         ]);
 
         $unit2 = ContractUnit::factory()->create([
-            'second_party_data_id' => $secondPartyData->id,
+            'contract_id' => $secondPartyData->contract_id,
             'status' => 'available',
             'price' => 600000,
         ]);
@@ -311,7 +311,7 @@ class SalesDashboardTest extends TestCase
         $availableContract = Contract::factory()->create(['status' => 'completed']);
         $availableSecondParty = SecondPartyData::factory()->create(['contract_id' => $availableContract->id]);
         ContractUnit::factory()->create([
-            'second_party_data_id' => $availableSecondParty->id,
+            'contract_id' => $availableSecondParty->contract_id,
             'price' => 400000,
             'status' => 'available',
         ]);
@@ -319,7 +319,7 @@ class SalesDashboardTest extends TestCase
         $pendingContract = Contract::factory()->create(['status' => 'completed']);
         $pendingSecondParty = SecondPartyData::factory()->create(['contract_id' => $pendingContract->id]);
         ContractUnit::factory()->create([
-            'second_party_data_id' => $pendingSecondParty->id,
+            'contract_id' => $pendingSecondParty->contract_id,
             'price' => 0,
             'status' => 'available',
         ]);
@@ -336,7 +336,7 @@ class SalesDashboardTest extends TestCase
         $contract = Contract::factory()->create(['status' => 'completed']);
         $secondPartyData = SecondPartyData::factory()->create(['contract_id' => $contract->id]);
         $unit = ContractUnit::factory()->create([
-            'second_party_data_id' => $secondPartyData->id,
+            'contract_id' => $secondPartyData->contract_id,
             'status' => 'sold',
             'price' => 700000,
         ]);

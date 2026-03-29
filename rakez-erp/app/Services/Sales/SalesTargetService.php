@@ -160,8 +160,8 @@ class SalesTargetService
 
         // Validate each unit belongs to the selected project
         foreach ($unitIds as $unitId) {
-            $unit = ContractUnit::with('secondPartyData')->find($unitId);
-            if (!$unit || !$unit->secondPartyData || (int) $unit->secondPartyData->contract_id !== (int) $data['contract_id']) {
+            $unit = ContractUnit::with('contract')->find($unitId);
+            if (!$unit || (int) $unit->contract_id !== (int) $data['contract_id']) {
                 throw new \Exception('Unit does not belong to the selected project');
             }
         }

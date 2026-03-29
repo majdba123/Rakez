@@ -139,7 +139,7 @@ class ArabicSeedDataSeeder extends Seeder
                 $bedrooms = $i % 2 == 0 ? rand(2, 4) : rand(3, 6);
                 $bathrooms = min($bedrooms + 1, rand(2, 4));
                 ContractUnit::create([
-                    'second_party_data_id' => $secondParty->id,
+                    'contract_id' => $contract->id,
                     'unit_type' => ['أدوار', 'بنتهاوس', 'تاون هاوس', 'شقق', 'فيلا'][$i % 5],
                     'unit_number' => 'U-' . str_pad($i, 3, '0', STR_PAD_LEFT),
                     'floor' => (string) rand(1, 10),
@@ -155,8 +155,8 @@ class ArabicSeedDataSeeder extends Seeder
                 ]);
             }
 
-            $targetUnitIds = ContractUnit::where('second_party_data_id', $secondParty->id)->pluck('id')->take(3)->all();
-            $firstUnitId = $targetUnitIds[0] ?? ContractUnit::where('second_party_data_id', $secondParty->id)->value('id');
+            $targetUnitIds = ContractUnit::where('contract_id', $contract->id)->pluck('id')->take(3)->all();
+            $firstUnitId = $targetUnitIds[0] ?? ContractUnit::where('contract_id', $contract->id)->value('id');
 
             // 4. Sales Data
             // Sales Project Assignment (with active date range)

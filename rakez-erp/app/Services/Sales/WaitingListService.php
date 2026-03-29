@@ -31,7 +31,7 @@ class WaitingListService
 
         try {
             // Verify the unit exists
-            $unit = ContractUnit::with('secondPartyData.contract')->findOrFail($data['contract_unit_id']);
+            $unit = ContractUnit::with('contract')->findOrFail($data['contract_unit_id']);
 
             // Set expiry date (default 30 days from now, configurable)
             $expiryDays = config('sales.waiting_list_expiry_days', 30);

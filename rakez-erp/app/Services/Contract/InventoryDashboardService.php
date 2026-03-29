@@ -22,10 +22,8 @@ class InventoryDashboardService
         $marketingProjectsCount = MarketingProject::count();
 
         $unitRows = DB::table('contract_units')
-            ->join('second_party_data', 'second_party_data.id', '=', 'contract_units.second_party_data_id')
-            ->join('contracts', 'contracts.id', '=', 'second_party_data.contract_id')
+            ->join('contracts', 'contracts.id', '=', 'contract_units.contract_id')
             ->whereNull('contract_units.deleted_at')
-            ->whereNull('second_party_data.deleted_at')
             ->whereNull('contracts.deleted_at')
             ->groupBy('contract_units.status', 'contract_units.unit_type')
             ->select([

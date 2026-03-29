@@ -426,7 +426,7 @@ class ContractService
             $contract = Contract::with([
                 'user',
                 'info',
-                'secondPartyData.contractUnits',
+                'contractUnits',
                 'photographyDepartment.processedByUser',
                 'boardsDepartment.processedByUser',
                 'montageDepartment.processedByUser',
@@ -723,7 +723,7 @@ class ContractService
             $contract = Contract::with([
                 'user',
                 'info',
-                'secondPartyData.contractUnits',
+                'contractUnits',
                 'photographyDepartment.processedByUser',
                 'boardsDepartment.processedByUser',
                 'montageDepartment.processedByUser',
@@ -768,7 +768,7 @@ class ContractService
             return $contract->fresh([
                 'user',
                 'info',
-                'secondPartyData.contractUnits',
+                'contractUnits',
                 'photographyDepartment.processedByUser',
                 'boardsDepartment.processedByUser',
                 'montageDepartment.processedByUser',

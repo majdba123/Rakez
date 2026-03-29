@@ -29,7 +29,7 @@ class ContractUnitApiTest extends TestCase
 
         $contract = Contract::factory()->create(['user_id' => $user->id]);
         $secondParty = SecondPartyData::factory()->create(['contract_id' => $contract->id]);
-        ContractUnit::factory()->count(5)->create(['second_party_data_id' => $secondParty->id]);
+        ContractUnit::factory()->count(5)->create(['contract_id' => $secondParty->contract_id]);
 
         $response = $this->actingAs($user)->getJson("/api/contracts/units/show/{$contract->id}");
 
@@ -116,6 +116,35 @@ class ContractUnitApiTest extends TestCase
         $this->assertDatabaseHas('contract_units', ['unit_number' => 'A1']);
     }
 
+    public function test_can_upload_csv_units_without_second_party_data()
+    {
+        $user = User::factory()->create(['type' => 'project_management']);
+        $user->assignRole('project_management');
+
+        $contract = Contract::factory()->create(['user_id' => $user->id]);
+        \App\Models\ContractInfo::factory()->create(['contract_id' => $contract->id]);
+        // Intentionally do not create SecondPartyData for this contract.
+
+        $content = implode("\n", [
+            "unit_type,unit_number,price,area,status,description",
+            "Villa,V2,1100000,320,available,Big Villa 2",
+            "Apartment,A2,510000,151,sold,Nice Apt 2",
+        ]);
+
+        $file = UploadedFile::fake()->createWithContent('units.csv', $content);
+
+        $response = $this->actingAs($user)->postJson("/api/contracts/units/upload-csv/{$contract->id}", [
+            'csv_file' => $file
+        ]);
+
+        $response->assertStatus(201)
+            ->assertJsonPath('data.contract_id', $contract->id)
+            ->assertJsonPath('data.units_created', 2);
+
+        $this->assertDatabaseHas('contract_units', ['contract_id' => $contract->id, 'unit_number' => 'V2']);
+        $this->assertDatabaseHas('contract_units', ['contract_id' => $contract->id, 'unit_number' => 'A2']);
+    }
+
     public function test_cannot_modify_units_without_permission()
     {
         $user = User::factory()->create();
@@ -123,7 +152,7 @@ class ContractUnitApiTest extends TestCase
 
         $contract = Contract::factory()->create(['user_id' => $user->id]);
         $secondParty = SecondPartyData::factory()->create(['contract_id' => $contract->id]);
-        $unit = ContractUnit::factory()->create(['second_party_data_id' => $secondParty->id]);
+        $unit = ContractUnit::factory()->create(['contract_id' => $secondParty->contract_id]);
 
         $response = $this->actingAs($user)->deleteJson("/api/contracts/units/delete/{$unit->id}");
 

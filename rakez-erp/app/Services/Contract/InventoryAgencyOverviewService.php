@@ -89,13 +89,11 @@ class InventoryAgencyOverviewService
         }
 
         $rows = DB::table('contract_units')
-            ->join('second_party_data', 'second_party_data.id', '=', 'contract_units.second_party_data_id')
             ->whereNull('contract_units.deleted_at')
-            ->whereNull('second_party_data.deleted_at')
-            ->whereIn('second_party_data.contract_id', $contractIds)
-            ->groupBy('second_party_data.contract_id')
+            ->whereIn('contract_units.contract_id', $contractIds)
+            ->groupBy('contract_units.contract_id')
             ->select([
-                'second_party_data.contract_id as contract_id',
+                'contract_units.contract_id as contract_id',
                 DB::raw('MIN(contract_units.price) as min_price'),
                 DB::raw('MAX(contract_units.price) as max_price'),
                 DB::raw('MIN(contract_units.total_area_m2) as min_area'),
@@ -128,13 +126,11 @@ class InventoryAgencyOverviewService
         }
 
         $unitRows = DB::table('contract_units')
-            ->join('second_party_data', 'second_party_data.id', '=', 'contract_units.second_party_data_id')
             ->whereNull('contract_units.deleted_at')
-            ->whereNull('second_party_data.deleted_at')
-            ->whereIn('second_party_data.contract_id', $contractIds)
-            ->groupBy('second_party_data.contract_id', 'contract_units.status', 'contract_units.unit_type')
+            ->whereIn('contract_units.contract_id', $contractIds)
+            ->groupBy('contract_units.contract_id', 'contract_units.status', 'contract_units.unit_type')
             ->select([
-                'second_party_data.contract_id as contract_id',
+                'contract_units.contract_id as contract_id',
                 'contract_units.status as unit_status',
                 'contract_units.unit_type as unit_type',
                 DB::raw('COUNT(contract_units.id) as total_count'),

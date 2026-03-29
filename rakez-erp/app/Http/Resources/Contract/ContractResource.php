@@ -13,13 +13,11 @@ class ContractResource extends JsonResource
         // Prefer real contract_units (CSV/table) when loaded; fallback to legacy units JSON
         $unitCount = 0;
         $totalPrice = 0.0;
-        $hasRealUnits = $this->relationLoaded('secondPartyData')
-            && $this->secondPartyData
-            && $this->secondPartyData->relationLoaded('contractUnits');
+        $hasRealUnits = $this->relationLoaded('contractUnits');
 
-        if ($hasRealUnits && $this->secondPartyData->contractUnits->isNotEmpty()) {
-            $unitCount = $this->secondPartyData->contractUnits->count();
-            $totalPrice = (float) $this->secondPartyData->contractUnits->sum('price');
+        if ($hasRealUnits && $this->contractUnits->isNotEmpty()) {
+            $unitCount = $this->contractUnits->count();
+            $totalPrice = (float) $this->contractUnits->sum('price');
         } elseif (is_array($this->units) && count($this->units) > 0) {
             foreach ($this->units as $unit) {
                 $count = (int) ($unit['count'] ?? 0);
@@ -63,7 +61,7 @@ class ContractResource extends JsonResource
             'second_party_data' => new SecondPartyDataResource($this->whenLoaded('secondPartyData')),
             // Real contract units (CSV/table) for project-tracker and unit list UIs
             'contract_units' => $this->when($hasRealUnits, function () {
-                return ContractUnitResource::collection($this->secondPartyData->contractUnits);
+                return ContractUnitResource::collection($this->contractUnits);
             }),
             'photography_department' => new PhotographyDepartmentResource($this->whenLoaded('photographyDepartment')),
             'boards_department' => new BoardsDepartmentResource($this->whenLoaded('boardsDepartment')),

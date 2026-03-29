@@ -109,7 +109,7 @@ class ContextBuilder
                     break;
                 case 'view-unit':
                     if (isset($context['unit_id'])) {
-                        $unit = ContractUnit::query()->with('secondPartyData.contract')->find((int) $context['unit_id']);
+                        $unit = ContractUnit::query()->with('contract')->find((int) $context['unit_id']);
                         if ($unit && $unit->secondPartyData?->contract) {
                             $contract = $unit->secondPartyData->contract;
                             $allowed = $contract->isOwnedBy($user->id)

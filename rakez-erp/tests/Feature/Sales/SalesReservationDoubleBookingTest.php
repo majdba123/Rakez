@@ -37,7 +37,7 @@ class SalesReservationDoubleBookingTest extends TestCase
         $secondPartyData = SecondPartyData::factory()->create(['contract_id' => $contract->id]);
         
         $unit = ContractUnit::factory()->create([
-            'second_party_data_id' => $secondPartyData->id,
+            'contract_id' => $secondPartyData->contract_id,
             'status' => 'available',
             'price' => 500000,
         ]);

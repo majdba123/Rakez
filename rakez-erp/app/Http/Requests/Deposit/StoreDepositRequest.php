@@ -89,8 +89,8 @@ class StoreDepositRequest extends FormRequest
             $contractId = $this->input('contract_id');
             
             if ($unitId && $contractId) {
-                $unit = \App\Models\ContractUnit::with('secondPartyData')->find($unitId);
-                if ($unit && $unit->secondPartyData && $unit->secondPartyData->contract_id != $contractId) {
+                $unit = \App\Models\ContractUnit::with('contract')->find($unitId);
+                if ($unit && (int) $unit->contract_id !== (int) $contractId) {
                     $validator->errors()->add('contract_unit_id', 'الوحدة المحددة لا تنتمي إلى هذا المشروع');
                 }
             }

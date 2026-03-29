@@ -10,7 +10,7 @@ class SalesUnitSearchResource extends JsonResource
     public function toArray(Request $request): array
     {
         $area = $this->area !== null && $this->area !== '' ? (float) $this->area : null;
-        $contract = $this->secondPartyData?->contract;
+        $contract = $this->contract;
 
         return [
             'id'          => $this->id,

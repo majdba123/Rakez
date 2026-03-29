@@ -93,10 +93,10 @@ class SalesAnalyticsService
         }
 
         // Sum up all unit prices for each contract
-        return (float) $query->with('secondPartyData.contractUnits')
+        return (float) $query->with('contractUnits')
             ->get()
             ->sum(function ($contract) {
-                return $contract->secondPartyData?->contractUnits->sum('price') ?? 0;
+                return $contract->contractUnits->sum('price');
             });
     }
 

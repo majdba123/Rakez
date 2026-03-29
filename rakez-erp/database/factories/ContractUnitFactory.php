@@ -2,8 +2,8 @@
 
 namespace Database\Factories;
 
+use App\Models\Contract;
 use App\Models\ContractUnit;
-use App\Models\SecondPartyData;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 class ContractUnitFactory extends Factory
@@ -18,7 +18,7 @@ class ContractUnitFactory extends Factory
         $bathrooms = min($bedrooms + 1, $this->faker->numberBetween(1, 4));
 
         return [
-            'second_party_data_id' => SecondPartyData::factory(),
+            'contract_id' => Contract::factory(),
             'unit_type' => $this->faker->randomElement(['أدوار', 'بنتهاوس', 'تاون هاوس', 'شقق', 'فيلا']),
             'unit_number' => $this->faker->bothify('U-###'),
             'price' => $this->faker->randomFloat(2, 300000, 2500000),

@@ -13,10 +13,8 @@ class SalesUnitSearchService
     public function search(array $filters, User $user): LengthAwarePaginator
     {
         $query = ContractUnit::query()
-            ->join('second_party_data', 'contract_units.second_party_data_id', '=', 'second_party_data.id')
-            ->join('contracts', 'second_party_data.contract_id', '=', 'contracts.id')
+            ->join('contracts', 'contract_units.contract_id', '=', 'contracts.id')
             ->whereNull('contracts.deleted_at')
-            ->whereNull('second_party_data.deleted_at')
             ->select('contract_units.*');
 
         $this->applyAuthorizationScope($query, $user);
@@ -38,11 +36,9 @@ class SalesUnitSearchService
     public function getAvailableFilters(User $user): array
     {
         $query = DB::table('contract_units')
-            ->join('second_party_data', 'contract_units.second_party_data_id', '=', 'second_party_data.id')
-            ->join('contracts', 'second_party_data.contract_id', '=', 'contracts.id')
+            ->join('contracts', 'contract_units.contract_id', '=', 'contracts.id')
             ->whereNull('contract_units.deleted_at')
-            ->whereNull('contracts.deleted_at')
-            ->whereNull('second_party_data.deleted_at');
+            ->whereNull('contracts.deleted_at');
 
         $this->applyAuthorizationScopeRaw($query, $user);
 

@@ -19,7 +19,7 @@ class ContractUnitResource extends JsonResource
         return [
             'id' => $this->id,
             'unit_id' => $this->id,
-            'second_party_data_id' => $this->second_party_data_id,
+            'contract_id' => $this->contract_id,
             'contract_id' => $this->secondPartyData?->contract_id,
             'unit_type' => $this->unit_type,
             'unit_number' => $this->unit_number,

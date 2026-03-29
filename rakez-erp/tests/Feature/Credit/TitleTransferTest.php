@@ -47,7 +47,7 @@ class TitleTransferTest extends TestCase
         $units = [];
         for ($i = 0; $i < $count; $i++) {
             $units[] = ContractUnit::factory()->create([
-                'second_party_data_id' => $spd->id,
+                'contract_id' => $spd->contract_id,
                 'status' => $unitStatus,
             ]);
         }

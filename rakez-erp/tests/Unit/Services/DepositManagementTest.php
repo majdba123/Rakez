@@ -39,7 +39,7 @@ class DepositManagementTest extends TestCase
     {
         $contract = Contract::factory()->create();
         $secondPartyData = \App\Models\SecondPartyData::factory()->create(['contract_id' => $contract->id]);
-        $unit = ContractUnit::factory()->create(['second_party_data_id' => $secondPartyData->id]);
+        $unit = ContractUnit::factory()->create(['contract_id' => $secondPartyData->contract_id]);
         $reservation = SalesReservation::factory()->create([
             'contract_id' => $contract->id,
             'contract_unit_id' => $unit->id,

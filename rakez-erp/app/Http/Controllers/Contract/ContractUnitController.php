@@ -39,7 +39,6 @@ class ContractUnitController extends Controller
                 'data' => [
                     'status' => $result['status'],
                     'contract_id' => $result['contract_id'],
-                    'second_party_data_id' => $result['second_party_data_id'],
                     'units_created' => $result['units_created'],
                 ],
             ], 201);
@@ -101,7 +100,7 @@ class ContractUnitController extends Controller
     public function update(UpdateContractUnitRequest $request, int $unitId): JsonResponse
     {
         try {
-            $unit = \App\Models\ContractUnit::with('secondPartyData.contract')->findOrFail($unitId);
+            $unit = \App\Models\ContractUnit::with('contract')->findOrFail($unitId);
             $this->authorize('update', $unit);
 
             $data = $request->validated();
@@ -125,7 +124,7 @@ class ContractUnitController extends Controller
     public function destroy(int $unitId): JsonResponse
     {
         try {
-            $unit = \App\Models\ContractUnit::with('secondPartyData.contract')->findOrFail($unitId);
+            $unit = \App\Models\ContractUnit::with('contract')->findOrFail($unitId);
             $this->authorize('delete', $unit);
 
             $this->contractUnitService->deleteUnit($unitId);

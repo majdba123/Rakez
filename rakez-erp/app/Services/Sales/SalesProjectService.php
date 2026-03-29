@@ -19,7 +19,7 @@ class SalesProjectService
     {
         // عرض عقود مكتملة ضمنياً فقط في قائمة مشاريع السيلز
         $query = Contract::with([
-            'secondPartyData.contractUnits',
+            'contractUnits',
             'montageDepartment',
             'salesProjectAssignments.leader',
             'user',
@@ -49,7 +49,7 @@ class SalesProjectService
         // Compute sales status for each project
         $contracts->getCollection()->transform(function ($contract) {
             $contract->sales_status = $this->computeProjectSalesStatus($contract);
-            $contract->total_units = $contract->secondPartyData ? $contract->secondPartyData->contractUnits()->count() : 0;
+            $contract->total_units = $contract->contractUnits()->count();
             $contract->available_units = $this->getAvailableUnitsCount($contract);
             $contract->reserved_units = $this->getReservedUnitsCount($contract);
             $contract->remaining_days = $this->getProjectRemainingDays($contract);
@@ -80,7 +80,7 @@ class SalesProjectService
     public function getProjectById(int $contractId): Contract
     {
         $contract = Contract::with([
-            'secondPartyData.contractUnits',
+            'contractUnits',
             'montageDepartment',
             'info',
             'salesProjectAssignments.leader',
@@ -90,7 +90,7 @@ class SalesProjectService
         ])->findOrFail($contractId);
 
         $contract->sales_status = $this->computeProjectSalesStatus($contract);
-        $contract->total_units = $contract->secondPartyData ? $contract->secondPartyData->contractUnits()->count() : 0;
+        $contract->total_units = $contract->contractUnits()->count();
         $contract->available_units = $this->getAvailableUnitsCount($contract);
         $contract->reserved_units = $this->getReservedUnitsCount($contract);
         $contract->remaining_days = $this->getProjectRemainingDays($contract);
@@ -103,13 +103,9 @@ class SalesProjectService
      */
     public function getProjectUnits(int $contractId, array $filters): LengthAwarePaginator
     {
-        $contract = Contract::with('secondPartyData')->findOrFail($contractId);
+        $contract = Contract::findOrFail($contractId);
 
-        if (!$contract->secondPartyData) {
-            throw new \Exception('Project has no units data');
-        }
-
-        $query = ContractUnit::where('second_party_data_id', $contract->secondPartyData->id)
+        $query = ContractUnit::where('contract_id', $contractId)
             ->with('activeSalesReservations');
 
         // Apply filters
@@ -198,52 +194,17 @@ class SalesProjectService
             return self::SALES_STATUS_PENDING;
         }
 
-        // Check if SecondPartyData exists
-        $secondPartyData = $contract->secondPartyData;
-        if (!$secondPartyData) {
-            // Force load relation if not loaded
-            $contract->load('secondPartyData.contractUnits');
-            $secondPartyData = $contract->secondPartyData;
-            if (!$secondPartyData) {
-                return self::SALES_STATUS_PENDING;
-            }
-        }
+        $contract->loadMissing('contractUnits');
+        $unitsQuery = $contract->contractUnits();
 
-        // Check if all units have price > 0
-        // Use the relationship directly to avoid collection caching issues in tests
-        $unitsQuery = $secondPartyData->contractUnits();
-
-        // If unitsQuery is empty, try to refresh relation
         if ($unitsQuery->count() === 0) {
-            $secondPartyData->unsetRelation('contractUnits');
-            $unitsQuery = $secondPartyData->contractUnits();
-            if ($unitsQuery->count() === 0) {
-                // If still 0, maybe it's not saved yet? (though factory should save it)
-                // In tests, sometimes the relationship needs to be completely re-fetched
-                $freshSecondPartyData = \App\Models\SecondPartyData::with('contractUnits')->find($secondPartyData->id);
-                if (!$freshSecondPartyData || $freshSecondPartyData->contractUnits()->count() === 0) {
-                    // One last try: check if it's a new instance not yet in DB
-                    if ($secondPartyData->contractUnits->isNotEmpty()) {
-                        $unitsQuery = $secondPartyData->contractUnits;
-                    } else {
-                        return self::SALES_STATUS_PENDING;
-                    }
-                } else {
-                    $unitsQuery = $freshSecondPartyData->contractUnits();
-                }
-            }
+            return self::SALES_STATUS_PENDING;
         }
 
-        if ($unitsQuery instanceof \Illuminate\Database\Eloquent\Collection) {
-            $hasUnpricedUnits = $unitsQuery->some(function ($unit) {
-                return is_null($unit->price) || $unit->price <= 0;
-            });
-        } else {
-            $hasUnpricedUnits = $unitsQuery->where(function ($query) {
-                $query->whereNull('price')
-                    ->orWhere('price', '<=', 0);
-            })->exists();
-        }
+        $hasUnpricedUnits = $unitsQuery->where(function ($query) {
+            $query->whereNull('price')
+                ->orWhere('price', '<=', 0);
+        })->exists();
 
         if ($hasUnpricedUnits) {
             return self::SALES_STATUS_PENDING;
@@ -292,11 +253,7 @@ class SalesProjectService
      */
     protected function getAvailableUnitsCount(Contract $contract): int
     {
-        if (!$contract->secondPartyData) {
-            return 0;
-        }
-
-        return ContractUnit::where('second_party_data_id', $contract->secondPartyData->id)
+        return ContractUnit::where('contract_id', $contract->id)
             ->where('status', 'available')
             ->whereDoesntHave('activeSalesReservations')
             ->count();
@@ -307,11 +264,7 @@ class SalesProjectService
      */
     protected function getReservedUnitsCount(Contract $contract): int
     {
-        if (!$contract->secondPartyData) {
-            return 0;
-        }
-
-        return ContractUnit::where('second_party_data_id', $contract->secondPartyData->id)
+        return ContractUnit::where('contract_id', $contract->id)
             ->where(function ($query) {
                 $query->where('status', 'reserved')
                     ->orWhereHas('activeSalesReservations');
@@ -446,7 +399,7 @@ class SalesProjectService
     public function getTeamProjects(User $leader): \Illuminate\Database\Eloquent\Collection
     {
         return Contract::where('status', 'completed')
-            ->with(['secondPartyData.contractUnits', 'salesProjectAssignments.leader', 'user', 'city', 'district'])
+            ->with(['contractUnits', 'salesProjectAssignments.leader', 'user', 'city', 'district'])
             ->orderBy('created_at', 'desc')
             ->get();
     }
@@ -461,7 +414,7 @@ class SalesProjectService
     public function listTeamProjectsPaginated(User $leader, int $perPage = 15): LengthAwarePaginator
     {
         $query = Contract::where('status', 'completed')
-            ->with(['secondPartyData.contractUnits', 'salesProjectAssignments.leader', 'user', 'city', 'district'])
+            ->with(['contractUnits', 'salesProjectAssignments.leader', 'user', 'city', 'district'])
             ->orderBy('created_at', 'desc');
 
         $projects = $query->paginate($perPage);
@@ -469,7 +422,7 @@ class SalesProjectService
         // Compute sales status for each project
         $projects->getCollection()->transform(function ($contract) {
             $contract->sales_status = $this->computeProjectSalesStatus($contract);
-            $contract->total_units = $contract->secondPartyData ? $contract->secondPartyData->contractUnits()->count() : 0;
+            $contract->total_units = $contract->contractUnits()->count();
             $contract->available_units = $this->getAvailableUnitsCount($contract);
             $contract->reserved_units = $this->getReservedUnitsCount($contract);
             $contract->remaining_days = $this->getProjectRemainingDays($contract);
@@ -519,7 +472,7 @@ class SalesProjectService
         // Compute sales status for each project
         $projects->transform(function ($contract) {
             $contract->sales_status = $this->computeProjectSalesStatus($contract);
-            $contract->total_units = $contract->secondPartyData ? $contract->secondPartyData->contractUnits()->count() : 0;
+            $contract->total_units = $contract->contractUnits()->count();
             $contract->available_units = $this->getAvailableUnitsCount($contract);
             $contract->reserved_units = $this->getReservedUnitsCount($contract);
             $contract->remaining_days = $this->getProjectRemainingDays($contract);
@@ -607,8 +560,8 @@ class SalesProjectService
     {
         return Contract::query()
             ->where('status', 'completed')
-            ->whereHas('secondPartyData.contractUnits')
-            ->whereDoesntHave('secondPartyData.contractUnits', function (Builder $q) {
+            ->whereHas('contractUnits')
+            ->whereDoesntHave('contractUnits', function (Builder $q) {
                 $q->whereNull('price')->orWhere('price', '<=', 0);
             })
             ->count();

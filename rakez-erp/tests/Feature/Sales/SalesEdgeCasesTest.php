@@ -34,7 +34,7 @@ class SalesEdgeCasesTest extends TestCase
 
         $this->contract = Contract::factory()->create(['status' => 'completed']);
         $spd = SecondPartyData::factory()->create(['contract_id' => $this->contract->id]);
-        ContractUnit::factory()->create(['second_party_data_id' => $spd->id, 'price' => 1000]);
+        ContractUnit::factory()->create(['contract_id' => $spd->contract_id, 'price' => 1000]);
     }
 
     public function test_reservation_list_filters()

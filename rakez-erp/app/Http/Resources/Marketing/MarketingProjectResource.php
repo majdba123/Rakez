@@ -12,7 +12,7 @@ class MarketingProjectResource extends JsonResource
         $contract = $this->contract;
         $info = $contract->info;
 
-        $units = \App\Models\ContractUnit::where('second_party_data_id', $contract->secondPartyData->id ?? 0)->get();
+        $units = \App\Models\ContractUnit::where('contract_id', $contract->id)->get();
         $availableUnits = $units->where('status', 'available');
         $pendingUnits = $units->where('status', 'pending');
 

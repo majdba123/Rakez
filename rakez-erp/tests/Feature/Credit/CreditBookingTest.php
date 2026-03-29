@@ -39,7 +39,7 @@ class CreditBookingTest extends TestCase
     {
         $contract = Contract::factory()->create();
         $secondPartyData = SecondPartyData::factory()->create(['contract_id' => $contract->id]);
-        $unit = ContractUnit::factory()->create(['second_party_data_id' => $secondPartyData->id]);
+        $unit = ContractUnit::factory()->create(['contract_id' => $secondPartyData->contract_id]);
 
         SalesReservation::factory()->count(3)->create([
             'contract_id' => $contract->id,

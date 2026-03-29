@@ -57,7 +57,7 @@ class SalesAuthorizationTest extends TestCase
         $this->contract = Contract::factory()->create(['status' => 'completed']);
         $secondPartyData = SecondPartyData::factory()->create(['contract_id' => $this->contract->id]);
         $this->unit = ContractUnit::factory()->create([
-            'second_party_data_id' => $secondPartyData->id,
+            'contract_id' => $secondPartyData->contract_id,
             'price' => 500000,
         ]);
         

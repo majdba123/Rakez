@@ -34,7 +34,7 @@ class SalesReservationTest extends TestCase
         $secondPartyData = SecondPartyData::factory()->create(['contract_id' => $this->contract->id]);
         
         $this->unit = ContractUnit::factory()->create([
-            'second_party_data_id' => $secondPartyData->id,
+            'contract_id' => $secondPartyData->contract_id,
             'status' => 'available',
             'price' => 500000,
         ]);
@@ -67,16 +67,10 @@ class SalesReservationTest extends TestCase
             ->assertJsonValidationErrors([
                 'contract_id',
                 'contract_unit_id',
-                'contract_date',
                 'reservation_type',
                 'client_name',
                 'client_mobile',
-                'client_nationality',
-                'client_iban',
-                'payment_method',
                 'down_payment_amount',
-                'down_payment_status',
-                'purchase_mechanism',
             ]);
     }
 
@@ -89,7 +83,7 @@ class SalesReservationTest extends TestCase
             ->postJson('/api/sales/reservations', $data);
 
         $response->assertStatus(422)
-            ->assertJsonValidationErrors(['negotiation_notes']);
+            ->assertJsonValidationErrors(['proposed_price']);
     }
 
     public function test_create_reservation_generates_voucher_pdf()

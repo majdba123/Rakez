@@ -219,8 +219,8 @@ class TitleTransferService
             return;
         }
 
-        $allSold = $contract->units()->exists()
-            && $contract->units()->where('status', '!=', 'sold')->doesntExist();
+        $allSold = $contract->contractUnits()->exists()
+            && $contract->contractUnits()->where('status', '!=', 'sold')->doesntExist();
 
         if ($allSold) {
             $contract->update(['is_closed' => true]);

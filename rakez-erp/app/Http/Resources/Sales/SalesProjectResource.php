@@ -27,7 +27,7 @@ class SalesProjectResource extends JsonResource
         $soldUnits = max(0, $totalUnits - $availableUnits - $reservedUnits);
         $soldUnitsPercent = $totalUnits > 0 ? (int) round(($soldUnits / $totalUnits) * 100) : 0;
 
-        $cardFields = $this->relationLoaded('secondPartyData')
+        $cardFields = $this->relationLoaded('contractUnits')
             ? self::cardFieldsFromContract($this->resource, $salesStatus)
             : [
                 'status_badge_ar' => $salesStatus === 'available' ? 'متاح' : 'غير متاح',
@@ -68,15 +68,14 @@ class SalesProjectResource extends JsonResource
     }
 
     /**
-     * Derive listing-card fields from contract (secondPartyData + contractUnits).
+     * Derive listing-card fields from contract (contractUnits).
      * Returns status_badge_ar, price_min, price_max, area_min_m2, area_max_m2, bedrooms_min, bedrooms_max, unit_type_label_ar, ad_code.
      */
     public static function cardFieldsFromContract($contract, string $salesStatus): array
     {
         $statusBadge = $salesStatus === 'available' ? 'متاح' : 'غير متاح';
 
-        $spd = $contract->secondPartyData ?? null;
-        $units = $spd && $spd->relationLoaded('contractUnits') ? $spd->contractUnits : collect();
+        $units = $contract->relationLoaded('contractUnits') ? $contract->contractUnits : collect();
 
         $priceMin = null;
         $priceMax = null;
@@ -107,7 +106,7 @@ class SalesProjectResource extends JsonResource
             $unitTypeLabel = $firstType ? (string) $firstType : null;
         }
 
-        $adCode = $spd ? $spd->advertiser_section_url : null;
+        $adCode = $contract->secondPartyData?->advertiser_section_url;
 
         return [
             'status_badge_ar' => $statusBadge,

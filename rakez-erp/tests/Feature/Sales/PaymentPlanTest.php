@@ -65,7 +65,7 @@ class PaymentPlanTest extends TestCase
         ]);
 
         $this->unit = ContractUnit::factory()->create([
-            'second_party_data_id' => $secondParty->id,
+            'contract_id' => $secondParty->contract_id,
             'price' => 500000,
             'status' => 'reserved',
         ]);
@@ -131,7 +131,7 @@ class PaymentPlanTest extends TestCase
         ]);
 
         $unit = ContractUnit::factory()->create([
-            'second_party_data_id' => $secondParty->id,
+            'contract_id' => $secondParty->contract_id,
             'price' => 500000,
             'status' => 'reserved',
         ]);

@@ -40,11 +40,11 @@ class SecondPartyData extends Model
     }
 
     /**
-     * Get all contract units (CSV units) for this second party data.
+     * Contract units for the same contract (units belong to contract, not to this row).
      */
     public function contractUnits()
     {
-        return $this->hasMany(ContractUnit::class);
+        return $this->hasMany(ContractUnit::class, 'contract_id', 'contract_id');
     }
 
     /**

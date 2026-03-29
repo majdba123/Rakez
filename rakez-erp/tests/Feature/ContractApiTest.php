@@ -169,7 +169,7 @@ class ContractApiTest extends TestCase
         // Contract must be approved and pass checkMarketingReadiness (all tracker stages complete)
         $contract = Contract::factory()->create(['status' => 'approved']);
         $secondParty = \App\Models\SecondPartyData::factory()->create(['contract_id' => $contract->id]);
-        \App\Models\ContractUnit::factory()->create(['second_party_data_id' => $secondParty->id]);
+        \App\Models\ContractUnit::factory()->create(['contract_id' => $secondParty->contract_id]);
         \App\Models\ContractInfo::create([
             'contract_id' => $contract->id,
             'contract_number' => 'ER-TEST-001',

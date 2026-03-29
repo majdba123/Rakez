@@ -248,10 +248,10 @@ class SalesDashboardService
                     $q->dateRange($from, $to);
                 }
             })
-            ->with('secondPartyData.contractUnits');
+            ->with('contractUnits');
 
         return (float) $contractsQuery->get()->sum(function (Contract $contract) {
-            return $contract->secondPartyData?->contractUnits->sum('price') ?? 0;
+            return $contract->contractUnits->sum('price');
         });
     }
 

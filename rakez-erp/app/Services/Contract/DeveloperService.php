@@ -162,9 +162,9 @@ class DeveloperService
             ->orderBy('project_name')
             ->get();
 
-        // Use units() relation (ContractUnit count); Contract has 'units' JSON attribute so avoid $contract->units
+        // contractUnits() relation (ContractUnit count); Contract has JSON `units` column — use contractUnits()
         $projects = $contracts->map(function (Contract $contract) {
-            $unitsCount = $contract->units()->count();
+            $unitsCount = $contract->contractUnits()->count();
             return [
                 'id' => $contract->id,
                 'project_name' => $contract->project_name,
@@ -187,7 +187,7 @@ class DeveloperService
                 ->map(fn (Team $t) => ['id' => $t->id, 'name' => $t->name]);
         }
 
-        $unitsCount = $contracts->sum(fn (Contract $c) => $c->units()->count());
+        $unitsCount = $contracts->sum(fn (Contract $c) => $c->contractUnits()->count());
 
         $item = [
             'developer_number' => $developerNumber,

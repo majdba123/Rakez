@@ -136,10 +136,9 @@ class TeamService
             ->count();
 
 
-        // Units for this team (via contracts -> second_party_data -> contract_units)
+        // Units for this team (via contracts.contract_id on contract_units)
         $baseUnitsQuery = DB::table('contract_units')
-            ->join('second_party_data', 'second_party_data.id', '=', 'contract_units.second_party_data_id')
-            ->join('contracts', 'contracts.id', '=', 'second_party_data.contract_id')
+            ->join('contracts', 'contracts.id', '=', 'contract_units.contract_id')
             ->join('contract_team', 'contract_team.contract_id', '=', 'contracts.id')
             ->where('contract_team.team_id', $teamId);
 

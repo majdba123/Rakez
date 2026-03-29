@@ -28,7 +28,7 @@ class ContractPdfDataService
 
     public function getFillData(Contract $contract): array
     {
-        $contract->loadMissing(['info', 'secondPartyData.contractUnits', 'city', 'district']);
+        $contract->loadMissing(['info', 'contractUnits', 'city', 'district']);
         $info = $contract->info;
         $spd = $contract->secondPartyData;
 
@@ -81,23 +81,23 @@ class ContractPdfDataService
         if ($info && isset($info->units_count) && $info->units_count !== null) {
             return (int) $info->units_count;
         }
-        if ($contract->secondPartyData && $contract->secondPartyData->contractUnits) {
-            return $contract->secondPartyData->contractUnits->count();
+        if ($contract->relationLoaded('contractUnits') ? $contract->contractUnits->isNotEmpty() : $contract->contractUnits()->exists()) {
+            return $contract->contractUnits()->count();
         }
-        $unitsRelation = $contract->units ?? collect();
-        return $unitsRelation->count();
+        $legacyUnits = $contract->getAttribute('units');
+        return is_array($legacyUnits) ? count($legacyUnits) : 0;
     }
 
     private function resolveUnitType(Contract $contract): string
     {
-        $spd = $contract->secondPartyData;
-        if ($spd && $spd->contractUnits->isNotEmpty()) {
-            $types = $spd->contractUnits->pluck('unit_type')->unique()->filter()->values()->all();
+        $contract->loadMissing('contractUnits');
+        if ($contract->contractUnits->isNotEmpty()) {
+            $types = $contract->contractUnits->pluck('unit_type')->unique()->filter()->values()->all();
             return implode('، ', $types);
         }
-        $unitsRelation = $contract->units ?? collect();
-        if ($unitsRelation->isNotEmpty()) {
-            $types = $unitsRelation->pluck('unit_type')->unique()->filter()->values()->all();
+        $legacyUnits = $contract->getAttribute('units');
+        if (is_array($legacyUnits) && count($legacyUnits) > 0) {
+            $types = collect($legacyUnits)->pluck('type')->unique()->filter()->values()->all();
             return implode('، ', $types);
         }
         return '';

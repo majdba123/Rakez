@@ -43,7 +43,7 @@ class AccountingCommissionTest extends TestCase
 
         $contract = Contract::factory()->create();
         $secondPartyData = SecondPartyData::factory()->create(['contract_id' => $contract->id]);
-        $unit = ContractUnit::factory()->create(['second_party_data_id' => $secondPartyData->id]);
+        $unit = ContractUnit::factory()->create(['contract_id' => $secondPartyData->contract_id]);
         $reservation = SalesReservation::factory()->create([
             'status' => 'confirmed',
             'contract_id' => $contract->id,
@@ -68,7 +68,7 @@ class AccountingCommissionTest extends TestCase
 
         $contract = Contract::factory()->create();
         $secondPartyData = SecondPartyData::factory()->create(['contract_id' => $contract->id]);
-        $unit = ContractUnit::factory()->create(['second_party_data_id' => $secondPartyData->id]);
+        $unit = ContractUnit::factory()->create(['contract_id' => $secondPartyData->contract_id]);
         $reservation = SalesReservation::factory()->create([
             'status' => 'confirmed',
             'contract_id' => $contract->id,

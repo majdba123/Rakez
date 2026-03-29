@@ -49,7 +49,7 @@ class SecondPartyDataService
 
             DB::commit();
 
-            return $secondPartyData->load(['contractUnits', 'processedByUser']);
+            return $secondPartyData->load(['contract.contractUnits', 'processedByUser']);
         } catch (Exception $e) {
             DB::rollBack();
             throw $e;
@@ -84,7 +84,7 @@ class SecondPartyDataService
 
             DB::commit();
 
-            return $contract->secondPartyData->fresh()->load(['contractUnits', 'processedByUser']);
+            return $contract->secondPartyData->fresh()->load(['contract.contractUnits', 'processedByUser']);
         } catch (Exception $e) {
             DB::rollBack();
             throw $e;
@@ -102,7 +102,7 @@ class SecondPartyDataService
     {
         $contract = $this->getAuthorizedContract($contractId);
 
-        return $contract->secondPartyData?->load(['contractUnits', 'processedByUser']);
+        return $contract->secondPartyData?->load(['contract.contractUnits', 'processedByUser']);
     }
 
 

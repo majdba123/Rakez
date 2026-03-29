@@ -35,7 +35,7 @@ class SalesProjectTest extends TestCase
         $secondPartyData = SecondPartyData::factory()->create(['contract_id' => $contract->id]);
 
         ContractUnit::factory()->create([
-            'second_party_data_id' => $secondPartyData->id,
+            'contract_id' => $secondPartyData->contract_id,
             'price' => 500000,
         ]);
 
@@ -55,12 +55,12 @@ class SalesProjectTest extends TestCase
         $secondPartyData = SecondPartyData::factory()->create(['contract_id' => $contract->id]);
 
         ContractUnit::factory()->create([
-            'second_party_data_id' => $secondPartyData->id,
+            'contract_id' => $secondPartyData->contract_id,
             'price' => 0,
         ]);
 
         ContractUnit::factory()->create([
-            'second_party_data_id' => $secondPartyData->id,
+            'contract_id' => $secondPartyData->contract_id,
             'price' => 500000,
         ]);
 
@@ -77,7 +77,7 @@ class SalesProjectTest extends TestCase
         $secondPartyData = SecondPartyData::factory()->create(['contract_id' => $contract->id]);
 
         ContractUnit::factory()->count(3)->create([
-            'second_party_data_id' => $secondPartyData->id,
+            'contract_id' => $secondPartyData->contract_id,
             'price' => 500000,
         ]);
 
@@ -94,7 +94,7 @@ class SalesProjectTest extends TestCase
         $secondPartyData = SecondPartyData::factory()->create(['contract_id' => $contract->id]);
 
         $unit = ContractUnit::factory()->create([
-            'second_party_data_id' => $secondPartyData->id,
+            'contract_id' => $secondPartyData->contract_id,
             'status' => 'available',
             'price' => 500000,
         ]);
@@ -115,7 +115,7 @@ class SalesProjectTest extends TestCase
         $secondPartyData = SecondPartyData::factory()->create(['contract_id' => $contract->id]);
 
         $unit = ContractUnit::factory()->create([
-            'second_party_data_id' => $secondPartyData->id,
+            'contract_id' => $secondPartyData->contract_id,
             'status' => 'available',
             'price' => 500000,
         ]);
@@ -145,7 +145,7 @@ class SalesProjectTest extends TestCase
         $secondPartyData = SecondPartyData::factory()->create(['contract_id' => $contract->id]);
 
         $unit = ContractUnit::factory()->create([
-            'second_party_data_id' => $secondPartyData->id,
+            'contract_id' => $secondPartyData->contract_id,
             'status' => 'available',
             'price' => 500000,
         ]);
@@ -174,7 +174,7 @@ class SalesProjectTest extends TestCase
         $secondPartyData = SecondPartyData::factory()->create(['contract_id' => $contract->id]);
 
         $unit = ContractUnit::factory()->create([
-            'second_party_data_id' => $secondPartyData->id,
+            'contract_id' => $secondPartyData->contract_id,
             'status' => 'available',
             'price' => 500000,
         ]);
@@ -201,10 +201,10 @@ class SalesProjectTest extends TestCase
     {
         $leader = User::factory()->create(['type' => 'sales', 'is_manager' => true]);
 
-        Contract::factory()->count(20)->create(['status' => 'completed'])->each(function ($contract) {
+        Contract::factory()->count(20)->create(['status' => 'completed'])->each(function ($contract) use ($leader) {
             $secondPartyData = SecondPartyData::factory()->create(['contract_id' => $contract->id]);
             ContractUnit::factory()->create([
-                'second_party_data_id' => $secondPartyData->id,
+                'contract_id' => $secondPartyData->contract_id,
                 'price' => 500000,
             ]);
 
@@ -242,13 +242,13 @@ class SalesProjectTest extends TestCase
         $secondPartyData = SecondPartyData::factory()->create(['contract_id' => $contract->id]);
 
         ContractUnit::factory()->create([
-            'second_party_data_id' => $secondPartyData->id,
+            'contract_id' => $secondPartyData->contract_id,
             'floor' => '1',
             'price' => 500000,
         ]);
 
         ContractUnit::factory()->create([
-            'second_party_data_id' => $secondPartyData->id,
+            'contract_id' => $secondPartyData->contract_id,
             'floor' => '2',
             'price' => 600000,
         ]);
@@ -266,7 +266,7 @@ class SalesProjectTest extends TestCase
         $secondPartyData = SecondPartyData::factory()->create(['contract_id' => $contract->id]);
 
         $unit = ContractUnit::factory()->create([
-            'second_party_data_id' => $secondPartyData->id,
+            'contract_id' => $secondPartyData->contract_id,
             'price' => 500000,
         ]);
 
@@ -401,7 +401,7 @@ class SalesProjectTest extends TestCase
 
         $secondPartyData = SecondPartyData::factory()->create(['contract_id' => $contract->id]);
         ContractUnit::factory()->create([
-            'second_party_data_id' => $secondPartyData->id,
+            'contract_id' => $secondPartyData->contract_id,
             'price' => 500000,
         ]);
 
@@ -428,12 +428,12 @@ class SalesProjectTest extends TestCase
         $secondPartyData = SecondPartyData::factory()->create(['contract_id' => $contract->id]);
 
         $unit1 = ContractUnit::factory()->create([
-            'second_party_data_id' => $secondPartyData->id,
+            'contract_id' => $secondPartyData->contract_id,
             'price' => 500000,
         ]);
 
         $unit2 = ContractUnit::factory()->create([
-            'second_party_data_id' => $secondPartyData->id,
+            'contract_id' => $secondPartyData->contract_id,
             'price' => 600000,
         ]);
 

@@ -134,19 +134,12 @@ class Contract extends Model
     }
 
     /**
-     * Get the contract units through second party data.
-     * الوحدات
+     * Contract units (CSV / inventory) belong to the contract.
+     * Named contractUnits to avoid clashing with the JSON `units` column on contracts.
      */
-    public function units()
+    public function contractUnits()
     {
-        return $this->hasManyThrough(
-            ContractUnit::class,
-            SecondPartyData::class,
-            'contract_id', // Foreign key on second_party_data table
-            'second_party_data_id', // Foreign key on contract_units table
-            'id', // Local key on contracts table
-            'id' // Local key on second_party_data table
-        );
+        return $this->hasMany(ContractUnit::class);
     }
 
     /**
@@ -208,7 +201,7 @@ class Contract extends Model
     {
         $this->loadMissing([
             'info',
-            'secondPartyData.contractUnits',
+            'contractUnits',
             'boardsDepartment',
             'photographyDepartment',
             'montageDepartment',
@@ -241,7 +234,7 @@ class Contract extends Model
             if (!$filled($spd->prices_units_url)) {
                 $missing[] = 'يجب رفع ملف الأسعار والوحدات';
             }
-            if (!$spd->contractUnits()->exists()) {
+            if (!$this->contractUnits()->exists()) {
                 $missing[] = 'يجب رفع ملف الوحدات (CSV)';
             }
             // رقم المعلن

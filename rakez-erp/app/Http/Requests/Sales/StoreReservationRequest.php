@@ -153,8 +153,8 @@ class StoreReservationRequest extends FormRequest
         $validator->after(function ($validator) {
             // Custom validation: unit belongs to contract
             if ($this->contract_unit_id && $this->contract_id) {
-                $unit = ContractUnit::with('secondPartyData.contract')->find($this->contract_unit_id);
-                if ($unit && $unit->secondPartyData && $unit->secondPartyData->contract_id != $this->contract_id) {
+                $unit = ContractUnit::with('contract')->find($this->contract_unit_id);
+                if ($unit && (int) $unit->contract_id !== (int) $this->contract_id) {
                     $validator->errors()->add('contract_unit_id', 'Unit does not belong to this project');
                 }
 

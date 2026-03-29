@@ -149,7 +149,7 @@ class ContractsSeeder extends Seeder
 
             for ($u = 0; $u < $unitsPerContract; $u++) {
                 ContractUnit::factory()->create([
-                    'second_party_data_id' => $secondParty->id,
+                    'contract_id' => $contract->id,
                     'unit_number' => 'U-' . str_pad((string) ($u + 1), 3, '0', STR_PAD_LEFT),
                     'status' => $unitStatuses[$u] ?? 'available',
                 ]);

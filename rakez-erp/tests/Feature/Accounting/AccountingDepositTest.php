@@ -40,7 +40,7 @@ class AccountingDepositTest extends TestCase
 
         $contract = Contract::factory()->create();
         $secondPartyData = SecondPartyData::factory()->create(['contract_id' => $contract->id]);
-        $unit = ContractUnit::factory()->create(['second_party_data_id' => $secondPartyData->id]);
+        $unit = ContractUnit::factory()->create(['contract_id' => $secondPartyData->contract_id]);
         Deposit::factory()->create([
             'status' => 'pending',
             'contract_id' => $contract->id,
@@ -65,7 +65,7 @@ class AccountingDepositTest extends TestCase
 
         $contract = Contract::factory()->create();
         $secondPartyData = SecondPartyData::factory()->create(['contract_id' => $contract->id]);
-        $unit = ContractUnit::factory()->create(['second_party_data_id' => $secondPartyData->id]);
+        $unit = ContractUnit::factory()->create(['contract_id' => $secondPartyData->contract_id]);
         $deposit = Deposit::factory()->create([
             'status' => 'pending',
             'contract_id' => $contract->id,
@@ -91,7 +91,7 @@ class AccountingDepositTest extends TestCase
 
         $contract = Contract::factory()->create();
         $secondPartyData = SecondPartyData::factory()->create(['contract_id' => $contract->id]);
-        $unit = ContractUnit::factory()->create(['second_party_data_id' => $secondPartyData->id]);
+        $unit = ContractUnit::factory()->create(['contract_id' => $secondPartyData->contract_id]);
         $deposit = Deposit::factory()->create([
             'status' => 'received',
             'commission_source' => 'owner',
@@ -117,7 +117,7 @@ class AccountingDepositTest extends TestCase
 
         $contract = Contract::factory()->create();
         $secondPartyData = SecondPartyData::factory()->create(['contract_id' => $contract->id]);
-        $unit = ContractUnit::factory()->create(['second_party_data_id' => $secondPartyData->id]);
+        $unit = ContractUnit::factory()->create(['contract_id' => $secondPartyData->contract_id]);
         $deposit = Deposit::factory()->create([
             'status' => 'received',
             'commission_source' => 'buyer',

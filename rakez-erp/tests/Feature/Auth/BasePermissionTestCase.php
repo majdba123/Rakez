@@ -173,7 +173,7 @@ abstract class BasePermissionTestCase extends TestCase
         
         // Create units linked to the second party data
         ContractUnit::factory()->count($unitCount)->create([
-            'second_party_data_id' => $secondPartyData->id,
+            'contract_id' => $secondPartyData->contract_id,
         ]);
         
         return $contract->fresh();

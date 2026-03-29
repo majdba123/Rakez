@@ -34,7 +34,7 @@ class SalesInsightsTest extends TestCase
         $secondPartyData = SecondPartyData::factory()->create(['contract_id' => $this->contract->id]);
 
         $this->unit = ContractUnit::factory()->create([
-            'second_party_data_id' => $secondPartyData->id,
+            'contract_id' => $secondPartyData->contract_id,
             'status' => 'sold',
             'price' => 900000,
             'unit_number' => 'A-22',

@@ -13,7 +13,7 @@ class ContractUnit extends Model
     protected $table = 'contract_units';
 
     protected $fillable = [
-        'second_party_data_id',
+        'contract_id',
         'unit_type',
         'unit_number',
         'status',
@@ -64,19 +64,19 @@ class ContractUnit extends Model
     }
 
     /**
-     * Get the second party data that owns this unit.
+     * Contract that owns this unit (CSV rows belong to the project/contract).
      */
-    public function secondPartyData()
+    public function contract()
     {
-        return $this->belongsTo(SecondPartyData::class);
+        return $this->belongsTo(Contract::class);
     }
 
     /**
-     * Accessor: get the parent contract via secondPartyData.
+     * Second party row for the same contract (optional; same contract_id).
      */
-    public function getContractAttribute()
+    public function secondPartyData()
     {
-        return $this->secondPartyData?->contract;
+        return $this->hasOne(SecondPartyData::class, 'contract_id', 'contract_id');
     }
 
     /**

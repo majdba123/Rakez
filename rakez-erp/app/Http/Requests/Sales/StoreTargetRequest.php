@@ -38,7 +38,7 @@ class StoreTargetRequest extends FormRequest
             if (is_array($unitIds) && !empty($unitIds)) {
                 foreach ($unitIds as $unitId) {
                     $belongs = ContractUnit::where('id', $unitId)
-                        ->whereHas('secondPartyData', fn ($q) => $q->where('contract_id', $contractId))
+                        ->where('contract_id', $contractId)
                         ->exists();
                     if (!$belongs) {
                         $validator->errors()->add('contract_unit_ids', 'One or more selected units do not belong to the selected project.');
@@ -49,7 +49,7 @@ class StoreTargetRequest extends FormRequest
             }
             if ($this->contract_unit_id) {
                 $belongs = ContractUnit::where('id', $this->contract_unit_id)
-                    ->whereHas('secondPartyData', fn ($q) => $q->where('contract_id', $contractId))
+                    ->where('contract_id', $contractId)
                     ->exists();
                 if (!$belongs) {
                     $validator->errors()->add('contract_unit_id', 'The selected unit does not belong to the selected project.');
