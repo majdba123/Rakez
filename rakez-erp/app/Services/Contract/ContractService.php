@@ -6,6 +6,7 @@ use App\Models\Contract;
 use App\Models\ContractInfo;
 use App\Models\MarketingProject;
 use App\Models\Team;
+use App\Support\ContractCodeGenerator;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Pagination\Paginator;
 use Illuminate\Pagination\LengthAwarePaginator;
@@ -348,6 +349,8 @@ class ContractService
             $data['status'] = 'pending';
             $data['user_id'] = Auth::id();
 
+            ContractCodeGenerator::assignCodeToDataArray($data);
+
             // Create contract
             $contract = Contract::create($data);
 
@@ -483,6 +486,7 @@ class ContractService
 
             // Prevent status update during update operation
             unset($data['status']);
+            unset($data['code']);
 
             $contract->update($data);
 

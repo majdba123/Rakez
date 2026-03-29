@@ -20,8 +20,22 @@ class StoreContractRequest extends FormRequest
      */
     protected function prepareForValidation(): void
     {
+        $side = $this->input('side');
+        if ($side === '' || $side === null) {
+            $side = null;
+        } elseif (is_string($side)) {
+            $side = strtoupper(trim($side));
+        }
+
+        $contractType = $this->input('contract_type');
+        if ($contractType === '') {
+            $contractType = null;
+        }
+
         $this->merge([
             'user_id' => auth()->id(),
+            'side' => $side,
+            'contract_type' => $contractType,
         ]);
 
         // Clean and normalize units array
@@ -69,6 +83,8 @@ class StoreContractRequest extends FormRequest
                 'integer',
                 Rule::exists('districts', 'id')->where(fn ($q) => $q->where('city_id', (int) $this->input('city_id'))),
             ],
+            'side' => ['nullable', 'string', Rule::in(['N', 'W', 'E', 'S'])],
+            'contract_type' => 'nullable|string|max:100',
             'project_name' => 'required|string|max:255',
             'project_image_url' => 'nullable|string|max:500',
             'developer_requiment' => 'required|string',

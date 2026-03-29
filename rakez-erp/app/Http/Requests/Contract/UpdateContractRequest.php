@@ -22,6 +22,18 @@ class UpdateContractRequest extends FormRequest
      */
     protected function prepareForValidation(): void
     {
+        if ($this->has('side')) {
+            $side = $this->input('side');
+            if ($side === '' || $side === null) {
+                $this->merge(['side' => null]);
+            } elseif (is_string($side)) {
+                $this->merge(['side' => strtoupper(trim($side))]);
+            }
+        }
+        if ($this->has('contract_type') && $this->input('contract_type') === '') {
+            $this->merge(['contract_type' => null]);
+        }
+
         // Clean and normalize units array if provided
         if ($this->has('units')) {
             $this->normalizeUnits();
@@ -66,6 +78,8 @@ class UpdateContractRequest extends FormRequest
             'developer_name' => 'sometimes|string|max:255',
             'city_id' => ['sometimes', 'required', 'integer', 'exists:cities,id'],
             'district_id' => ['sometimes', 'required', 'integer', 'exists:districts,id'],
+            'side' => ['sometimes', 'nullable', 'string', Rule::in(['N', 'W', 'E', 'S'])],
+            'contract_type' => 'sometimes|nullable|string|max:100',
             'developer_requiment' => 'sometimes|string',
             'notes' => 'nullable|string',
             'commission_percent' => 'nullable|numeric|min:0',

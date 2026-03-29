@@ -53,6 +53,8 @@ class ContractPdfDataService
         $payload = [
             'units_count' => (string) $unitsCount,
             'district' => (string) ($contract->district?->name ?? ''),
+            'side' => (string) ($contract->side ?? ''),
+            'contract_type' => (string) ($contract->contract_type ?? ''),
             'unit_type' => $this->resolveUnitType($contract),
             'project_name' => (string) ($contract->project_name ?? ''),
             'gregorian_date' => $gregorianDate->format('d-m-Y'),

@@ -56,6 +56,8 @@ class ContractApiTest extends TestCase
             'developer_number' => '123456',
             'city_id' => $city->id,
             'district_id' => $district->id,
+            'contract_type' => 'exclusive',
+            'side' => 'N',
             'developer_requiment' => 'None',
             'units' => [
                 ['type' => 'A', 'count' => 10, 'price' => 100000]
@@ -66,11 +68,13 @@ class ContractApiTest extends TestCase
 
         $response->assertStatus(201)
             ->assertJsonPath('data.project_name', 'New Project')
-            ->assertJsonPath('data.status', 'pending');
+            ->assertJsonPath('data.status', 'pending')
+            ->assertJsonPath('data.code', 'ERYDN');
 
         $this->assertDatabaseHas('contracts', [
             'project_name' => 'New Project',
-            'user_id' => $user->id
+            'user_id' => $user->id,
+            'code' => 'ERYDN',
         ]);
     }
 

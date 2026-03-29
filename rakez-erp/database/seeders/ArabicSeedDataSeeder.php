@@ -14,6 +14,7 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Arr;
 use Carbon\Carbon;
+use App\Support\ContractCodeGenerator;
 
 class ArabicSeedDataSeeder extends Seeder
 {
@@ -100,7 +101,7 @@ class ArabicSeedDataSeeder extends Seeder
                 []
             );
             $projectImage = $realEstateImages ? Arr::random($realEstateImages) : 'https://via.placeholder.com/800x600';
-            $contract = Contract::create(array_merge(
+            $contractRow = array_merge(
                 Arr::except($projectData, ['city', 'district']),
                 [
                     'user_id' => $salesLeader->id,
@@ -112,7 +113,9 @@ class ArabicSeedDataSeeder extends Seeder
                     'commission_percent' => round(rand(20, 40) / 10, 2),
                     'commission_from' => 'المالك',
                 ]
-            ));
+            );
+            ContractCodeGenerator::assignCodeToDataArray($contractRow);
+            $contract = Contract::create($contractRow);
 
             ContractInfo::create([
                 'contract_id' => $contract->id,

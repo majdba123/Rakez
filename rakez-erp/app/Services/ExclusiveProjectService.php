@@ -14,6 +14,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Pagination\LengthAwarePaginator;
 use App\Services\Pdf\PdfFactory;
+use App\Support\ContractCodeGenerator;
 use Exception;
 
 class ExclusiveProjectService
@@ -223,8 +224,7 @@ class ExclusiveProjectService
                 );
             }
 
-            // Create the contract
-            $contract = Contract::create([
+            $payload = [
                 'user_id' => $request->requested_by,
                 'project_name' => $request->project_name,
                 'developer_name' => $request->developer_name,
@@ -234,7 +234,10 @@ class ExclusiveProjectService
                 'units' => $contractData['units'] ?? [],
                 'status' => 'pending',
                 'notes' => $contractData['notes'] ?? "Created from exclusive project request #{$request->id}",
-            ]);
+            ];
+            ContractCodeGenerator::assignCodeToDataArray($payload);
+
+            $contract = Contract::create($payload);
 
             // Mark request as completed
             $request->completeContract($contract);

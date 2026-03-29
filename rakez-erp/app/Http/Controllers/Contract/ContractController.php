@@ -194,6 +194,8 @@ class ContractController extends Controller
                 'developer_name' => (string) ($contract->developer_name ?? ''),
                 'city' => (string) ($contract->city?->name ?? ''),
                 'district' => (string) ($contract->district?->name ?? ''),
+                'side' => $contract->side,
+                'contract_type' => (string) ($contract->contract_type ?? ''),
                 'status' => (string) ($contract->status ?? ''),
                 'notes' => (string) ($contract->notes ?? ''),
                 'created_at' => $contract->created_at?->toIso8601String() ?? '',
