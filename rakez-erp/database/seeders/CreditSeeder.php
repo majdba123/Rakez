@@ -140,7 +140,7 @@ class CreditSeeder extends Seeder
         $soldIdsWithClaimFile = array_slice($soldIds, 0, $soldWithClaimFileCount);
 
         foreach ($soldIdsWithClaimFile as $reservationId) {
-            $reservation = SalesReservation::with(['contract.info', 'contractUnit', 'marketingEmployee.team', 'titleTransfer'])
+            $reservation = SalesReservation::with(['contract.info', 'contract.city', 'contract.district', 'contractUnit', 'marketingEmployee.team', 'titleTransfer'])
                 ->find($reservationId);
             if (!$reservation) {
                 continue;
@@ -152,8 +152,8 @@ class CreditSeeder extends Seeder
 
             $fileData = [
                 'project_name' => $contract?->project_name ?? $info?->project_name ?? 'مشروع بذور',
-                'project_location' => $contract?->city ?? null,
-                'project_district' => $contract?->district ?? null,
+                'project_location' => $contract?->city?->name ?? null,
+                'project_district' => $contract?->district?->name ?? null,
                 'unit_number' => $unit?->unit_number ?? null,
                 'unit_type' => $unit?->unit_type ?? null,
                 'unit_area' => $unit?->area ?? null,

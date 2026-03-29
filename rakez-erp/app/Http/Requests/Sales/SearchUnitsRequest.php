@@ -14,6 +14,8 @@ class SearchUnitsRequest extends FormRequest
     public function rules(): array
     {
         return [
+            'city_id'      => 'nullable|integer|exists:cities,id',
+            'district_id'  => 'nullable|integer|exists:districts,id',
             'city'         => 'nullable|string|max:255',
             'district'     => 'nullable|string|max:255',
             'min_area'     => 'nullable|numeric|min:0',

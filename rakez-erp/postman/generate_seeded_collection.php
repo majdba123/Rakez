@@ -362,8 +362,8 @@ function exampleBody(string $method, string $uri): ?array
     $key = $method . ' ' . $uri;
     $map = [
         'POST api/logout' => [],
-        'POST api/contracts/store' => ['developer_name' => 'شركة التطوير التجريبية', 'developer_number' => '+966500000999', 'city' => 'الرياض', 'district' => 'حي النرجس', 'project_name' => 'مشروع واجهة الفرونت', 'developer_requiment' => 'رفع صور ومخططات وتسليم خلال 30 يوم', 'notes' => 'مثال جاهز', 'units' => [['type' => 'شقة', 'count' => 2, 'price' => 650000]]],
-        'PUT api/contracts/update/{id}' => ['city' => 'جدة', 'district' => 'حي الزهراء', 'notes' => 'تحديث من بوستمان'],
+        'POST api/contracts/store' => ['developer_name' => 'شركة التطوير التجريبية', 'developer_number' => '+966500000999', 'city_id' => 1, 'district_id' => 1, 'project_name' => 'مشروع واجهة الفرونت', 'developer_requiment' => 'رفع صور ومخططات وتسليم خلال 30 يوم', 'notes' => 'مثال جاهز', 'units' => [['type' => 'شقة', 'count' => 2, 'price' => 650000]]],
+        'PUT api/contracts/update/{id}' => ['city_id' => 1, 'district_id' => 1, 'notes' => 'تحديث من بوستمان'],
         'POST api/contracts/store/info/{id}' => ['gregorian_date' => '{{today}}', 'contract_city' => 'الرياض', 'second_party_name' => 'شركة الطرف الثاني', 'second_party_email' => 'secondparty@example.com'],
         'POST api/second-party-data/store/{id}' => ['project_logo_url' => 'https://example.com/logo.png', 'marketing_license_url' => 'https://example.com/license.pdf', 'advertiser_section_url' => '125712612'],
         'PUT api/second-party-data/update/{id}' => ['project_logo_url' => 'https://example.com/logo-updated.png'],

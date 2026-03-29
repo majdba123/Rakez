@@ -51,7 +51,7 @@ class SalesReservationService
             }
 
             // Load contract and related data for snapshot
-            $contract = Contract::with(['info', 'secondPartyData'])->findOrFail($data['contract_id']);
+            $contract = Contract::with(['info', 'secondPartyData', 'city', 'district'])->findOrFail($data['contract_id']);
 
             // Determine initial status based on reservation type
             $status = $data['reservation_type'] === 'negotiation' 
@@ -62,8 +62,8 @@ class SalesReservationService
             $snapshot = [
                 'project' => [
                     'name' => $contract->project_name,
-                    'city' => $contract->city,
-                    'district' => $contract->district,
+                    'city' => $contract->city?->name,
+                    'district' => $contract->district?->name,
                     'developer_name' => $contract->developer_name,
                     'developer_number' => $contract->developer_number,
                 ],

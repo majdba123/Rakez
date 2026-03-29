@@ -36,7 +36,7 @@ class SalesAttendanceResource extends JsonResource
             'end_time' => $this->end_time,
             'project_id' => $this->contract_id,
             'project_name' => $this->contract->project_name ?? 'N/A',
-            'project_location' => trim(($this->contract->city ?? '') . ', ' . ($this->contract->district ?? ''), ', '),
+            'project_location' => trim(($this->contract->city?->name ?? '') . ', ' . ($this->contract->district?->name ?? ''), ', '),
         ];
     }
 }

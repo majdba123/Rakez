@@ -158,7 +158,7 @@ class DeveloperService
         $contracts = $baseQuery
             ->where('developer_number', $developerNumber)
             ->where('developer_name', $developerName)
-            ->with(['units', 'teams', 'user'])
+            ->with(['units', 'teams', 'user', 'city', 'district'])
             ->orderBy('project_name')
             ->get();
 
@@ -169,8 +169,8 @@ class DeveloperService
                 'id' => $contract->id,
                 'project_name' => $contract->project_name,
                 'status' => $contract->status,
-                'city' => $contract->city,
-                'district' => $contract->district,
+                'city' => $contract->city?->name,
+                'district' => $contract->district?->name,
                 'units_count' => $unitsCount,
                 'created_at' => $contract->created_at?->toIso8601String(),
             ];

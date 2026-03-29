@@ -3,6 +3,7 @@
 namespace Database\Factories;
 
 use App\Models\Contract;
+use App\Models\District;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
@@ -17,13 +18,15 @@ class ContractFactory extends Factory
 
         $projects = ['مشروع سكني', 'برج سكني', 'مجمع فلل', 'عمارة وحدات'];
         $developers = ['شركة الراجحي للتطوير', 'مؤسسة دار الأركان', 'مجموعة إعمار العقارية'];
+        $district = District::factory()->create();
+
         return [
             'user_id' => User::factory(),
             'project_name' => $projects[array_rand($projects)] . ' ' . $this->faker->numberBetween(1, 99),
             'developer_name' => $developers[array_rand($developers)],
             'developer_number' => '+966' . $this->faker->numerify('########'),
-            'city' => $this->faker->randomElement(['الرياض', 'جدة', 'الدمام']),
-            'district' => $this->faker->randomElement(['حي النخيل', 'حي العليا', 'حي الشفا']),
+            'city_id' => $district->city_id,
+            'district_id' => $district->id,
             'units' => [],
             'project_image_url' => $projectImage,
             'developer_requiment' => $this->faker->sentence(),

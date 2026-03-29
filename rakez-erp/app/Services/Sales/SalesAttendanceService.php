@@ -17,7 +17,7 @@ class SalesAttendanceService
     public function getMyAttendance(User $user, array $filters): Collection
     {
         $query = SalesAttendanceSchedule::where('user_id', $user->id)
-            ->with('contract');
+            ->with(['contract.city', 'contract.district']);
 
         if (!empty($filters['from']) || !empty($filters['to'])) {
             $query->where(function ($q) use ($filters) {
@@ -44,7 +44,7 @@ class SalesAttendanceService
         $teamMemberIds = User::where('team_id', $leader->team_id)->pluck('id');
 
         $query = SalesAttendanceSchedule::whereIn('user_id', $teamMemberIds)
-            ->with(['user', 'contract']);
+            ->with(['user', 'contract.city', 'contract.district']);
 
         // Apply filters
         if (!empty($filters['from']) || !empty($filters['to'])) {
@@ -130,7 +130,7 @@ class SalesAttendanceService
      */
     public function getProjectAttendanceOverview(int $contractId, string $date, User $leader): array
     {
-        $contract = Contract::findOrFail($contractId);
+        $contract = Contract::with(['city', 'district'])->findOrFail($contractId);
 
         $teamMembers = $this->getLeaderTeamMembers($leader);
         $memberIds = $teamMembers->pluck('id');
@@ -163,7 +163,7 @@ class SalesAttendanceService
             'project' => [
                 'id' => $contract->id,
                 'name' => $contract->project_name,
-                'location' => trim(($contract->city ?? '') . ', ' . ($contract->district ?? ''), ', '),
+                'location' => trim(($contract->city?->name ?? '') . ', ' . ($contract->district?->name ?? ''), ', '),
             ],
             'date' => $date,
             'server_date' => $now->format('Y-m-d'),
@@ -213,7 +213,7 @@ class SalesAttendanceService
     {
         $date = $data['date'];
         $schedules = $data['schedules'];
-        $contract = Contract::findOrFail($contractId);
+        $contract = Contract::with(['city', 'district'])->findOrFail($contractId);
 
         $teamMemberIds = $this->getLeaderTeamMembers($leader)->pluck('id')->toArray();
 

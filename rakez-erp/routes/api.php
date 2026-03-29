@@ -79,6 +79,8 @@ use App\Http\Controllers\HR\EmployeeWarningController;
 use App\Http\Controllers\HR\MarketerPerformanceController;
 use App\Http\Controllers\MyTasksController;
 use App\Http\Controllers\TaskMetaController;
+use App\Http\Controllers\Admin\CityController;
+use App\Http\Controllers\Admin\DistrictController;
 
 use Illuminate\Support\Facades\File;  // أضف هذا السطر في الأعلى
 
@@ -434,6 +436,26 @@ Route::middleware('auth:sanctum')->group(function () {
             // ==========================================
             Route::prefix('sales')->group(function () {
                 Route::post('project-assignments', [SalesProjectController::class, 'assignProject'])->middleware('permission:sales.team.manage');
+            });
+
+            // Cities reference data (admin only)
+            Route::prefix('cities')->group(function () {
+                Route::get('/', [CityController::class, 'index']);
+                Route::post('/', [CityController::class, 'store']);
+                Route::get('/{id}', [CityController::class, 'show'])->whereNumber('id');
+                Route::put('/{id}', [CityController::class, 'update'])->whereNumber('id');
+                Route::patch('/{id}', [CityController::class, 'update'])->whereNumber('id');
+                Route::delete('/{id}', [CityController::class, 'destroy'])->whereNumber('id');
+            });
+
+            // Districts (belongs to city; admin only)
+            Route::prefix('districts')->group(function () {
+                Route::get('/', [DistrictController::class, 'index']);
+                Route::post('/', [DistrictController::class, 'store']);
+                Route::get('/{id}', [DistrictController::class, 'show'])->whereNumber('id');
+                Route::put('/{id}', [DistrictController::class, 'update'])->whereNumber('id');
+                Route::patch('/{id}', [DistrictController::class, 'update'])->whereNumber('id');
+                Route::delete('/{id}', [DistrictController::class, 'destroy'])->whereNumber('id');
             });
         });
 

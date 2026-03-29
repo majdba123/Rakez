@@ -37,8 +37,8 @@ class SalesProjectController extends Controller
             $filters = [
                 'status' => $request->query('status'),
                 'q' => $request->query('q'),
-                'city' => $request->query('city'),
-                'district' => $request->query('district'),
+                'city_id' => $request->query('city_id'),
+                'district_id' => $request->query('district_id'),
                 'scope' => $request->query('scope', $defaultScope),
                 'per_page' => $request->query('per_page', 15),
             ];

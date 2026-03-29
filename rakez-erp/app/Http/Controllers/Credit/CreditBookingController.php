@@ -362,6 +362,8 @@ class CreditBookingController extends Controller
             $reservation = SalesReservation::with([
                 'contract.info',
                 'contract.teams',
+                'contract.city',
+                'contract.district',
                 'contractUnit',
                 'marketingEmployee.team',
                 'financingTracker.assignedUser',
@@ -384,8 +386,8 @@ class CreditBookingController extends Controller
                     'project' => [
                         'id' => $reservation->contract?->id,
                         'name' => $reservation->contract?->project_name ?? $reservation->contract?->info?->project_name ?? 'غير محدد',
-                        'district' => $reservation->contract?->district ?? '',
-                        'city' => $reservation->contract?->city ?? '',
+                        'district' => $reservation->contract?->district?->name ?? '',
+                        'city' => $reservation->contract?->city?->name ?? '',
                         'property_type' => $reservation->contractUnit?->unit_type ?? '',
                         'unit_value' => $reservation->contractUnit?->price,
                     ],

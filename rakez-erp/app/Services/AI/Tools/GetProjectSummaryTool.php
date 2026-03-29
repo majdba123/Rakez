@@ -18,7 +18,7 @@ class GetProjectSummaryTool implements ToolContract
             return ToolResponse::error('project_id is required.');
         }
 
-        $project = Contract::with(['units', 'reservations'])->find($projectId);
+        $project = Contract::with(['units', 'reservations', 'city', 'district'])->find($projectId);
 
         if (! $project) {
             return ToolResponse::error("Project #{$projectId} not found.");
@@ -35,8 +35,8 @@ class GetProjectSummaryTool implements ToolContract
             'id' => $project->id,
             'project_name' => $project->project_name,
             'developer_name' => $project->developer_name,
-            'city' => $project->city,
-            'district' => $project->district,
+            'city' => $project->city?->name,
+            'district' => $project->district?->name,
             'status' => $project->status,
             'is_off_plan' => $project->is_off_plan,
             'total_units' => $totalUnits,

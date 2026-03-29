@@ -22,7 +22,9 @@ class SalesProjectService
             'secondPartyData.contractUnits',
             'montageDepartment',
             'salesProjectAssignments.leader',
-            'user'
+            'user',
+            'city',
+            'district',
         ])->where('status', 'completed');
 
         // Apply filters
@@ -30,12 +32,12 @@ class SalesProjectService
             $query->where('project_name', 'like', '%' . $filters['q'] . '%');
         }
 
-        if (!empty($filters['city'])) {
-            $query->where('city', $filters['city']);
+        if (!empty($filters['city_id'])) {
+            $query->where('city_id', (int) $filters['city_id']);
         }
 
-        if (!empty($filters['district'])) {
-            $query->where('district', $filters['district']);
+        if (!empty($filters['district_id'])) {
+            $query->where('district_id', (int) $filters['district_id']);
         }
 
         // Sales user sees all completed contracts (no assignment/scope filter).
@@ -82,7 +84,9 @@ class SalesProjectService
             'montageDepartment',
             'info',
             'salesProjectAssignments.leader',
-            'user'
+            'user',
+            'city',
+            'district',
         ])->findOrFail($contractId);
 
         $contract->sales_status = $this->computeProjectSalesStatus($contract);
@@ -442,7 +446,7 @@ class SalesProjectService
     public function getTeamProjects(User $leader): \Illuminate\Database\Eloquent\Collection
     {
         return Contract::where('status', 'completed')
-            ->with(['secondPartyData.contractUnits', 'salesProjectAssignments.leader', 'user'])
+            ->with(['secondPartyData.contractUnits', 'salesProjectAssignments.leader', 'user', 'city', 'district'])
             ->orderBy('created_at', 'desc')
             ->get();
     }
@@ -457,7 +461,7 @@ class SalesProjectService
     public function listTeamProjectsPaginated(User $leader, int $perPage = 15): LengthAwarePaginator
     {
         $query = Contract::where('status', 'completed')
-            ->with(['secondPartyData.contractUnits', 'salesProjectAssignments.leader', 'user'])
+            ->with(['secondPartyData.contractUnits', 'salesProjectAssignments.leader', 'user', 'city', 'district'])
             ->orderBy('created_at', 'desc');
 
         $projects = $query->paginate($perPage);

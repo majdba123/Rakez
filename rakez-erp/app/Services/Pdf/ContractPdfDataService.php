@@ -28,7 +28,7 @@ class ContractPdfDataService
 
     public function getFillData(Contract $contract): array
     {
-        $contract->loadMissing(['info', 'secondPartyData.contractUnits']);
+        $contract->loadMissing(['info', 'secondPartyData.contractUnits', 'city', 'district']);
         $info = $contract->info;
         $spd = $contract->secondPartyData;
 
@@ -52,13 +52,13 @@ class ContractPdfDataService
 
         $payload = [
             'units_count' => (string) $unitsCount,
-            'district' => (string) ($contract->district ?? ''),
+            'district' => (string) ($contract->district?->name ?? ''),
             'unit_type' => $this->resolveUnitType($contract),
             'project_name' => (string) ($contract->project_name ?? ''),
             'gregorian_date' => $gregorianDate->format('d-m-Y'),
             'hijri_date' => (string) ($info->hijri_date ?? ''),
             'contract_day' => $contractDay,
-            'contract_city' => (string) ($info->contract_city ?? $contract->city ?? ''),
+            'contract_city' => (string) ($info->contract_city ?? $contract->city?->name ?? ''),
             'second_party_cr_number' => (string) ($info->second_party_cr_number ?? ''),
             'second_party_id' => (string) ($info->second_party_id_number ?? ''),
             'second_party_name' => (string) ($info->second_party_name ?? ''),

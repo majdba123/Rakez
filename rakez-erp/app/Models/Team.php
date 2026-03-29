@@ -108,9 +108,10 @@ class Team extends Model
     public function getProjectLocations(): array
     {
         return $this->contracts()
-            ->whereNotNull('city')
+            ->whereNotNull('city_id')
+            ->join('cities', 'contracts.city_id', '=', 'cities.id')
             ->distinct()
-            ->pluck('city')
+            ->pluck('cities.name')
             ->toArray();
     }
 }

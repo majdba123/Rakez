@@ -1,0 +1,190 @@
+{
+  "info": {
+    "_postman_id": "a7b2e9c1-4f3a-5d6b-8e0c-1a2b3c4d5e6f",
+    "name": "Rakez ERP - Admin Cities & Districts",
+    "description": "CRUD for reference cities (name, code) and districts (name, city_id). Requires **admin** role.\n\n**Auth:** Bearer token (Sanctum). Set `token` collection variable after login.\n\n### Cities — GET index query params\n- `q` — search in name or code (partial)\n- `name` — filter name (partial)\n- `code` — filter code (partial)\n- `sort` — `name` | `code` | `id` | `created_at` | `updated_at` (default: name)\n- `direction` — `asc` | `desc` (default: asc)\n- `created_from` / `created_to` — date (YYYY-MM-DD) on created_at\n- `has_districts` — `1` = cities with at least one district, `0` = cities with none\n- `per_page` — 1–100 (default 15)\n\n### Districts — GET index query params\n- `q` — search district name OR related city name/code\n- `name` — filter district name (partial)\n- `city_id` — filter by city id\n- `city_code` — filter by related city code (partial)\n- `sort` — `name` | `id` | `city_id` | `created_at` | `updated_at`\n- `direction` — `asc` | `desc`\n- `created_from` / `created_to` — date on district created_at\n- `per_page` — 1–100",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:8000" },
+    { "key": "token", "value": "" },
+    { "key": "cityId", "value": "1" },
+    { "key": "districtId", "value": "1" }
+  ],
+  "auth": {
+    "type": "bearer",
+    "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }]
+  },
+  "item": [
+    {
+      "name": "Cities",
+      "item": [
+        {
+          "name": "List cities (index + filters)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/cities?q=&name=&code=&sort=name&direction=asc&created_from=&created_to=&has_districts=&per_page=15",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "admin", "cities"],
+              "query": [
+                { "key": "q", "value": "", "description": "Search name or code" },
+                { "key": "name", "value": "", "description": "Filter name contains" },
+                { "key": "code", "value": "", "description": "Filter code contains" },
+                { "key": "sort", "value": "name", "description": "name|code|id|created_at|updated_at" },
+                { "key": "direction", "value": "asc", "description": "asc|desc" },
+                { "key": "created_from", "value": "", "description": "YYYY-MM-DD" },
+                { "key": "created_to", "value": "", "description": "YYYY-MM-DD" },
+                { "key": "has_districts", "value": "", "description": "1 or 0" },
+                { "key": "per_page", "value": "15" }
+              ]
+            },
+            "description": "Paginated list. Omit empty query keys as needed."
+          }
+        },
+        {
+          "name": "Create city",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"الرياض\",\n  \"code\": \"RYD\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/cities",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "admin", "cities"]
+            }
+          }
+        },
+        {
+          "name": "Show city",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/cities/{{cityId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "admin", "cities", "{{cityId}}"]
+            }
+          }
+        },
+        {
+          "name": "Update city",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"الرياض\",\n  \"code\": \"RYD\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/cities/{{cityId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "admin", "cities", "{{cityId}}"]
+            }
+          }
+        },
+        {
+          "name": "Delete city",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/cities/{{cityId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "admin", "cities", "{{cityId}}"]
+            },
+            "description": "Deletes city; districts are cascade-deleted if FK is set."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Districts",
+      "item": [
+        {
+          "name": "List districts (index + filters)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/districts?q=&name=&city_id=&city_code=&sort=name&direction=asc&created_from=&created_to=&per_page=15",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "admin", "districts"],
+              "query": [
+                { "key": "q", "value": "", "description": "District name OR city name/code" },
+                { "key": "name", "value": "", "description": "Filter district name" },
+                { "key": "city_id", "value": "", "description": "Numeric city id" },
+                { "key": "city_code", "value": "", "description": "Filter by city code (partial)" },
+                { "key": "sort", "value": "name", "description": "name|id|city_id|created_at|updated_at" },
+                { "key": "direction", "value": "asc", "description": "asc|desc" },
+                { "key": "created_from", "value": "", "description": "YYYY-MM-DD" },
+                { "key": "created_to", "value": "", "description": "YYYY-MM-DD" },
+                { "key": "per_page", "value": "15" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Create district",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"city_id\": 1,\n  \"name\": \"حي الملقا\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/districts",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "admin", "districts"]
+            }
+          }
+        },
+        {
+          "name": "Show district",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/districts/{{districtId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "admin", "districts", "{{districtId}}"]
+            }
+          }
+        },
+        {
+          "name": "Update district",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"city_id\": 1,\n  \"name\": \"حي الملقا\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/districts/{{districtId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "admin", "districts", "{{districtId}}"]
+            }
+          }
+        },
+        {
+          "name": "Delete district",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/districts/{{districtId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "admin", "districts", "{{districtId}}"]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,143 @@
+<?php
+
+namespace App\Http\Controllers\Admin;
+
+use App\Http\Controllers\Controller;
+use App\Http\Requests\Admin\StoreCityRequest;
+use App\Http\Requests\Admin\UpdateCityRequest;
+use App\Http\Responses\ApiResponse;
+use App\Models\City;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
+
+class CityController extends Controller
+{
+    public function index(Request $request): JsonResponse
+    {
+        $request->validate([
+            'q' => ['nullable', 'string', 'max:255'],
+            'name' => ['nullable', 'string', 'max:255'],
+            'code' => ['nullable', 'string', 'max:64'],
+            'sort' => ['nullable', 'string', 'in:name,code,id,created_at,updated_at'],
+            'direction' => ['nullable', 'string', 'in:asc,desc'],
+            'created_from' => ['nullable', 'date'],
+            'created_to' => ['nullable', 'date', 'after_or_equal:created_from'],
+            'has_districts' => ['nullable'],
+            'per_page' => ['nullable', 'integer', 'min:1', 'max:100'],
+        ]);
+
+        $perPage = ApiResponse::getPerPage($request);
+
+        $query = City::query();
+
+        if ($request->has('has_districts') && $request->input('has_districts') !== null && $request->input('has_districts') !== '') {
+            $v = $request->input('has_districts');
+            if ($v === '1' || $v === 1 || $v === true) {
+                $query->whereHas('districts');
+            } elseif ($v === '0' || $v === 0 || $v === false) {
+                $query->whereDoesntHave('districts');
+            }
+        }
+
+        if ($q = trim((string) $request->input('q', ''))) {
+            $query->where(function ($sub) use ($q) {
+                $sub->where('name', 'like', '%' . $q . '%')
+                    ->orWhere('code', 'like', '%' . $q . '%');
+            });
+        }
+
+        if ($name = trim((string) $request->input('name', ''))) {
+            $query->where('name', 'like', '%' . $name . '%');
+        }
+
+        if ($code = trim((string) $request->input('code', ''))) {
+            $query->where('code', 'like', '%' . $code . '%');
+        }
+
+        if ($request->filled('created_from')) {
+            $query->whereDate('created_at', '>=', $request->input('created_from'));
+        }
+        if ($request->filled('created_to')) {
+            $query->whereDate('created_at', '<=', $request->input('created_to'));
+        }
+
+        $sortField = match ($request->input('sort', 'name')) {
+            'code' => 'code',
+            'id' => 'id',
+            'created_at' => 'created_at',
+            'updated_at' => 'updated_at',
+            default => 'name',
+        };
+        $direction = strtolower((string) $request->input('direction', 'asc')) === 'desc' ? 'desc' : 'asc';
+        $query->orderBy($sortField, $direction);
+
+        $cities = $query->paginate($perPage);
+
+        return ApiResponse::paginated($cities, 'تم جلب قائمة المدن بنجاح');
+    }
+
+    public function store(StoreCityRequest $request): JsonResponse
+    {
+        $city = City::create($request->validated());
+
+        return ApiResponse::created(
+            [
+                'id' => $city->id,
+                'name' => $city->name,
+                'code' => $city->code,
+                'created_at' => $city->created_at?->toIso8601String(),
+                'updated_at' => $city->updated_at?->toIso8601String(),
+            ],
+            'تم إنشاء المدينة بنجاح'
+        );
+    }
+
+    public function show(int $id): JsonResponse
+    {
+        $city = City::find($id);
+
+        if (!$city) {
+            return ApiResponse::notFound('المدينة غير موجودة');
+        }
+
+        return ApiResponse::success([
+            'id' => $city->id,
+            'name' => $city->name,
+            'code' => $city->code,
+            'created_at' => $city->created_at?->toIso8601String(),
+            'updated_at' => $city->updated_at?->toIso8601String(),
+        ], 'تم جلب المدينة بنجاح');
+    }
+
+    public function update(UpdateCityRequest $request, int $id): JsonResponse
+    {
+        $city = City::find($id);
+
+        if (!$city) {
+            return ApiResponse::notFound('المدينة غير موجودة');
+        }
+
+        $city->update($request->validated());
+
+        return ApiResponse::success([
+            'id' => $city->id,
+            'name' => $city->name,
+            'code' => $city->code,
+            'created_at' => $city->created_at?->toIso8601String(),
+            'updated_at' => $city->updated_at?->toIso8601String(),
+        ], 'تم تحديث المدينة بنجاح');
+    }
+
+    public function destroy(int $id): JsonResponse
+    {
+        $city = City::find($id);
+
+        if (!$city) {
+            return ApiResponse::notFound('المدينة غير موجودة');
+        }
+
+        $city->delete();
+
+        return ApiResponse::success(null, 'تم حذف المدينة بنجاح');
+    }
+}

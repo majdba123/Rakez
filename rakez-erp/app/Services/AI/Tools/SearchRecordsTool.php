@@ -81,10 +81,12 @@ class SearchRecordsTool implements ToolContract
 
     private function searchProjects(User $user, string $query, int $limit): array
     {
-        $builder = Contract::where(function ($q) use ($query) {
+        $builder = Contract::with('city')->where(function ($q) use ($query) {
             $q->where('project_name', 'LIKE', "%{$query}%")
                 ->orWhere('developer_name', 'LIKE', "%{$query}%")
-                ->orWhere('city', 'LIKE', "%{$query}%");
+                ->orWhereHas('city', function ($cq) use ($query) {
+                    $cq->where('name', 'LIKE', "%{$query}%");
+                });
         });
 
         if (! $user->can('contracts.view_all')) {
@@ -95,7 +97,7 @@ class SearchRecordsTool implements ToolContract
             'id' => $c->id,
             'label' => $c->project_name,
             'developer' => $c->developer_name,
-            'city' => $c->city,
+            'city' => $c->city?->name,
             'status' => $c->status,
         ])->toArray();
     }

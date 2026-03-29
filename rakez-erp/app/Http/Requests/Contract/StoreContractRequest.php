@@ -3,6 +3,7 @@
 namespace App\Http\Requests\Contract;
 
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class StoreContractRequest extends FormRequest
 {
@@ -62,8 +63,12 @@ class StoreContractRequest extends FormRequest
         return [
             'developer_name' => 'required|string|max:255',
             'developer_number' => 'required|string|max:255',
-            'city' => 'required|string|max:255',
-            'district' => 'required|string|max:255',
+            'city_id' => ['required', 'integer', 'exists:cities,id'],
+            'district_id' => [
+                'required',
+                'integer',
+                Rule::exists('districts', 'id')->where(fn ($q) => $q->where('city_id', (int) $this->input('city_id'))),
+            ],
             'project_name' => 'required|string|max:255',
             'project_image_url' => 'nullable|string|max:500',
             'developer_requiment' => 'required|string',
@@ -89,8 +94,10 @@ class StoreContractRequest extends FormRequest
             'project_name.string' => 'اسم المشروع يجب أن يكون نصًا',
             'project_name.max' => 'اسم المشروع لا يجب أن يتجاوز 255 حرف',
             'developer_number.required' => 'رقم المطور مطلوب',
-            'city.required' => 'المدينة مطلوبة',
-            'district.required' => 'الحي مطلوب',
+            'city_id.required' => 'المدينة مطلوبة',
+            'city_id.exists' => 'المدينة غير موجودة',
+            'district_id.required' => 'الحي مطلوب',
+            'district_id.exists' => 'الحي غير موجود أو لا يتبع المدينة المختارة',
             'units.required' => 'يجب إضافة وحدة واحدة على الأقل',
             'units.array' => 'الوحدات يجب أن تكون مصفوفة',
             'units.min' => 'يجب إضافة وحدة واحدة على الأقل',

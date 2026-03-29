@@ -2,7 +2,10 @@
 
 namespace App\Http\Requests\Contract;
 
+use App\Models\Contract;
+use App\Models\District;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class UpdateContractRequest extends FormRequest
 {
@@ -61,8 +64,8 @@ class UpdateContractRequest extends FormRequest
             'project_name' => 'sometimes|string|max:255',
             'project_image_url' => 'nullable|string|max:500',
             'developer_name' => 'sometimes|string|max:255',
-            'city' => 'sometimes|string|max:255',
-            'district' => 'sometimes|string|max:255',
+            'city_id' => ['sometimes', 'required', 'integer', 'exists:cities,id'],
+            'district_id' => ['sometimes', 'required', 'integer', 'exists:districts,id'],
             'developer_requiment' => 'sometimes|string',
             'notes' => 'nullable|string',
             'commission_percent' => 'nullable|numeric|min:0',
@@ -76,6 +79,33 @@ class UpdateContractRequest extends FormRequest
         ];
     }
 
+    public function withValidator($validator): void
+    {
+        $validator->after(function ($validator) {
+            $contractId = (int) $this->route('id');
+            $contract = Contract::find($contractId);
+            $cityId = $this->filled('city_id')
+                ? (int) $this->input('city_id')
+                : (int) ($contract?->city_id ?? 0);
+            $districtId = $this->filled('district_id')
+                ? (int) $this->input('district_id')
+                : (int) ($contract?->district_id ?? 0);
+
+            if ($cityId < 1 || $districtId < 1) {
+                return;
+            }
+
+            $belongs = District::query()
+                ->where('id', $districtId)
+                ->where('city_id', $cityId)
+                ->exists();
+
+            if (!$belongs) {
+                $validator->errors()->add('district_id', 'الحي لا يتبع المدينة المحددة');
+            }
+        });
+    }
+
     /**
      * Get custom messages for validation errors.
      */
@@ -84,8 +114,8 @@ class UpdateContractRequest extends FormRequest
         return [
             'project_name.string' => 'اسم المشروع يجب أن يكون نصًا',
             'project_name.max' => 'اسم المشروع لا يجب أن يتجاوز 255 حرف',
-            'city.string' => 'المدينة يجب أن تكون نصًا',
-            'district.string' => 'الحي يجب أن يكون نصًا',
+            'city_id.exists' => 'المدينة غير موجودة',
+            'district_id.exists' => 'الحي غير موجود',
             'units.array' => 'الوحدات يجب أن تكون مصفوفة',
             'units.min' => 'يجب إضافة وحدة واحدة على الأقل',
             'units.*.type.required_with' => 'نوع الوحدة مطلوب',

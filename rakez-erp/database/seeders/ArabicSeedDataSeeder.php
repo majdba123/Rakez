@@ -4,7 +4,9 @@ namespace Database\Seeders;
 
 use Illuminate\Database\Seeder;
 use App\Models\User;
+use App\Models\City;
 use App\Models\Contract;
+use App\Models\District;
 use App\Models\ContractInfo;
 use App\Models\ContractUnit;
 use App\Models\SecondPartyData;
@@ -85,16 +87,32 @@ class ArabicSeedDataSeeder extends Seeder
         $realEstateImages = config('unsplash_images.real_estate', []);
         $logoThumbs = config('unsplash_images.logo_thumb', []);
 
-        foreach ($projects as $projectData) {
+        foreach ($projects as $idx => $projectData) {
+            $city = City::firstOrCreate(
+                ['name' => $projectData['city']],
+                ['code' => 'AR' . str_pad((string) ($idx + 1), 2, '0', STR_PAD_LEFT)]
+            );
+            $district = District::firstOrCreate(
+                [
+                    'city_id' => $city->id,
+                    'name' => $projectData['district'],
+                ],
+                []
+            );
             $projectImage = $realEstateImages ? Arr::random($realEstateImages) : 'https://via.placeholder.com/800x600';
-            $contract = Contract::create(array_merge($projectData, [
-                'user_id' => $salesLeader->id,
-                'project_image_url' => $projectImage,
-                'emergency_contact_number' => '0500000001',
-                'security_guard_number' => '0500000002',
-                'commission_percent' => round(rand(20, 40) / 10, 2),
-                'commission_from' => 'المالك',
-            ]));
+            $contract = Contract::create(array_merge(
+                Arr::except($projectData, ['city', 'district']),
+                [
+                    'user_id' => $salesLeader->id,
+                    'city_id' => $city->id,
+                    'district_id' => $district->id,
+                    'project_image_url' => $projectImage,
+                    'emergency_contact_number' => '0500000001',
+                    'security_guard_number' => '0500000002',
+                    'commission_percent' => round(rand(20, 40) / 10, 2),
+                    'commission_from' => 'المالك',
+                ]
+            ));
 
             ContractInfo::create([
                 'contract_id' => $contract->id,

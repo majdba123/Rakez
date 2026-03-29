@@ -60,10 +60,6 @@ class ContractPolicy
             return true;
         }
 
-        if ($user->can('contracts.view')) {
-            return true;
-        }
-
         if ($contract->user_id === $user->id) {
             return true;
         }

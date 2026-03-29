@@ -3,7 +3,9 @@
 namespace Database\Seeders;
 
 use App\Models\BoardsDepartment;
+use App\Models\City;
 use App\Models\Contract;
+use App\Models\District;
 use App\Models\ContractInfo;
 use App\Models\ContractUnit;
 use App\Models\MontageDepartment;
@@ -43,6 +45,8 @@ class ContractsSeeder extends Seeder
 
     public function run(): void
     {
+        $this->ensureCitiesAndDistricts();
+
         $counts = SeedCounts::all();
         $totalContracts = (int) $counts['contracts'];
         $developerCount = count($this->developerList);
@@ -81,13 +85,14 @@ class ContractsSeeder extends Seeder
             $logoUrl = $logoThumbs ? Arr::random($logoThumbs) : 'https://via.placeholder.com/150';
             $deptImage = $realEstateImages ? Arr::random($realEstateImages) : 'https://via.placeholder.com/1200x800';
 
+            $district = District::query()->inRandomOrder()->first();
             $contract = Contract::factory()->create([
                 'user_id' => $ownerId,
                 'project_name' => $this->projectNames[$i % count($this->projectNames)] . ' ' . ($i + 1),
                 'developer_name' => $developer['name'],
                 'developer_number' => $developer['number'],
-                'city' => Arr::random($this->cities),
-                'district' => Arr::random($this->districts),
+                'city_id' => $district->city_id,
+                'district_id' => $district->id,
                 'status' => $status,
                 'is_off_plan' => $isOffPlan,
                 'project_image_url' => $projectImage,
@@ -166,6 +171,28 @@ class ContractsSeeder extends Seeder
                 $teamCount = fake()->numberBetween(2, 3);
                 $attachIds = Arr::random($teamIds, $teamCount);
                 $contract->teams()->syncWithoutDetaching($attachIds);
+            }
+        }
+    }
+
+    /**
+     * Seed cities and districts so contracts can reference them by id.
+     */
+    public function ensureCitiesAndDistricts(): void
+    {
+        foreach ($this->cities as $index => $cityName) {
+            $city = City::firstOrCreate(
+                ['name' => $cityName],
+                ['code' => 'C' . str_pad((string) ($index + 1), 3, '0', STR_PAD_LEFT)]
+            );
+            foreach ($this->districts as $districtName) {
+                District::firstOrCreate(
+                    [
+                        'city_id' => $city->id,
+                        'name' => $districtName,
+                    ],
+                    []
+                );
             }
         }
     }

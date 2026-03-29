@@ -209,14 +209,28 @@ class ExclusiveProjectService
                 throw new Exception('Request must be approved before completing contract');
             }
 
+            $city = \App\Models\City::query()->where('name', $request->location_city)->first();
+            $district = null;
+            if ($city && $request->location_district) {
+                $district = \App\Models\District::query()
+                    ->where('city_id', $city->id)
+                    ->where('name', $request->location_district)
+                    ->first();
+            }
+            if (!$city || !$district) {
+                throw new Exception(
+                    'تعذر مطابقة المدينة والحي مع بيانات المرجع. تأكد من وجود المدينة والحي في الإعدادات أو أضفهما من لوحة المدير.'
+                );
+            }
+
             // Create the contract
             $contract = Contract::create([
                 'user_id' => $request->requested_by,
                 'project_name' => $request->project_name,
                 'developer_name' => $request->developer_name,
                 'developer_number' => $request->developer_contact,
-                'city' => $request->location_city,
-                'district' => $request->location_district,
+                'city_id' => $city->id,
+                'district_id' => $district->id,
                 'units' => $contractData['units'] ?? [],
                 'status' => 'pending',
                 'notes' => $contractData['notes'] ?? "Created from exclusive project request #{$request->id}",

@@ -11,6 +11,7 @@ use App\Models\BoardsDepartment;
 use App\Models\PhotographyDepartment;
 use App\Models\MontageDepartment;
 use App\Models\Team;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Contract extends Model
 {
@@ -26,8 +27,8 @@ class Contract extends Model
         'project_name',
         'developer_name',
         'developer_number',
-        'city',
-        'district',
+        'city_id',
+        'district_id',
         'units',
         'project_image_url',
         'developer_requiment',
@@ -76,6 +77,16 @@ class Contract extends Model
     public function user()
     {
         return $this->belongsTo(User::class);
+    }
+
+    public function city(): BelongsTo
+    {
+        return $this->belongsTo(City::class);
+    }
+
+    public function district(): BelongsTo
+    {
+        return $this->belongsTo(District::class);
     }
 
     /**
@@ -331,9 +342,9 @@ class Contract extends Model
     /**
      * Scope: Get contracts in specific city
      */
-    public function scopeInCity($query, $city)
+    public function scopeInCity($query, int $cityId)
     {
-        return $query->where('city', $city);
+        return $query->where('city_id', $cityId);
     }
 
     /**

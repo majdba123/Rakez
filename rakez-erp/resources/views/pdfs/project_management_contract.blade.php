@@ -11,8 +11,8 @@
     <table class="info-table">
         <tr><td>اسم المشروع</td><td>{{ $contract->project_name }}</td></tr>
         <tr><td>المطور</td><td>{{ $contract->developer_name }}</td></tr>
-        <tr><td>المدينة</td><td>{{ $contract->city }}</td></tr>
-        <tr><td>الحي</td><td>{{ $contract->district }}</td></tr>
+        <tr><td>المدينة</td><td>{{ $contract->city?->name }}</td></tr>
+        <tr><td>الحي</td><td>{{ $contract->district?->name }}</td></tr>
         <tr><td>الحالة</td><td>{{ $contract->status }}</td></tr>
         @if($contract->notes)
         <tr><td>ملاحظات</td><td>{{ $contract->notes }}</td></tr>

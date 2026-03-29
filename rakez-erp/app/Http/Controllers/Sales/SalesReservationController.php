@@ -30,7 +30,7 @@ class SalesReservationController extends Controller
     public function context(int $unitId): JsonResponse
     {
         try {
-            $unit = ContractUnit::with(['secondPartyData.contract'])->findOrFail($unitId);
+            $unit = ContractUnit::with(['secondPartyData.contract.city', 'secondPartyData.contract.district'])->findOrFail($unitId);
             
             return response()->json([
                 'success' => true,
@@ -223,7 +223,8 @@ class SalesReservationController extends Controller
     {
         try {
             $reservation = SalesReservation::with([
-                'contract',
+                'contract.city',
+                'contract.district',
                 'contractUnit',
                 'marketingEmployee.team',
             ])->findOrFail($id);
@@ -257,8 +258,8 @@ class SalesReservationController extends Controller
                 ],
                 'project' => [
                     'name' => (string) ($contract?->project_name ?? ''),
-                    'city' => (string) ($contract?->city ?? ''),
-                    'district' => (string) ($contract?->district ?? ''),
+                    'city' => (string) ($contract?->city?->name ?? ''),
+                    'district' => (string) ($contract?->district?->name ?? ''),
                     'developer_name' => (string) ($contract?->developer_name ?? ''),
                 ],
                 'unit' => [

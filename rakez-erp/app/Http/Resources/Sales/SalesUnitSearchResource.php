@@ -25,8 +25,8 @@ class SalesUnitSearchResource extends JsonResource
             'project'     => [
                 'id'             => $contract?->id,
                 'name'           => $contract?->project_name,
-                'city'           => $contract?->city,
-                'district'       => $contract?->district,
+                'city'           => $contract?->city?->name,
+                'district'       => $contract?->district?->name,
                 'developer_name' => $contract?->developer_name,
             ],
         ];

@@ -2,7 +2,9 @@
 
 namespace Tests\Feature;
 
+use App\Models\City;
 use App\Models\Contract;
+use App\Models\District;
 use App\Models\User;
 use Database\Seeders\RolesAndPermissionsSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -45,12 +47,15 @@ class ContractApiTest extends TestCase
         $user = User::factory()->create();
         $user->givePermissionTo('contracts.create');
 
+        $city = City::factory()->create(['name' => 'Riyadh', 'code' => 'RYD']);
+        $district = District::factory()->create(['city_id' => $city->id, 'name' => 'Olaya']);
+
         $data = [
             'project_name' => 'New Project',
             'developer_name' => 'Dev Name',
             'developer_number' => '123456',
-            'city' => 'Riyadh',
-            'district' => 'Olaya',
+            'city_id' => $city->id,
+            'district_id' => $district->id,
             'developer_requiment' => 'None',
             'units' => [
                 ['type' => 'A', 'count' => 10, 'price' => 100000]
@@ -173,7 +178,11 @@ class ContractApiTest extends TestCase
         ]);
         \App\Models\BoardsDepartment::create(['contract_id' => $contract->id, 'processed_at' => now()]);
         \App\Models\PhotographyDepartment::create(['contract_id' => $contract->id, 'status' => 'approved']);
-        \App\Models\MontageDepartment::create(['contract_id' => $contract->id, 'processed_at' => now()]);
+        \App\Models\MontageDepartment::create([
+            'contract_id' => $contract->id,
+            'processed_at' => now(),
+            'status' => 'approved',
+        ]);
 
         $response = $this->actingAs($pm)->patchJson("/api/contracts/update-status/{$contract->id}", [
             'status' => 'ready'

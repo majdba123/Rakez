@@ -54,15 +54,15 @@ class MarketingProjectService
             });
         }
 
-        if (!empty($filters['city'])) {
+        if (!empty($filters['city_id'])) {
             $query->whereHas('contract', function ($q) use ($filters) {
-                $q->where('city', $filters['city']);
+                $q->where('city_id', (int) $filters['city_id']);
             });
         }
 
-        if (!empty($filters['district'])) {
+        if (!empty($filters['district_id'])) {
             $query->whereHas('contract', function ($q) use ($filters) {
-                $q->where('district', $filters['district']);
+                $q->where('district_id', (int) $filters['district_id']);
             });
         }
 
@@ -86,6 +86,8 @@ class MarketingProjectService
             'marketingProject.expectedBooking',
             'projectMedia',
             'units',
+            'city',
+            'district',
         ])->findOrFail($contractId);
     }
 
@@ -95,19 +97,19 @@ class MarketingProjectService
      */
     public function getContractSummaryFields(Contract $contract): array
     {
-        $contract->loadMissing(['info', 'units']);
+        $contract->loadMissing(['info', 'units', 'city', 'district']);
         $info = $contract->info;
         $units = collect($contract->units ?? []);
         $availableUnits = $units->where('status', 'available');
         $pendingUnits = $units->where('status', 'pending');
 
-        $locationParts = array_filter([$contract->city ?? null, $contract->district ?? null]);
+        $locationParts = array_filter([$contract->city?->name, $contract->district?->name]);
         $location = $locationParts ? trim(implode(', ', $locationParts)) : null;
 
         return [
             'location' => $location,
-            'city' => $contract->city ?? null,
-            'district' => $contract->district ?? null,
+            'city' => $contract->city?->name,
+            'district' => $contract->district?->name,
             'contract_number' => $info?->contract_number ?? null,
             'units_count' => [
                 'available' => $availableUnits->count(),

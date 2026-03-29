@@ -88,8 +88,8 @@ class ClaimFileService
         return [
             // Project Information (5.1 البيانات المعروضة)
             'project_name' => $contract?->project_name ?? $info?->project_name ?? null,
-            'project_location' => $contract?->city ?? null,
-            'project_district' => $contract?->district ?? null,
+            'project_location' => $contract?->city?->name ?? null,
+            'project_district' => $contract?->district?->name ?? null,
 
             // Unit Information
             'unit_number' => $unit?->unit_number ?? null,

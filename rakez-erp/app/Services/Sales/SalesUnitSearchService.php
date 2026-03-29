@@ -28,7 +28,9 @@ class SalesUnitSearchService
 
         $units = $query->paginate($perPage);
 
-        $units->load('secondPartyData.contract');
+        $units->load(['secondPartyData.contract' => function ($q) {
+            $q->with(['city', 'district']);
+        }]);
 
         return $units;
     }
@@ -45,26 +47,26 @@ class SalesUnitSearchService
         $this->applyAuthorizationScopeRaw($query, $user);
 
         $cities = (clone $query)
-            ->whereNotNull('contracts.city')
-            ->where('contracts.city', '!=', '')
+            ->join('cities', 'contracts.city_id', '=', 'cities.id')
+            ->whereNotNull('contracts.city_id')
             ->distinct()
-            ->pluck('contracts.city')
-            ->sort()
+            ->orderBy('cities.name')
+            ->pluck('cities.name')
             ->values()
             ->all();
 
         $districtsRaw = (clone $query)
-            ->whereNotNull('contracts.city')
-            ->where('contracts.city', '!=', '')
-            ->whereNotNull('contracts.district')
-            ->where('contracts.district', '!=', '')
-            ->select('contracts.city', 'contracts.district')
+            ->join('cities', 'contracts.city_id', '=', 'cities.id')
+            ->join('districts', 'contracts.district_id', '=', 'districts.id')
+            ->whereNotNull('contracts.city_id')
+            ->whereNotNull('contracts.district_id')
+            ->select('cities.name as city_name', 'districts.name as district_name')
             ->distinct()
             ->get();
 
         $districts = [];
         foreach ($districtsRaw as $row) {
-            $districts[$row->city][] = $row->district;
+            $districts[$row->city_name][] = $row->district_name;
         }
         foreach ($districts as &$districtList) {
             sort($districtList);
@@ -128,12 +130,18 @@ class SalesUnitSearchService
 
     protected function applyFilters(Builder $query, array $filters): void
     {
-        if (!empty($filters['city'])) {
-            $query->where('contracts.city', 'LIKE', '%' . $filters['city'] . '%');
+        if (!empty($filters['city_id'])) {
+            $query->where('contracts.city_id', (int) $filters['city_id']);
+        } elseif (!empty($filters['city'])) {
+            $ids = DB::table('cities')->where('name', 'like', '%' . $filters['city'] . '%')->pluck('id')->all();
+            $query->whereIn('contracts.city_id', $ids ?: [0]);
         }
 
-        if (!empty($filters['district'])) {
-            $query->where('contracts.district', 'LIKE', '%' . $filters['district'] . '%');
+        if (!empty($filters['district_id'])) {
+            $query->where('contracts.district_id', (int) $filters['district_id']);
+        } elseif (!empty($filters['district'])) {
+            $ids = DB::table('districts')->where('name', 'like', '%' . $filters['district'] . '%')->pluck('id')->all();
+            $query->whereIn('contracts.district_id', $ids ?: [0]);
         }
 
         // Intentionally ignore project_id to allow searching units across all completed contracts.

@@ -12,8 +12,8 @@ class ReservationContextResource extends JsonResource
         return [
             'project' => [
                 'project_name' => $this->contract->project_name ?? 'N/A',
-                'city' => $this->contract->city ?? 'N/A',
-                'district' => $this->contract->district ?? 'N/A',
+                'city' => $this->contract->city?->name ?? 'N/A',
+                'district' => $this->contract->district?->name ?? 'N/A',
             ],
             'unit' => [
                 'unit_id' => $this->id,
@@ -32,8 +32,8 @@ class ReservationContextResource extends JsonResource
                 'project_name' => $this->contract->project_name ?? 'N/A',
                 'unit_number' => $this->unit_number,
                 'unit_type' => $this->unit_type,
-                'district' => $this->contract->district ?? 'N/A',
-                'location' => trim(($this->contract->city ?? '') . ', ' . ($this->contract->district ?? ''), ', '),
+                'district' => $this->contract->district?->name ?? 'N/A',
+                'location' => trim(($this->contract->city?->name ?? '') . ', ' . ($this->contract->district?->name ?? ''), ', '),
                 'area_m2' => (float) $this->area,
                 'total_unit_price' => (float) $this->price,
                 'marketing_employee_name' => $request->user()->name,

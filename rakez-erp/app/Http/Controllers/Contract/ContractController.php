@@ -40,8 +40,8 @@ class ContractController extends Controller
             }
             $filters = [
                 'status' => $request->input('status'),
-                'city' => $request->input('city'),
-                'district' => $request->input('district'),
+                'city_id' => $request->input('city_id'),
+                'district_id' => $request->input('district_id'),
                 'project_name' => $request->input('project_name'),
                 'has_photography' => $request->input('has_photography'),
                 'has_montage' => $request->input('has_montage'),
@@ -139,8 +139,7 @@ class ContractController extends Controller
             // Fetch contract without service-level auth check
             $contract = $this->contractService->getContractById($id, null);
 
-            // Enforce Policy
-           // $this->authorize('view', $contract);
+            $this->authorize('view', $contract);
 
             return response()->json([
                 'success' => true,
@@ -193,8 +192,8 @@ class ContractController extends Controller
             $data = [
                 'project_name' => (string) ($contract->project_name ?? ''),
                 'developer_name' => (string) ($contract->developer_name ?? ''),
-                'city' => (string) ($contract->city ?? ''),
-                'district' => (string) ($contract->district ?? ''),
+                'city' => (string) ($contract->city?->name ?? ''),
+                'district' => (string) ($contract->district?->name ?? ''),
                 'status' => (string) ($contract->status ?? ''),
                 'notes' => (string) ($contract->notes ?? ''),
                 'created_at' => $contract->created_at?->toIso8601String() ?? '',
@@ -278,8 +277,8 @@ class ContractController extends Controller
             $filters = [
                 'status' => $request->input('status'),
                 'user_id' => $request->input('user_id'),
-                'city' => $request->input('city'),
-                'district' => $request->input('district'),
+                'city_id' => $request->input('city_id'),
+                'district_id' => $request->input('district_id'),
                 'project_name' => $request->input('project_name'),
                 'has_photography' => $request->input('has_photography'),
                 'has_montage' => $request->input('has_montage'),
@@ -316,8 +315,8 @@ class ContractController extends Controller
             $filters = [
                 'status' => $request->input('status'),
                 'user_id' => $request->input('user_id'),
-                'city' => $request->input('city'),
-                'district' => $request->input('district'),
+                'city_id' => $request->input('city_id'),
+                'district_id' => $request->input('district_id'),
                 'project_name' => $request->input('project_name'),
                 'has_photography' => $request->input('has_photography'),
                 'has_montage' => $request->input('has_montage'),
@@ -365,8 +364,8 @@ class ContractController extends Controller
             $filters = [
                 'status' => $request->input('status'),
                 'user_id' => $request->input('user_id'),
-                'city' => $request->input('city'),
-                'district' => $request->input('district'),
+                'city_id' => $request->input('city_id'),
+                'district_id' => $request->input('district_id'),
                 'project_name' => $request->input('project_name'),
                 'has_photography' => $request->input('has_photography'),
                 'has_montage' => $request->input('has_montage'),

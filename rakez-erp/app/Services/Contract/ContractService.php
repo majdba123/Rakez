@@ -19,7 +19,7 @@ class ContractService
     public function getContracts(array $filters = [], int $perPage = 15): LengthAwarePaginator
     {
         try {
-            $query = Contract::with(['photographyDepartment', 'montageDepartment', 'user', 'secondPartyData']);
+            $query = Contract::with(['photographyDepartment', 'montageDepartment', 'user', 'secondPartyData', 'city', 'district']);
 
             // Filter by status
             if (isset($filters['status']) && !empty($filters['status'])) {
@@ -31,14 +31,14 @@ class ContractService
                 $query->byUser($filters['user_id']);
             }
 
-            // Filter by city
-            if (isset($filters['city']) && !empty($filters['city'])) {
-                $query->inCity($filters['city']);
+            // Filter by city (ID)
+            if (isset($filters['city_id']) && $filters['city_id'] !== '' && $filters['city_id'] !== null) {
+                $query->where('city_id', (int) $filters['city_id']);
             }
 
-            // Filter by district
-            if (isset($filters['district']) && !empty($filters['district'])) {
-                $query->where('district', $filters['district']);
+            // Filter by district (ID)
+            if (isset($filters['district_id']) && $filters['district_id'] !== '' && $filters['district_id'] !== null) {
+                $query->where('district_id', (int) $filters['district_id']);
             }
 
             // Filter by project name (search)
@@ -188,14 +188,14 @@ class ContractService
                 $query->where('contracts.user_id', $filters['user_id']);
             }
 
-            // Filter by city
-            if (isset($filters['city']) && !empty($filters['city'])) {
-                $query->where('contracts.city', $filters['city']);
+            // Filter by city (ID)
+            if (isset($filters['city_id']) && $filters['city_id'] !== '' && $filters['city_id'] !== null) {
+                $query->where('contracts.city_id', (int) $filters['city_id']);
             }
 
-            // Filter by district
-            if (isset($filters['district']) && !empty($filters['district'])) {
-                $query->where('contracts.district', $filters['district']);
+            // Filter by district (ID)
+            if (isset($filters['district_id']) && $filters['district_id'] !== '' && $filters['district_id'] !== null) {
+                $query->where('contracts.district_id', (int) $filters['district_id']);
             }
 
             // Filter by project name (search)
@@ -269,8 +269,8 @@ class ContractService
                     'contracts.id as contract_id',
                     'contracts.project_name',
                     'contracts.status',
-                    'contracts.city',
-                    'contracts.district',
+                    'contracts.city_id',
+                    'contracts.district_id',
                     'contract_infos.agency_date',
                     'contract_infos.location_url',
                     'contracts.created_at',
@@ -283,11 +283,11 @@ class ContractService
             if (isset($filters['user_id']) && !empty($filters['user_id'])) {
                 $query->where('contracts.user_id', $filters['user_id']);
             }
-            if (isset($filters['city']) && !empty($filters['city'])) {
-                $query->where('contracts.city', $filters['city']);
+            if (isset($filters['city_id']) && $filters['city_id'] !== '' && $filters['city_id'] !== null) {
+                $query->where('contracts.city_id', (int) $filters['city_id']);
             }
-            if (isset($filters['district']) && !empty($filters['district'])) {
-                $query->where('contracts.district', $filters['district']);
+            if (isset($filters['district_id']) && $filters['district_id'] !== '' && $filters['district_id'] !== null) {
+                $query->where('contracts.district_id', (int) $filters['district_id']);
             }
             if (isset($filters['project_name']) && !empty($filters['project_name'])) {
                 $query->where('contracts.project_name', 'like', '%' . addslashes($filters['project_name']) . '%');
@@ -356,7 +356,7 @@ class ContractService
             $contract->save();
 
             // Reload with relations
-            $contract->load(['user', 'info']);
+            $contract->load(['user', 'info', 'city', 'district']);
 
             DB::commit();
             return $contract;
@@ -430,6 +430,8 @@ class ContractService
                 'photographyDepartment.processedByUser',
                 'boardsDepartment.processedByUser',
                 'montageDepartment.processedByUser',
+                'city',
+                'district',
             ])->findOrFail($id);
 
             // Authorization check (forContractInfo: only owner, admin, project_management)
@@ -467,7 +469,7 @@ class ContractService
     {
         DB::beginTransaction();
         try {
-            $contract = Contract::with(['user', 'info'])->findOrFail($id);
+            $contract = Contract::with(['user', 'info', 'city', 'district'])->findOrFail($id);
 
             // Authorization check
             if ($userId) {
@@ -491,7 +493,7 @@ class ContractService
             }
 
             DB::commit();
-            return $contract->fresh(['user', 'info']);
+            return $contract->fresh(['user', 'info', 'city', 'district']);
         } catch (Exception $e) {
             DB::rollBack();
             throw new Exception('Failed to update contract: ' . $e->getMessage());
@@ -529,7 +531,7 @@ class ContractService
     public function getContractsForAdmin(array $filters = [], int $perPage = 15): LengthAwarePaginator
     {
         try {
-            $query = Contract::with(['photographyDepartment', 'montageDepartment', 'user']);
+            $query = Contract::with(['photographyDepartment', 'montageDepartment', 'user', 'city', 'district']);
 
             // Filter by status
             if (isset($filters['status']) && !empty($filters['status'])) {
@@ -541,14 +543,14 @@ class ContractService
                 $query->byUser($filters['user_id']);
             }
 
-            // Filter by city
-            if (isset($filters['city']) && !empty($filters['city'])) {
-                $query->inCity($filters['city']);
+            // Filter by city (ID)
+            if (isset($filters['city_id']) && $filters['city_id'] !== '' && $filters['city_id'] !== null) {
+                $query->where('city_id', (int) $filters['city_id']);
             }
 
-            // Filter by district
-            if (isset($filters['district']) && !empty($filters['district'])) {
-                $query->where('district', $filters['district']);
+            // Filter by district (ID)
+            if (isset($filters['district_id']) && $filters['district_id'] !== '' && $filters['district_id'] !== null) {
+                $query->where('district_id', (int) $filters['district_id']);
             }
 
             // Filter by project name (search)
@@ -725,6 +727,8 @@ class ContractService
                 'photographyDepartment.processedByUser',
                 'boardsDepartment.processedByUser',
                 'montageDepartment.processedByUser',
+                'city',
+                'district',
             ])->findOrFail($id);
 
             $allowedStatuses = ['ready', 'rejected'];

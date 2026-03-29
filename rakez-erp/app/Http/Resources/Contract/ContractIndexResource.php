@@ -32,8 +32,10 @@ class ContractIndexResource extends JsonResource
             'project_name' => $this->project_name,
             'developer_name' => $this->developer_name,
             'developer_number' => $this->developer_number,
-            'city' => $this->city,
-            'district' => $this->district,
+            'city_id' => $this->city_id,
+            'district_id' => $this->district_id,
+            'city' => $this->city?->name,
+            'district' => $this->district?->name,
 
             'unit_count' => $unitCount,
             'total_price' => (float) $totalPrice,
