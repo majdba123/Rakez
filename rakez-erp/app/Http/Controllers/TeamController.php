@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\Team\AssignSalesTeamMemberRequest;
 use App\Http\Requests\Team\TeamContractsRequest;
 use App\Http\Requests\Team\StoreTeamRequest;
 use App\Http\Requests\Team\UpdateTeamRequest;
@@ -247,6 +248,65 @@ class TeamController extends Controller
                 'success' => false,
                 'message' => $e->getMessage(),
             ], 404);
+        }
+    }
+
+    /**
+     * Add a member to the team (sales users only).
+     * POST /api/project_management/teams/{teamId}/members
+     */
+    public function assignMember(AssignSalesTeamMemberRequest $request, int $teamId): JsonResponse
+    {
+        try {
+            $user = $this->teamService->assignSalesMemberToTeam($teamId, (int) $request->validated('user_id'));
+
+            return response()->json([
+                'success' => true,
+                'message' => 'تم إضافة عضو المبيعات إلى الفريق بنجاح',
+                'data' => [
+                    'user_id' => $user->id,
+                    'user_name' => $user->name,
+                    'user_type' => $user->type,
+                    'team_id' => $teamId,
+                ],
+            ], 200);
+        } catch (Exception $e) {
+            $message = $e->getMessage();
+            if (str_contains($message, 'يمكن إضافة')) {
+                $status = 422;
+            } elseif (str_contains($message, 'No query results')) {
+                $status = 404;
+            } else {
+                $status = 500;
+            }
+
+            return response()->json([
+                'success' => false,
+                'message' => $message,
+            ], $status);
+        }
+    }
+
+    /**
+     * Remove a member from the team.
+     * DELETE /api/project_management/teams/{teamId}/members/{userId}
+     */
+    public function removeMember(int $teamId, int $userId): JsonResponse
+    {
+        try {
+            $this->teamService->removeMemberFromTeam($teamId, $userId);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'تم إزالة العضو من الفريق بنجاح',
+            ], 200);
+        } catch (Exception $e) {
+            $statusCode = str_contains($e->getMessage(), 'No query results') ? 404 : 500;
+
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage(),
+            ], $statusCode);
         }
     }
 }

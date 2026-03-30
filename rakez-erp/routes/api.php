@@ -238,6 +238,9 @@ Route::middleware('auth:sanctum')->group(function () {
                 Route::delete('/delete/{id}', [TeamController::class, 'destroy']);
                 Route::get('/show/{id}', [TeamController::class, 'show']);
 
+                Route::post('members/{teamId}/', [TeamController::class, 'assignMember'])->whereNumber('teamId');
+                Route::delete('members/{teamId}/{userId}', [TeamController::class, 'removeMember'])->whereNumber(['teamId', 'userId']);
+
                 Route::get('/index/{contractId}', [ContractController::class, 'getTeamsForContract_HR']);
                 Route::get('/contracts/{teamId}', [TeamController::class, 'contracts'])->whereNumber('teamId');
 

@@ -3,6 +3,7 @@
 namespace App\Services\Team;
 
 use App\Models\Team;
+use App\Models\User;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;
 use Exception;
@@ -118,6 +119,52 @@ class TeamService
         } catch (Exception $e) {
             DB::rollBack();
             throw new Exception('Failed to delete team: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Assign a user to a team (project management): only users with type "sales" (مبيعات).
+     */
+    public function assignSalesMemberToTeam(int $teamId, int $userId): User
+    {
+        DB::beginTransaction();
+        try {
+            Team::findOrFail($teamId);
+            $user = User::findOrFail($userId);
+
+            if ($user->type !== 'sales') {
+                throw new Exception('يمكن إضافة موظفي المبيعات فقط (نوع المستخدم: sales).');
+            }
+
+            $user->update(['team_id' => $teamId]);
+
+            DB::commit();
+
+            return $user->fresh();
+        } catch (Exception $e) {
+            DB::rollBack();
+            if (str_contains($e->getMessage(), 'يمكن إضافة')) {
+                throw $e;
+            }
+            throw new Exception('Failed to assign team member: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Remove a user from a team if they belong to that team.
+     */
+    public function removeMemberFromTeam(int $teamId, int $userId): void
+    {
+        DB::beginTransaction();
+        try {
+            Team::findOrFail($teamId);
+            $user = User::query()->where('id', $userId)->where('team_id', $teamId)->firstOrFail();
+            $user->update(['team_id' => null]);
+
+            DB::commit();
+        } catch (Exception $e) {
+            DB::rollBack();
+            throw new Exception('Failed to remove team member: ' . $e->getMessage());
         }
     }
 
