@@ -43,3 +43,8 @@ Import these collections and the environment into Postman to call the Accounting
 
 - **Accounting**: ~28 requests (Auth, Dashboard, Notifications, Sold Units & Commissions, Deposits, Salaries, Legacy, Developers).
 - **Credit**: ~35 requests (Auth, Dashboard, Notifications, Bookings, Financing, Title Transfer, Claim Files, Payment Plan).
+
+### AI & Ads (reference)
+
+- **AI**: See `docs/API_EXAMPLES_AI.md` for routes including `POST /api/ai/tools/chat`, `POST /api/ai/tools/stream` (preferred; `/api/ai/v2/*` aliases still work), AI calling idempotency, and `422` for `target_type=customer`.
+- **Ads**: Supported platforms are **Meta**, **TikTok**, and **Snap** only. `GET /api/ads/accounts` returns `capabilities` per account. See `docs/API_EXAMPLES_AI.md` (Ads section) and the Marketing API examples where relevant.

@@ -34,6 +34,15 @@ class ValidateTwilioSignature
             abort(403, 'Invalid Twilio signature.');
         }
 
+        $timestamp = $request->input('Timestamp') ?? $request->input('timestamp');
+        if ($timestamp !== null && $timestamp !== '') {
+            $ts = (int) $timestamp;
+            $window = (int) config('ai_calling.twilio.replay_window_seconds', 300);
+            if ($ts > 0 && abs(time() - $ts) > $window) {
+                abort(403, 'Twilio request outside replay window.');
+            }
+        }
+
         return $next($request);
     }
 }

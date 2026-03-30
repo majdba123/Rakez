@@ -17,6 +17,7 @@ class AdsOutcomeEvent extends Model
             'platform_response' => 'array',
             'occurred_at' => 'datetime',
             'last_attempted_at' => 'datetime',
+            'next_attempt_at' => 'datetime',
         ];
     }
 }

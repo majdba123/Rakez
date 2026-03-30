@@ -23,9 +23,41 @@ class AdsInsightsController
     {
         $accounts = AdsPlatformAccount::where('is_active', true)
             ->select('id', 'platform', 'account_id', 'account_name', 'token_expires_at', 'is_active')
-            ->get();
+            ->get()
+            ->map(fn (AdsPlatformAccount $a) => array_merge($a->toArray(), [
+                'capabilities' => $this->capabilitiesFor($a->platform),
+            ]));
 
         return response()->json($accounts);
+    }
+
+    /**
+     * @return array{
+     *   supports_campaign_sync: bool,
+     *   supports_insights: bool,
+     *   supports_leads: bool,
+     *   supports_conversions: bool,
+     *   lead_source: string
+     * }
+     */
+    private function capabilitiesFor(string $platform): array
+    {
+        return match ($platform) {
+            'meta', 'snap', 'tiktok' => [
+                'supports_campaign_sync' => true,
+                'supports_insights' => true,
+                'supports_leads' => true,
+                'supports_conversions' => true,
+                'lead_source' => 'api',
+            ],
+            default => [
+                'supports_campaign_sync' => false,
+                'supports_insights' => false,
+                'supports_leads' => false,
+                'supports_conversions' => false,
+                'lead_source' => 'unknown',
+            ],
+        };
     }
 
     /**

@@ -4,7 +4,6 @@ namespace App\Services\AI;
 
 use App\Models\User;
 use App\Services\AI\Tools\ToolContract;
-use Illuminate\Support\Arr;
 
 class ToolRegistry
 {
@@ -50,6 +49,13 @@ class ToolRegistry
      */
     public function execute(User $user, string $toolName, array $args): array
     {
+        if (! $this->isToolAllowed($user, $toolName)) {
+            return [
+                'result' => ['allowed' => false, 'error' => 'Permission denied for this tool'],
+                'source_refs' => [],
+            ];
+        }
+
         $handlerClass = $this->handlers[$toolName] ?? null;
         if (! $handlerClass || ! class_exists($handlerClass)) {
             return [
@@ -75,5 +81,57 @@ class ToolRegistry
     public function registeredNames(): array
     {
         return array_keys($this->handlers);
+    }
+
+    /**
+     * Tool names the user may invoke (for v2 orchestrator allowlist).
+     *
+     * @return array<int, string>
+     */
+    public function allowedToolNamesForUser(User $user): array
+    {
+        if (! $user->can('use-ai-assistant')) {
+            return [];
+        }
+
+        $gates = config('ai_assistant.v2.tool_gates', []);
+
+        $out = [];
+        foreach (array_keys($this->handlers) as $name) {
+            if ($this->isToolAllowed($user, $name, $gates)) {
+                $out[] = $name;
+            }
+        }
+
+        return $out;
+    }
+
+    /**
+     * @param  array<string, array<string, mixed>>  $gates
+     */
+    private function isToolAllowed(User $user, string $toolName, ?array $gates = null): bool
+    {
+        if (! $user->can('use-ai-assistant')) {
+            return false;
+        }
+
+        $gates ??= config('ai_assistant.v2.tool_gates', []);
+        $rule = $gates[$toolName] ?? null;
+
+        if ($rule === null) {
+            return true;
+        }
+
+        if (isset($rule['permission']) && ! $user->can((string) $rule['permission'])) {
+            return false;
+        }
+
+        if (isset($rule['roles']) && is_array($rule['roles'])) {
+            $roles = $user->getRoleNames()->toArray();
+
+            return count(array_intersect($rule['roles'], $roles)) > 0;
+        }
+
+        return true;
     }
 }

@@ -25,6 +25,7 @@ class AiCallMessage extends Model
             'confidence' => 'decimal:2',
             'timestamp_in_call' => 'integer',
             'created_at' => 'datetime',
+            'content' => 'encrypted',
         ];
     }
 

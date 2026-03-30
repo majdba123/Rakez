@@ -2,55 +2,42 @@
 
 namespace Tests\Integration\AI;
 
+use App\Services\AI\AiOpenAiGateway;
 use App\Services\AI\Rag\EmbeddingService;
 use Tests\TestCase;
+use Tests\Traits\ReadsDotEnvForTest;
 
 /**
  * Integration tests that call the real OpenAI API.
- * Requires OPENAI_API_KEY to be set in .env.
+ * Requires OPENAI_API_KEY and AI_REAL_TESTS=true in .env.
  *
  * @group integration
+ * @group ai-e2e-real
  */
 class OpenAIEmbeddingTest extends TestCase
 {
+    use ReadsDotEnvForTest;
+
     protected function setUp(): void
     {
         parent::setUp();
 
-        // Read real key from .env (phpunit.xml overrides with fake key)
-        $realKey = $this->getRealApiKey();
+        $realKey = $this->envFromDotFile('OPENAI_API_KEY');
 
         if (! $realKey || str_starts_with($realKey, 'test-fake')) {
             $this->markTestSkipped('Real OPENAI_API_KEY not available — skipping integration test.');
         }
 
-        // Override the config with real key for integration tests
+        if (! $this->envFromDotFileIsTrue('AI_REAL_TESTS')) {
+            $this->markTestSkipped('AI_REAL_TESTS is not enabled — set AI_REAL_TESTS=true in .env to run');
+        }
+
         config(['openai.api_key' => $realKey]);
-    }
-
-    private function getRealApiKey(): ?string
-    {
-        $envFile = base_path('.env');
-        if (! file_exists($envFile)) {
-            return null;
-        }
-
-        $lines = file($envFile, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
-        foreach ($lines as $line) {
-            if (str_starts_with(trim($line), '#')) {
-                continue;
-            }
-            if (str_starts_with($line, 'OPENAI_API_KEY=')) {
-                return trim(substr($line, strlen('OPENAI_API_KEY=')));
-            }
-        }
-
-        return null;
     }
 
     public function test_real_embedding_generation(): void
     {
-        $service = new EmbeddingService;
+        $service = new EmbeddingService(new AiOpenAiGateway);
 
         $embedding = $service->embed('This is a test text about real estate in Saudi Arabia.');
 
@@ -61,7 +48,7 @@ class OpenAIEmbeddingTest extends TestCase
 
     public function test_real_embedding_batch(): void
     {
-        $service = new EmbeddingService;
+        $service = new EmbeddingService(new AiOpenAiGateway);
 
         $embeddings = $service->embedBatch([
             'First text about sales',
@@ -75,7 +62,7 @@ class OpenAIEmbeddingTest extends TestCase
 
     public function test_arabic_text_embedding(): void
     {
-        $service = new EmbeddingService;
+        $service = new EmbeddingService(new AiOpenAiGateway);
 
         $embedding = $service->embed('نظام إدارة العقارات في المملكة العربية السعودية');
 
@@ -84,7 +71,7 @@ class OpenAIEmbeddingTest extends TestCase
 
     public function test_similar_texts_have_high_similarity(): void
     {
-        $service = new EmbeddingService;
+        $service = new EmbeddingService(new AiOpenAiGateway);
 
         $emb1 = $service->embed('How to buy a house in Riyadh');
         $emb2 = $service->embed('Guide to purchasing real estate in Riyadh');

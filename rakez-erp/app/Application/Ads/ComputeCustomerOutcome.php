@@ -31,6 +31,7 @@ final class ComputeCustomerOutcome
      *     occurred_at: string,
      *     value?: float,
      *     currency?: string,
+     *     provider_currency?: string,
      *     crm_stage?: string,
      *     score?: int,
      *     lead_id?: string,
@@ -45,6 +46,8 @@ final class ComputeCustomerOutcome
      *     client_user_agent?: string,
      *     event_source_url?: string,
      *     platforms?: string[],
+     *     custom_data?: array,
+     *     provider_currency?: string,
      * }  $data
      */
     public function execute(array $data): OutcomeEvent
@@ -76,13 +79,16 @@ final class ComputeCustomerOutcome
             $data['order_id'] ?? null,
         );
 
+        $normalizedCurrency = $data['currency'] ?? config('ads_platforms.default_normalized_currency', 'USD');
+        $providerCurrency = $data['provider_currency'] ?? null;
+
         $event = new OutcomeEvent(
             eventId: $eventId,
             outcomeType: $outcomeType,
             occurredAt: $occurredAt,
             identifiers: $identifiers,
             targetPlatforms: $platforms,
-            value: isset($data['value']) ? new Money((float) $data['value'], $data['currency'] ?? 'USD') : null,
+            value: isset($data['value']) ? new Money((float) $data['value'], $normalizedCurrency) : null,
             crmStage: $data['crm_stage'] ?? null,
             score: $data['score'] ?? null,
             leadId: $data['lead_id'] ?? null,
@@ -95,6 +101,8 @@ final class ComputeCustomerOutcome
             clientIp: $data['client_ip'] ?? null,
             clientUserAgent: $data['client_user_agent'] ?? null,
             eventSourceUrl: $data['event_source_url'] ?? null,
+            customData: $data['custom_data'] ?? [],
+            providerCurrency: $providerCurrency,
         );
 
         $this->store->enqueue($event);

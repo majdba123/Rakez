@@ -7,7 +7,6 @@ use PHPUnit\Framework\Attributes\Test;
 use App\Models\User;
 use App\Models\Contract;
 use App\Models\ContractInfo;
-use App\Models\MarketingProject;
 use App\Models\ProjectMedia;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
@@ -27,14 +26,15 @@ class MarketingProjectTest extends TestCase
     #[Test]
     public function it_can_list_marketing_projects()
     {
-        $project = Contract::factory()->create(['status' => 'completed']);
+        $project = Contract::factory()->create([
+            'status' => 'completed',
+            'commission_percent' => 2.5,
+        ]);
         ContractInfo::factory()->create([
             'contract_id' => $project->id,
             'avg_property_value' => 500000,
-            'commission_percent' => 2.5,
             'agency_number' => 'ADV-555'
         ]);
-        MarketingProject::create(['contract_id' => $project->id]);
         ProjectMedia::create([
             'contract_id' => $project->id,
             'type' => 'image',
@@ -77,19 +77,24 @@ class MarketingProjectTest extends TestCase
         $this->assertEquals('ADV-555', $response->json('data.0.advertiser_number_value'));
         $this->assertEquals('Available', $response->json('data.0.advertiser_number_status'));
         $this->assertCount(2, $response->json('data.0.media_links'));
+        $this->assertDatabaseHas('marketing_projects', [
+            'contract_id' => $project->id,
+            'status' => 'active',
+        ]);
     }
 
     #[Test]
     public function it_can_show_project_details_with_duration_status()
     {
-        $contract = Contract::factory()->create(['status' => 'completed']);
+        $contract = Contract::factory()->create([
+            'status' => 'completed',
+            'commission_percent' => 2.5,
+        ]);
         ContractInfo::factory()->create([
             'contract_id' => $contract->id,
             'agreement_duration_days' => 100,
             'avg_property_value' => 500000,
-            'commission_percent' => 2.5
         ]);
-        MarketingProject::create(['contract_id' => $contract->id]);
 
         $response = $this->actingAs($this->marketingUser, 'sanctum')
             ->getJson("/api/marketing/projects/{$contract->id}");
@@ -103,18 +108,24 @@ class MarketingProjectTest extends TestCase
                     'duration_status' => ['status', 'label', 'days']
                 ]
             ]);
+
+        $this->assertDatabaseHas('marketing_projects', [
+            'contract_id' => $contract->id,
+            'status' => 'active',
+        ]);
     }
 
     #[Test]
     public function it_can_calculate_campaign_budget()
     {
-        $contract = Contract::factory()->create();
+        $contract = Contract::factory()->create([
+            'commission_percent' => 2.5,
+        ]);
         ContractInfo::factory()->create([
             'contract_id' => $contract->id,
             'agreement_duration_days' => 30,
             'agreement_duration_months' => 1,
             'avg_property_value' => 1000000,
-            'commission_percent' => 2.5
         ]);
 
         $response = $this->actingAs($this->marketingUser, 'sanctum')
@@ -132,13 +143,14 @@ class MarketingProjectTest extends TestCase
     #[Test]
     public function it_uses_contract_duration_months_for_monthly_budget_when_available()
     {
-        $contract = Contract::factory()->create();
+        $contract = Contract::factory()->create([
+            'commission_percent' => 2.5,
+        ]);
         ContractInfo::factory()->create([
             'contract_id' => $contract->id,
             'agreement_duration_days' => 60,
             'agreement_duration_months' => 2,
             'avg_property_value' => 1000000,
-            'commission_percent' => 2.5
         ]);
 
         $response = $this->actingAs($this->marketingUser, 'sanctum')

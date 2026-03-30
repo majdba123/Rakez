@@ -8,6 +8,7 @@ use App\Models\AiCallScript;
 use App\Models\Lead;
 use App\Models\User;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use InvalidArgumentException;
@@ -17,10 +18,24 @@ class AiCallingService
     /**
      * Initiate a single AI call to a lead or customer.
      */
-    public function initiateCall(User $user, int $targetId, string $targetType, ?int $scriptId = null, bool $dispatch = true): AiCall
+    public function initiateCall(User $user, int $targetId, string $targetType, ?int $scriptId = null, bool $dispatch = true, ?string $idempotencyKey = null): AiCall
     {
         if (! config('ai_calling.enabled')) {
             throw new InvalidArgumentException('AI Calling is disabled.');
+        }
+
+        if ($targetType === 'customer') {
+            throw new InvalidArgumentException('unsupported_customer_target');
+        }
+
+        if ($idempotencyKey !== null && $idempotencyKey !== '') {
+            $existing = AiCall::query()
+                ->where('idempotency_key', $idempotencyKey)
+                ->where('initiated_by', $user->id)
+                ->first();
+            if ($existing) {
+                return $existing;
+            }
         }
 
         $this->checkConcurrencyLimit();
@@ -54,6 +69,7 @@ class AiCallingService
             'direction' => 'outbound',
             'attempt_number' => $previousAttempts + 1,
             'initiated_by' => $user->id,
+            'idempotency_key' => $idempotencyKey !== '' ? $idempotencyKey : null,
         ]);
 
         if ($dispatch) {
@@ -75,10 +91,23 @@ class AiCallingService
      *
      * @return array{queued: int, skipped: int, errors: array}
      */
-    public function initiateBulkCalls(User $user, array $targetIds, string $targetType, int $scriptId): array
+    public function initiateBulkCalls(User $user, array $targetIds, string $targetType, int $scriptId, ?string $idempotencyKey = null): array
     {
         if (! config('ai_calling.enabled')) {
             throw new InvalidArgumentException('AI Calling is disabled.');
+        }
+
+        if ($targetType === 'customer') {
+            throw new InvalidArgumentException('unsupported_customer_target');
+        }
+
+        $cacheKey = null;
+        if ($idempotencyKey !== null && $idempotencyKey !== '') {
+            $cacheKey = 'ai_call_bulk:'.$user->id.':'.hash('sha256', $idempotencyKey);
+            $cached = Cache::get($cacheKey);
+            if (is_array($cached)) {
+                return $cached;
+            }
         }
 
         $maxBatch = config('ai_calling.bulk.max_per_batch', 50);
@@ -114,7 +143,13 @@ class AiCallingService
             'user_id' => $user->id,
         ]);
 
-        return compact('queued', 'skipped', 'errors');
+        $result = compact('queued', 'skipped', 'errors');
+
+        if (isset($cacheKey)) {
+            Cache::put($cacheKey, $result, now()->addDays(7));
+        }
+
+        return $result;
     }
 
     /**

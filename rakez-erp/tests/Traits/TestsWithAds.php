@@ -57,6 +57,7 @@ trait TestsWithAds
             'clientUserAgent' => 'Mozilla/5.0',
             'eventSourceUrl' => 'https://example.com/thank-you',
             'customData' => [],
+            'providerCurrency' => null,
         ];
 
         $merged = array_merge($defaults, $overrides);

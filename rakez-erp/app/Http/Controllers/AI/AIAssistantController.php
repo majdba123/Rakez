@@ -7,6 +7,7 @@ use App\Http\Requests\AI\AskQuestionRequest;
 use App\Http\Requests\AI\ChatRequest;
 use App\Http\Resources\AI\ChatResource;
 use App\Http\Resources\AI\ConversationResource;
+use App\Events\AI\AiRequestFailed;
 use App\Services\AI\AIAssistantService;
 use App\Services\AI\Exceptions\AiAssistantException;
 use Illuminate\Http\JsonResponse;
@@ -35,6 +36,8 @@ class AIAssistantController extends Controller
                 'data' => new ChatResource($payload),
             ]);
         } catch (AiAssistantException $exception) {
+            $this->dispatchAiRequestFailed($request->user()->id, $request->input('session_id'), $exception);
+
             return response()->json([
                 'success' => false,
                 'error_code' => $exception->errorCode(),
@@ -66,6 +69,8 @@ class AIAssistantController extends Controller
                 'data' => new ChatResource($payload),
             ]);
         } catch (AiAssistantException $exception) {
+            $this->dispatchAiRequestFailed($request->user()->id, $request->input('session_id'), $exception);
+
             return response()->json([
                 'success' => false,
                 'error_code' => $exception->errorCode(),
@@ -92,6 +97,8 @@ class AIAssistantController extends Controller
                     flush();
                 }
             } catch (AiAssistantException $exception) {
+                $this->dispatchAiRequestFailed($user->id, $sessionId, $exception);
+
                 echo 'data: ' . json_encode([
                     'error' => true,
                     'error_code' => $exception->errorCode(),
@@ -187,5 +194,22 @@ class AIAssistantController extends Controller
                 'message' => $exception->getMessage(),
             ], $exception->statusCode());
         }
+    }
+
+    private function dispatchAiRequestFailed(int $userId, ?string $sessionId, AiAssistantException $exception): void
+    {
+        $request = request();
+        $correlationId = $request->header('X-Request-Id')
+            ?? $request->header('X-Request-ID')
+            ?? $request->header('X-Correlation-Id')
+            ?? $request->header('X-Correlation-ID');
+
+        event(new AiRequestFailed(
+            userId: $userId,
+            sessionId: $sessionId,
+            error: $exception->getMessage(),
+            attempts: 1,
+            correlationId: $correlationId,
+        ));
     }
 }

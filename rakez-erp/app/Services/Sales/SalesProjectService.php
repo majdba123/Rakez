@@ -2,16 +2,43 @@
 
 namespace App\Services\Sales;
 
+use App\Enums\ContractUnitWorkflowStatus;
+use App\Enums\ContractWorkflowStatus;
+use App\Enums\SalesProjectListingStatus;
 use App\Models\Contract;
 use App\Models\ContractUnit;
+use App\Models\Team;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Pagination\LengthAwarePaginator;
+use Illuminate\Validation\ValidationException;
 
 class SalesProjectService
 {
-    public const SALES_STATUS_PENDING = 'pending';
-    public const SALES_STATUS_AVAILABLE = 'available';
+    /**
+     * Count units for a contract using the eager-loaded relation when present (avoids N+1).
+     */
+    protected function countContractUnitsForContract(Contract $contract): int
+    {
+        if ($contract->relationLoaded('contractUnits')) {
+            return $contract->contractUnits->count();
+        }
+
+        return $contract->contractUnits()->count();
+    }
+
+    /**
+     * Attach computed listing fields used by SalesProjectResource (not DB columns).
+     */
+    protected function applySalesListingComputedFields(Contract $contract): void
+    {
+        $contract->sales_status = $this->computeProjectSalesStatus($contract);
+        $contract->total_units = $this->countContractUnitsForContract($contract);
+        $contract->available_units = $this->getAvailableUnitsCount($contract);
+        $contract->reserved_units = $this->getReservedUnitsCount($contract);
+        $contract->remaining_days = $this->getProjectRemainingDays($contract);
+    }
+
     /**
      * Get projects with sales status computation.
      */
@@ -25,51 +52,46 @@ class SalesProjectService
             'user',
             'city',
             'district',
-        ])->where('status', 'completed');
+        ])->where('status', ContractWorkflowStatus::Completed->value);
 
         // Apply filters
-        if (!empty($filters['q'])) {
-            $query->where('project_name', 'like', '%' . $filters['q'] . '%');
+        if (! empty($filters['q'])) {
+            $query->where('project_name', 'like', '%'.$filters['q'].'%');
         }
 
-        if (!empty($filters['city_id'])) {
+        if (! empty($filters['city_id'])) {
             $query->where('city_id', (int) $filters['city_id']);
         }
 
-        if (!empty($filters['district_id'])) {
+        if (! empty($filters['district_id'])) {
             $query->where('district_id', (int) $filters['district_id']);
         }
 
-        // Sales user sees all completed contracts (no assignment/scope filter).
-        // applyScopeFilter intentionally not applied so every sales user sees the same list.
+        // Every sales user sees the same list of completed contracts (SalesProjectController::index does not pass scope).
+        // Optional narrowing remains in applyScopeFilter() for future use (e.g. dashboard), not used here.
 
-        $perPage = $filters['per_page'] ?? 15;
-        $contracts = $query->orderBy('created_at', 'desc')->paginate($perPage);
+        $perPage = (int) ($filters['per_page'] ?? 15);
+        $paginationOptions = ['path' => request()->url(), 'query' => request()->query()];
 
-        // Compute sales status for each project
-        $contracts->getCollection()->transform(function ($contract) {
-            $contract->sales_status = $this->computeProjectSalesStatus($contract);
-            $contract->total_units = $contract->contractUnits()->count();
-            $contract->available_units = $this->getAvailableUnitsCount($contract);
-            $contract->reserved_units = $this->getReservedUnitsCount($contract);
-            $contract->remaining_days = $this->getProjectRemainingDays($contract);
-            return $contract;
-        });
-
-        // Apply status filter after computation (in-memory since sales_status is computed)
-        if (!empty($filters['status'])) {
-            $filtered = $contracts->getCollection()->filter(function ($contract) use ($filters) {
-                return $contract->sales_status === $filters['status'];
-            })->values();
+        // sales_status is computed in PHP; filter must run before pagination so total/lastPage are correct.
+        if (! empty($filters['status'])) {
+            $allContracts = $query->orderBy('created_at', 'desc')->get();
+            $allContracts->each(fn (Contract $c) => $this->applySalesListingComputedFields($c));
+            $filtered = $allContracts->filter(fn (Contract $c) => $c->sales_status === $filters['status'])->values();
+            $currentPage = LengthAwarePaginator::resolveCurrentPage();
+            $slice = $filtered->forPage($currentPage, $perPage)->values();
 
             return new LengthAwarePaginator(
-                $filtered,
+                $slice,
                 $filtered->count(),
-                $contracts->perPage(),
-                $contracts->currentPage(),
-                ['path' => request()->url(), 'query' => request()->query()]
+                $perPage,
+                $currentPage,
+                $paginationOptions
             );
         }
+
+        $contracts = $query->orderBy('created_at', 'desc')->paginate($perPage);
+        $contracts->getCollection()->each(fn (Contract $c) => $this->applySalesListingComputedFields($c));
 
         return $contracts;
     }
@@ -89,11 +111,7 @@ class SalesProjectService
             'district',
         ])->findOrFail($contractId);
 
-        $contract->sales_status = $this->computeProjectSalesStatus($contract);
-        $contract->total_units = $contract->contractUnits()->count();
-        $contract->available_units = $this->getAvailableUnitsCount($contract);
-        $contract->reserved_units = $this->getReservedUnitsCount($contract);
-        $contract->remaining_days = $this->getProjectRemainingDays($contract);
+        $this->applySalesListingComputedFields($contract);
 
         return $contract;
     }
@@ -121,34 +139,38 @@ class SalesProjectService
             $query->where('price', '<=', $filters['max_price']);
         }
 
-        $perPage = $filters['per_page'] ?? 15;
-        $units = $query->orderBy('unit_number')->paginate($perPage);
-
-        // Compute availability for each unit
+        $perPage = (int) ($filters['per_page'] ?? 15);
+        $paginationOptions = ['path' => request()->url(), 'query' => request()->query()];
         $projectSalesStatus = $this->computeProjectSalesStatus($contract);
 
-        $units->getCollection()->transform(function ($unit) use ($projectSalesStatus) {
+        $enrichUnit = function (ContractUnit $unit) use ($projectSalesStatus) {
             $availability = $this->computeUnitAvailability($unit, $projectSalesStatus);
             $unit->computed_availability = $availability['status'];
             $unit->can_reserve = $availability['can_reserve'];
             $unit->active_reservation = $unit->activeSalesReservations->first();
-            return $unit;
-        });
 
-        // Apply status filter after computation (in-memory since computed_availability is dynamic)
-        if (!empty($filters['status'])) {
-            $filtered = $units->getCollection()->filter(function ($unit) use ($filters) {
-                return $unit->computed_availability === $filters['status'];
-            })->values();
+            return $unit;
+        };
+
+        // computed_availability is dynamic; filter before pagination for correct totals.
+        if (! empty($filters['status'])) {
+            $allUnits = $query->orderBy('unit_number')->get();
+            $allUnits->each($enrichUnit);
+            $filtered = $allUnits->filter(fn (ContractUnit $u) => $u->computed_availability === $filters['status'])->values();
+            $currentPage = LengthAwarePaginator::resolveCurrentPage();
+            $slice = $filtered->forPage($currentPage, $perPage)->values();
 
             return new LengthAwarePaginator(
-                $filtered,
+                $slice,
                 $filtered->count(),
-                $units->perPage(),
-                $units->currentPage(),
-                ['path' => request()->url(), 'query' => request()->query()]
+                $perPage,
+                $currentPage,
+                $paginationOptions
             );
         }
+
+        $units = $query->orderBy('unit_number')->paginate($perPage);
+        $units->getCollection()->each($enrichUnit);
 
         return $units;
     }
@@ -190,15 +212,15 @@ class SalesProjectService
     protected function computeProjectSalesStatus(Contract $contract): string
     {
         // Check if contract status is completed (available for sales)
-        if ($contract->status !== 'completed') {
-            return self::SALES_STATUS_PENDING;
+        if ($contract->status !== ContractWorkflowStatus::Completed->value) {
+            return SalesProjectListingStatus::Pending->value;
         }
 
         $contract->loadMissing('contractUnits');
         $unitsQuery = $contract->contractUnits();
 
         if ($unitsQuery->count() === 0) {
-            return self::SALES_STATUS_PENDING;
+            return SalesProjectListingStatus::Pending->value;
         }
 
         $hasUnpricedUnits = $unitsQuery->where(function ($query) {
@@ -207,10 +229,10 @@ class SalesProjectService
         })->exists();
 
         if ($hasUnpricedUnits) {
-            return self::SALES_STATUS_PENDING;
+            return SalesProjectListingStatus::Pending->value;
         }
 
-        return self::SALES_STATUS_AVAILABLE;
+        return SalesProjectListingStatus::Available->value;
     }
 
     /**
@@ -223,29 +245,32 @@ class SalesProjectService
         $activeReservation = $unit->activeSalesReservations->first();
 
         // Unit has active negotiation reservation → pending (حجز تفاوض فقط)
-        if ($activeReservation && $activeReservation->status === 'under_negotiation') {
-            return ['status' => 'pending', 'can_reserve' => false];
+        if ($activeReservation && $activeReservation->status === ContractUnitWorkflowStatus::UnderNegotiation->value) {
+            return ['status' => ContractUnitWorkflowStatus::Pending->value, 'can_reserve' => false];
         }
 
         // Unit is sold
-        if ($unit->status === 'sold') {
-            return ['status' => 'sold', 'can_reserve' => false];
+        if ($unit->status === ContractUnitWorkflowStatus::Sold->value) {
+            return ['status' => ContractUnitWorkflowStatus::Sold->value, 'can_reserve' => false];
         }
 
         // Unit is reserved or has confirmed reservation
-        if ($unit->status === 'reserved' || $activeReservation) {
-            return ['status' => 'reserved', 'can_reserve' => false];
+        if ($unit->status === ContractUnitWorkflowStatus::Reserved->value || $activeReservation) {
+            return ['status' => ContractUnitWorkflowStatus::Reserved->value, 'can_reserve' => false];
         }
 
         // Unit is available; can_reserve only when project is ready for sales
-        if ($unit->status === 'available') {
+        if ($unit->status === ContractUnitWorkflowStatus::Available->value) {
             return [
-                'status' => 'available',
-                'can_reserve' => $projectSalesStatus === self::SALES_STATUS_AVAILABLE,
+                'status' => ContractUnitWorkflowStatus::Available->value,
+                'can_reserve' => $projectSalesStatus === SalesProjectListingStatus::Available->value,
             ];
         }
 
-        return ['status' => $unit->status ?? 'available', 'can_reserve' => false];
+        return [
+            'status' => $unit->status ?? ContractUnitWorkflowStatus::Available->value,
+            'can_reserve' => false,
+        ];
     }
 
     /**
@@ -254,7 +279,7 @@ class SalesProjectService
     protected function getAvailableUnitsCount(Contract $contract): int
     {
         return ContractUnit::where('contract_id', $contract->id)
-            ->where('status', 'available')
+            ->where('status', ContractUnitWorkflowStatus::Available->value)
             ->whereDoesntHave('activeSalesReservations')
             ->count();
     }
@@ -266,7 +291,7 @@ class SalesProjectService
     {
         return ContractUnit::where('contract_id', $contract->id)
             ->where(function ($query) {
-                $query->where('status', 'reserved')
+                $query->where('status', ContractUnitWorkflowStatus::Reserved->value)
                     ->orWhereHas('activeSalesReservations');
             })
             ->count();
@@ -387,25 +412,24 @@ class SalesProjectService
             return false;
         }
         // Sales leaders + sales staff can access completed contracts.
-        if ($contract->status === 'completed' && $user->type === 'sales') {
+        if ($contract->status === ContractWorkflowStatus::Completed->value && $user->type === 'sales') {
             return true;
         }
         return false;
     }
 
     /**
-     * Get team projects for a leader (all completed contracts, no assignment condition).
+     * Get team projects for a leader from PM team linkage only.
      */
     public function getTeamProjects(User $leader): \Illuminate\Database\Eloquent\Collection
     {
-        return Contract::where('status', 'completed')
-            ->with(['contractUnits', 'salesProjectAssignments.leader', 'user', 'city', 'district'])
+        return $this->baseTeamProjectsQuery($leader)
             ->orderBy('created_at', 'desc')
             ->get();
     }
 
     /**
-     * Get team projects for leader (paginated). All completed contracts, no assignment condition.
+     * Get team projects for leader (paginated) from PM team linkage only.
      *
      * @param User $leader
      * @param int $perPage
@@ -413,21 +437,12 @@ class SalesProjectService
      */
     public function listTeamProjectsPaginated(User $leader, int $perPage = 15): LengthAwarePaginator
     {
-        $query = Contract::where('status', 'completed')
-            ->with(['contractUnits', 'salesProjectAssignments.leader', 'user', 'city', 'district'])
+        $query = $this->baseTeamProjectsQuery($leader)
             ->orderBy('created_at', 'desc');
 
         $projects = $query->paginate($perPage);
 
-        // Compute sales status for each project
-        $projects->getCollection()->transform(function ($contract) {
-            $contract->sales_status = $this->computeProjectSalesStatus($contract);
-            $contract->total_units = $contract->contractUnits()->count();
-            $contract->available_units = $this->getAvailableUnitsCount($contract);
-            $contract->reserved_units = $this->getReservedUnitsCount($contract);
-            $contract->remaining_days = $this->getProjectRemainingDays($contract);
-            return $contract;
-        });
+        $projects->getCollection()->each(fn (Contract $c) => $this->applySalesListingComputedFields($c));
 
         return $projects;
     }
@@ -469,17 +484,100 @@ class SalesProjectService
     {
         $projects = $this->getTeamProjects($leader);
 
-        // Compute sales status for each project
-        $projects->transform(function ($contract) {
-            $contract->sales_status = $this->computeProjectSalesStatus($contract);
-            $contract->total_units = $contract->contractUnits()->count();
-            $contract->available_units = $this->getAvailableUnitsCount($contract);
-            $contract->reserved_units = $this->getReservedUnitsCount($contract);
-            $contract->remaining_days = $this->getProjectRemainingDays($contract);
-            return $contract;
-        });
+        $projects->each(fn (Contract $c) => $this->applySalesListingComputedFields($c));
 
         return $projects;
+    }
+
+    /**
+     * Base query for projects linked to the leader team from project management.
+     */
+    protected function baseTeamProjectsQuery(User $leader): Builder
+    {
+        $query = Contract::query()
+            ->where('status', ContractWorkflowStatus::Completed->value)
+            ->with([
+                'contractUnits',
+                'salesProjectAssignments.leader',
+                'user',
+                'city',
+                'district',
+            ]);
+
+        if (!$leader->team_id) {
+            return $query->whereRaw('1 = 0');
+        }
+
+        return $query
+            ->whereHas('teams', function (Builder $teams) use ($leader) {
+                $teams->where('teams.id', $leader->team_id);
+            })
+            ->with([
+                'teams' => fn ($teams) => $teams->where('teams.id', $leader->team_id),
+            ]);
+    }
+
+    /**
+     * True when PM linked the contract to the leader's team (contract_team), same rule as sales targets.
+     *
+     * FK chain: contracts ← contract_team → teams; sales_project_assignments references contracts + users.
+     * See migrations: 2026_01_21_000004_create_contract_team_table, 2026_01_26_100005_create_sales_project_assignments_table.
+     */
+    protected function contractHasTeamForLeader(User $leader, int $contractId): bool
+    {
+        if (!$leader->team_id) {
+            return false;
+        }
+
+        return Contract::query()
+            ->whereKey($contractId)
+            ->where('status', ContractWorkflowStatus::Completed->value)
+            ->whereHas('teams', function (Builder $teams) use ($leader) {
+                $teams->where('teams.id', $leader->team_id);
+            })
+            ->exists();
+    }
+
+    /**
+     * Assign project to a sales team by team code (resolves the team's sales leader internally).
+     */
+    public function assignProjectToTeamByCode(string $teamCode, int $contractId, int $assignerId, ?string $startDate = null, ?string $endDate = null): \App\Models\SalesProjectAssignment
+    {
+        $normalized = trim($teamCode);
+        $team = Team::query()
+            ->whereRaw('LOWER(code) = ?', [strtolower($normalized)])
+            ->first();
+
+        if (!$team) {
+            throw ValidationException::withMessages([
+                'team_code' => [__('The selected team code is invalid.')],
+            ]);
+        }
+
+        $leader = $this->resolveSalesLeaderForTeam($team);
+
+        return $this->assignProjectToLeader($leader->id, $contractId, $assignerId, $startDate, $endDate);
+    }
+
+    /**
+     * Pick one sales manager for the team (used when assigning by team_code).
+     */
+    protected function resolveSalesLeaderForTeam(Team $team): User
+    {
+        $leader = User::query()
+            ->where('team_id', $team->id)
+            ->where('type', 'sales')
+            ->where('is_manager', true)
+            ->orderBy('id')
+            ->first();
+
+        if (!$leader) {
+            throw ValidationException::withMessages([
+                'team_code' => [__('No sales leader found for this team.')],
+            ]);
+        }
+
+        return $leader;
     }
 
     /**
@@ -487,6 +585,27 @@ class SalesProjectService
      */
     public function assignProjectToLeader(int $leaderId, int $contractId, int $assignerId, ?string $startDate = null, ?string $endDate = null): \App\Models\SalesProjectAssignment
     {
+        $leader = User::findOrFail($leaderId);
+        $contract = Contract::findOrFail($contractId);
+
+        if ($contract->status !== ContractWorkflowStatus::Completed->value) {
+            throw ValidationException::withMessages([
+                'contract_id' => [__('The contract must be completed before assigning a sales leader.')],
+            ]);
+        }
+
+        if (!$leader->team_id) {
+            throw ValidationException::withMessages([
+                'leader_id' => [__('The sales leader must belong to a team.')],
+            ]);
+        }
+
+        if (!$this->contractHasTeamForLeader($leader, $contract->id)) {
+            throw ValidationException::withMessages([
+                'contract_id' => [__('The contract must be assigned to the leader team by project management (contract_team).')],
+            ]);
+        }
+
         // Validate date range
         if ($startDate && $endDate && $startDate > $endDate) {
             throw new \Exception('تاريخ البداية يجب أن يكون قبل تاريخ النهاية');
@@ -559,7 +678,7 @@ class SalesProjectService
     public function countProjectsUnderMarketing(string $scope, User $user): int
     {
         return Contract::query()
-            ->where('status', 'completed')
+            ->where('status', ContractWorkflowStatus::Completed->value)
             ->whereHas('contractUnits')
             ->whereDoesntHave('contractUnits', function (Builder $q) {
                 $q->whereNull('price')->orWhere('price', '<=', 0);

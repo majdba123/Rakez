@@ -11,6 +11,7 @@ use App\Models\BoardsDepartment;
 use App\Models\PhotographyDepartment;
 use App\Models\MontageDepartment;
 use App\Models\Team;
+use App\Enums\ContractWorkflowStatus;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Contract extends Model
@@ -67,11 +68,9 @@ class Contract extends Model
     public function getEffectiveCommissionPercent(): float
     {
         $this->loadMissing('info');
-        $info = $this->info;
-        $fromInfo = $info !== null && $info->commission_percent !== null ? (float) $info->commission_percent : null;
         $fromContract = $this->commission_percent !== null ? (float) $this->commission_percent : null;
 
-        return (float) ($fromInfo ?? $fromContract ?? 0);
+        return (float) ($fromContract ?? 0);
     }
 
     /**
@@ -175,7 +174,7 @@ class Contract extends Model
      */
     public function isPending()
     {
-        return $this->status === 'pending';
+        return $this->status === ContractWorkflowStatus::Pending->value;
     }
 
     /**
@@ -183,7 +182,7 @@ class Contract extends Model
      */
     public function isApproved()
     {
-        return $this->status === 'approved';
+        return $this->status === ContractWorkflowStatus::Approved->value;
     }
 
     /**
@@ -191,7 +190,7 @@ class Contract extends Model
      */
     public function isReady(): bool
     {
-        return $this->status === 'completed';
+        return $this->status === ContractWorkflowStatus::Completed->value;
     }
 
     /**
@@ -324,7 +323,7 @@ class Contract extends Model
      */
     public function scopePending($query)
     {
-        return $query->where('status', 'pending');
+        return $query->where('status', ContractWorkflowStatus::Pending->value);
     }
 
     /**
@@ -332,7 +331,7 @@ class Contract extends Model
      */
     public function scopeApproved($query)
     {
-        return $query->where('status', 'approved');
+        return $query->where('status', ContractWorkflowStatus::Approved->value);
     }
 
     /**

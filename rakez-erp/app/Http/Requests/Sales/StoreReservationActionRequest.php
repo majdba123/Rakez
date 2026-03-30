@@ -8,12 +8,15 @@ class StoreReservationActionRequest extends FormRequest
 {
     protected function prepareForValidation(): void
     {
+        // Accept Arabic labels from clients (UTF-8); map to canonical action_type values.
         $map = [
-            '???' => 'lead_acquisition',
-            '?????' => 'persuasion',
-            '?????' => 'persuasion',
-            '?????' => 'closing',
-            '?????' => 'closing',
+            'استقطاب' => 'lead_acquisition',
+            'اكتساب العملاء' => 'lead_acquisition',
+            'إقناع' => 'persuasion',
+            'الإقناع' => 'persuasion',
+            'إغلاق' => 'closing',
+            'الإغلاق' => 'closing',
+            'اغلاق الصفقة' => 'closing',
         ];
 
         $actionType = $this->input('action_type');

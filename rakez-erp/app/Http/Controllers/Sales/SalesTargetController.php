@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Sales;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Sales\StoreTargetRequest;
 use App\Http\Requests\Sales\UpdateTargetRequest;
+use App\Http\Resources\Sales\SalesTargetProjectResource;
 use App\Http\Resources\Sales\SalesTargetResource;
 use App\Models\SalesTarget;
 use App\Services\Sales\SalesTargetService;
@@ -35,7 +36,7 @@ class SalesTargetController extends Controller
             $paginator = $result['paginator'];
 
             if ($result['type'] === \App\Services\Sales\SalesTargetService::MY_CONTENT_ASSIGNMENTS) {
-                $data = \App\Http\Resources\Sales\SalesProjectAssignmentResource::collection($paginator->items());
+                $data = SalesTargetProjectResource::collection($paginator->items());
             } else {
                 $data = SalesTargetResource::collection($paginator->items());
             }

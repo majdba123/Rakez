@@ -80,7 +80,7 @@ class TwilioWebhookController extends Controller
 
         Log::info('Twilio gather received', [
             'ai_call_id' => $callId,
-            'speech' => mb_substr($speechResult, 0, 200),
+            'speech_length' => mb_strlen($speechResult),
             'confidence' => $confidence,
             'question_key' => $questionKey,
         ]);

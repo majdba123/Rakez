@@ -10,6 +10,7 @@ class AiDocument extends Model
     protected $table = 'ai_documents';
 
     protected $fillable = [
+        'uploaded_by_user_id',
         'title',
         'source',
         'mime_type',
@@ -20,7 +21,13 @@ class AiDocument extends Model
     {
         return [
             'meta_json' => 'array',
+            'uploaded_by_user_id' => 'integer',
         ];
+    }
+
+    public function owner(): \Illuminate\Database\Eloquent\Relations\BelongsTo
+    {
+        return $this->belongsTo(User::class, 'uploaded_by_user_id');
     }
 
     /**

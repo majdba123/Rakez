@@ -10,7 +10,7 @@
 
 | الواجهة | مسار في الوثيقة | المسار الفعلي في الباكند |
 |---------|------------------|---------------------------|
-| AiAssistantView | GET /ai/v2/conversations | GET /ai/conversations |
+| AiAssistantView | GET /ai/conversations | GET /ai/conversations |
 | KnowledgeManagementView | GET /ai/assistant/knowledge | GET /ai/knowledge |
 | ChatView (قائمة مستخدمين) | GET /hr/users | GET /chat/list_user أو GET /hr/users (حسب الفرونت) |
 | ContractsView (تحديث حالة) | PATCH /admin/contracts/adminUpdateStatus/:id | PATCH /admin/contracts/adminUpdateStatus/{id} (داخل prefix admin) أو PATCH contracts/update-status/{id} (داخل project_management) |

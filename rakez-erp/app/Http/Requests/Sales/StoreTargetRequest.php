@@ -12,6 +12,34 @@ class StoreTargetRequest extends FormRequest
         return $this->user()->isSalesLeader();
     }
 
+    /**
+     * Accept camelCase from SPAs (e.g. marketerId) in addition to snake_case (marketer_id).
+     */
+    protected function prepareForValidation(): void
+    {
+        $aliases = [
+            'marketerId' => 'marketer_id',
+            'contractId' => 'contract_id',
+            'contractUnitId' => 'contract_unit_id',
+            'contractUnitIds' => 'contract_unit_ids',
+            'targetType' => 'target_type',
+            'startDate' => 'start_date',
+            'endDate' => 'end_date',
+            'leaderNotes' => 'leader_notes',
+        ];
+
+        $merge = [];
+        foreach ($aliases as $camel => $snake) {
+            if (! $this->has($snake) && $this->has($camel)) {
+                $merge[$snake] = $this->input($camel);
+            }
+        }
+
+        if ($merge !== []) {
+            $this->merge($merge);
+        }
+    }
+
     public function rules(): array
     {
         return [

@@ -5,10 +5,11 @@ namespace Tests\Integration\AI;
 use App\Models\AIConversation;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Facades\Config;
 use Laravel\Sanctum\Sanctum;
 use Tests\TestCase;
+use Tests\Traits\ReadsDotEnvForTest;
 use Tests\Traits\TestsWithPermissions;
+use Tests\Traits\TestsWithRealOpenAiConnection;
 
 /**
  * Real OpenAI E2E tests — hit the live API using token from .env.
@@ -16,54 +17,22 @@ use Tests\Traits\TestsWithPermissions;
  * Skipped unless .env is configured. To run:
  *   1. In .env set OPENAI_API_KEY=sk-... (your real token)
  *   2. In .env set AI_REAL_TESTS=true
- *   3. Run: php artisan test --filter=AIAssistantRealOpenAI
+ *   3. Run: php artisan test --group=ai-e2e-real
  *
  * Tests cover: /api/ai/ask, /api/ai/chat (JSON and SSE stream), session continuity.
+ *
+ * @group ai-e2e-real
  */
 class AIAssistantRealOpenAITest extends TestCase
 {
+    use ReadsDotEnvForTest;
     use RefreshDatabase, TestsWithPermissions;
-
-    private string $realApiKey;
+    use TestsWithRealOpenAiConnection;
 
     protected function setUp(): void
     {
         parent::setUp();
-
-        $envKey = $this->readRealKeyFromDotEnv();
-
-        if (! $envKey || $envKey === 'test-fake-key-not-used') {
-            $this->markTestSkipped('Real OPENAI_API_KEY not configured in .env');
-        }
-
-        if (! $this->isRealTestsEnabled()) {
-            $this->markTestSkipped('AI_REAL_TESTS is not enabled — set AI_REAL_TESTS=true in .env to run');
-        }
-
-        $this->realApiKey = $envKey;
-
-        Config::set('openai.api_key', $this->realApiKey);
-        Config::set('ai_assistant.enabled', true);
-        Config::set('ai_assistant.budgets.per_user_daily_tokens', 0);
-        Config::set('ai_assistant.openai.max_output_tokens', 200);
-        Config::set('ai_assistant.v2.openai.max_output_tokens', 400);
-        Config::set('ai_assistant.retries.max_attempts', 2);
-        Config::set('ai_assistant.retries.base_delay_ms', 200);
-
-        app()->forgetInstance('openai');
-        app()->forgetInstance(\OpenAI\Client::class);
-
-        try {
-            $client = \OpenAI::client($this->realApiKey);
-            $client->models()->list();
-        } catch (\OpenAI\Exceptions\ErrorException $e) {
-            if (str_contains($e->getMessage(), 'Country') || str_contains($e->getMessage(), 'region') || str_contains($e->getMessage(), 'territory')) {
-                $this->markTestSkipped('OpenAI API is not available in this region: ' . $e->getMessage());
-            }
-            throw $e;
-        } catch (\Throwable $e) {
-            $this->markTestSkipped('OpenAI API connectivity issue: ' . $e->getMessage());
-        }
+        $this->bootRealOpenAiFromDotEnv();
     }
 
     // ------------------------------------------------------------------
@@ -236,19 +205,19 @@ class AIAssistantRealOpenAITest extends TestCase
     }
 
     // ------------------------------------------------------------------
-    // Test 5 — v2 /api/ai/v2/chat strict JSON schema
+    // Test 5 — tools orchestrator /api/ai/tools/chat strict JSON schema
     // ------------------------------------------------------------------
 
     public function test_real_v2_chat_returns_strict_json_schema(): void
     {
         $user = $this->authenticatedAiUser();
 
-        $response = $this->postJson('/api/ai/v2/chat', [
+        $response = $this->postJson('/api/ai/tools/chat', [
             'message' => 'What can I do in this system?',
         ]);
 
         if ($response->status() === 404) {
-            $this->markTestSkipped('Route /api/ai/v2/chat is not registered');
+            $this->markTestSkipped('Route /api/ai/tools/chat is not registered');
         }
 
         $response->assertOk();
@@ -292,60 +261,4 @@ class AIAssistantRealOpenAITest extends TestCase
         return $user;
     }
 
-    /**
-     * Read the real OPENAI_API_KEY directly from .env, bypassing phpunit.xml override.
-     */
-    private function readRealKeyFromDotEnv(): ?string
-    {
-        $envPath = base_path('.env');
-
-        if (! file_exists($envPath)) {
-            return null;
-        }
-
-        $lines = file($envPath, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
-
-        foreach ($lines as $line) {
-            $line = trim($line);
-            if (str_starts_with($line, '#')) {
-                continue;
-            }
-            if (str_starts_with($line, 'OPENAI_API_KEY=')) {
-                $value = substr($line, strlen('OPENAI_API_KEY='));
-                $value = trim($value, '"\'');
-
-                return $value !== '' ? $value : null;
-            }
-        }
-
-        return null;
-    }
-
-    /**
-     * Check AI_REAL_TESTS flag from .env (phpunit.xml may not have it).
-     */
-    private function isRealTestsEnabled(): bool
-    {
-        $envPath = base_path('.env');
-
-        if (! file_exists($envPath)) {
-            return false;
-        }
-
-        $lines = file($envPath, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
-
-        foreach ($lines as $line) {
-            $line = trim($line);
-            if (str_starts_with($line, '#')) {
-                continue;
-            }
-            if (str_starts_with($line, 'AI_REAL_TESTS=')) {
-                $value = strtolower(trim(substr($line, strlen('AI_REAL_TESTS=')), '"\''));
-
-                return in_array($value, ['true', '1', 'yes'], true);
-            }
-        }
-
-        return false;
-    }
 }

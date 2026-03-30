@@ -49,10 +49,11 @@ class MarketingPlanTest extends TestCase
     #[Test]
     public function it_can_auto_generate_employee_plan()
     {
-        $contract = Contract::factory()->create();
+        $contract = Contract::factory()->create([
+            'commission_percent' => 2.5,
+        ]);
         ContractInfo::factory()->create([
             'contract_id' => $contract->id,
-            'commission_percent' => 2.5
         ]);
         $project = MarketingProject::create(['contract_id' => $contract->id]);
 

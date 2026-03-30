@@ -33,14 +33,14 @@ class AssistantKnowledgeTest extends TestCase
 
     public function test_knowledge_index_requires_authentication(): void
     {
-        $response = $this->getJson('/api/ai/assistant/knowledge');
+        $response = $this->getJson('/api/ai/knowledge');
         $response->assertStatus(401);
     }
 
     public function test_user_without_permission_cannot_list_knowledge(): void
     {
         $response = $this->actingAs($this->userWithoutPermission)
-            ->getJson('/api/ai/assistant/knowledge');
+            ->getJson('/api/ai/knowledge');
 
         $response->assertStatus(403);
     }
@@ -48,7 +48,7 @@ class AssistantKnowledgeTest extends TestCase
     public function test_user_without_permission_cannot_create_knowledge(): void
     {
         $response = $this->actingAs($this->userWithoutPermission)
-            ->postJson('/api/ai/assistant/knowledge', [
+            ->postJson('/api/ai/knowledge', [
                 'module' => 'general',
                 'title' => 'Test Entry',
                 'content_md' => 'Test content',
@@ -69,7 +69,7 @@ class AssistantKnowledgeTest extends TestCase
         ]);
 
         $response = $this->actingAs($this->userWithoutPermission)
-            ->putJson("/api/ai/assistant/knowledge/{$entry->id}", [
+            ->putJson("/api/ai/knowledge/{$entry->id}", [
                 'title' => 'Updated Title',
             ]);
 
@@ -87,7 +87,7 @@ class AssistantKnowledgeTest extends TestCase
         ]);
 
         $response = $this->actingAs($this->userWithoutPermission)
-            ->deleteJson("/api/ai/assistant/knowledge/{$entry->id}");
+            ->deleteJson("/api/ai/knowledge/{$entry->id}");
 
         $response->assertStatus(403);
     }
@@ -120,22 +120,26 @@ class AssistantKnowledgeTest extends TestCase
         $this->assertDatabaseHas('assistant_knowledge_entries', ['id' => $entry2->id]);
 
         $response = $this->actingAs($this->admin)
-            ->getJson('/api/ai/assistant/knowledge');
+            ->getJson('/api/ai/knowledge');
 
         $response->assertStatus(200)
             ->assertJsonStructure([
                 'success',
                 'data',
                 'meta' => [
-                    'current_page',
-                    'last_page',
-                    'per_page',
-                    'total',
+                    'pagination' => [
+                        'total',
+                        'count',
+                        'per_page',
+                        'current_page',
+                        'total_pages',
+                        'has_more_pages',
+                    ],
                 ],
             ]);
 
         $data = $response->json('data');
-        $total = $response->json('meta.total');
+        $total = $response->json('meta.pagination.total');
         
         $this->assertEquals(2, $total);
         $this->assertCount(2, $data);
@@ -164,12 +168,12 @@ class AssistantKnowledgeTest extends TestCase
         ]);
 
         $response = $this->actingAs($this->admin)
-            ->getJson('/api/ai/assistant/knowledge?module=sales');
+            ->getJson('/api/ai/knowledge?module=sales');
 
         $response->assertStatus(200);
 
         $data = $response->json('data');
-        $total = $response->json('meta.total');
+        $total = $response->json('meta.pagination.total');
 
         $this->assertEquals(1, $total);
         $this->assertCount(1, $data);
@@ -195,12 +199,12 @@ class AssistantKnowledgeTest extends TestCase
         ]);
 
         $response = $this->actingAs($this->admin)
-            ->getJson('/api/ai/assistant/knowledge?language=ar');
+            ->getJson('/api/ai/knowledge?language=ar');
 
         $response->assertStatus(200);
 
         $data = $response->json('data');
-        $total = $response->json('meta.total');
+        $total = $response->json('meta.pagination.total');
 
         $this->assertEquals(1, $total);
         $this->assertCount(1, $data);
@@ -226,12 +230,12 @@ class AssistantKnowledgeTest extends TestCase
         ]);
 
         $response = $this->actingAs($this->admin)
-            ->getJson('/api/ai/assistant/knowledge?is_active=false');
+            ->getJson('/api/ai/knowledge?is_active=false');
 
         $response->assertStatus(200);
 
         $data = $response->json('data');
-        $total = $response->json('meta.total');
+        $total = $response->json('meta.pagination.total');
 
         $this->assertEquals(1, $total);
         $this->assertCount(1, $data);
@@ -241,7 +245,7 @@ class AssistantKnowledgeTest extends TestCase
     public function test_admin_can_create_knowledge_entry(): void
     {
         $response = $this->actingAs($this->admin)
-            ->postJson('/api/ai/assistant/knowledge', [
+            ->postJson('/api/ai/knowledge', [
                 'module' => 'sales',
                 'page_key' => 'sales.reservations.index',
                 'title' => 'How to Create a Reservation',
@@ -294,7 +298,7 @@ class AssistantKnowledgeTest extends TestCase
         ]);
 
         $response = $this->actingAs($this->admin)
-            ->putJson("/api/ai/assistant/knowledge/{$entry->id}", [
+            ->putJson("/api/ai/knowledge/{$entry->id}", [
                 'title' => 'Updated Title',
                 'content_md' => 'Updated content',
                 'is_active' => false,
@@ -326,7 +330,7 @@ class AssistantKnowledgeTest extends TestCase
         ]);
 
         $response = $this->actingAs($this->admin)
-            ->deleteJson("/api/ai/assistant/knowledge/{$entry->id}");
+            ->deleteJson("/api/ai/knowledge/{$entry->id}");
 
         $response->assertStatus(200)
             ->assertJson([
@@ -342,7 +346,7 @@ class AssistantKnowledgeTest extends TestCase
     public function test_update_nonexistent_entry_returns_404(): void
     {
         $response = $this->actingAs($this->admin)
-            ->putJson('/api/ai/assistant/knowledge/99999', [
+            ->putJson('/api/ai/knowledge/99999', [
                 'title' => 'Updated Title',
             ]);
 
@@ -356,7 +360,7 @@ class AssistantKnowledgeTest extends TestCase
     public function test_delete_nonexistent_entry_returns_404(): void
     {
         $response = $this->actingAs($this->admin)
-            ->deleteJson('/api/ai/assistant/knowledge/99999');
+            ->deleteJson('/api/ai/knowledge/99999');
 
         $response->assertStatus(404)
             ->assertJson([
@@ -370,7 +374,7 @@ class AssistantKnowledgeTest extends TestCase
     public function test_create_requires_module(): void
     {
         $response = $this->actingAs($this->admin)
-            ->postJson('/api/ai/assistant/knowledge', [
+            ->postJson('/api/ai/knowledge', [
                 'title' => 'Test Entry',
                 'content_md' => 'Content',
                 'language' => 'en',
@@ -383,7 +387,7 @@ class AssistantKnowledgeTest extends TestCase
     public function test_create_requires_title(): void
     {
         $response = $this->actingAs($this->admin)
-            ->postJson('/api/ai/assistant/knowledge', [
+            ->postJson('/api/ai/knowledge', [
                 'module' => 'general',
                 'content_md' => 'Content',
                 'language' => 'en',
@@ -396,7 +400,7 @@ class AssistantKnowledgeTest extends TestCase
     public function test_create_requires_content_md(): void
     {
         $response = $this->actingAs($this->admin)
-            ->postJson('/api/ai/assistant/knowledge', [
+            ->postJson('/api/ai/knowledge', [
                 'module' => 'general',
                 'title' => 'Test Entry',
                 'language' => 'en',
@@ -409,7 +413,7 @@ class AssistantKnowledgeTest extends TestCase
     public function test_create_requires_language(): void
     {
         $response = $this->actingAs($this->admin)
-            ->postJson('/api/ai/assistant/knowledge', [
+            ->postJson('/api/ai/knowledge', [
                 'module' => 'general',
                 'title' => 'Test Entry',
                 'content_md' => 'Content',
@@ -422,7 +426,7 @@ class AssistantKnowledgeTest extends TestCase
     public function test_create_validates_language_values(): void
     {
         $response = $this->actingAs($this->admin)
-            ->postJson('/api/ai/assistant/knowledge', [
+            ->postJson('/api/ai/knowledge', [
                 'module' => 'general',
                 'title' => 'Test Entry',
                 'content_md' => 'Content',
@@ -436,7 +440,7 @@ class AssistantKnowledgeTest extends TestCase
     public function test_create_validates_module_max_length(): void
     {
         $response = $this->actingAs($this->admin)
-            ->postJson('/api/ai/assistant/knowledge', [
+            ->postJson('/api/ai/knowledge', [
                 'module' => str_repeat('a', 121),
                 'title' => 'Test Entry',
                 'content_md' => 'Content',

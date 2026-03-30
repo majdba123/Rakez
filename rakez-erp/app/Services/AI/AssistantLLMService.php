@@ -2,7 +2,6 @@
 
 namespace App\Services\AI;
 
-use App\Models\User;
 use Illuminate\Support\Facades\Log;
 
 class AssistantLLMService
@@ -31,13 +30,21 @@ class AssistantLLMService
         // Build instructions with knowledge snippets
         $instructions = $this->buildInstructions($systemPrompt, $knowledgeSnippets, $userContext);
 
-        $messages = [
-            ['role' => 'user', 'content' => $userMessage],
-        ];
+        $messages = collect($userContext['history'] ?? [])
+            ->map(fn (array $message) => [
+                'role' => $message['role'],
+                'content' => $message['content'],
+            ])
+            ->all();
+
+        $messages[] = ['role' => 'user', 'content' => $userMessage];
 
         $metadata = [
             'capability' => 'assistant_help',
             'user_id' => $userContext['user_id'] ?? null,
+            'service' => 'assistant_help',
+            'session_id' => $userContext['conversation_id'] ?? null,
+            'correlation_id' => $userContext['correlation_id'] ?? null,
         ];
 
         try {
@@ -81,6 +88,12 @@ class AssistantLLMService
             '',
         ];
 
+        if (! empty($userContext['summary'])) {
+            $lines[] = 'CONVERSATION SUMMARY:';
+            $lines[] = $userContext['summary'];
+            $lines[] = '';
+        }
+
         if (!empty($knowledgeSnippets)) {
             $lines[] = 'KNOWLEDGE SNIPPETS (use only these to answer):';
             $lines[] = '---';
@@ -120,4 +133,3 @@ class AssistantLLMService
         return $response->outputText ?? 'I was unable to generate a response.';
     }
 }
-

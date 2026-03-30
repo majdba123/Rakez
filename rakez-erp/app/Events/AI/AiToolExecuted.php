@@ -13,5 +13,6 @@ class AiToolExecuted
         public readonly string $toolName,
         public readonly float $durationMs,
         public readonly bool $denied,
+        public readonly ?string $correlationId = null,
     ) {}
 }

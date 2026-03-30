@@ -14,6 +14,7 @@ class AiInteractionLog extends Model
     protected $fillable = [
         'user_id',
         'session_id',
+        'correlation_id',
         'section',
         'request_type',
         'model',

@@ -570,30 +570,39 @@ class SalesAccessTest extends BasePermissionTestCase
     public function admin_can_assign_project_to_sales_team()
     {
         $admin = $this->createAdmin();
-        $salesLeader = $this->createSalesLeader();
-        
+        $team = $this->createTeam();
+        $salesLeader = $this->createSalesLeader(['team_id' => $team->id]);
+
+        $contract = Contract::factory()->create(['status' => 'completed']);
+        $contract->teams()->attach($team->id);
+
         $response = $this->actingAs($admin, 'sanctum')
             ->postJson('/api/admin/sales/project-assignments', [
-                'contract_id' => $this->contract->id,
-                'leader_id' => $salesLeader->id,
+                'contract_id' => $contract->id,
+                'team_code' => $team->code,
                 'start_date' => now()->toDateString(),
             ]);
-        
+
         $this->assertNotEquals(403, $response->status());
+        $response->assertStatus(201);
     }
 
     #[Test]
     public function sales_staff_cannot_assign_projects()
     {
-        $salesStaff = $this->createSalesStaff();
-        $salesLeader = $this->createSalesLeader();
-        
+        $team = $this->createTeam();
+        $this->createSalesLeader(['team_id' => $team->id]);
+        $salesStaff = $this->createSalesStaff(['team_id' => $team->id]);
+
+        $contract = Contract::factory()->create(['status' => 'completed']);
+        $contract->teams()->attach($team->id);
+
         $response = $this->actingAs($salesStaff, 'sanctum')
             ->postJson('/api/admin/sales/project-assignments', [
-                'contract_id' => $this->contract->id,
-                'leader_id' => $salesLeader->id,
+                'contract_id' => $contract->id,
+                'team_code' => $team->code,
             ]);
-        
+
         $response->assertStatus(403);
     }
 

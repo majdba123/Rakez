@@ -13,8 +13,9 @@ class SalesProjectDetailResource extends JsonResource
             ? $this->salesProjectAssignments->first(fn($a) => $a->isActive())
             : null;
 
-        $teamName = $activeAssignment?->leader?->team
-            ?? $this->user?->team
+        $teamName = $activeAssignment?->leader?->team?->name
+            ?? ($this->relationLoaded('teams') && $this->teams->isNotEmpty() ? $this->teams->first()->name : null)
+            ?? $this->user?->team?->name
             ?? 'N/A';
 
         $salesStatus = $this->sales_status ?? 'pending';

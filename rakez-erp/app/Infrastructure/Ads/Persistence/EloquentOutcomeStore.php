@@ -27,6 +27,7 @@ final class EloquentOutcomeStore implements OutcomeStorePort
                     'status' => 'pending',
                     'value' => $event->value?->amount,
                     'currency' => $event->value?->currency,
+                    'provider_currency' => $event->providerCurrency ?? $event->value?->currency,
                     'crm_stage' => $event->crmStage,
                     'score' => $event->score,
                     'lead_id' => $event->leadId,
@@ -55,6 +56,10 @@ final class EloquentOutcomeStore implements OutcomeStorePort
     public function fetchPending(int $limit = 50): array
     {
         return AdsOutcomeEvent::where('status', 'pending')
+            ->where(function ($q): void {
+                $q->whereNull('next_attempt_at')
+                    ->orWhere('next_attempt_at', '<=', now());
+            })
             ->orderBy('created_at')
             ->limit($limit)
             ->get()
@@ -70,26 +75,42 @@ final class EloquentOutcomeStore implements OutcomeStorePort
                 'status' => 'delivered',
                 'platform_response' => $response,
                 'last_attempted_at' => now(),
+                'next_attempt_at' => null,
             ]);
     }
 
     public function markFailed(string $eventId, string $platform, string $error): void
     {
-        AdsOutcomeEvent::where('event_id', $eventId)
+        $row = AdsOutcomeEvent::where('event_id', $eventId)
             ->where('platform', $platform)
-            ->update([
-                'status' => 'pending',
-                'last_error' => $error,
-                'last_attempted_at' => now(),
-                'retry_count' => \DB::raw('retry_count + 1'),
-            ]);
+            ->first();
+
+        if (! $row) {
+            return;
+        }
+
+        $nextRetry = (int) $row->retry_count + 1;
+        $delaySec = min(60 * (2 ** min($nextRetry, 14)), 86_400);
+        $delaySec += random_int(0, min(120, max(1, (int) ($delaySec / 20))));
+
+        AdsOutcomeEvent::where('id', $row->id)->update([
+            'status' => 'pending',
+            'last_error' => $error,
+            'last_attempted_at' => now(),
+            'retry_count' => $nextRetry,
+            'next_attempt_at' => now()->addSeconds($delaySec),
+        ]);
     }
 
     public function moveToDeadLetter(int $maxRetries = 5): int
     {
         return AdsOutcomeEvent::where('status', 'pending')
             ->where('retry_count', '>=', $maxRetries)
-            ->update(['status' => 'dead_letter']);
+            ->update([
+                'status' => 'dead_letter',
+                'dead_letter_reason' => 'max_retries_exceeded',
+                'next_attempt_at' => null,
+            ]);
     }
 
     private function toEntity(AdsOutcomeEvent $row): OutcomeEvent
@@ -107,7 +128,7 @@ final class EloquentOutcomeStore implements OutcomeStorePort
             occurredAt: CarbonImmutable::parse($row->occurred_at),
             identifiers: $identifiers,
             targetPlatforms: [Platform::from($row->platform)],
-            value: $row->value !== null ? new Money((float) $row->value, $row->currency ?? 'USD') : null,
+            value: $row->value !== null ? new Money((float) $row->value, $row->currency ?? config('ads_platforms.default_normalized_currency', 'USD')) : null,
             crmStage: $row->crm_stage,
             score: $row->score,
             leadId: $row->lead_id,
@@ -121,6 +142,7 @@ final class EloquentOutcomeStore implements OutcomeStorePort
             clientUserAgent: $payload['client_user_agent'] ?? null,
             eventSourceUrl: $payload['event_source_url'] ?? null,
             customData: $payload['custom_data'] ?? [],
+            providerCurrency: $row->provider_currency,
         );
     }
 }

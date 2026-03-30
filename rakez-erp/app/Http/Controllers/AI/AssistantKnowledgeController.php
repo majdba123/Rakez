@@ -34,8 +34,8 @@ class AssistantKnowledgeController extends Controller
             $query->where('language', $request->input('language'));
         }
 
-        // Filter by is_active
-        if ($request->has('is_active')) {
+        // Filter by is_active (only when explicitly provided — avoid has() matching empty values)
+        if ($request->filled('is_active')) {
             $query->where('is_active', filter_var($request->input('is_active'), FILTER_VALIDATE_BOOLEAN));
         }
 
@@ -49,21 +49,24 @@ class AssistantKnowledgeController extends Controller
         }
 
         $perPage = ApiResponse::getPerPage($request, 15, 100);
-        $items = $query->orderBy('priority', 'asc')
-            ->orderBy('updated_at', 'desc')
-            ->paginate($perPage);
+        $page = max(1, (int) $request->query('page', 1));
+
+        $ordered = $query->orderBy('priority', 'asc')
+            ->orderBy('updated_at', 'desc');
+        $total = (clone $ordered)->count();
+        $rows = (clone $ordered)->skip(($page - 1) * $perPage)->take($perPage)->get();
 
         return response()->json([
             'success' => true,
-            'data' => $items->items(),
+            'data' => $rows->all(),
             'meta' => [
                 'pagination' => [
-                    'total' => $items->total(),
-                    'count' => $items->count(),
-                    'per_page' => $items->perPage(),
-                    'current_page' => $items->currentPage(),
-                    'total_pages' => $items->lastPage(),
-                    'has_more_pages' => $items->hasMorePages(),
+                    'total' => $total,
+                    'count' => $rows->count(),
+                    'per_page' => $perPage,
+                    'current_page' => $page,
+                    'total_pages' => max(1, (int) ceil($total / max(1, $perPage))),
+                    'has_more_pages' => ($page * $perPage) < $total,
                 ],
             ],
         ]);

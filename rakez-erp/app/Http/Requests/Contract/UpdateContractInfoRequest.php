@@ -19,8 +19,6 @@ class UpdateContractInfoRequest extends FormRequest
             'contract_city' => 'nullable|string|max:255',
             'location_url' => 'nullable|string|url|max:500',
             'agreement_duration_days' => 'nullable|integer|min:0',
-            'commission_percent' => 'nullable|numeric|min:0',
-            'commission_from' => 'nullable|string|max:255',
             'agency_number' => 'nullable|string|max:255',
             'agency_date' => 'nullable|date',
             'avg_property_value' => 'nullable|numeric|min:0',

@@ -9,6 +9,7 @@ use App\Models\SalesProjectAssignment;
 use App\Models\SalesReservation;
 use App\Models\SalesTarget;
 use App\Models\SecondPartyData;
+use App\Models\Team;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -300,14 +301,20 @@ class SalesProjectTest extends TestCase
         $admin = User::factory()->create(['type' => 'admin']);
         $admin->assignRole('admin');
 
-        $leader = User::factory()->create(['type' => 'sales', 'is_manager' => true]);
+        $team = Team::factory()->create(['name' => 'Assign Team']);
+        $leader = User::factory()->create([
+            'type' => 'sales',
+            'is_manager' => true,
+            'team_id' => $team->id,
+        ]);
         $leader->assignRole('sales_leader');
 
         $contract = Contract::factory()->create(['status' => 'completed']);
+        $contract->teams()->attach($team->id);
 
         $response = $this->actingAs($admin, 'sanctum')
             ->postJson('/api/admin/sales/project-assignments', [
-                'leader_id' => $leader->id,
+                'team_code' => $team->code,
                 'contract_id' => $contract->id,
                 'start_date' => '2026-02-01',
                 'end_date' => '2026-08-01',
@@ -325,16 +332,48 @@ class SalesProjectTest extends TestCase
         $this->assertEquals('2026-08-01', $assignment->end_date->toDateString());
     }
 
+    public function test_project_assignment_fails_without_pm_team_link()
+    {
+        $admin = User::factory()->create(['type' => 'admin']);
+        $admin->assignRole('admin');
+
+        $team = Team::factory()->create(['name' => 'Team A']);
+        $leader = User::factory()->create([
+            'type' => 'sales',
+            'is_manager' => true,
+            'team_id' => $team->id,
+        ]);
+        $leader->assignRole('sales_leader');
+
+        $contract = Contract::factory()->create(['status' => 'completed']);
+
+        $response = $this->actingAs($admin, 'sanctum')
+            ->postJson('/api/admin/sales/project-assignments', [
+                'team_code' => $team->code,
+                'contract_id' => $contract->id,
+            ]);
+
+        $response->assertStatus(422)
+            ->assertJsonValidationErrors(['contract_id']);
+    }
+
     public function test_project_assignment_prevents_overlapping()
     {
         $admin = User::factory()->create(['type' => 'admin']);
         $admin->assignRole('admin');
 
-        $leader = User::factory()->create(['type' => 'sales', 'is_manager' => true]);
+        $team = Team::factory()->create(['name' => 'Overlap Team']);
+        $leader = User::factory()->create([
+            'type' => 'sales',
+            'is_manager' => true,
+            'team_id' => $team->id,
+        ]);
         $leader->assignRole('sales_leader');
 
         $contract1 = Contract::factory()->create(['status' => 'completed']);
+        $contract1->teams()->attach($team->id);
         $contract2 = Contract::factory()->create(['status' => 'completed']);
+        $contract2->teams()->attach($team->id);
 
         // Create first assignment
         SalesProjectAssignment::create([
@@ -348,7 +387,7 @@ class SalesProjectTest extends TestCase
         // Try to create overlapping assignment
         $response = $this->actingAs($admin, 'sanctum')
             ->postJson('/api/admin/sales/project-assignments', [
-                'leader_id' => $leader->id,
+                'team_code' => $team->code,
                 'contract_id' => $contract2->id,
                 'start_date' => '2026-05-01',
                 'end_date' => '2026-10-01',

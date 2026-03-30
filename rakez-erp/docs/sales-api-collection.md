@@ -1105,7 +1105,7 @@ For negotiation type, add `"negotiation_notes": "..."`.
 
 ---
 
-### 2.14 Admin - Assign Project to Leader (admin only)
+### 2.14 Admin - Assign Project to Sales Team (by team code, admin only)
 
 **POST** `/api/admin/sales/project-assignments`
 Role: `admin`
@@ -1114,12 +1114,14 @@ Request body:
 
 ```json
 {
-  "leader_id": 6,
+  "team_code": "T000001",
   "contract_id": 1,
   "start_date": "2026-03-01",
   "end_date": "2026-09-01"
 }
 ```
+
+`team_code` matches `teams.code` (case-insensitive). The system resolves the team’s sales leader (`type=sales`, `is_manager=true`) and creates `sales_project_assignments`. The contract must already be linked to that team via PM (`contract_team`).
 
 ---
 

@@ -8,6 +8,8 @@ return [
         'token' => env('TWILIO_AUTH_TOKEN'),
         'from_number' => env('TWILIO_PHONE_NUMBER'),
         'webhook_base_url' => env('TWILIO_WEBHOOK_BASE_URL', env('APP_URL')),
+        /** Reject Twilio webhooks whose Timestamp is older/newer than this many seconds (replay protection). */
+        'replay_window_seconds' => (int) env('TWILIO_REPLAY_WINDOW_SECONDS', 300),
     ],
 
     'openai' => [

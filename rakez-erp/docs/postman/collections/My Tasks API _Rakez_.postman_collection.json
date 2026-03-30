@@ -298,7 +298,7 @@
   },
   "variable": [
     {
-      "id": "33ecf29b-0e5b-4a8c-ac0a-aa6c5430b49f",
+      "id": "f150b6bb-3423-4c15-a987-04100c19f4d3",
       "key": "rakezApiBase",
       "value": "http://127.0.0.1:8000/api",
       "description": {
@@ -307,22 +307,22 @@
       }
     },
     {
-      "id": "c95103db-4838-4076-87f7-f96f5f598db9",
+      "id": "46d1de4e-6ccf-4807-86f6-d006226b166f",
       "key": "token",
       "value": ""
     },
     {
-      "id": "05da52d4-01e5-4299-bfe2-61dc99af5a42",
+      "id": "31db0fcd-75e0-45e1-a687-940a8bbfb6f0",
       "key": "email",
       "value": ""
     },
     {
-      "id": "7f5d5389-04a6-41a8-bcc2-60beca802810",
+      "id": "16ff97b1-948b-4192-99d0-a0a4d8aa8d0e",
       "key": "password",
       "value": ""
     },
     {
-      "id": "7dda505b-852b-4943-82ef-afa1838514bf",
+      "id": "ab905324-e5cc-44ea-bb2c-e8cc02bcc5d3",
       "key": "section",
       "value": "sales",
       "description": {
@@ -331,7 +331,7 @@
       }
     },
     {
-      "id": "361950df-47cd-49e5-bcd5-560cd585daa7",
+      "id": "55a53d5c-38b6-4ba4-9d55-209ec97cb35e",
       "key": "assigneeUserId",
       "value": "0",
       "description": {
@@ -340,7 +340,7 @@
       }
     },
     {
-      "id": "e2493786-5d37-48b2-896c-5565de701f8a",
+      "id": "c457931b-d67c-4fb6-ba71-1df3e6f44813",
       "key": "taskId",
       "value": "1"
     }

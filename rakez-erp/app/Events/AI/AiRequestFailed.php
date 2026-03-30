@@ -13,5 +13,6 @@ class AiRequestFailed
         public readonly ?string $sessionId,
         public readonly string $error,
         public readonly int $attempts,
+        public readonly ?string $correlationId = null,
     ) {}
 }

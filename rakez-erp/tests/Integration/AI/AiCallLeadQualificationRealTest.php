@@ -12,14 +12,18 @@ use App\Services\AI\Calling\CallConversationEngine;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Config;
 use Tests\TestCase;
+use Tests\Traits\ReadsDotEnvForTest;
 
 /**
  * Real OpenAI integration: AI call transcript → lead qualification (hot/warm/cold/unqualified) for deals pipeline.
  *
  * Run with OPENAI_API_KEY and AI_REAL_TESTS=true in .env.
+ *
+ * @group ai-e2e-real
  */
 class AiCallLeadQualificationRealTest extends TestCase
 {
+    use ReadsDotEnvForTest;
     use RefreshDatabase;
 
     private ?string $apiKey = null;
@@ -28,11 +32,11 @@ class AiCallLeadQualificationRealTest extends TestCase
     {
         parent::setUp();
 
-        $this->apiKey = $this->readEnvVar('OPENAI_API_KEY');
+        $this->apiKey = $this->envFromDotFile('OPENAI_API_KEY');
         if (! $this->apiKey || $this->apiKey === 'test-fake-key-not-used') {
             $this->markTestSkipped('Real OPENAI_API_KEY not set in .env');
         }
-        if (! $this->isRealTestsEnabled()) {
+        if (! $this->envFromDotFileIsTrue('AI_REAL_TESTS')) {
             $this->markTestSkipped('AI_REAL_TESTS is not enabled — set AI_REAL_TESTS=true in .env');
         }
 
@@ -348,30 +352,4 @@ class AiCallLeadQualificationRealTest extends TestCase
         $this->assertSame(3, $lead->ai_call_count);
     }
 
-    private function readEnvVar(string $key): ?string
-    {
-        $path = base_path('.env');
-        if (! file_exists($path)) {
-            return null;
-        }
-        $lines = file($path, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
-        $prefix = $key . '=';
-        foreach ($lines as $line) {
-            $line = trim($line);
-            if (str_starts_with($line, '#')) {
-                continue;
-            }
-            if (str_starts_with($line, $prefix)) {
-                $v = trim(substr($line, strlen($prefix)), '"\'');
-                return $v !== '' ? $v : null;
-            }
-        }
-        return null;
-    }
-
-    private function isRealTestsEnabled(): bool
-    {
-        $v = $this->readEnvVar('AI_REAL_TESTS');
-        return in_array(strtolower($v ?? ''), ['true', '1', 'yes'], true);
-    }
 }

@@ -93,6 +93,7 @@ class EloquentOutcomeStoreTest extends TestCase
         $updated = AdsOutcomeEvent::where('event_id', $row->event_id)->first();
         $this->assertSame(1, $updated->platform_response['events_received']);
         $this->assertNotNull($updated->last_attempted_at);
+        $this->assertNull($updated->next_attempt_at);
     }
 
     public function test_mark_failed_increments_retry_and_stores_error(): void
@@ -106,6 +107,19 @@ class EloquentOutcomeStoreTest extends TestCase
         $this->assertSame(1, $updated->retry_count);
         $this->assertSame('HTTP 429 rate limited', $updated->last_error);
         $this->assertSame('pending', $updated->status);
+        $this->assertNotNull($updated->next_attempt_at);
+        $this->assertTrue($updated->next_attempt_at->isFuture());
+    }
+
+    public function test_fetch_pending_skips_events_before_next_attempt_at(): void
+    {
+        $this->seedOutcomeEvents('meta', 'pending', 1);
+        $row = AdsOutcomeEvent::first();
+        $row->update(['next_attempt_at' => now()->addHour()]);
+
+        $pending = $this->store->fetchPending(10);
+
+        $this->assertCount(0, $pending);
     }
 
     public function test_move_to_dead_letter(): void
@@ -118,7 +132,7 @@ class EloquentOutcomeStoreTest extends TestCase
 
         $this->assertSame(2, $moved);
         $this->assertDatabaseMissing('ads_outcome_events', ['status' => 'pending']);
-        $this->assertDatabaseHas('ads_outcome_events', ['status' => 'dead_letter']);
+        $this->assertDatabaseHas('ads_outcome_events', ['status' => 'dead_letter', 'dead_letter_reason' => 'max_retries_exceeded']);
     }
 
     public function test_move_to_dead_letter_leaves_low_retry_alone(): void

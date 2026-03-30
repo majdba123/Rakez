@@ -3,9 +3,10 @@
 namespace App\Http\Controllers\Marketing;
 
 use App\Http\Controllers\Controller;
-use App\Services\Marketing\EmployeeMarketingPlanService;
-use App\Models\EmployeeMarketingPlan;
+use App\Http\Resources\Marketing\EmployeeMarketingPlanResource;
 use App\Http\Responses\ApiResponse;
+use App\Models\EmployeeMarketingPlan;
+use App\Services\Marketing\EmployeeMarketingPlanService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -34,7 +35,21 @@ class EmployeeMarketingPlanController extends Controller
         $perPage = ApiResponse::getPerPage($request);
         $plans = $query->orderBy('created_at', 'desc')->paginate($perPage);
 
-        return ApiResponse::paginated($plans, 'تم جلب قائمة خطط التسويق بنجاح');
+        return ApiResponse::success(
+            EmployeeMarketingPlanResource::collection($plans->items())->resolve(),
+            'تم جلب قائمة خطط التسويق بنجاح',
+            200,
+            [
+                'pagination' => [
+                    'total' => $plans->total(),
+                    'count' => $plans->count(),
+                    'per_page' => $plans->perPage(),
+                    'current_page' => $plans->currentPage(),
+                    'total_pages' => $plans->lastPage(),
+                    'has_more_pages' => $plans->hasMorePages(),
+                ],
+            ]
+        );
     }
 
     /**
@@ -78,10 +93,10 @@ class EmployeeMarketingPlanController extends Controller
     public function show(int $planId): JsonResponse
     {
         $plan = EmployeeMarketingPlan::with(['user', 'campaigns'])->findOrFail($planId);
-        return response()->json([
-            'success' => true,
-            'data' => $plan
-        ]);
+
+        return ApiResponse::success(
+            (new EmployeeMarketingPlanResource($plan))->resolve()
+        );
     }
 
     public function store(\App\Http\Requests\Marketing\StoreEmployeePlanRequest $request): JsonResponse

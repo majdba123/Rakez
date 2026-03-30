@@ -12,7 +12,10 @@ class MarketingProjectResource extends JsonResource
         $contract = $this->contract;
         $info = $contract->info;
 
-        $units = \App\Models\ContractUnit::where('contract_id', $contract->id)->get();
+        // Use contract_units rows; avoid `$contract->units` (JSON column on contracts).
+        $units = $contract->relationLoaded('contractUnits')
+            ? $contract->getRelation('contractUnits')
+            : $contract->contractUnits()->get();
         $availableUnits = $units->where('status', 'available');
         $pendingUnits = $units->where('status', 'pending');
 
@@ -42,7 +45,7 @@ class MarketingProjectResource extends JsonResource
                 })
                 ->map(fn($m) => ['type' => $m->type, 'url' => $m->url]),
             'description' => $contract->notes ?? '',
-            'created_at' => $this->created_at,
+            'created_at' => $contract->created_at,
         ];
     }
 }

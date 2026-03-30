@@ -59,10 +59,16 @@ class TeamService
         DB::beginTransaction();
         try {
             $team = Team::create([
+                'code' => $data['code'] ?? null,
                 'name' => $data['name'],
                 'description' => $data['description'] ?? null,
                 'created_by' => $userId,
             ]);
+            if ($team->code === null || $team->code === '') {
+                $team->forceFill([
+                    'code' => 'T' . str_pad((string) $team->id, 6, '0', STR_PAD_LEFT),
+                ])->save();
+            }
 
             DB::commit();
             return $team;
@@ -88,6 +94,9 @@ class TeamService
             $team = Team::findOrFail($id);
 
             $updateData = [];
+            if (array_key_exists('code', $data)) {
+                $updateData['code'] = $data['code'];
+            }
             if (isset($data['name'])) {
                 $updateData['name'] = $data['name'];
             }

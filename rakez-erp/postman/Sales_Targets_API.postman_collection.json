@@ -1,0 +1,1161 @@
+{
+    "variable":  [
+                     {
+                         "key":  "base_url",
+                         "type":  "string",
+                         "value":  "http://127.0.0.1:8000"
+                     },
+                     {
+                         "key":  "leader_email",
+                         "type":  "string",
+                         "value":  "sales.leader@rakez.com"
+                     },
+                     {
+                         "key":  "leader_password",
+                         "type":  "string",
+                         "value":  "password"
+                     },
+                     {
+                         "key":  "marketer_email",
+                         "type":  "string",
+                         "value":  "sales@rakez.com"
+                     },
+                     {
+                         "key":  "marketer_password",
+                         "type":  "string",
+                         "value":  "password"
+                     },
+                     {
+                         "key":  "strict_seed_assertions",
+                         "type":  "string",
+                         "value":  "true"
+                     },
+                     {
+                         "key":  "logout_token",
+                         "type":  "string",
+                         "value":  ""
+                     },
+                     {
+                         "key":  "active_token",
+                         "type":  "string",
+                         "value":  ""
+                     },
+                     {
+                         "key":  "leader_token",
+                         "type":  "string",
+                         "value":  ""
+                     },
+                     {
+                         "key":  "marketer_token",
+                         "type":  "string",
+                         "value":  ""
+                     },
+                     {
+                         "key":  "leader_user_id",
+                         "type":  "string",
+                         "value":  ""
+                     },
+                     {
+                         "key":  "marketer_id",
+                         "type":  "string",
+                         "value":  "1"
+                     },
+                     {
+                         "key":  "assignee_marketer_id",
+                         "type":  "string",
+                         "value":  "1"
+                     },
+                     {
+                         "key":  "marketer_user_id",
+                         "type":  "string",
+                         "value":  ""
+                     },
+                     {
+                         "key":  "contract_id",
+                         "type":  "string",
+                         "value":  "1"
+                     },
+                     {
+                         "key":  "unit_id",
+                         "type":  "string",
+                         "value":  "1"
+                     },
+                     {
+                         "key":  "target_id",
+                         "type":  "string",
+                         "value":  "1"
+                     },
+                     {
+                         "key":  "from_date",
+                         "type":  "string",
+                         "value":  "2026-03-29"
+                     },
+                     {
+                         "key":  "to_date",
+                         "type":  "string",
+                         "value":  "2026-04-05"
+                     },
+                     {
+                         "key":  "per_page",
+                         "type":  "string",
+                         "value":  "15"
+                     }
+                 ],
+    "info":  {
+                 "description":  "Target-related Postman collection extracted from the real Laravel backend after the team-based target flow update.\n\n**Seeded demo (default emails):** leader `sales.leader@rakez.com`, marketer `sales@rakez.com`, password `password`. Run `php artisan db:seed` and `SalesLeaderTeamProjectsLinkSeeder` is in the default pipeline so team projects are non-empty.\n\n**Collection variable `strict_seed_assertions`:** `true` (default) asserts team projects total >= 1 and stricter checks. Set to `false` if testing against an empty DB.\n\nAuth:\n- POST /api/login\n- GET /api/user\n- POST /api/logout\n\nCore target APIs:\n- GET /api/sales/targets/my\n- GET /api/sales/targets/by-project/{contractId}\n- POST /api/sales/targets\n- PATCH /api/sales/targets/{id}\n\nTeam-based source of truth for leader target setup:\n- GET /api/sales/team/projects\n- GET /api/sales/team/members\n- GET /api/sales/projects/{contractId}/units\n\nCurrent backend behavior:\n- Sales leader sees only completed projects linked to the leader team by project management via contract_team.\n- Sales leader can create a target only for a sales marketer in the same team.\n- Target can be project-level or unit-level.\n- Sales marketer sees only targets assigned to them personally.\n- Leader view of /api/sales/targets/my returns project cards (item_type = project_assignment) sourced from PM team linkage, not sales_project_assignments.\n\nSuggested order:\n1. Login - Sales Leader\n2. Get Team Projects\n3. Get Team Members\n4. Get Project Units\n5. Create Target\n6. Get Targets By Project - Leader\n7. Login - Sales Marketer\n8. Get My Targets - Marketer View\n9. Update Target Status",
+                 "name":  "Sales Targets API",
+                 "schema":  "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+                 "_postman_id":  "2af3d2cd-1be2-48f3-8be4-8e910f5ee9f8"
+             },
+    "item":  [
+                 {
+                     "name":  "Auth",
+                     "item":  [
+                                  {
+                                      "request":  {
+                                                      "body":  {
+                                                                   "raw":  "{\n  \"email\": \"{{leader_email}}\",\n  \"password\": \"{{leader_password}}\"\n}",
+                                                                   "options":  {
+                                                                                   "raw":  {
+                                                                                               "language":  "json"
+                                                                                           }
+                                                                               },
+                                                                   "mode":  "raw"
+                                                               },
+                                                      "method":  "POST",
+                                                      "url":  {
+                                                                  "host":  [
+                                                                               "{{base_url}}"
+                                                                           ],
+                                                                  "raw":  "{{base_url}}/api/login",
+                                                                  "path":  [
+                                                                               "api",
+                                                                               "login"
+                                                                           ]
+                                                              },
+                                                      "description":  "POST /api/login via App\\\\Http\\\\Controllers\\\\Registration\\\\LoginController::login. Body requires email + password.",
+                                                      "header":  [
+                                                                     {
+                                                                         "key":  "Accept",
+                                                                         "type":  "text",
+                                                                         "value":  "application/json"
+                                                                     },
+                                                                     {
+                                                                         "key":  "Content-Type",
+                                                                         "type":  "text",
+                                                                         "value":  "application/json"
+                                                                     }
+                                                                 ]
+                                                  },
+                                      "name":  "Login - Sales Leader",
+                                      "event":  [
+                                                    {
+                                                        "script":  {
+                                                                       "exec":  [
+                                                                                    "const json = pm.response.json();",
+                                                                                   "pm.test(\"Leader login is accepted\", function () {",
+                                                                                   "  pm.expect(pm.response.code).to.be.oneOf([200, 429]);",
+                                                                                   "});",
+                                                                                   "if (json.access_token) {",
+                                                                                   "  pm.collectionVariables.set(\"leader_token\", json.access_token);",
+                                                                                   "  pm.collectionVariables.set(\"active_token\", json.access_token);",
+                                                                                   "}",
+                                                                                    "if (json.user \u0026\u0026 json.user.id) {",
+                                                                                    "  pm.collectionVariables.set(\"leader_user_id\", String(json.user.id));",
+                                                                                    "}"
+                                                                                ],
+                                                                       "type":  "text/javascript"
+                                                                   },
+                                                        "listen":  "test"
+                                                    }
+                                                ],
+                                      "response":  [
+
+                                                   ]
+                                  },
+                                  {
+                                      "request":  {
+                                                      "body":  {
+                                                                   "raw":  "{\n  \"email\": \"{{marketer_email}}\",\n  \"password\": \"{{marketer_password}}\"\n}",
+                                                                   "options":  {
+                                                                                   "raw":  {
+                                                                                               "language":  "json"
+                                                                                           }
+                                                                               },
+                                                                   "mode":  "raw"
+                                                               },
+                                                      "method":  "POST",
+                                                      "url":  {
+                                                                  "host":  [
+                                                                               "{{base_url}}"
+                                                                           ],
+                                                                  "raw":  "{{base_url}}/api/login",
+                                                                  "path":  [
+                                                                               "api",
+                                                                               "login"
+                                                                           ]
+                                                              },
+                                                      "description":  "Same login API for a sales user account. Use this token to test target ownership and status updates.",
+                                                      "header":  [
+                                                                     {
+                                                                         "key":  "Accept",
+                                                                         "type":  "text",
+                                                                         "value":  "application/json"
+                                                                     },
+                                                                     {
+                                                                         "key":  "Content-Type",
+                                                                         "type":  "text",
+                                                                         "value":  "application/json"
+                                                                     }
+                                                                 ]
+                                                  },
+                                      "name":  "Login - Sales Marketer",
+                                      "event":  [
+                                                    {
+                                                        "script":  {
+                                                                       "exec":  [
+                                                                                    "const json = pm.response.json();",
+                                                                                   "pm.test(\"Marketer login is accepted\", function () {",
+                                                                                   "  pm.expect(pm.response.code).to.be.oneOf([200, 429]);",
+                                                                                   "});",
+                                                                                   "if (json.access_token) {",
+                                                                                   "  pm.collectionVariables.set(\"marketer_token\", json.access_token);",
+                                                                                   "}",
+                                                                                    "if (json.user \u0026\u0026 json.user.id) {",
+                                                                                    "  pm.collectionVariables.set(\"marketer_user_id\", String(json.user.id));",
+                                                                                    "}"
+                                                                                ],
+                                                                       "type":  "text/javascript"
+                                                                   },
+                                                        "listen":  "test"
+                                                    }
+                                                ],
+                                      "response":  [
+
+                                                   ]
+                                  },
+                                  {
+                                      "request":  {
+                                                      "method":  "GET",
+                                                      "url":  {
+                                                                  "host":  [
+                                                                               "{{base_url}}"
+                                                                           ],
+                                                                  "raw":  "{{base_url}}/api/user",
+                                                                  "path":  [
+                                                                               "api",
+                                                                               "user"
+                                                                           ]
+                                                              },
+                                                      "description":  "Protected auth check endpoint using the current active token.",
+                                                      "header":  [
+                                                                     {
+                                                                         "key":  "Accept",
+                                                                         "type":  "text",
+                                                                         "value":  "application/json"
+                                                                     }
+                                                                 ],
+                                                      "auth":  {
+                                                                   "bearer":  [
+                                                                                  {
+                                                                                      "key":  "token",
+                                                                                      "type":  "string",
+                                                                                      "value":  "{{active_token}}"
+                                                                                  }
+                                                                              ],
+                                                                   "type":  "bearer"
+                                                               }
+                                                  },
+                                      "name":  "Get Authenticated User",
+                                      "event":  [
+                                                    {
+                                                        "listen":  "test",
+                                                        "script":  {
+                                                                       "type":  "text/javascript",
+                                                                       "exec":  [
+                                                                                   "pm.test(\"GET /api/user returns current user\", function () {",
+                                                                                   "  pm.response.to.have.status(200);",
+                                                                                   "  const json = pm.response.json();",
+                                                                                   "  pm.expect(json).to.have.property(\"id\");",
+                                                                                   "  pm.expect(json).to.have.property(\"email\");",
+                                                                                   "});"
+                                                                                ]
+                                                                   }
+                                                    }
+                                                ],
+                                      "response":  [
+
+                                                   ]
+                                  },
+                                  {
+                                      "request":  {
+                                                      "method":  "POST",
+                                                      "url":  {
+                                                                  "host":  [
+                                                                               "{{base_url}}"
+                                                                           ],
+                                                                  "raw":  "{{base_url}}/api/logout",
+                                                                  "path":  [
+                                                                               "api",
+                                                                               "logout"
+                                                                           ]
+                                                              },
+                                                      "description":  "POST /api/logout via LoginController::logout using the current active token.",
+                                                      "header":  [
+                                                                     {
+                                                                         "key":  "Accept",
+                                                                         "type":  "text",
+                                                                         "value":  "application/json"
+                                                                     }
+                                                                 ],
+                                                      "auth":  {
+                                                                   "bearer":  [
+                                                                                  {
+                                                                                      "key":  "token",
+                                                                                      "type":  "string",
+                                                                                      "value":  "{{logout_token}}"
+                                                                                  }
+                                                                              ],
+                                                                   "type":  "bearer"
+                                                               }
+                                                  },
+                                      "name":  "Logout - Active Token",
+                                      "event":  [
+                                                    {
+                                                        "listen":  "test",
+                                                        "script":  {
+                                                                       "type":  "text/javascript",
+                                                                       "exec":  [
+                                                                                   "pm.test(\"Logout responds (200 or 401 if token empty)\", function () {",
+                                                                                   "  pm.expect(pm.response.code).to.be.oneOf([200, 401]);",
+                                                                                   "});"
+                                                                                ]
+                                                                   }
+                                                    }
+                                                ],
+                                      "response":  [
+
+                                                   ]
+                                  }
+                              ]
+                 },
+                 {
+                     "name":  "Sales Target Setup (Leader Team)",
+                     "event":  [
+                                   {
+                                       "listen":  "prerequest",
+                                       "script":  {
+                                                      "type":  "text/javascript",
+                                                      "exec":  [
+                                                                   "// Empty assignee_marketer_id makes raw JSON invalid (\"marketer_id\": ,) and all fields look \"missing\" to Laravel.",
+                                                                   "var a = pm.collectionVariables.get('assignee_marketer_id');",
+                                                                   "var m = pm.collectionVariables.get('marketer_id');",
+                                                                   "if (!a || String(a).trim() === '') {",
+                                                                   "  var fallback = (m && String(m).trim() !== '') ? String(m) : '1';",
+                                                                   "  pm.collectionVariables.set('assignee_marketer_id', fallback);",
+                                                                   "}"
+                                                                ]
+                                                  }
+                                   }
+                               ],
+                     "item":  [
+                                  {
+                                      "request":  {
+                                                      "method":  "GET",
+                                                      "url":  {
+                                                                  "query":  [
+                                                                                {
+                                                                                    "key":  "per_page",
+                                                                                    "value":  "{{per_page}}"
+                                                                                }
+                                                                            ],
+                                                                  "host":  [
+                                                                               "{{base_url}}"
+                                                                           ],
+                                                                  "raw":  "{{base_url}}/api/sales/team/projects?per_page={{per_page}}",
+                                                                  "path":  [
+                                                                               "api",
+                                                                               "sales",
+                                                                               "team",
+                                                                               "projects"
+                                                                           ]
+                                                              },
+                                                      "description":  "Leader helper endpoint. Returns only completed projects linked to the leader team by project management via contract_team. Use this as the source of truth for contract_id when creating targets.",
+                                                      "header":  [
+                                                                     {
+                                                                         "key":  "Accept",
+                                                                         "type":  "text",
+                                                                         "value":  "application/json"
+                                                                     }
+                                                                 ],
+                                                      "auth":  {
+                                                                   "bearer":  [
+                                                                                  {
+                                                                                      "key":  "token",
+                                                                                      "type":  "string",
+                                                                                      "value":  "{{leader_token}}"
+                                                                                  }
+                                                                              ],
+                                                                   "type":  "bearer"
+                                                               }
+                                                  },
+                                      "name":  "Get Team Projects",
+                                      "event":  [
+                                                    {
+                                                        "listen":  "test",
+                                                        "script":  {
+                                                                       "type":  "text/javascript",
+                                                                       "exec":  [
+                                                                                   "pm.test(\"Team projects returns 200\", function () { pm.response.to.have.status(200); });",
+                                                                                   "const json = pm.response.json();",
+                                                                                   "pm.test(\"Team projects JSON shape\", function () {",
+                                                                                   "  pm.expect(json).to.have.property(\"success\", true);",
+                                                                                   "  pm.expect(json.data).to.be.an(\"array\");",
+                                                                                   "  pm.expect(json.meta).to.have.property(\"pagination\");",
+                                                                                   "});",
+                                                                                   "const strict = pm.collectionVariables.get(\"strict_seed_assertions\") !== \"false\";",
+                                                                                   "if (strict) {",
+                                                                                   "  pm.test(\"At least one team project (seed: SalesLeaderTeamProjectsLinkSeeder + completed contracts)\", function () {",
+                                                                                   "    const total = (json.meta \u0026\u0026 json.meta.pagination \u0026\u0026 json.meta.pagination.total) || 0;",
+                                                                                   "    pm.expect(total, \"Empty: run php artisan db:seed --class=SalesLeaderTeamProjectsLinkSeeder\").to.be.at.least(1);",
+                                                                                   "  });",
+                                                                                   "}",
+                                                                                   "if (json.data \u0026\u0026 json.data.length \u0026\u0026 json.data[0].contract_id) {",
+                                                                                   "  pm.collectionVariables.set(\"contract_id\", String(json.data[0].contract_id));",
+                                                                                   "}"
+                                                                                ]
+                                                                   }
+                                                    }
+                                                ],
+                                      "response":  [
+
+                                                   ]
+                                  },
+                                  {
+                                      "request":  {
+                                                      "method":  "GET",
+                                                      "url":  {
+                                                                  "query":  [
+                                                                                {
+                                                                                    "key":  "with_ratings",
+                                                                                    "value":  "true"
+                                                                                }
+                                                                            ],
+                                                                  "host":  [
+                                                                               "{{base_url}}"
+                                                                           ],
+                                                                  "raw":  "{{base_url}}/api/sales/team/members?with_ratings=true",
+                                                                  "path":  [
+                                                                               "api",
+                                                                               "sales",
+                                                                               "team",
+                                                                               "members"
+                                                                           ]
+                                                              },
+                                                      "description":  "Leader helper endpoint. Returns team members available for assignment. In the current target flow, target assignee must be a sales marketer in the same team and not a manager.",
+                                                      "header":  [
+                                                                     {
+                                                                         "key":  "Accept",
+                                                                         "type":  "text",
+                                                                         "value":  "application/json"
+                                                                     }
+                                                                 ],
+                                                      "auth":  {
+                                                                   "bearer":  [
+                                                                                  {
+                                                                                      "key":  "token",
+                                                                                      "type":  "string",
+                                                                                      "value":  "{{leader_token}}"
+                                                                                  }
+                                                                              ],
+                                                                   "type":  "bearer"
+                                                               }
+                                                  },
+                                      "name":  "Get Team Members",
+                                      "event":  [
+                                                    {
+                                                        "script":  {
+                                                                       "exec":  [
+                                                                                   "pm.test(\"Team members returns 200\", function () { pm.response.to.have.status(200); });",
+                                                                                   "const json = pm.response.json();",
+                                                                                   "pm.test(\"Team members JSON shape\", function () {",
+                                                                                   "  pm.expect(json).to.have.property(\"success\", true);",
+                                                                                   "  pm.expect(json.data).to.be.an(\"array\");",
+                                                                                   "});",
+                                                                                   "if (json.data \u0026\u0026 json.data.length \u0026\u0026 json.data[0].id) {",
+                                                                                   "  pm.collectionVariables.set(\"assignee_marketer_id\", String(json.data[0].id));",
+                                                                                   "}",
+                                                                                   "if (json.data \u0026\u0026 json.data.length \u0026\u0026 json.data[0].email) {",
+                                                                                   "  pm.collectionVariables.set(\"team_member_email\", String(json.data[0].email));",
+                                                                                   "}"
+                                                                                ],
+                                                                       "type":  "text/javascript"
+                                                                   },
+                                                        "listen":  "test"
+                                                    }
+                                                ],
+                                      "response":  [
+
+                                                   ]
+                                  },
+                                  {
+                                      "request":  {
+                                                      "method":  "GET",
+                                                      "url":  {
+                                                                  "query":  [
+                                                                                {
+                                                                                    "key":  "per_page",
+                                                                                    "value":  "{{per_page}}"
+                                                                                }
+                                                                            ],
+                                                                  "host":  [
+                                                                               "{{base_url}}"
+                                                                           ],
+                                                                  "raw":  "{{base_url}}/api/sales/projects/{{contract_id}}/units?per_page={{per_page}}",
+                                                                  "path":  [
+                                                                               "api",
+                                                                               "sales",
+                                                                               "projects",
+                                                                               "{{contract_id}}",
+                                                                               "units"
+                                                                           ]
+                                                              },
+                                                      "description":  "Returns units for the selected PM-linked team project. Use this only after choosing contract_id from Get Team Projects or leader targets/my.",
+                                                      "header":  [
+                                                                     {
+                                                                         "key":  "Accept",
+                                                                         "type":  "text",
+                                                                         "value":  "application/json"
+                                                                     }
+                                                                 ],
+                                                      "auth":  {
+                                                                   "bearer":  [
+                                                                                  {
+                                                                                      "key":  "token",
+                                                                                      "type":  "string",
+                                                                                      "value":  "{{leader_token}}"
+                                                                                  }
+                                                                              ],
+                                                                   "type":  "bearer"
+                                                               }
+                                                  },
+                                      "name":  "Get Project Units",
+                                      "event":  [
+                                                    {
+                                                        "script":  {
+                                                                       "exec":  [
+                                                                                   "pm.test(\"Project units request is reachable\", function () {",
+                                                                                   "  pm.expect(pm.response.code).to.be.oneOf([200, 403]);",
+                                                                                   "});",
+                                                                                   "const json = pm.response.json();",
+                                                                                   "if (pm.response.code === 200 \u0026\u0026 json.data \u0026\u0026 json.data.length \u0026\u0026 json.data[0].id) {",
+                                                                                   "  pm.collectionVariables.set(\"unit_id\", String(json.data[0].id));",
+                                                                                   "}"
+                                                                                ],
+                                                                       "type":  "text/javascript"
+                                                                   },
+                                                        "listen":  "test"
+                                                    }
+                                                ],
+                                      "response":  [
+
+                                                   ]
+                                  },
+                                  {
+                                      "request":  {
+                                                      "method":  "GET",
+                                                      "url":  {
+                                                                  "query":  [
+                                                                                {
+                                                                                    "key":  "per_page",
+                                                                                    "value":  "{{per_page}}"
+                                                                                }
+                                                                            ],
+                                                                  "host":  [
+                                                                               "{{base_url}}"
+                                                                           ],
+                                                                  "raw":  "{{base_url}}/api/sales/targets/my?per_page={{per_page}}",
+                                                                  "path":  [
+                                                                               "api",
+                                                                               "sales",
+                                                                               "targets",
+                                                                               "my"
+                                                                           ]
+                                                              },
+                                                      "description":  "Leader view of targets page. Current backend returns project cards sourced from contract_team (item_type = project_assignment, assignment_id = null, assigned_by = Project Management), not SalesTarget rows.",
+                                                      "header":  [
+                                                                     {
+                                                                         "key":  "Accept",
+                                                                         "type":  "text",
+                                                                         "value":  "application/json"
+                                                                     }
+                                                                 ],
+                                                      "auth":  {
+                                                                   "bearer":  [
+                                                                                  {
+                                                                                      "key":  "token",
+                                                                                      "type":  "string",
+                                                                                      "value":  "{{leader_token}}"
+                                                                                  }
+                                                                              ],
+                                                                   "type":  "bearer"
+                                                               }
+                                                  },
+                                      "name":  "Get My Targets - Leader View",
+                                      "response":  [
+
+                                                   ],
+                                      "event":  [
+                                                    {
+                                                        "listen":  "test",
+                                                        "script":  {
+                                                                       "type":  "text/javascript",
+                                                                       "exec":  [
+                                                                                   "pm.test(\"Leader targets endpoint is reachable\", function () {",
+                                                                                   "  pm.expect(pm.response.code).to.be.oneOf([200, 403]);",
+                                                                                   "});",
+                                                                                   "const json = pm.response.json();",
+                                                                                   "if (pm.response.code === 200 \u0026\u0026 json.data \u0026\u0026 json.data.length \u0026\u0026 json.data[0].contract_id) {",
+                                                                                   "  pm.collectionVariables.set(\"contract_id\", String(json.data[0].contract_id));",
+                                                                                   "}"
+                                                                                ]
+                                                                   }
+                                                    }
+                                                ]
+                                  },
+                                  {
+                                      "request":  {
+                                                      "method":  "GET",
+                                                      "url":  {
+                                                                  "host":  [
+                                                                               "{{base_url}}"
+                                                                           ],
+                                                                  "raw":  "{{base_url}}/api/sales/targets/by-project/{{contract_id}}",
+                                                                  "path":  [
+                                                                               "api",
+                                                                               "sales",
+                                                                               "targets",
+                                                                               "by-project",
+                                                                               "{{contract_id}}"
+                                                                           ]
+                                                              },
+                                                      "description":  "Leader-side lookup. Returns only targets assigned to team marketers for a project that belongs to the leader team via project management linkage.",
+                                                      "header":  [
+                                                                     {
+                                                                         "key":  "Accept",
+                                                                         "type":  "text",
+                                                                         "value":  "application/json"
+                                                                     }
+                                                                 ],
+                                                      "auth":  {
+                                                                   "bearer":  [
+                                                                                  {
+                                                                                      "key":  "token",
+                                                                                      "type":  "string",
+                                                                                      "value":  "{{leader_token}}"
+                                                                                  }
+                                                                              ],
+                                                                   "type":  "bearer"
+                                                               }
+                                                  },
+                                      "name":  "Get Targets By Project",
+                                      "event":  [
+                                                    {
+                                                        "listen":  "test",
+                                                        "script":  {
+                                                                       "type":  "text/javascript",
+                                                                       "exec":  [
+                                                                                   "pm.test(\"Leader by-project returns 200 with success\", function () {",
+                                                                                   "  pm.response.to.have.status(200);",
+                                                                                   "  const json = pm.response.json();",
+                                                                                   "  pm.expect(json).to.have.property(\"success\", true);",
+                                                                                   "  pm.expect(json.data).to.be.an(\"array\");",
+                                                                                   "});"
+                                                                                ]
+                                                                   }
+                                                    }
+                                                ],
+                                      "response":  [
+
+                                                   ]
+                                  },
+                                  {
+                                      "request":  {
+                                                      "url":  {
+                                                                  "host":  [
+                                                                               "{{base_url}}"
+                                                                           ],
+                                                                  "raw":  "{{base_url}}/api/sales/targets",
+                                                                  "path":  [
+                                                                               "api",
+                                                                               "sales",
+                                                                               "targets"
+                                                                           ]
+                                                              },
+                                                      "description":  "Creates a target for one sales marketer in the same team on one unit. The selected project must belong to the leader team via contract_team.",
+                                                      "method":  "POST",
+                                                      "header":  [
+                                                                     {
+                                                                         "key":  "Accept",
+                                                                         "type":  "text",
+                                                                         "value":  "application/json"
+                                                                     },
+                                                                     {
+                                                                         "key":  "Content-Type",
+                                                                         "type":  "text",
+                                                                         "value":  "application/json"
+                                                                     }
+                                                                 ],
+                                                      "body":  {
+                                                                  "raw":  "{\n  \"marketer_id\": {{assignee_marketer_id}},\n  \"contract_id\": {{contract_id}},\n  \"contract_unit_id\": {{unit_id}},\n  \"target_type\": \"reservation\",\n  \"start_date\": \"{{from_date}}\",\n  \"end_date\": \"{{to_date}}\",\n  \"leader_notes\": \"Postman test target for single unit\"\n}",
+                                                                   "options":  {
+                                                                                   "raw":  {
+                                                                                               "language":  "json"
+                                                                                           }
+                                                                               },
+                                                                   "mode":  "raw"
+                                                               },
+                                                      "auth":  {
+                                                                   "bearer":  [
+                                                                                  {
+                                                                                      "key":  "token",
+                                                                                      "type":  "string",
+                                                                                      "value":  "{{leader_token}}"
+                                                                                  }
+                                                                              ],
+                                                                   "type":  "bearer"
+                                                               }
+                                                  },
+                                      "name":  "Create Target - Single Unit",
+                                      "event":  [
+                                                    {
+                                                        "script":  {
+                                                                       "exec":  [
+                                                                                   "const json = pm.response.json();",
+                                                                                   "pm.test(\"Create single-unit: 201 or 4xx validation\", function () {",
+                                                                                   "  pm.expect(pm.response.code).to.be.oneOf([201, 400, 422]);",
+                                                                                   "  pm.expect(pm.response.code).to.not.equal(401);",
+                                                                                   "});",
+                                                                                   "if (pm.response.code === 201) {",
+                                                                                   "  pm.test(\"Create target returns success\", function () { pm.expect(json.success).to.eql(true); });",
+                                                                                   "}",
+                                                                                   "const createdTargetId = (json.data \u0026\u0026 (json.data.target_id || json.data.id)) || null;",
+                                                                                   "if (createdTargetId) {",
+                                                                                   "  pm.collectionVariables.set(\"target_id\", String(createdTargetId));",
+                                                                                   "}"
+                                                                                ],
+                                                                       "type":  "text/javascript"
+                                                                   },
+                                                        "listen":  "test"
+                                                    }
+                                                ],
+                                      "response":  [
+
+                                                   ]
+                                  },
+                                  {
+                                      "request":  {
+                                                      "url":  {
+                                                                  "host":  [
+                                                                               "{{base_url}}"
+                                                                           ],
+                                                                  "raw":  "{{base_url}}/api/sales/targets",
+                                                                  "path":  [
+                                                                               "api",
+                                                                               "sales",
+                                                                               "targets"
+                                                                           ]
+                                                              },
+                                                      "description":  "Creates a project-level target without units. The selected project must belong to the leader team via contract_team, and the assignee must be a same-team sales marketer.",
+                                                      "method":  "POST",
+                                                      "header":  [
+                                                                     {
+                                                                         "key":  "Accept",
+                                                                         "type":  "text",
+                                                                         "value":  "application/json"
+                                                                     },
+                                                                     {
+                                                                         "key":  "Content-Type",
+                                                                         "type":  "text",
+                                                                         "value":  "application/json"
+                                                                     }
+                                                                 ],
+                                                      "body":  {
+                                                                  "raw":  "{\n  \"marketer_id\": {{assignee_marketer_id}},\n  \"contract_id\": {{contract_id}},\n  \"target_type\": \"negotiation\",\n  \"start_date\": \"{{from_date}}\",\n  \"end_date\": \"{{to_date}}\",\n  \"leader_notes\": \"Postman test target without unit\"\n}",
+                                                                   "options":  {
+                                                                                   "raw":  {
+                                                                                               "language":  "json"
+                                                                                           }
+                                                                               },
+                                                                   "mode":  "raw"
+                                                               },
+                                                      "auth":  {
+                                                                   "bearer":  [
+                                                                                  {
+                                                                                      "key":  "token",
+                                                                                      "type":  "string",
+                                                                                      "value":  "{{leader_token}}"
+                                                                                  }
+                                                                              ],
+                                                                   "type":  "bearer"
+                                                               }
+                                                  },
+                                      "name":  "Create Target - Project Level (No Unit)",
+                                      "event":  [
+                                                    {
+                                                        "script":  {
+                                                                       "exec":  [
+                                                                                   "const json = pm.response.json();",
+                                                                                   "pm.test(\"Project-level create: 201 or 4xx\", function () {",
+                                                                                   "  pm.expect(pm.response.code).to.be.oneOf([201, 400, 422]);",
+                                                                                   "  pm.expect(pm.response.code).to.not.equal(401);",
+                                                                                   "});",
+                                                                                   "const createdTargetId = (json.data \u0026\u0026 (json.data.target_id || json.data.id)) || null;",
+                                                                                   "if (createdTargetId) {",
+                                                                                   "  pm.collectionVariables.set(\"target_id\", String(createdTargetId));",
+                                                                                   "}"
+                                                                                ],
+                                                                       "type":  "text/javascript"
+                                                                   },
+                                                        "listen":  "test"
+                                                    }
+                                                ],
+                                      "response":  [
+
+                                                   ]
+                                  },
+                                  {
+                                      "request":  {
+                                                      "url":  {
+                                                                  "host":  [
+                                                                               "{{base_url}}"
+                                                                           ],
+                                                                  "raw":  "{{base_url}}/api/sales/targets",
+                                                                  "path":  [
+                                                                               "api",
+                                                                               "sales",
+                                                                               "targets"
+                                                                           ]
+                                                              },
+                                                      "description":  "Creates a multi-unit target. All selected units must belong to the same PM-linked team project, and the assignee must be a same-team sales marketer.",
+                                                      "method":  "POST",
+                                                      "header":  [
+                                                                     {
+                                                                         "key":  "Accept",
+                                                                         "type":  "text",
+                                                                         "value":  "application/json"
+                                                                     },
+                                                                     {
+                                                                         "key":  "Content-Type",
+                                                                         "type":  "text",
+                                                                         "value":  "application/json"
+                                                                     }
+                                                                 ],
+                                                      "body":  {
+                                                                  "raw":  "{\n  \"marketer_id\": {{assignee_marketer_id}},\n  \"contract_id\": {{contract_id}},\n  \"contract_unit_ids\": [{{unit_id}}],\n  \"target_type\": \"closing\",\n  \"start_date\": \"{{from_date}}\",\n  \"end_date\": \"{{to_date}}\",\n  \"leader_notes\": \"Postman test target for multiple units\"\n}",
+                                                                   "options":  {
+                                                                                   "raw":  {
+                                                                                               "language":  "json"
+                                                                                           }
+                                                                               },
+                                                                   "mode":  "raw"
+                                                               },
+                                                      "auth":  {
+                                                                   "bearer":  [
+                                                                                  {
+                                                                                      "key":  "token",
+                                                                                      "type":  "string",
+                                                                                      "value":  "{{leader_token}}"
+                                                                                  }
+                                                                              ],
+                                                                   "type":  "bearer"
+                                                               }
+                                                  },
+                                      "name":  "Create Target - Multi Units",
+                                      "event":  [
+                                                    {
+                                                        "script":  {
+                                                                       "exec":  [
+                                                                                   "const json = pm.response.json();",
+                                                                                   "pm.test(\"Multi-unit create: 201 or 4xx\", function () {",
+                                                                                   "  pm.expect(pm.response.code).to.be.oneOf([201, 400, 422]);",
+                                                                                   "  pm.expect(pm.response.code).to.not.equal(401);",
+                                                                                   "});",
+                                                                                   "const createdTargetId = (json.data \u0026\u0026 (json.data.target_id || json.data.id)) || null;",
+                                                                                   "if (createdTargetId) {",
+                                                                                   "  pm.collectionVariables.set(\"target_id\", String(createdTargetId));",
+                                                                                   "}"
+                                                                                ],
+                                                                       "type":  "text/javascript"
+                                                                   },
+                                                        "listen":  "test"
+                                                    }
+                                                ],
+                                      "response":  [
+
+                                                   ]
+                                  }
+                              ]
+                 },
+                 {
+                     "name":  "Sales Target Actions (Assigned Marketer)",
+                     "item":  [
+                                  {
+                                      "request":  {
+                                                      "method":  "GET",
+                                                      "url":  {
+                                                                  "query":  [
+                                                                                {
+                                                                                    "key":  "per_page",
+                                                                                    "value":  "{{per_page}}"
+                                                                                }
+                                                                            ],
+                                                                  "host":  [
+                                                                               "{{base_url}}"
+                                                                           ],
+                                                                  "raw":  "{{base_url}}/api/sales/targets/my?per_page={{per_page}}",
+                                                                  "path":  [
+                                                                               "api",
+                                                                               "sales",
+                                                                               "targets",
+                                                                               "my"
+                                                                           ]
+                                                              },
+                                                      "description":  "Marketer view of /api/sales/targets/my. Current backend returns only SalesTarget rows where marketer_id equals the current user.",
+                                                      "header":  [
+                                                                     {
+                                                                         "key":  "Accept",
+                                                                         "type":  "text",
+                                                                         "value":  "application/json"
+                                                                     }
+                                                                 ],
+                                                      "auth":  {
+                                                                   "bearer":  [
+                                                                                  {
+                                                                                      "key":  "token",
+                                                                                      "type":  "string",
+                                                                                      "value":  "{{marketer_token}}"
+                                                                                  }
+                                                                              ],
+                                                                   "type":  "bearer"
+                                                               }
+                                                  },
+                                      "name":  "Get My Targets - Marketer View",
+                                      "event":  [
+                                                    {
+                                                        "script":  {
+                                                                       "exec":  [
+                                                                                   "pm.test(\"Marketer my targets should be authenticated\", function () {",
+                                                                                   "  pm.expect(pm.response.code).to.not.equal(401);",
+                                                                                   "});",
+                                                                                   "const json = pm.response.json();",
+                                                                                   "if (pm.response.code === 200 \u0026\u0026 json.data \u0026\u0026 json.data.length) {",
+                                                                                   "  const first = json.data[0];",
+                                                                                   "  const detectedTargetId = first?.target_id || first?.id || null;",
+                                                                                   "  if (detectedTargetId) {",
+                                                                                   "    pm.collectionVariables.set(\"target_id\", String(detectedTargetId));",
+                                                                                   "  }",
+                                                                                   "}"
+                                                                                ],
+                                                                       "type":  "text/javascript"
+                                                                   },
+                                                        "listen":  "test"
+                                                    }
+                                                ],
+                                      "response":  [
+
+                                                   ]
+                                  },
+                                  {
+                                      "request":  {
+                                                      "method":  "GET",
+                                                      "url":  {
+                                                                  "host":  [
+                                                                               "{{base_url}}"
+                                                                           ],
+                                                                  "raw":  "{{base_url}}/api/sales/targets/by-project/{{contract_id}}",
+                                                                  "path":  [
+                                                                               "api",
+                                                                               "sales",
+                                                                               "targets",
+                                                                               "by-project",
+                                                                               "{{contract_id}}"
+                                                                           ]
+                                                              },
+                                                      "description":  "Marketer-side lookup for one project. Current backend returns only the current marketer targets inside that project, not team-wide targets.",
+                                                      "header":  [
+                                                                     {
+                                                                         "key":  "Accept",
+                                                                         "type":  "text",
+                                                                         "value":  "application/json"
+                                                                     }
+                                                                 ],
+                                                      "auth":  {
+                                                                   "bearer":  [
+                                                                                  {
+                                                                                      "key":  "token",
+                                                                                      "type":  "string",
+                                                                                      "value":  "{{marketer_token}}"
+                                                                                  }
+                                                                              ],
+                                                                   "type":  "bearer"
+                                                               }
+                                                  },
+                                      "name":  "Get Targets By Project - Marketer",
+                                      "event":  [
+                                                    {
+                                                        "listen":  "test",
+                                                        "script":  {
+                                                                       "type":  "text/javascript",
+                                                                       "exec":  [
+                                                                                   "pm.test(\"Marketer by-project: 200 or 403 (scope)\", function () {",
+                                                                                   "  pm.expect(pm.response.code).to.be.oneOf([200, 403]);",
+                                                                                   "});",
+                                                                                   "if (pm.response.code === 200) {",
+                                                                                   "  const json = pm.response.json();",
+                                                                                   "  pm.expect(json).to.have.property(\"success\", true);",
+                                                                                   "}"
+                                                                                ]
+                                                                   }
+                                                    }
+                                                ],
+                                      "response":  [
+
+                                                   ]
+                                  },
+                                  {
+                                      "request":  {
+                                                      "url":  {
+                                                                  "host":  [
+                                                                               "{{base_url}}"
+                                                                           ],
+                                                                  "raw":  "{{base_url}}/api/sales/targets/{{target_id}}",
+                                                                  "path":  [
+                                                                               "api",
+                                                                               "sales",
+                                                                               "targets",
+                                                                               "{{target_id}}"
+                                                                           ]
+                                                              },
+                                                      "description":  "Updates target status for the target owner only. In the current backend, only the assigned marketer can change status.",
+                                                      "method":  "PATCH",
+                                                      "header":  [
+                                                                     {
+                                                                         "key":  "Accept",
+                                                                         "type":  "text",
+                                                                         "value":  "application/json"
+                                                                     },
+                                                                     {
+                                                                         "key":  "Content-Type",
+                                                                         "type":  "text",
+                                                                         "value":  "application/json"
+                                                                     }
+                                                                 ],
+                                                      "body":  {
+                                                                   "raw":  "{\n  \"status\": \"in_progress\"\n}",
+                                                                   "options":  {
+                                                                                   "raw":  {
+                                                                                               "language":  "json"
+                                                                                           }
+                                                                               },
+                                                                   "mode":  "raw"
+                                                               },
+                                                      "auth":  {
+                                                                   "bearer":  [
+                                                                                  {
+                                                                                      "key":  "token",
+                                                                                      "type":  "string",
+                                                                                      "value":  "{{marketer_token}}"
+                                                                                  }
+                                                                              ],
+                                                                   "type":  "bearer"
+                                                               }
+                                                  },
+                                      "name":  "Update Target Status - In Progress",
+                                      "event":  [
+                                                    {
+                                                        "listen":  "test",
+                                                        "script":  {
+                                                                       "type":  "text/javascript",
+                                                                       "exec":  [
+                                                                                   "pm.test(\"PATCH target status (200 if owner, else 403/404)\", function () {",
+                                                                                   "  pm.expect(pm.response.code).to.be.oneOf([200, 403, 404]);",
+                                                                                   "});"
+                                                                                ]
+                                                                   }
+                                                    }
+                                                ],
+                                      "response":  [
+
+                                                   ]
+                                  },
+                                  {
+                                      "request":  {
+                                                      "url":  {
+                                                                  "host":  [
+                                                                               "{{base_url}}"
+                                                                           ],
+                                                                  "raw":  "{{base_url}}/api/sales/targets/{{target_id}}",
+                                                                  "path":  [
+                                                                               "api",
+                                                                               "sales",
+                                                                               "targets",
+                                                                               "{{target_id}}"
+                                                                           ]
+                                                              },
+                                                      "description":  "Marks a target as completed for the target owner only. In the current backend, leader does not update target status here.",
+                                                      "method":  "PATCH",
+                                                      "header":  [
+                                                                     {
+                                                                         "key":  "Accept",
+                                                                         "type":  "text",
+                                                                         "value":  "application/json"
+                                                                     },
+                                                                     {
+                                                                         "key":  "Content-Type",
+                                                                         "type":  "text",
+                                                                         "value":  "application/json"
+                                                                     }
+                                                                 ],
+                                                      "body":  {
+                                                                   "raw":  "{\n  \"status\": \"completed\"\n}",
+                                                                   "options":  {
+                                                                                   "raw":  {
+                                                                                               "language":  "json"
+                                                                                           }
+                                                                               },
+                                                                   "mode":  "raw"
+                                                               },
+                                                      "auth":  {
+                                                                   "bearer":  [
+                                                                                  {
+                                                                                      "key":  "token",
+                                                                                      "type":  "string",
+                                                                                      "value":  "{{marketer_token}}"
+                                                                                  }
+                                                                              ],
+                                                                   "type":  "bearer"
+                                                               }
+                                                  },
+                                      "name":  "Update Target Status - Completed",
+                                      "event":  [
+                                                    {
+                                                        "listen":  "test",
+                                                        "script":  {
+                                                                       "type":  "text/javascript",
+                                                                       "exec":  [
+                                                                                   "pm.test(\"PATCH target completed (200 if owner, else 403/404)\", function () {",
+                                                                                   "  pm.expect(pm.response.code).to.be.oneOf([200, 403, 404]);",
+                                                                                   "});"
+                                                                                ]
+                                                                   }
+                                                    }
+                                                ],
+                                      "response":  [
+
+                                                   ]
+                                  }
+                              ]
+                 }
+             ]
+}

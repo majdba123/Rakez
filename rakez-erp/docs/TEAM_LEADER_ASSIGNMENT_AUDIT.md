@@ -14,11 +14,11 @@
 
 | الوظيفة | الوصف | الـ API | الصلاحية |
 |--------|--------|---------|----------|
-| **تعيين مشروع لقائد** | ربط عقد (مشروع) بقائد مبيعات معيّن لفترة زمنية | `POST api/admin/sales/project-assignments` مع `leader_id`, `contract_id`, واختياري `start_date`, `end_date` | `sales.team.manage` |
+| **تعيين مشروع لفريق مبيعات** | ربط عقد (مشروع) بفريق عبر **كود الفريق** `team_code`؛ يُستنتج قائد المبيعات داخلياً من الفريق (`type=sales`, `is_manager=true`). | `POST api/admin/sales/project-assignments` مع `team_code`, `contract_id`, واختياري `start_date`, `end_date` | `sales.team.manage` |
 
-- **من يستدعيها**: أي مستخدم لديه `sales.team.manage` (Admin أو Sales Leader).
-- **المنطق**: إنشاء/تحديث سجل في `sales_project_assignments` (ربط `leader_id` بـ `contract_id`).
-- **الملفات**: `SalesProjectController::assignProject()`, `SalesProjectService::assignProjectToLeader()`.
+- **من يستدعيها**: أي مستخدم لديه `sales.team.manage` (عادة Admin).
+- **المنطق**: البحث عن `teams.code` ثم إنشاء سجل في `sales_project_assignments` (ربط `leader_id` المُستنتَج بـ `contract_id`). يجب أن يكون العقد مرتبطاً بفريق المبيعات من إدارة المشاريع (`contract_team`) قبل الإسناد.
+- **الملفات**: `SalesProjectController::assignProject()`, `SalesProjectService::assignProjectToTeamByCode()` → `assignProjectToLeader()`.
 
 لا توجد في الكود أي **وظيفة أخرى** لـ "تعيين قائد فريق" (لا لتعيين شخص كقائد لفريق، ولا لفرق غير المبيعات).
 
@@ -63,7 +63,7 @@
 ## 5. خلاصة الفحص
 
 - **وظائف تعيين قائد فريق بشكل فعلي**: موجودة **للمبيعات فقط**، وهي:
-  - تعيين **مشروع** إلى **قائد** عبر `POST api/admin/sales/project-assignments` (صلاحية `sales.team.manage`).
+  - تعيين **مشروع** إلى **فريق مبيعات** (بكود الفريق) عبر `POST api/admin/sales/project-assignments` (صلاحية `sales.team.manage`).
   - تعيين **شخص كقائد فريق** يتم عبر تحديث المستخدم (team_id + is_manager) من HR وليس عبر endpoint مسمى "assign team leader".
 
 - **الفريق الوحيد في النظام بمعنى "فريق له قائد"**: فريق المبيعات (نفس `team_id`، وقائد = من فيه `is_manager = true`).

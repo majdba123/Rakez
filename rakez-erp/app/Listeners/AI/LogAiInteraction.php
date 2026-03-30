@@ -12,6 +12,7 @@ class LogAiInteraction
         AiInteractionLog::create([
             'user_id' => $event->userId,
             'session_id' => $event->sessionId,
+            'correlation_id' => $event->correlationId,
             'section' => $event->section,
             'request_type' => $event->requestType,
             'model' => $event->model,

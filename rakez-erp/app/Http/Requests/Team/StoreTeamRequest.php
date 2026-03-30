@@ -14,6 +14,7 @@ class StoreTeamRequest extends FormRequest
     public function rules(): array
     {
         return [
+            'code' => 'nullable|string|max:32|unique:teams,code',
             'name' => 'required|string|max:255|unique:teams,name',
             'description' => 'nullable|string',
         ];

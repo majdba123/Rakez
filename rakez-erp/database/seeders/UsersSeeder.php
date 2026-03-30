@@ -15,6 +15,7 @@ class UsersSeeder extends Seeder
         $teamIds = Team::pluck('id')->all();
         if (empty($teamIds)) {
             $teamIds = [Team::create([
+                'code' => 'RKF-DEFAULT',
                 'name' => 'الفريق الافتراضي',
                 'description' => 'الفريق الرئيسي للعمليات',
             ])->id];
@@ -110,6 +111,14 @@ class UsersSeeder extends Seeder
                 ['email' => $userData['email']],
                 $attrs
             );
+        }
+
+        // فريق واحد لقائد المبيعات وموظف المبيعات والتسويق (عروض تجريبية وربط عقد/أهداف بدون تعارض فريق)
+        $salesLeader = User::query()->where('email', 'sales.leader@rakez.com')->first();
+        if ($salesLeader && $salesLeader->team_id) {
+            User::query()
+                ->whereIn('email', ['sales@rakez.com', 'marketing@rakez.com'])
+                ->update(['team_id' => $salesLeader->team_id]);
         }
 
         $randomCounts = [

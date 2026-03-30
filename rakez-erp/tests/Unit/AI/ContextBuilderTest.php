@@ -5,12 +5,6 @@ namespace Tests\Unit\AI;
 use App\Models\Contract;
 use App\Models\User;
 use App\Services\AI\ContextBuilder;
-use App\Services\AI\ContextValidator;
-use App\Services\AI\SectionRegistry;
-use App\Services\Dashboard\ProjectManagementDashboardService;
-use App\Services\Marketing\MarketingDashboardService;
-use App\Services\Marketing\MarketingProjectService;
-use App\Services\Marketing\MarketingTaskService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -23,14 +17,7 @@ class ContextBuilderTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->builder = new ContextBuilder(
-            new ProjectManagementDashboardService(),
-            new MarketingDashboardService(),
-            new MarketingProjectService(),
-            new MarketingTaskService(app(\App\Services\Marketing\MarketingNotificationService::class)),
-            new ContextValidator(new SectionRegistry()),
-            new SectionRegistry()
-        );
+        $this->builder = app(ContextBuilder::class);
     }
 
     public function test_build_includes_user_info(): void

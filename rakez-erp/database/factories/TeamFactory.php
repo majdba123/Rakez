@@ -26,6 +26,7 @@ class TeamFactory extends Factory
     public function definition(): array
     {
         return [
+            'code' => 'T' . fake()->unique()->numerify('######'),
             'name' => fake()->company() . ' Team',
             'description' => fake()->sentence(),
             'created_by' => User::factory(),

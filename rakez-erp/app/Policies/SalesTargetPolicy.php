@@ -4,6 +4,7 @@ namespace App\Policies;
 
 use App\Models\SalesTarget;
 use App\Models\User;
+use App\Services\Sales\SalesTargetService;
 
 class SalesTargetPolicy
 {
@@ -12,19 +13,7 @@ class SalesTargetPolicy
      */
     public function viewTargetsByProject(User $user, int $contractId): bool
     {
-        $hasOwnTarget = SalesTarget::where('contract_id', $contractId)
-            ->where('marketer_id', $user->id)
-            ->exists();
-        if ($hasOwnTarget) {
-            return true;
-        }
-        if ($user->team_id) {
-            $teamMemberIds = User::where('team_id', $user->team_id)->pluck('id');
-            return SalesTarget::where('contract_id', $contractId)
-                ->whereIn('marketer_id', $teamMemberIds)
-                ->exists();
-        }
-        return false;
+        return app(SalesTargetService::class)->userCanViewTargetsByProject($user, $contractId);
     }
 
     /**
@@ -40,19 +29,24 @@ class SalesTargetPolicy
      */
     public function view(User $user, SalesTarget $target): bool
     {
-        // Admin can view all
         if ($user->hasRole('admin')) {
             return true;
         }
 
-        // Marketer can view their own targets
-        if ($user->hasPermissionTo('sales.targets.view')) {
-            return $target->marketer_id === $user->id;
+        if ($target->marketer_id === $user->id) {
+            return true;
         }
 
-        // Leader can view targets they assigned
-        if ($user->hasPermissionTo('sales.team.manage')) {
-            return $target->leader_id === $user->id;
+        if ($user->isSalesLeader() && $user->team_id) {
+            return $target->contract()
+                ->where('status', 'completed')
+                ->whereHas('teams', fn ($teams) => $teams->where('teams.id', $user->team_id))
+                ->exists()
+                && $target->marketer()
+                    ->where('team_id', $user->team_id)
+                    ->where('type', 'sales')
+                    ->where('is_manager', false)
+                    ->exists();
         }
 
         return false;
@@ -63,9 +57,9 @@ class SalesTargetPolicy
      */
     public function create(User $user): bool
     {
-        return $user->hasPermissionTo('sales.team.manage') && 
-               $user->type === 'sales' && 
-               $user->is_manager;
+        return $user->hasPermissionTo('sales.team.manage')
+            && $user->type === 'sales'
+            && $user->is_manager;
     }
 
     /**
@@ -73,22 +67,12 @@ class SalesTargetPolicy
      */
     public function update(User $user, SalesTarget $target): bool
     {
-        // Admin can update any
         if ($user->hasRole('admin')) {
             return true;
         }
 
-        // Marketer can update status of their own targets
-        if ($user->hasPermissionTo('sales.targets.update')) {
-            return $target->marketer_id === $user->id;
-        }
-
-        // Leader can update targets they assigned
-        if ($user->hasPermissionTo('sales.team.manage')) {
-            return $target->leader_id === $user->id;
-        }
-
-        return false;
+        return $user->hasPermissionTo('sales.targets.update')
+            && $target->marketer_id === $user->id;
     }
 
     /**

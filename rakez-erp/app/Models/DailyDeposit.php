@@ -9,6 +9,11 @@ class DailyDeposit extends Model
 {
     use HasFactory;
 
+    /**
+     * `booking_id` has no FK in migrations; treat as opaque until linked to a concrete table.
+     *
+     * @var list<string>
+     */
     protected $fillable = [
         'date',
         'amount',

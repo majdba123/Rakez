@@ -2,11 +2,13 @@
 
 namespace App\Services\AI\Rag;
 
+use App\Events\AI\AiDocumentIngested;
 use App\Models\AiChunk;
 use App\Models\AiDocument;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Schema;
 
 class DocumentIngestionService
 {
@@ -59,6 +61,7 @@ class DocumentIngestionService
         return DB::transaction(function () use ($text, $title, $source, $meta) {
             // 1. Create the document record
             $document = AiDocument::create([
+                'uploaded_by_user_id' => $meta['uploaded_by_user_id'] ?? null,
                 'title' => $title,
                 'source' => $source,
                 'mime_type' => $meta['mime_type'] ?? 'text/plain',
@@ -102,12 +105,27 @@ class DocumentIngestionService
                 AiChunk::insert($batch);
             }
 
+            $this->syncEmbeddingVectorsFromJson($document->id);
+
             Log::info('DocumentIngestion: completed', [
                 'document_id' => $document->id,
                 'title' => $title,
                 'chunks' => count($chunks),
                 'total_tokens' => array_sum(array_column($chunks, 'tokens')),
             ]);
+
+            $uploadedBy = $meta['uploaded_by_user_id'] ?? null;
+            if ($uploadedBy) {
+                $totalTokens = (int) array_sum(array_column($chunks, 'tokens'));
+                event(new AiDocumentIngested(
+                    userId: (int) $uploadedBy,
+                    documentId: $document->id,
+                    title: $title,
+                    chunksCount: count($chunks),
+                    totalTokens: $totalTokens,
+                    correlationId: $meta['correlation_id'] ?? null,
+                ));
+            }
 
             return $document;
         });
@@ -159,9 +177,35 @@ class DocumentIngestionService
             foreach (array_chunk($records, 100) as $batch) {
                 AiChunk::insert($batch);
             }
+
+            $this->syncEmbeddingVectorsFromJson($document->id);
         });
 
         Log::info('DocumentIngestion: re-indexed', ['document_id' => $document->id]);
+    }
+
+    /**
+     * Copy embedding_json into PostgreSQL pgvector column when available.
+     */
+    private function syncEmbeddingVectorsFromJson(int $documentId): void
+    {
+        if (config('database.default') !== 'pgsql' || ! Schema::hasColumn('ai_chunks', 'embedding_vector')) {
+            return;
+        }
+
+        $chunks = AiChunk::query()
+            ->where('document_id', $documentId)
+            ->whereNotNull('embedding_json')
+            ->get(['id', 'embedding_json']);
+
+        foreach ($chunks as $chunk) {
+            $vec = $chunk->embedding_json;
+            if (! is_array($vec) || $vec === []) {
+                continue;
+            }
+            $literal = '[' . implode(',', array_map('floatval', $vec)) . ']';
+            DB::update('UPDATE ai_chunks SET embedding_vector = ?::vector WHERE id = ?', [$literal, $chunk->id]);
+        }
     }
 
     /**

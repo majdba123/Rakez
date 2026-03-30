@@ -2,10 +2,11 @@
 
 namespace App\Services\Sales;
 
+use App\Models\Contract;
 use App\Models\ContractUnit;
-use App\Models\SalesProjectAssignment;
 use App\Models\SalesTarget;
 use App\Models\User;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Collection;
 
@@ -25,7 +26,7 @@ class SalesTargetService
         if ($user->isSalesLeader()) {
             return [
                 'type' => self::MY_CONTENT_ASSIGNMENTS,
-                'paginator' => $this->getAssignedProjectsForLeader($user, $filters),
+                'paginator' => $this->getGoalProjectsForLeader($user, $filters),
             ];
         }
 
@@ -48,29 +49,34 @@ class SalesTargetService
     }
 
     /**
-     * Get projects assigned to the leader (for sales leader "my" page).
+     * Get PM-linked team projects for the leader "my targets" page.
      */
-    public function getAssignedProjectsForLeader(User $leader, array $filters): LengthAwarePaginator
+    public function getGoalProjectsForLeader(User $leader, array $filters): LengthAwarePaginator
     {
-        $accessibleLeaderIds = $this->getAccessibleLeaderIdsForLeader($leader);
+        $perPage = (int) ($filters['per_page'] ?? 15);
+        if (!$leader->team_id) {
+            return $this->emptyPaginator($perPage);
+        }
 
-        $query = SalesProjectAssignment::query()
-            ->whereIn('leader_id', $accessibleLeaderIds)
-            ->with(['contract', 'assignedBy']);
+        $query = Contract::query()
+            ->select('contracts.*', 'contract_team.created_at as team_attached_at')
+            ->join('contract_team', function ($join) use ($leader) {
+                $join->on('contract_team.contract_id', '=', 'contracts.id')
+                    ->where('contract_team.team_id', '=', $leader->team_id);
+            })
+            ->where('contracts.status', 'completed')
+            ->with([
+                'teams' => fn ($q) => $q->where('teams.id', $leader->team_id),
+            ]);
 
         if (!empty($filters['from'])) {
-            $query->where(function ($q) use ($filters) {
-                $q->whereNull('end_date')->orWhereDate('end_date', '>=', $filters['from']);
-            });
+            $query->whereDate('contract_team.created_at', '>=', $filters['from']);
         }
         if (!empty($filters['to'])) {
-            $query->where(function ($q) use ($filters) {
-                $q->whereNull('start_date')->orWhereDate('start_date', '<=', $filters['to']);
-            });
+            $query->whereDate('contract_team.created_at', '<=', $filters['to']);
         }
 
-        $perPage = (int) ($filters['per_page'] ?? 15);
-        return $query->orderBy('start_date', 'desc')->paginate($perPage);
+        return $query->orderByDesc('contract_team.created_at')->paginate($perPage);
     }
 
     /**
@@ -83,46 +89,44 @@ class SalesTargetService
             throw new \Exception('You do not have access to targets for this project');
         }
 
-        $query = SalesTarget::where('contract_id', $contractId);
+        $query = SalesTarget::where('contract_id', $contractId)
+            ->with(['contract', 'contractUnit', 'contractUnits', 'leader', 'marketer']);
 
-        if ($user->team_id) {
-            $teamMemberIds = User::where('team_id', $user->team_id)->pluck('id');
-            $query->whereIn('marketer_id', $teamMemberIds);
+        if ($user->hasRole('admin')) {
+            return $query->orderBy('start_date', 'desc')->get();
+        }
+
+        if ($user->isSalesLeader()) {
+            $query->whereHas('marketer', function (Builder $marketers) use ($user) {
+                $marketers
+                    ->where('team_id', $user->team_id)
+                    ->where('type', 'sales')
+                    ->where('is_manager', false);
+            });
         } else {
             $query->where('marketer_id', $user->id);
         }
 
-        return $query
-            ->with(['contract', 'contractUnit', 'contractUnits', 'leader', 'marketer'])
-            ->orderBy('start_date', 'desc')
-            ->get();
+        return $query->orderBy('start_date', 'desc')->get();
     }
 
     /**
-     * Check if user can view targets for a given contract (has a target for it, team has targets, or leader has assignment).
+     * Check if user can view targets for a given contract.
+     * Leaders: PM-linked team projects only. Marketers: own targets only.
      */
     public function userCanViewTargetsByProject(User $user, int $contractId): bool
     {
-        $hasOwnTarget = SalesTarget::where('contract_id', $contractId)
-            ->where('marketer_id', $user->id)
-            ->exists();
-        if ($hasOwnTarget) {
+        if ($user->hasRole('admin')) {
             return true;
         }
-        if ($user->team_id) {
-            $teamMemberIds = User::where('team_id', $user->team_id)->pluck('id');
-            if (SalesTarget::where('contract_id', $contractId)->whereIn('marketer_id', $teamMemberIds)->exists()) {
-                return true;
-            }
-        }
-        // Leader can view by-project for contracts assigned to them (even if no targets yet).
+
         if ($user->isSalesLeader()) {
-            $accessibleLeaderIds = $this->getAccessibleLeaderIdsForLeader($user);
-            return SalesProjectAssignment::whereIn('leader_id', $accessibleLeaderIds)
-                ->where('contract_id', $contractId)
-                ->exists();
+            return $this->leaderTeamHasProject($user, $contractId);
         }
-        return false;
+
+        return SalesTarget::where('contract_id', $contractId)
+            ->where('marketer_id', $user->id)
+            ->exists();
     }
 
     /**
@@ -130,25 +134,22 @@ class SalesTargetService
      */
     public function createTarget(array $data, User $leader): SalesTarget
     {
-        // Validate leader has access to this project
-        if (!$this->leaderHasAccessToProject($leader, $data['contract_id'])) {
-            throw new \Exception('Leader is not assigned to this project');
+        if (!$leader->team_id) {
+            throw new \Exception('Leader must belong to a team');
         }
 
-        // Validate marketer is in same team (use team_id for consistency)
-        $marketer = User::findOrFail($data['marketer_id']);
-        $leaderTeamId = $leader->team_id;
-        $marketerTeamId = $marketer->team_id;
+        if (!$this->leaderTeamHasProject($leader, (int) $data['contract_id'])) {
+            throw new \Exception('Project is not assigned to the leader team by project management');
+        }
 
-        // Prefer team_id when both exist, otherwise fallback to `team` name (used by some tests/factories).
-        if ($leaderTeamId !== null && $marketerTeamId !== null) {
-            if ($marketerTeamId !== $leaderTeamId) {
-                throw new \Exception('Marketer must be in the same team as leader');
-            }
-        } else {
-            if (empty($leader->team) || empty($marketer->team) || $marketer->team !== $leader->team) {
-                throw new \Exception('Marketer must be in the same team as leader');
-            }
+        $marketer = User::findOrFail($data['marketer_id']);
+
+        if (($marketer->type ?? null) !== 'sales' || (bool) $marketer->is_manager) {
+            throw new \Exception('Target assignee must be a sales marketer');
+        }
+
+        if ((int) $marketer->team_id !== (int) $leader->team_id) {
+            throw new \Exception('Marketer must be in the same team as leader');
         }
 
         // Normalize unit ids: support contract_unit_ids (array) or contract_unit_id (single)
@@ -156,7 +157,7 @@ class SalesTargetService
         if ($unitIds === null && !empty($data['contract_unit_id'])) {
             $unitIds = [(int) $data['contract_unit_id']];
         }
-        $unitIds = is_array($unitIds) ? array_filter(array_map('intval', $unitIds)) : [];
+        $unitIds = is_array($unitIds) ? array_values(array_unique(array_filter(array_map('intval', $unitIds)))) : [];
 
         // Validate each unit belongs to the selected project
         foreach ($unitIds as $unitId) {
@@ -210,37 +211,36 @@ class SalesTargetService
     }
 
     /**
-     * Check if leader has access to a project.
+     * Check if a PM-linked team project is available to the leader.
      */
-    protected function leaderHasAccessToProject(User $leader, int $contractId): bool
+    protected function leaderTeamHasProject(User $leader, int $contractId): bool
     {
-        $accessibleLeaderIds = $this->getAccessibleLeaderIdsForLeader($leader);
-        return \App\Models\SalesProjectAssignment::whereIn('leader_id', $accessibleLeaderIds)
-            ->where('contract_id', $contractId)
+        if (!$leader->team_id) {
+            return false;
+        }
+
+        return Contract::query()
+            ->whereKey($contractId)
+            ->where('status', 'completed')
+            ->whereHas('teams', function (Builder $teams) use ($leader) {
+                $teams->where('teams.id', $leader->team_id);
+            })
             ->exists();
     }
 
     /**
-     * A sales leader should be able to see/manage projects assigned to their team leaders.
-     * If the leader has a team_id: include all users in that team where is_manager=true.
-     * Otherwise: return only the leader id.
+     * Build an empty paginator with stable API metadata.
      */
-    protected function getAccessibleLeaderIdsForLeader(User $leader): array
+    protected function emptyPaginator(int $perPage): LengthAwarePaginator
     {
-        if (empty($leader->team_id)) {
-            return [$leader->id];
-        }
+        $page = LengthAwarePaginator::resolveCurrentPage();
 
-        $leaderIds = \App\Models\User::where('team_id', $leader->team_id)
-            ->where('is_manager', true)
-            ->pluck('id')
-            ->all();
-
-        // Always include the requesting leader (safety).
-        if (!in_array($leader->id, $leaderIds, true)) {
-            $leaderIds[] = $leader->id;
-        }
-
-        return array_values(array_unique(array_map('intval', $leaderIds)));
+        return new LengthAwarePaginator(
+            collect(),
+            0,
+            $perPage,
+            $page,
+            ['path' => request()->url(), 'query' => request()->query()]
+        );
     }
 }

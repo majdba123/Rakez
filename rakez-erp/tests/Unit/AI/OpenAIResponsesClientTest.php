@@ -2,6 +2,8 @@
 
 namespace Tests\Unit\AI;
 
+use App\Services\AI\AiOpenAiGateway;
+use App\Services\AI\Exceptions\AiAssistantException;
 use App\Services\AI\OpenAIResponsesClient;
 use Illuminate\Support\Facades\Log;
 use OpenAI\Laravel\Facades\OpenAI;
@@ -15,7 +17,7 @@ class OpenAIResponsesClientTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->client = new OpenAIResponsesClient();
+        $this->client = new OpenAIResponsesClient(new AiOpenAiGateway);
         Log::spy();
     }
 
@@ -302,7 +304,7 @@ class OpenAIResponsesClientTest extends TestCase
             $exception,
         ]);
 
-        $this->expectException(\Exception::class);
+        $this->expectException(AiAssistantException::class);
         $this->client->createResponse('instructions', [['role' => 'user', 'content' => 'test']], []);
     }
 
@@ -442,7 +444,7 @@ class OpenAIResponsesClientTest extends TestCase
 
         try {
             $this->client->createResponse('instructions', [['role' => 'user', 'content' => 'test']], []);
-        } catch (\Exception $e) {
+        } catch (AiAssistantException $e) {
             // Expected
         }
 
@@ -617,8 +619,7 @@ class OpenAIResponsesClientTest extends TestCase
 
         OpenAI::fake([$exception]);
 
-        $this->expectException(\RuntimeException::class);
-        $this->expectExceptionMessage('Stream not supported');
+        $this->expectException(AiAssistantException::class);
 
         $generator = $this->client->createStreamedResponse(
             'instructions',

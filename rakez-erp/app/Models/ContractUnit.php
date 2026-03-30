@@ -6,6 +6,9 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
+/**
+ * @property-read string|null $description Legacy DB column (not in $fillable); prefer description_en / description_ar.
+ */
 class ContractUnit extends Model
 {
     use HasFactory, SoftDeletes;
@@ -33,7 +36,8 @@ class ContractUnit extends Model
 
     protected $casts = [
         'price' => 'decimal:2',
-        'area' => 'decimal:2',
+        // DB column is string(255) per migration; numeric sorting uses CAST in queries where needed.
+        'area' => 'string',
         'private_area_m2' => 'decimal:2',
         'created_at' => 'datetime',
         'updated_at' => 'datetime',

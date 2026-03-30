@@ -63,6 +63,37 @@
             "@php artisan config:clear --ansi",
             "@php artisan test"
         ],
+        "test:e2e-ai": [
+            "@php artisan config:clear --ansi",
+            "@php artisan test --group=ai-e2e-real"
+        ],
+        "test:e2e-ai-arabic-roles": [
+            "@php artisan config:clear --ansi",
+            "@php artisan test tests/Integration/AI/AIArabicRolesRealE2ETest.php"
+        ],
+        "test:ai-qa-quality": [
+            "@php artisan config:clear --ansi",
+            "@php artisan test tests/Integration/AI/AiRealQaQualityE2ETest.php"
+        ],
+        "test:ai-qa-suite": [
+            "@php artisan config:clear --ansi",
+            "@php artisan test tests/Feature/AI/AiApiUnauthenticatedTest.php tests/Feature/AI/AiToolsPermissionTest.php tests/Feature/AI/AiBootstrapRoleToolGateParityTest.php tests/Feature/AI/AiScenarioMatrixFeatureTest.php tests/Integration/AI/AiRealQaQualityE2ETest.php"
+        ],
+        "test:ai-hard-proof-live": [
+            "Composer\\Config::disableProcessTimeout",
+            "@php tests/Support/EnforceAiHardProofLive.php",
+            "@php artisan config:clear --ansi",
+            "@php artisan test tests/Integration/AI/AiRealQaHardProofToolsDecisionTest.php tests/Integration/AI/AiRealQaStreamParityTest.php tests/Integration/AI/AiRealQaToolFailureResilienceTest.php tests/Integration/AI/AiRealQaRetrievalHardCasesTest.php tests/Integration/AI/AiRealQaRoleDepthMatrixTest.php"
+        ],
+        "record:ai-e2e": [
+            "@php artisan config:clear --ansi",
+            "@php artisan ai:record-e2e-responses"
+        ],
+        "record:ai-e2e-and-tests": [
+            "@php artisan config:clear --ansi",
+            "@php artisan ai:record-e2e-responses",
+            "@composer run test:e2e-ai"
+        ],
         "post-autoload-dump": [
             "Illuminate\\Foundation\\ComposerScripts::postAutoloadDump",
             "@php artisan package:discover --ansi"

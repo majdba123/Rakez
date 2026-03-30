@@ -185,6 +185,7 @@ abstract class BasePermissionTestCase extends TestCase
     protected function createTeam(array $attributes = []): Team
     {
         return Team::create(array_merge([
+            'code' => 'TST-' . substr(str_replace('-', '', (string) \Illuminate\Support\Str::uuid()), 0, 12),
             'name' => 'Test Team',
             'description' => 'Test team description',
         ], $attributes));

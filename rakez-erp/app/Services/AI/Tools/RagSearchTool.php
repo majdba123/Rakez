@@ -2,7 +2,9 @@
 
 namespace App\Services\AI\Tools;
 
+use App\Models\AiDocument;
 use App\Models\User;
+use Illuminate\Support\Collection;
 use App\Services\AI\Rag\EmbeddingService;
 use App\Services\AI\Rag\SemanticCache;
 use App\Services\AI\Rag\VectorSearchService;
@@ -42,13 +44,22 @@ class RagSearchTool implements ToolContract
             // Generate query embedding
             $queryEmbedding = $this->embeddingService->embed($query);
 
-            // Search for similar chunks
+            $allowAll = $user->hasRole('admin');
+
+            // Search for similar chunks (scoped to user documents; admin can search all)
             $results = $this->vectorSearchService->search(
                 queryEmbedding: $queryEmbedding,
                 limit: $limit,
                 minSimilarity: $minSimilarity,
                 documentId: $documentId,
+                ownerUserId: $allowAll ? null : $user->id,
+                allowAllDocuments: $allowAll,
             );
+
+            $ids = $results->pluck('document_id')->unique()->filter()->all();
+            $titles = $ids === []
+                ? new Collection
+                : AiDocument::query()->whereIn('id', $ids)->pluck('title', 'id');
 
             if ($results->isEmpty()) {
                 $response = ToolResponse::success('tool_rag_search', ['query' => $query], [
@@ -66,19 +77,21 @@ class RagSearchTool implements ToolContract
             $sourceRefs = [];
 
             foreach ($results as $chunk) {
+                $snippet = $this->snippet((string) $chunk->content_text);
+                $title = $titles[$chunk->document_id] ?? 'Document #' . $chunk->document_id;
+
                 $matches[] = [
-                    'content' => $chunk->content_text,
-                    'similarity' => $chunk->similarity,
                     'document_id' => $chunk->document_id,
+                    'title' => $title,
+                    'snippet' => $snippet,
+                    'score' => $chunk->similarity,
                     'chunk_index' => $chunk->chunk_index,
-                    'tokens' => $chunk->tokens,
-                    'meta' => $chunk->meta_json,
+                    'source_ref' => "doc:{$chunk->document_id}:chunk:{$chunk->chunk_index}",
                 ];
 
-                $document = $chunk->document;
                 $sourceRefs[] = [
                     'type' => 'document',
-                    'title' => $document->title ?? 'Document #' . $chunk->document_id,
+                    'title' => $title,
                     'ref' => "doc:{$chunk->document_id}:chunk:{$chunk->chunk_index}",
                 ];
             }
@@ -94,5 +107,15 @@ class RagSearchTool implements ToolContract
         } catch (Throwable $e) {
             return ToolResponse::error('RAG search failed: ' . $e->getMessage());
         }
+    }
+
+    private function snippet(string $text, int $max = 280): string
+    {
+        $t = trim(preg_replace('/\s+/', ' ', $text) ?? $text);
+        if (mb_strlen($t) <= $max) {
+            return $t;
+        }
+
+        return mb_substr($t, 0, $max) . '…';
     }
 }

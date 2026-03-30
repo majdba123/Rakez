@@ -72,4 +72,25 @@ return [
         'marketing' => 30,
         'default' => 15,
     ],
+
+    'tools' => [
+        'orchestrated_chat' => (bool) env('AI_TOOLS_ORCHESTRATED_CHAT', true),
+        'sections' => ['marketing', 'sales', 'finance', 'hr'],
+    ],
+
+    'v2' => [
+        'openai' => [
+            'model' => env('AI_V2_MODEL', 'gpt-4.1-mini'),
+            'temperature' => (float) env('AI_V2_TEMPERATURE', 0.0),
+            'max_output_tokens' => (int) env('AI_V2_MAX_OUTPUT_TOKENS', 2000),
+            'truncation_strategy' => env('AI_V2_TRUNCATION', 'auto'),
+        ],
+        'tool_loop' => [
+            'max_tool_calls' => (int) env('AI_V2_MAX_TOOL_CALLS', 6),
+        ],
+        /** Optional per-tool gates; tools not listed default to use-ai-assistant only. */
+        'tool_gates' => [
+            'tool_kpi_sales' => ['permission' => 'sales.dashboard.view'],
+        ],
+    ],
 ];

@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Ads;
 
 use App\Exports\PlatformLeadsExport;
 use App\Infrastructure\Ads\Meta\MetaLeadGenReader;
+use App\Infrastructure\Ads\Snap\SnapLeadGenReader;
 use App\Infrastructure\Ads\TikTok\TikTokLeadGenReader;
 use App\Services\Ads\PlatformLeadSyncService;
 use App\Services\Ads\SnapCsvLeadNormalizer;
@@ -18,6 +19,7 @@ class AdsLeadsController
     public function __construct(
         private readonly MetaLeadGenReader $metaLeadGenReader,
         private readonly TikTokLeadGenReader $tikTokLeadGenReader,
+        private readonly SnapLeadGenReader $snapLeadGenReader,
         private readonly SnapCsvLeadNormalizer $snapCsvNormalizer,
         private readonly PlatformLeadSyncService $platformLeadSync,
     ) {}
@@ -41,6 +43,13 @@ class AdsLeadsController
             return response()->json([
                 'success' => false,
                 'message' => 'For TikTok, advertiser_id is required (query param or ads_platforms.tiktok.advertiser_id).',
+            ], 422);
+        }
+
+        if ($validated['platform'] === 'snap' && empty($validated['advertiser_id']) && empty(config('ads_platforms.snap.ad_account_id'))) {
+            return response()->json([
+                'success' => false,
+                'message' => 'For Snap, advertiser_id (ad account id) is required (query param or ads_platforms.snap.ad_account_id).',
             ], 422);
         }
 
@@ -102,6 +111,13 @@ class AdsLeadsController
             return response()->json([
                 'success' => false,
                 'message' => 'For TikTok, advertiser_id is required (query param or ads_platforms.tiktok.advertiser_id).',
+            ], 422);
+        }
+
+        if ($platform === 'snap' && empty($advertiserId) && empty(config('ads_platforms.snap.ad_account_id'))) {
+            return response()->json([
+                'success' => false,
+                'message' => 'For Snap, advertiser_id (ad account id) is required (query param or ads_platforms.snap.ad_account_id).',
             ], 422);
         }
 
@@ -175,7 +191,11 @@ class AdsLeadsController
         return match ($platform) {
             'meta' => $this->fetchMetaLeads($formId, $adId, $fromTs, $toTs),
             'tiktok' => $this->tikTokLeadGenReader->fetchLeads($advertiserId ?? '', $dateFrom, $dateTo),
-            'snap' => [], // TODO: CSV upload or Snap API when available
+            'snap' => $this->snapLeadGenReader->fetchLeads(
+                $advertiserId ?? (string) config('ads_platforms.snap.ad_account_id'),
+                $dateFrom,
+                $dateTo,
+            ),
         };
     }
 

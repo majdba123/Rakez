@@ -36,6 +36,9 @@ class AiCall extends Model
         'current_question_index',
         'attempt_number',
         'initiated_by',
+        'idempotency_key',
+        'transcript_analysis_status',
+        'transcript_analysis_error',
     ];
 
     protected function casts(): array
@@ -49,6 +52,7 @@ class AiCall extends Model
             'sentiment_score' => 'decimal:2',
             'current_question_index' => 'integer',
             'attempt_number' => 'integer',
+            'call_summary' => 'encrypted',
         ];
     }
 

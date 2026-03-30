@@ -13,6 +13,7 @@ class Team extends Model
     use HasFactory, SoftDeletes;
 
     protected $fillable = [
+        'code',
         'name',
         'description',
         'created_by',

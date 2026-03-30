@@ -21,14 +21,18 @@ class DocumentControllerTest extends TestCase
     {
         $user = User::factory()->create();
         $user->givePermissionTo('use-ai-assistant');
+        $user->assignRole('admin');
         Sanctum::actingAs($user);
 
         return $user;
     }
 
-    private function seedDocument(string $title = 'Test Doc'): AiDocument
+    private function seedDocument(string $title = 'Test Doc', ?User $owner = null): AiDocument
     {
+        $owner = $owner ?? auth()->user();
+
         $doc = AiDocument::create([
+            'uploaded_by_user_id' => $owner?->id,
             'title' => $title,
             'source' => 'test.txt',
             'mime_type' => 'text/plain',

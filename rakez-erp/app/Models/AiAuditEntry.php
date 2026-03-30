@@ -13,6 +13,7 @@ class AiAuditEntry extends Model
 
     protected $fillable = [
         'user_id',
+        'correlation_id',
         'action',
         'resource_type',
         'resource_id',

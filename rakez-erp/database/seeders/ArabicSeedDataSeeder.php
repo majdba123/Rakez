@@ -16,6 +16,11 @@ use Illuminate\Support\Arr;
 use Carbon\Carbon;
 use App\Support\ContractCodeGenerator;
 
+/**
+ * بيانات تجريبية بالعربية: مستخدمون + عقود + تسويق/مبيعات/ذكاء.
+ * يُشغَّل بعد {@see RolesAndPermissionsSeeder} و{@see UsersSeeder} و{@see TeamsSeeder}
+ * (انظر {@see SeedManifest::defaultPipeline()}).
+ */
 class ArabicSeedDataSeeder extends Seeder
 {
     /**
@@ -88,6 +93,9 @@ class ArabicSeedDataSeeder extends Seeder
         $realEstateImages = config('unsplash_images.real_estate', []);
         $logoThumbs = config('unsplash_images.logo_thumb', []);
 
+        $firstArabicContractId = null;
+        $firstArabicUnitId = null;
+
         foreach ($projects as $idx => $projectData) {
             $city = City::firstOrCreate(
                 ['name' => $projectData['city']],
@@ -117,6 +125,10 @@ class ArabicSeedDataSeeder extends Seeder
             ContractCodeGenerator::assignCodeToDataArray($contractRow);
             $contract = Contract::create($contractRow);
 
+            if ($firstArabicContractId === null) {
+                $firstArabicContractId = $contract->id;
+            }
+
             ContractInfo::create([
                 'contract_id' => $contract->id,
                 'contract_number' => 'ER-' . str_pad((string) $contract->id, 4, '0', STR_PAD_LEFT),
@@ -141,7 +153,7 @@ class ArabicSeedDataSeeder extends Seeder
                 $privateArea = rand(8, 30);
                 $bedrooms = $i % 2 == 0 ? rand(2, 4) : rand(3, 6);
                 $bathrooms = min($bedrooms + 1, rand(2, 4));
-                ContractUnit::create([
+                $unit = ContractUnit::create([
                     'contract_id' => $contract->id,
                     'unit_type' => ['أدوار', 'بنتهاوس', 'تاون هاوس', 'شقق', 'فيلا'][$i % 5],
                     'unit_number' => 'U-' . str_pad($i, 3, '0', STR_PAD_LEFT),
@@ -156,6 +168,9 @@ class ArabicSeedDataSeeder extends Seeder
                     'status' => 'available',
                     'description' => 'وحدة سكنية واسعة مع إطلالة رائعة وتشطيبات ممتازة',
                 ]);
+                if ($firstArabicUnitId === null) {
+                    $firstArabicUnitId = $unit->id;
+                }
             }
 
             $targetUnitIds = ContractUnit::where('contract_id', $contract->id)->pluck('id')->take(3)->all();
@@ -212,9 +227,18 @@ class ArabicSeedDataSeeder extends Seeder
             ]);
         }
 
-        // 5. Marketing Data
+        foreach ([$salesLeader, $marketer, $aiUser] as $u) {
+            $u->refresh();
+            $u->syncRolesFromType();
+        }
+
+        if ($firstArabicContractId === null || $firstArabicUnitId === null) {
+            return;
+        }
+
+        // 5. Marketing Data (مرتبطة بعقود هذا السيدر فقط)
         $marketingProject = DB::table('marketing_projects')->insertGetId([
-            'contract_id' => Contract::first()->id,
+            'contract_id' => $firstArabicContractId,
             'status' => 'active',
             'assigned_team_leader' => $salesLeader->id,
             'created_at' => now(),
@@ -231,7 +255,7 @@ class ArabicSeedDataSeeder extends Seeder
 
         // Developer Marketing Plans (effective commission % reads from contracts.commission_percent; avg from contract_infos)
         DB::table('developer_marketing_plans')->insert([
-            'contract_id' => Contract::first()->id,
+            'contract_id' => $firstArabicContractId,
             'average_cpm' => 25.00,
             'average_cpc' => 2.50,
             'marketing_value' => 35000.00,
@@ -283,7 +307,7 @@ class ArabicSeedDataSeeder extends Seeder
                 'contact_info' => '0555555555',
                 'source' => 'سناب شات',
                 'status' => 'new',
-                'project_id' => Contract::first()->id,
+                'project_id' => $firstArabicContractId,
                 'assigned_to' => $marketer->id,
                 'created_at' => now(),
                 'updated_at' => now(),
@@ -293,7 +317,7 @@ class ArabicSeedDataSeeder extends Seeder
                 'contact_info' => 'fatima@example.com',
                 'source' => 'انستقرام',
                 'status' => 'contacted',
-                'project_id' => Contract::first()->id,
+                'project_id' => $firstArabicContractId,
                 'assigned_to' => $marketer->id,
                 'created_at' => now(),
                 'updated_at' => now(),
@@ -303,7 +327,7 @@ class ArabicSeedDataSeeder extends Seeder
         // Marketing Tasks
         DB::table('marketing_tasks')->insert([
             [
-                'contract_id' => Contract::first()->id,
+                'contract_id' => $firstArabicContractId,
                 'marketing_project_id' => $marketingProject,
                 'task_name' => 'إطلاق حملة سناب شات',
                 'marketer_id' => $marketer->id,
@@ -315,7 +339,7 @@ class ArabicSeedDataSeeder extends Seeder
                 'updated_at' => now(),
             ],
             [
-                'contract_id' => Contract::first()->id,
+                'contract_id' => $firstArabicContractId,
                 'marketing_project_id' => $marketingProject,
                 'task_name' => 'تحديث قائمة الأسعار في الموقع',
                 'marketer_id' => $marketer->id,
@@ -331,8 +355,8 @@ class ArabicSeedDataSeeder extends Seeder
         // Sales Reservations (client_name is required)
         DB::table('sales_reservations')->insert([
             'marketing_employee_id' => $marketer->id,
-            'contract_id' => Contract::first()->id,
-            'contract_unit_id' => ContractUnit::first()->id,
+            'contract_id' => $firstArabicContractId,
+            'contract_unit_id' => $firstArabicUnitId,
             'reservation_type' => 'negotiation',
             'contract_date' => Carbon::today(),
             'client_name' => 'عبدالله المنصور',
@@ -358,7 +382,7 @@ class ArabicSeedDataSeeder extends Seeder
                 'role' => 'user',
                 'message' => 'ما هي الوحدات المتاحة في مشروع برج ركيز؟',
                 'section' => 'units',
-                'metadata' => json_encode(['project_id' => Contract::first()->id]),
+                'metadata' => json_encode(['project_id' => $firstArabicContractId]),
                 'created_at' => now(),
                 'updated_at' => now(),
             ],
@@ -368,7 +392,7 @@ class ArabicSeedDataSeeder extends Seeder
                 'role' => 'assistant',
                 'message' => 'يوجد حالياً 5 وحدات متاحة في مشروع برج ركيز السكني 1، تتنوع بين شقق وفلل بمساحات تبدأ من 150 متر مربع.',
                 'section' => 'units',
-                'metadata' => json_encode(['project_id' => Contract::first()->id]),
+                'metadata' => json_encode(['project_id' => $firstArabicContractId]),
                 'created_at' => now(),
                 'updated_at' => now(),
             ],
@@ -378,7 +402,7 @@ class ArabicSeedDataSeeder extends Seeder
                 'role' => 'user',
                 'message' => 'كم تبلغ أسعار الفلل؟',
                 'section' => 'units',
-                'metadata' => json_encode(['project_id' => Contract::first()->id]),
+                'metadata' => json_encode(['project_id' => $firstArabicContractId]),
                 'created_at' => now(),
                 'updated_at' => now(),
             ],
@@ -388,7 +412,7 @@ class ArabicSeedDataSeeder extends Seeder
                 'role' => 'assistant',
                 'message' => 'تبدأ أسعار الفلل في المشروع من 1,200,000 ريال سعودي حسب المساحة والموقع.',
                 'section' => 'units',
-                'metadata' => json_encode(['project_id' => Contract::first()->id]),
+                'metadata' => json_encode(['project_id' => $firstArabicContractId]),
                 'created_at' => now(),
                 'updated_at' => now(),
             ],

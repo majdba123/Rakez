@@ -2,17 +2,22 @@
 
 namespace App\Services\Marketing;
 
+use App\Enums\ContractWorkflowStatus;
 use App\Models\Contract;
-use App\Models\MarketingProject;
 use App\Models\ContractInfo;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 
 class MarketingProjectService
 {
+    public function __construct(
+        private MarketingProjectBootstrapService $bootstrapService
+    ) {}
+
     /**
      * Marketing projects = contracts with status = completed.
      * Marketing user sees all completed contracts (no team/user filter).
      */
+    /** @deprecated Prefer {@see ContractWorkflowStatus::Completed} */
     public const COMPLETED_CONTRACT_STATUS = 'completed';
 
     /**
@@ -35,60 +40,91 @@ class MarketingProjectService
      */
     public function getProjects(array $filters, int $perPage = 15): LengthAwarePaginator
     {
-        $query = MarketingProject::query()
-            ->whereHas('contract', function ($query) {
-                $query->where('status', self::COMPLETED_CONTRACT_STATUS);
-            })
+        $query = Contract::query()
+            ->where('status', ContractWorkflowStatus::Completed->value)
             ->with([
-                'contract.info',
-                'contract.projectMedia',
-                'contract.secondPartyData',
-                'contract.units',
-                'teamLeader',
+                'info',
+                'projectMedia',
+                'secondPartyData',
+                'contractUnits',
+                'city',
+                'district',
             ])
             ->orderBy('created_at', 'desc');
 
         if (!empty($filters['q'])) {
-            $query->whereHas('contract', function ($q) use ($filters) {
-                $q->where('project_name', 'like', '%' . $filters['q'] . '%');
-            });
+            $query->where('project_name', 'like', '%' . $filters['q'] . '%');
         }
 
         if (!empty($filters['city_id'])) {
-            $query->whereHas('contract', function ($q) use ($filters) {
-                $q->where('city_id', (int) $filters['city_id']);
-            });
+            $query->where('city_id', (int) $filters['city_id']);
         }
 
         if (!empty($filters['district_id'])) {
-            $query->whereHas('contract', function ($q) use ($filters) {
-                $q->where('district_id', (int) $filters['district_id']);
-            });
+            $query->where('district_id', (int) $filters['district_id']);
         }
 
         // Units status filter (available/reserved/sold/pending)
         if (!empty($filters['status'])) {
-            $query->whereHas('contract.units', function ($q) use ($filters) {
+            $query->whereHas('contractUnits', function ($q) use ($filters) {
                 $q->where('status', $filters['status']);
             });
         }
 
-        return $query->paginate($perPage);
+        $contracts = $query->paginate($perPage);
+        $contractCollection = $contracts->getCollection();
+
+        $this->bootstrapService->ensureForContracts($contractCollection);
+
+        $projectsByContractId = $this->bootstrapService->getProjectsByContractIds(
+            $contractCollection->pluck('id')
+        );
+
+        $marketingProjects = $contractCollection
+            ->map(function (Contract $contract) use ($projectsByContractId) {
+                $project = $projectsByContractId->get($contract->id);
+
+                if (!$project) {
+                    return null;
+                }
+
+                $project->setRelation('contract', $contract);
+
+                return $project;
+            })
+            ->filter()
+            ->values();
+
+        $contracts->setCollection($marketingProjects);
+
+        return $contracts;
     }
 
     public function getProjectDetails($contractId)
     {
-        return Contract::with([
+        $contract = Contract::with([
             'info',
-            'marketingProject.teams.user',
-            'marketingProject.developerPlan',
-            'marketingProject.employeePlans.user',
-            'marketingProject.expectedBooking',
             'projectMedia',
-            'units',
+            'contractUnits',
             'city',
             'district',
         ])->findOrFail($contractId);
+
+        $project = $this->bootstrapService->ensureForCompletedContract($contract);
+
+        if ($project) {
+            $project->loadMissing([
+                'teamLeader',
+                'teams.user',
+                'developerPlan',
+                'employeePlans.user',
+                'expectedBooking',
+            ]);
+
+            $contract->setRelation('marketingProject', $project);
+        }
+
+        return $contract;
     }
 
     /**
@@ -97,9 +133,11 @@ class MarketingProjectService
      */
     public function getContractSummaryFields(Contract $contract): array
     {
-        $contract->loadMissing(['info', 'units', 'city', 'district']);
+        $contract->loadMissing(['info', 'contractUnits', 'city', 'district']);
         $info = $contract->info;
-        $units = collect($contract->units ?? []);
+        $units = $contract->relationLoaded('contractUnits')
+            ? $contract->getRelation('contractUnits')
+            : $contract->contractUnits()->get();
         $availableUnits = $units->where('status', 'available');
         $pendingUnits = $units->where('status', 'pending');
 
@@ -126,6 +164,11 @@ class MarketingProjectService
     public function calculateCampaignBudget($contractId, $inputs)
     {
         $contract = Contract::with('info')->findOrFail($contractId);
+
+        if ($contract->status === ContractWorkflowStatus::Completed->value) {
+            $this->bootstrapService->ensureForCompletedContract($contract);
+        }
+
         $info = $contract->info;
 
         $unitPrice = $inputs['unit_price'] ?? ($info->avg_property_value ?? 0);

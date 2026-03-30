@@ -9,48 +9,35 @@ use App\Services\AI\Rag\EmbeddingService;
 use App\Services\AI\Rag\VectorSearchService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
+use Tests\Traits\ReadsDotEnvForTest;
 
 /**
  * End-to-end RAG pipeline test with real OpenAI API calls.
+ * Requires OPENAI_API_KEY and AI_REAL_TESTS=true in .env.
  *
  * @group integration
+ * @group ai-e2e-real
  */
 class RagEndToEndTest extends TestCase
 {
+    use ReadsDotEnvForTest;
     use RefreshDatabase;
 
     protected function setUp(): void
     {
         parent::setUp();
 
-        // Read real key from .env (phpunit.xml overrides with fake key)
-        $realKey = $this->getRealApiKey();
+        $realKey = $this->envFromDotFile('OPENAI_API_KEY');
 
         if (! $realKey || str_starts_with($realKey, 'test-fake')) {
             $this->markTestSkipped('Real OPENAI_API_KEY not available — skipping integration test.');
         }
 
+        if (! $this->envFromDotFileIsTrue('AI_REAL_TESTS')) {
+            $this->markTestSkipped('AI_REAL_TESTS is not enabled — set AI_REAL_TESTS=true in .env to run');
+        }
+
         config(['openai.api_key' => $realKey]);
-    }
-
-    private function getRealApiKey(): ?string
-    {
-        $envFile = base_path('.env');
-        if (! file_exists($envFile)) {
-            return null;
-        }
-
-        $lines = file($envFile, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
-        foreach ($lines as $line) {
-            if (str_starts_with(trim($line), '#')) {
-                continue;
-            }
-            if (str_starts_with($line, 'OPENAI_API_KEY=')) {
-                return trim(substr($line, strlen('OPENAI_API_KEY=')));
-            }
-        }
-
-        return null;
     }
 
     public function test_full_rag_pipeline_ingest_and_search(): void

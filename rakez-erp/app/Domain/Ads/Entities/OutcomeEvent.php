@@ -34,5 +34,7 @@ final class OutcomeEvent
         public readonly ?string $clientUserAgent = null,
         public readonly ?string $eventSourceUrl = null,
         public readonly array $customData = [],
+        /** Original platform currency code when it differs from normalized `value.currency`. */
+        public readonly ?string $providerCurrency = null,
     ) {}
 }

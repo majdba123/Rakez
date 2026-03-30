@@ -19,5 +19,6 @@ class AiRequestCompleted
         public readonly int $totalTokens,
         public readonly float $latencyMs,
         public readonly int $toolCallsCount,
+        public readonly ?string $correlationId = null,
     ) {}
 }

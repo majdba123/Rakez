@@ -9,6 +9,7 @@ use App\Services\AI\Calling\AiCallingService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
+use InvalidArgumentException;
 use Throwable;
 
 class AiCallController extends Controller
@@ -27,6 +28,7 @@ class AiCallController extends Controller
             'target_id' => 'required|integer',
             'target_type' => 'required|in:lead,customer',
             'script_id' => 'nullable|integer|exists:ai_call_scripts,id',
+            'idempotency_key' => 'nullable|string|max:80',
         ]);
 
         try {
@@ -35,12 +37,28 @@ class AiCallController extends Controller
                 $validated['target_id'],
                 $validated['target_type'],
                 $validated['script_id'] ?? null,
+                true,
+                $validated['idempotency_key'] ?? null,
             );
 
             return response()->json([
                 'message' => 'تم إنشاء المكالمة بنجاح',
                 'call' => $this->formatCall($call),
             ], 201);
+        } catch (InvalidArgumentException $e) {
+            if ($e->getMessage() === 'unsupported_customer_target') {
+                return response()->json([
+                    'message' => 'Customer target is not supported for AI calling.',
+                    'error_code' => 'unsupported_customer_target',
+                ], 422);
+            }
+
+            Log::error('AI call initiation failed', ['error' => $e->getMessage()]);
+
+            return response()->json([
+                'message' => 'فشل في إنشاء المكالمة',
+                'error' => $e->getMessage(),
+            ], 422);
         } catch (Throwable $e) {
             Log::error('AI call initiation failed', ['error' => $e->getMessage()]);
 
@@ -62,6 +80,7 @@ class AiCallController extends Controller
             'target_ids.*' => 'integer',
             'target_type' => 'required|in:lead,customer',
             'script_id' => 'required|integer|exists:ai_call_scripts,id',
+            'idempotency_key' => 'nullable|string|max:80',
         ]);
 
         try {
@@ -70,6 +89,7 @@ class AiCallController extends Controller
                 $validated['target_ids'],
                 $validated['target_type'],
                 $validated['script_id'],
+                $validated['idempotency_key'] ?? null,
             );
 
             return response()->json([
@@ -78,6 +98,18 @@ class AiCallController extends Controller
                 'skipped' => $result['skipped'],
                 'errors' => $result['errors'],
             ]);
+        } catch (InvalidArgumentException $e) {
+            if ($e->getMessage() === 'unsupported_customer_target') {
+                return response()->json([
+                    'message' => 'Customer target is not supported for AI calling.',
+                    'error_code' => 'unsupported_customer_target',
+                ], 422);
+            }
+
+            return response()->json([
+                'message' => 'فشل في جدولة المكالمات',
+                'error' => $e->getMessage(),
+            ], 422);
         } catch (Throwable $e) {
             return response()->json([
                 'message' => 'فشل في جدولة المكالمات',

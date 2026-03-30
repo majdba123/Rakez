@@ -395,7 +395,7 @@ function exampleBody(string $method, string $uri): ?array
         'POST api/sales/waiting-list/{id}/convert' => ['reservation_type' => 'confirmed_reservation'],
         'POST api/admin/notifications/send-to-user' => ['user_id' => '{{employee_id}}', 'message' => 'إشعار خاص من الأدمن'],
         'POST api/admin/notifications/send-public' => ['message' => 'إشعار عام من الأدمن'],
-        'POST api/admin/sales/project-assignments' => ['leader_id' => '{{employee_id}}', 'contract_id' => '{{ready_contract_id}}', 'start_date' => '{{today}}', 'end_date' => '{{future_date}}'],
+        'POST api/admin/sales/project-assignments' => ['team_code' => '{{team_code}}', 'contract_id' => '{{ready_contract_id}}', 'start_date' => '{{today}}', 'end_date' => '{{future_date}}'],
         'POST api/marketing/projects/calculate-budget' => ['contract_id' => '{{ready_contract_id}}', 'marketing_percent' => 8, 'marketing_value' => 70000, 'average_cpm' => 25, 'average_cpc' => 2.5, 'conversion_rate' => 3],
         'POST api/marketing/developer-plans' => ['contract_id' => '{{ready_contract_id}}', 'marketing_value' => 60000, 'average_cpm' => 24, 'average_cpc' => 2.4, 'conversion_rate' => 3.2, 'expected_bookings' => 18],
         'POST api/marketing/employee-plans' => ['marketing_project_id' => '{{marketing_project_id}}', 'user_id' => '{{employee_id}}'],

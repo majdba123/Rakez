@@ -16,6 +16,7 @@ class UpdateTeamRequest extends FormRequest
         $teamId = $this->route('id');
 
         return [
+            'code' => 'nullable|string|max:32|unique:teams,code,' . $teamId,
             'name' => 'sometimes|required|string|max:255|unique:teams,name,' . $teamId,
             'description' => 'nullable|string',
         ];

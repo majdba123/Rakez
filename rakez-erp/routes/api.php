@@ -20,6 +20,7 @@ use App\Http\Controllers\Contract\MontageDepartmentController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\Dashboard\ProjectManagementDashboardController;
 use App\Http\Controllers\AI\AIAssistantController;
+use App\Http\Controllers\AI\AiV2Controller;
 use App\Http\Controllers\AI\DocumentController;
 use App\Http\Controllers\Sales\SalesDashboardController;
 use App\Http\Controllers\Sales\SalesProjectController;
@@ -132,6 +133,16 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/conversations', [AIAssistantController::class, 'conversations']);
         Route::delete('/conversations/{sessionId}', [AIAssistantController::class, 'deleteSession']);
         Route::get('/sections', [AIAssistantController::class, 'sections']);
+
+        // Tool orchestrator (no /v2/ in URL — stable for frontend). Legacy /v2/* aliases kept for compatibility.
+        Route::prefix('tools')->group(function () {
+            Route::post('/chat', [AiV2Controller::class, 'chat']);
+            Route::post('/stream', [AiV2Controller::class, 'stream']);
+        });
+        Route::prefix('v2')->group(function () {
+            Route::post('/chat', [AiV2Controller::class, 'chat']);
+            Route::post('/stream', [AiV2Controller::class, 'stream']);
+        });
 
         // RAG Document Management
         Route::prefix('documents')->group(function () {

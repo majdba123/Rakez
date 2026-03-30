@@ -10,6 +10,7 @@ use App\Services\AI\Calling\TwilioVoiceService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Config;
 use Tests\TestCase;
+use Tests\Traits\ReadsDotEnvForTest;
 use Twilio\Exceptions\RestException;
 use Twilio\Rest\Api\V2010\Account\BalanceInstance;
 use Twilio\Rest\Client as TwilioClient;
@@ -20,10 +21,13 @@ use Twilio\Rest\Client as TwilioClient;
  * To run:
  *   1. In .env set TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, TWILIO_PHONE_NUMBER
  *   2. In .env set TWILIO_REAL_TESTS=true
- *   3. Run: php artisan test tests/Integration/AI/TwilioRealApiTest.php
+ *   3. Run: php artisan test --group=ai-e2e-real
+ *
+ * @group ai-e2e-real
  */
 class TwilioRealApiTest extends TestCase
 {
+    use ReadsDotEnvForTest;
     use RefreshDatabase;
 
     private ?string $sid = null;
@@ -36,15 +40,15 @@ class TwilioRealApiTest extends TestCase
     {
         parent::setUp();
 
-        $this->sid = $this->readEnvVar('TWILIO_ACCOUNT_SID');
-        $this->token = $this->readEnvVar('TWILIO_AUTH_TOKEN');
-        $this->phoneNumber = $this->readEnvVar('TWILIO_PHONE_NUMBER');
+        $this->sid = $this->envFromDotFile('TWILIO_ACCOUNT_SID');
+        $this->token = $this->envFromDotFile('TWILIO_AUTH_TOKEN');
+        $this->phoneNumber = $this->envFromDotFile('TWILIO_PHONE_NUMBER');
 
         if (! $this->sid || ! $this->token) {
             $this->markTestSkipped('TWILIO_ACCOUNT_SID and TWILIO_AUTH_TOKEN must be set in .env');
         }
 
-        if (! $this->isRealTestsEnabled()) {
+        if (! $this->envFromDotFileIsTrue('TWILIO_REAL_TESTS')) {
             $this->markTestSkipped('TWILIO_REAL_TESTS is not enabled — set TWILIO_REAL_TESTS=true in .env to run');
         }
 
@@ -114,32 +118,5 @@ class TwilioRealApiTest extends TestCase
 
         $this->assertNotEmpty($callSid);
         $this->assertStringStartsWith('CA', $callSid);
-    }
-
-    private function readEnvVar(string $key): ?string
-    {
-        $envPath = base_path('.env');
-        if (! file_exists($envPath)) {
-            return null;
-        }
-        $lines = file($envPath, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
-        $prefix = $key . '=';
-        foreach ($lines as $line) {
-            $line = trim($line);
-            if (str_starts_with($line, '#')) {
-                continue;
-            }
-            if (str_starts_with($line, $prefix)) {
-                $value = trim(substr($line, strlen($prefix)), '"\'');
-                return $value !== '' ? $value : null;
-            }
-        }
-        return null;
-    }
-
-    private function isRealTestsEnabled(): bool
-    {
-        $value = $this->readEnvVar('TWILIO_REAL_TESTS');
-        return in_array(strtolower($value ?? ''), ['true', '1', 'yes'], true);
     }
 }

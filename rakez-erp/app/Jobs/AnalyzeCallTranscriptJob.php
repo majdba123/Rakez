@@ -10,6 +10,7 @@ use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 use Throwable;
 
@@ -30,27 +31,53 @@ class AnalyzeCallTranscriptJob implements ShouldQueue
 
         if (! $call) {
             Log::warning('AnalyzeCallTranscriptJob: call not found', ['ai_call_id' => $this->aiCallId]);
+
             return;
         }
 
         if ($call->messages->isEmpty()) {
             Log::info('AnalyzeCallTranscriptJob: no messages to analyze', ['ai_call_id' => $this->aiCallId]);
+
             return;
         }
 
-        $summary = $engine->generateCallSummary($call);
-        $call->update(['call_summary' => $summary]);
+        $lock = Cache::lock('ai_call_transcript_analysis:'.$call->id, 120);
+        if (! $lock->get()) {
+            return;
+        }
 
-        $qualification = $engine->qualifyLead($call);
-        $call->update(['sentiment_score' => $qualification['score'] / 100]);
+        try {
+            $call->refresh();
+            if ($call->transcript_analysis_status === 'completed') {
+                return;
+            }
 
-        $this->updateLeadRecord($call, $qualification);
+            $summary = $engine->generateCallSummary($call);
+            $call->update(['call_summary' => $summary]);
 
-        Log::info('AI call analyzed', [
-            'ai_call_id' => $call->id,
-            'qualification' => $qualification['qualification'],
-            'score' => $qualification['score'],
-        ]);
+            $qualification = $engine->qualifyLead($call);
+            $call->update([
+                'sentiment_score' => $qualification['score'] / 100,
+                'transcript_analysis_status' => 'completed',
+                'transcript_analysis_error' => null,
+            ]);
+
+            $this->updateLeadRecord($call->fresh(), $qualification);
+
+            Log::info('AI call analyzed', [
+                'ai_call_id' => $call->id,
+                'qualification' => $qualification['qualification'],
+                'score' => $qualification['score'],
+            ]);
+        } catch (Throwable $e) {
+            $call->update([
+                'transcript_analysis_status' => 'failed',
+                'transcript_analysis_error' => $e->getMessage(),
+            ]);
+            throw $e;
+        } finally {
+            $lock->release();
+        }
     }
 
     private function updateLeadRecord(AiCall $call, array $qualification): void

@@ -2,9 +2,10 @@
 
 namespace App\Services\AI;
 
+use App\Events\AI\AiToolExecuted;
 use App\Models\User;
 use Illuminate\Support\Facades\Log;
-use OpenAI\Laravel\Facades\OpenAI;
+use Illuminate\Support\Str;
 use OpenAI\Responses\Responses\Output\OutputFunctionToolCall;
 use Throwable;
 
@@ -12,9 +13,12 @@ class RakizAiOrchestrator
 {
     private IntentClassifier $intentClassifier;
 
+    private string $toolCorrelationId = '';
+
     public function __construct(
         private readonly ToolRegistry $toolRegistry,
         private readonly AiIndexingService $indexingService,
+        private readonly AiOpenAiGateway $openAiGateway,
         private readonly ?CatalogService $catalogService = null,
         private readonly ?NumericGuardrails $guardrails = null,
     ) {
@@ -35,6 +39,7 @@ class RakizAiOrchestrator
         $start = microtime(true);
         $toolCallCount = 0;
         $hadDeniedRequest = false;
+        $hadToolFailure = false;
         $userRole = method_exists($user, 'getRoleNames') ? ($user->getRoleNames()->first() ?? ($user->type ?? 'unknown')) : ($user->type ?? 'unknown');
 
         $intent = $this->intentClassifier->classify($message);
@@ -42,15 +47,33 @@ class RakizAiOrchestrator
             $catalogAnswer = $this->answerFromCatalog($user);
             Log::info('Rakiz AI catalog shortcut', ['request_id' => $requestId, 'user_id' => $user->id, 'role' => $userRole]);
 
-            return $catalogAnswer;
+            return $this->withExecutionMeta($catalogAnswer, [
+                'prompt_tokens' => 0,
+                'completion_tokens' => 0,
+                'total_tokens' => 0,
+                'request_id' => null,
+                'correlation_id' => (string) Str::uuid(),
+                'latency_ms' => (int) round((microtime(true) - $start) * 1000),
+                'model' => 'catalog_shortcut',
+            ]);
         }
+
+        $correlationId = (string) Str::uuid();
+        $this->toolCorrelationId = $correlationId;
+        $cumInputTokens = 0;
+        $cumOutputTokens = 0;
+        $lastRequestId = null;
 
         $instructions = $this->buildInstructions($user, $pageContext);
         $input = $this->buildInitialInput($message);
-        $tools = $this->getToolDefinitions();
+        $tools = $this->toolsForUser($user);
+        if (($pageContext['policy_snapshot']['tool_mode'] ?? 'auto') === 'none') {
+            $tools = [];
+        }
         $maxToolCalls = config('ai_assistant.v2.tool_loop.max_tool_calls', 6);
         $model = config('ai_assistant.v2.openai.model', 'gpt-4.1-mini');
         $maxOutputTokens = config('ai_assistant.v2.openai.max_output_tokens', 2000);
+        $temperature = (float) config('ai_assistant.v2.openai.temperature', 0.0);
         $truncation = config('ai_assistant.v2.openai.truncation_strategy', 'auto');
 
         $payload = [
@@ -61,6 +84,7 @@ class RakizAiOrchestrator
             'tool_choice' => 'auto',
             'parallel_tool_calls' => false,
             'max_output_tokens' => $maxOutputTokens,
+            'temperature' => $temperature,
             'truncation' => $truncation,
             'text' => [
                 'format' => [
@@ -72,9 +96,24 @@ class RakizAiOrchestrator
             ],
         ];
 
+        $guardContext = [
+            'user_id' => $user->id,
+            'section' => $pageContext['section'] ?? null,
+            'session_id' => $sessionId,
+            'service' => 'rakiz_ai.v2',
+            'correlation_id' => $correlationId,
+        ];
+
         try {
             while (true) {
-                $response = $this->withRetry(fn () => OpenAI::responses()->create($payload));
+                $response = $this->openAiGateway->responsesCreate($payload, $guardContext);
+
+                if ($response->usage) {
+                    $cumInputTokens += (int) ($response->usage->inputTokens ?? 0);
+                    $cumOutputTokens += (int) ($response->usage->outputTokens ?? 0);
+                }
+                $lastRequestId = $response->meta()->requestId ?? $response->id ?? $lastRequestId;
+                $modelUsed = $response->model ?? $model;
 
                 $toolCalls = $this->extractFunctionToolCalls($response->output);
 
@@ -83,23 +122,60 @@ class RakizAiOrchestrator
                     $parsed = $this->parseAndValidateOutput($outputText);
                     if ($parsed !== null) {
                         $parsed = $this->stripHallucinatedSections($parsed);
+                        $parsed = $this->applyPostDecisionNormalization($parsed, $hadDeniedRequest, $hadToolFailure);
                         $this->logRequest($requestId, $user->id, $toolCallCount, microtime(true) - $start, $response->usage, null, $userRole);
-                        return $parsed;
+
+                        return $this->withExecutionMeta($parsed, [
+                            'prompt_tokens' => $cumInputTokens,
+                            'completion_tokens' => $cumOutputTokens,
+                            'total_tokens' => $cumInputTokens + $cumOutputTokens,
+                            'request_id' => $lastRequestId,
+                            'correlation_id' => $correlationId,
+                            'latency_ms' => (int) round((microtime(true) - $start) * 1000),
+                            'model' => $modelUsed,
+                        ]);
                     }
                     $this->logRequest($requestId, $user->id, $toolCallCount, microtime(true) - $start, $response->usage, 'output_parse_failed', $userRole);
-                    return $this->fallbackOutput('Could not parse model output.', $hadDeniedRequest);
+
+                    return $this->withExecutionMeta(
+                        $this->fallbackOutput('Could not parse model output.', $hadDeniedRequest),
+                        [
+                            'prompt_tokens' => $cumInputTokens,
+                            'completion_tokens' => $cumOutputTokens,
+                            'total_tokens' => $cumInputTokens + $cumOutputTokens,
+                            'request_id' => $lastRequestId,
+                            'correlation_id' => $correlationId,
+                            'latency_ms' => (int) round((microtime(true) - $start) * 1000),
+                            'model' => $modelUsed,
+                        ]
+                    );
                 }
 
                 $toolCallCount += count($toolCalls);
                 if ($toolCallCount > $maxToolCalls) {
                     Log::warning('Rakiz AI: max tool calls exceeded', ['request_id' => $requestId, 'user_id' => $user->id]);
-                    return $this->fallbackOutput('Tool call limit reached.', $hadDeniedRequest);
+
+                    return $this->withExecutionMeta(
+                        $this->fallbackOutput('Tool call limit reached.', $hadDeniedRequest),
+                        [
+                            'prompt_tokens' => $cumInputTokens,
+                            'completion_tokens' => $cumOutputTokens,
+                            'total_tokens' => $cumInputTokens + $cumOutputTokens,
+                            'request_id' => $lastRequestId,
+                            'correlation_id' => $correlationId,
+                            'latency_ms' => (int) round((microtime(true) - $start) * 1000),
+                            'model' => $modelUsed,
+                        ]
+                    );
                 }
 
                 $newItems = [];
                 foreach ($toolCalls as $call) {
                     $newItems[] = $call->toArray();
                     $result = $this->executeTool($user, $call, $hadDeniedRequest);
+                    if ($this->toolOutputIndicatesFailure($result)) {
+                        $hadToolFailure = true;
+                    }
                     $result = $this->applyPostToolGuardrails($result);
                     $newItems[] = [
                         'type' => 'function_call_output',
@@ -113,8 +189,32 @@ class RakizAiOrchestrator
             }
         } catch (Throwable $e) {
             $this->logRequest($requestId, $user->id, $toolCallCount, microtime(true) - $start, null, $e->getMessage(), $userRole);
-            return $this->fallbackOutput('An error occurred. Please try again.', $hadDeniedRequest);
+
+            return $this->withExecutionMeta(
+                $this->fallbackOutput('An error occurred. Please try again.', $hadDeniedRequest),
+                [
+                    'prompt_tokens' => $cumInputTokens,
+                    'completion_tokens' => $cumOutputTokens,
+                    'total_tokens' => $cumInputTokens + $cumOutputTokens,
+                    'request_id' => $lastRequestId,
+                    'correlation_id' => $correlationId,
+                    'latency_ms' => (int) round((microtime(true) - $start) * 1000),
+                    'model' => $model,
+                ]
+            );
         }
+    }
+
+    /**
+     * @param  array<string, mixed>  $result
+     * @param  array<string, mixed>  $meta
+     * @return array<string, mixed>
+     */
+    private function withExecutionMeta(array $result, array $meta): array
+    {
+        $result['_execution_meta'] = $meta;
+
+        return $result;
     }
 
     private function buildInstructions(User $user, array $pageContext): string
@@ -175,8 +275,13 @@ TEXT;
         $roles = $user->getRoleNames()->toArray();
         $pageContextJson = json_encode($pageContext);
         $developer = "صلاحيات المستخدم: " . json_encode($permissions) . ". الأدوار: " . json_encode($roles) . ". سياق الصفحة: {$pageContextJson}.";
+        $snapshot = $pageContext['policy_snapshot'] ?? null;
+        $snapshotHint = '';
+        if (is_array($snapshot)) {
+            $snapshotHint = "\n\nPolicy Snapshot (deterministic pre-check, must respect): ".json_encode($snapshot, JSON_UNESCAPED_UNICODE);
+        }
 
-        return $system . "\n\n" . $developer;
+        return $system . "\n\n" . $developer . $snapshotHint;
     }
 
     /**
@@ -188,13 +293,26 @@ TEXT;
             [
                 'type' => 'message',
                 'role' => 'user',
-                'id' => 'msg_'.uniqid(),
+                'id' => 'msg_user_input',
                 'status' => 'completed',
                 'content' => [
                     ['type' => 'input_text', 'text' => $message],
                 ],
             ],
         ];
+    }
+
+    /**
+     * @return array<int, array<string, mixed>>
+     */
+    private function toolsForUser(User $user): array
+    {
+        $allowed = array_flip($this->toolRegistry->allowedToolNamesForUser($user));
+
+        return array_values(array_filter(
+            $this->getToolDefinitions(),
+            fn (array $t) => isset($allowed[$t['name'] ?? ''])
+        ));
     }
 
     /**
@@ -548,6 +666,14 @@ TEXT;
 
         $args = array_filter($args, fn ($v) => $v !== null);
 
+        $qaFailureMode = $this->qaToolFailureMode($call->name);
+        if ($qaFailureMode !== null) {
+            $simulated = $this->simulateQaToolFailure($call->name, $qaFailureMode, $hadDeniedRequest, microtime(true) - $toolStart, $user);
+            if ($simulated !== null) {
+                return $simulated;
+            }
+        }
+
         $out = $this->toolRegistry->execute($user, $call->name, $args);
         $result = $out['result'] ?? [];
         if (isset($result['allowed']) && $result['allowed'] === false && isset($result['error'])) {
@@ -555,13 +681,92 @@ TEXT;
         }
 
         $roles = method_exists($user, 'getRoleNames') ? $user->getRoleNames()->toArray() : [$user->type ?? 'unknown'];
+        $durationMs = round((microtime(true) - $toolStart) * 1000, 2);
+        $denied = isset($result['allowed']) && $result['allowed'] === false;
+
         Log::info('Rakiz AI tool executed', [
             'tool_name' => $call->name,
             'role' => implode(',', $roles),
             'user_id' => $user->id,
-            'duration_ms' => round((microtime(true) - $toolStart) * 1000, 2),
-            'denied' => isset($result['allowed']) && $result['allowed'] === false,
+            'duration_ms' => $durationMs,
+            'denied' => $denied,
         ]);
+
+        event(new AiToolExecuted(
+            userId: $user->id,
+            toolName: $call->name,
+            durationMs: (float) $durationMs,
+            denied: $denied,
+            correlationId: $this->toolCorrelationId !== '' ? $this->toolCorrelationId : null,
+        ));
+
+        return json_encode($result);
+    }
+
+    private function qaToolFailureMode(string $toolName): ?string
+    {
+        if (! app()->environment('testing')) {
+            return null;
+        }
+
+        $header = (string) request()->header('X-AI-QA-Tool-Failure', '');
+        if ($header === '') {
+            return null;
+        }
+
+        // Format: tool_name:mode
+        $parts = explode(':', $header, 2);
+        if (count($parts) !== 2) {
+            return null;
+        }
+
+        $targetTool = trim($parts[0]);
+        $mode = trim($parts[1]);
+        if ($targetTool === '' || $mode === '' || $targetTool !== $toolName) {
+            return null;
+        }
+
+        return $mode;
+    }
+
+    private function simulateQaToolFailure(string $toolName, string $mode, bool &$hadDeniedRequest, float $elapsedSeconds, User $user): ?string
+    {
+        $durationMs = round($elapsedSeconds * 1000, 2);
+
+        if ($mode === 'exception') {
+            throw new \RuntimeException("QA injected tool exception: {$toolName}");
+        }
+
+        $result = match ($mode) {
+            'timeout' => ['error' => 'tool_timeout', 'message' => 'QA injected timeout', '__qa_tool_failure' => $mode],
+            'empty' => ['__qa_tool_failure' => $mode],
+            'malformed' => '__QA_MALFORMED_JSON__',
+            'partial' => ['partial' => true, 'items' => [], 'warning' => 'partial_data', '__qa_tool_failure' => $mode],
+            'unauthorized' => ['allowed' => false, 'error' => 'Permission denied for this tool (QA injected)', '__qa_tool_failure' => $mode],
+            'unexpected_schema' => ['unexpected' => ['shape' => 'qa_injected'], '__qa_tool_failure' => $mode],
+            default => null,
+        };
+
+        if ($result === null) {
+            return null;
+        }
+
+        $denied = $mode === 'unauthorized';
+        if ($denied) {
+            $hadDeniedRequest = true;
+        }
+
+        event(new AiToolExecuted(
+            userId: $user->id,
+            toolName: $toolName,
+            durationMs: (float) $durationMs,
+            denied: $denied,
+            correlationId: $this->toolCorrelationId !== '' ? $this->toolCorrelationId : null,
+        ));
+
+        if ($mode === 'malformed') {
+            return '{"broken":';
+        }
 
         return json_encode($result);
     }
@@ -657,7 +862,6 @@ TEXT;
             return $parsed;
         }
 
-        $validSections = $this->catalogService->sectionKeys();
         $fakePatterns = ['قسم التسليم', 'قسم القانون', 'قسم الجودة', 'قسم الصيانة', 'قسم الأمن'];
         $answer = $parsed['answer_markdown'] ?? '';
         $hadHallucination = false;
@@ -725,6 +929,63 @@ TEXT;
         return $this->indexingService->redactSecrets($text);
     }
 
+    private function toolOutputIndicatesFailure(string $toolOutputJson): bool
+    {
+        try {
+            $data = json_decode($toolOutputJson, true, 512, JSON_THROW_ON_ERROR);
+        } catch (Throwable) {
+            return true;
+        }
+
+        if (! is_array($data)) {
+            return true;
+        }
+
+        if (isset($data['__qa_tool_failure'])) {
+            return true;
+        }
+
+        if ($data === []) {
+            return true;
+        }
+
+        if (isset($data['error'])) {
+            return true;
+        }
+
+        if (isset($data['allowed']) && $data['allowed'] === false) {
+            return true;
+        }
+
+        if (isset($data['partial']) && $data['partial'] === true) {
+            return true;
+        }
+
+        return false;
+    }
+
+    /**
+     * @param  array<string, mixed>  $parsed
+     * @return array<string, mixed>
+     */
+    private function applyPostDecisionNormalization(array $parsed, bool $hadDeniedRequest, bool $hadToolFailure): array
+    {
+        if ($hadDeniedRequest) {
+            $parsed['access_notes']['had_denied_request'] = true;
+        }
+
+        if ($hadToolFailure) {
+            $parsed['confidence'] = 'low';
+            $answer = (string) ($parsed['answer_markdown'] ?? '');
+            $mentionsFailure = preg_match('/(تعذر|غير متاح|partial|incomplete|could not|غير مكتملة)/iu', $answer) === 1;
+            if (! $mentionsFailure) {
+                $parsed['answer_markdown'] = $answer."\n\nملاحظة: بعض نتائج الأدوات كانت غير مكتملة، لذلك الإجابة تقديرية وآمنة وليست تأكيدًا نهائيًا.";
+            }
+        }
+
+        return $parsed;
+    }
+
     /**
      * @param  \OpenAI\Responses\Responses\CreateResponseUsage|null  $usage
      */
@@ -745,26 +1006,5 @@ TEXT;
             $payload['error'] = $this->redactSecrets($error);
         }
         Log::info('Rakiz AI v2 chat', $payload);
-    }
-
-    private function withRetry(callable $fn): mixed
-    {
-        $maxAttempts = config('ai_assistant.retries.max_attempts', 3);
-        $baseDelayMs = config('ai_assistant.retries.base_delay_ms', 500);
-        $last = null;
-        for ($i = 0; $i < $maxAttempts; $i++) {
-            try {
-                return $fn();
-            } catch (Throwable $e) {
-                $last = $e;
-                $code = $e->getCode();
-                if ($i < $maxAttempts - 1 && ($code === 429 || ($code >= 500 && $code < 600))) {
-                    usleep($baseDelayMs * 1000 * ($i + 1));
-                    continue;
-                }
-                throw $e;
-            }
-        }
-        throw $last;
     }
 }

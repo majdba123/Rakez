@@ -10,6 +10,9 @@ class DeveloperMarketingPlanService
 {
     public function createOrUpdatePlan($contractId, $data)
     {
+        $contract = Contract::findOrFail($contractId);
+        app(MarketingProjectBootstrapService::class)->ensureForCompletedContract($contract);
+
         $marketingValue = isset($data['marketing_value']) ? (float) $data['marketing_value'] : 0;
         $marketingPercent = isset($data['marketing_percent']) ? (float) $data['marketing_percent'] : null;
         $averageCpm = $data['average_cpm'] ?? $this->getDefaultAverageCpm();
@@ -52,6 +55,7 @@ class DeveloperMarketingPlanService
     public function getPlanForDeveloper($contractId)
     {
         $contract = Contract::with('info')->findOrFail($contractId);
+        app(MarketingProjectBootstrapService::class)->ensureForCompletedContract($contract);
         $info = $contract->info;
 
         // نسبة السعي من العقد: تفاصيل العقد (contract_infos) أولاً ثم جدول العقود

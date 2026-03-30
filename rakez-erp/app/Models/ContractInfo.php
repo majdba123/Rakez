@@ -46,8 +46,6 @@ class ContractInfo extends Model
         'agreement_duration_days' => 'integer',
         'agreement_duration_months' => 'integer',
         'avg_property_value' => 'decimal:2',
-        'units_count' => 'integer',
-        'area' => 'decimal:2',
         'gregorian_date' => 'datetime',
         'agency_date' => 'datetime',
         'release_date' => 'datetime',

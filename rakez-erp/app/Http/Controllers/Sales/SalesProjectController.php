@@ -16,6 +16,7 @@ use App\Services\Sales\SalesTeamService;
 use App\Http\Responses\ApiResponse;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\ValidationException;
 use Symfony\Component\HttpFoundation\Response;
 
 class SalesProjectController extends Controller
@@ -313,20 +314,20 @@ class SalesProjectController extends Controller
     }
 
     /**
-     * Assign project to leader (admin only).
+     * Assign project to a sales team by team code (admin only). Resolves the team's sales leader internally.
      */
     public function assignProject(Request $request): JsonResponse
     {
         try {
             $validated = $request->validate([
-                'leader_id' => 'required|exists:users,id',
+                'team_code' => 'required|string|max:32',
                 'contract_id' => 'required|exists:contracts,id',
                 'start_date' => 'nullable|date',
                 'end_date' => 'nullable|date|after_or_equal:start_date',
             ]);
 
-            $assignment = $this->projectService->assignProjectToLeader(
-                $validated['leader_id'],
+            $assignment = $this->projectService->assignProjectToTeamByCode(
+                $validated['team_code'],
                 $validated['contract_id'],
                 $request->user()->id,
                 $validated['start_date'] ?? null,
@@ -336,8 +337,10 @@ class SalesProjectController extends Controller
             return response()->json([
                 'success' => true,
                 'message' => 'Project assigned successfully',
-                'data' => $assignment,
+                'data' => $assignment->loadMissing(['leader', 'contract']),
             ], 201);
+        } catch (ValidationException $e) {
+            throw $e;
         } catch (\Exception $e) {
             $statusCode = 500;
             if (str_contains($e->getMessage(), 'تاريخ') || str_contains($e->getMessage(), 'تعيين')) {

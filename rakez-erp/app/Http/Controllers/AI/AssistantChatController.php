@@ -8,13 +8,17 @@ use App\Models\AssistantConversation;
 use App\Models\AssistantKnowledgeEntry;
 use App\Models\AssistantMessage;
 use App\Models\AssistantPrompt;
+use App\Services\AI\AiAuditService;
 use App\Services\AI\AssistantLLMService;
+use App\Services\AI\PromptVersionManager;
 use Illuminate\Http\JsonResponse;
 
 class AssistantChatController extends Controller
 {
     public function __construct(
-        private readonly AssistantLLMService $llmService
+        private readonly AssistantLLMService $llmService,
+        private readonly PromptVersionManager $promptVersionManager,
+        private readonly AiAuditService $auditService,
     ) {}
 
     /**
@@ -45,7 +49,10 @@ class AssistantChatController extends Controller
             'language' => $language,
         ]);
 
-        // Log user message
+        $history = $this->recentConversationHistory($conversation);
+        $summary = $this->latestConversationSummary($conversation);
+
+        // Log user message after snapshotting history so the current turn is not duplicated in the prompt.
         $this->logMessage($conversation->id, 'user', $message);
 
         // Fetch allowed knowledge entries
@@ -60,12 +67,21 @@ class AssistantChatController extends Controller
             'content_md' => $entry->content_md,
         ])->toArray();
 
+        $correlationId = $request->header('X-Request-Id')
+            ?? $request->header('X-Request-ID')
+            ?? $request->header('X-Correlation-Id')
+            ?? $request->header('X-Correlation-ID');
+
         // Prepare user context
         $userContext = [
             'user_id' => $user->id,
             'role' => $user->getRoleNames()->first() ?? 'user',
             'module' => $module,
             'page_key' => $pageKey,
+            'history' => $history,
+            'summary' => $summary,
+            'conversation_id' => (string) $conversation->id,
+            'correlation_id' => $correlationId,
         ];
 
         // Generate answer
@@ -84,6 +100,20 @@ class AssistantChatController extends Controller
             'assistant_help',
             $result['tokens'],
             $result['latency_ms']
+        );
+
+        $this->auditService->record(
+            $user,
+            'assistant_chat',
+            'assistant_conversation',
+            $conversation->id,
+            ['message' => $message, 'module' => $module, 'page_key' => $pageKey],
+            [
+                'knowledge_used_count' => count($knowledgeSnippets),
+                'tokens' => $result['tokens'],
+                'latency_ms' => $result['latency_ms'],
+            ],
+            $correlationId,
         );
 
         return response()->json([
@@ -182,7 +212,41 @@ class AssistantChatController extends Controller
             $parts[] = "\nREFUSAL POLICY:\n" . $refusalPolicy->content_md;
         }
 
-        return implode("\n", $parts);
+        $resolved = $this->promptVersionManager->resolve(
+            "assistant.kb.{$language}",
+            implode("\n", $parts),
+        );
+
+        return $resolved['content'];
+    }
+
+    /**
+     * @return array<int, array{role: string, content: string}>
+     */
+    private function recentConversationHistory(AssistantConversation $conversation): array
+    {
+        return $conversation->messages()
+            ->where(function ($q): void {
+                $q->whereNull('capability_used')
+                    ->orWhere('capability_used', '!=', 'assistant_summary');
+            })
+            ->latest('id')
+            ->limit(12)
+            ->get()
+            ->reverse()
+            ->map(fn (AssistantMessage $message) => [
+                'role' => $message->role,
+                'content' => $message->content,
+            ])
+            ->values()
+            ->all();
+    }
+
+    private function latestConversationSummary(AssistantConversation $conversation): ?string
+    {
+        return $conversation->messages()
+            ->where('capability_used', 'assistant_summary')
+            ->latest('id')
+            ->value('content');
     }
 }
-

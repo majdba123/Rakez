@@ -4,22 +4,14 @@ namespace Database\Seeders;
 
 use Illuminate\Database\Seeder;
 
+/**
+ * @deprecated استخدم {@see DatabaseSeeder} أو `php artisan db:seed` — نفس المسار الكامل.
+ * يُبقى للتوافق مع سكربتات قديمة تشغّل `--class=FullDatabaseSeeder`.
+ */
 class FullDatabaseSeeder extends Seeder
 {
     public function run(): void
     {
-        $this->call([
-            TeamsSeeder::class,
-            UsersSeeder::class,
-            ContractsSeeder::class,
-            MarketingSeeder::class,
-            SalesSeeder::class,
-            NegotiationsPaymentsSeeder::class,
-            CreditSeeder::class,
-            AccountingSeeder::class,
-            HRSeeder::class,
-            AISeeder::class,
-            NotificationsSeeder::class,
-        ]);
+        $this->call(SeedManifest::defaultPipeline());
     }
 }

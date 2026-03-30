@@ -9,6 +9,7 @@ use App\Models\SalesAttendanceSchedule;
 use App\Models\SalesReservation;
 use App\Models\SalesTarget;
 use App\Models\SecondPartyData;
+use App\Models\Team;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -21,6 +22,7 @@ class SalesAuthorizationTest extends TestCase
     protected User $salesLeader;
     protected User $salesEmployee;
     protected User $nonSalesUser;
+    protected Team $team;
     protected Contract $contract;
     protected ContractUnit $unit;
 
@@ -29,6 +31,8 @@ class SalesAuthorizationTest extends TestCase
         parent::setUp();
 
         $this->artisan('db:seed', ['--class' => 'RolesAndPermissionsSeeder']);
+
+        $this->team = Team::factory()->create(['name' => 'Team Alpha']);
 
         // Admin user
         $this->admin = User::factory()->create(['type' => 'admin']);
@@ -39,6 +43,7 @@ class SalesAuthorizationTest extends TestCase
             'type' => 'sales',
             'is_manager' => true,
             'team' => 'Team Alpha',
+            'team_id' => $this->team->id,
         ]);
         $this->salesLeader->assignRole('sales_leader');
 
@@ -47,6 +52,7 @@ class SalesAuthorizationTest extends TestCase
             'type' => 'sales',
             'is_manager' => false,
             'team' => 'Team Alpha',
+            'team_id' => $this->team->id,
         ]);
         $this->salesEmployee->assignRole('sales');
 
@@ -55,6 +61,7 @@ class SalesAuthorizationTest extends TestCase
 
         // Test data
         $this->contract = Contract::factory()->create(['status' => 'completed']);
+        $this->contract->teams()->attach($this->team->id);
         $secondPartyData = SecondPartyData::factory()->create(['contract_id' => $this->contract->id]);
         $this->unit = ContractUnit::factory()->create([
             'contract_id' => $secondPartyData->contract_id,
@@ -235,6 +242,20 @@ class SalesAuthorizationTest extends TestCase
         $response->assertStatus(200);
     }
 
+    public function test_team_projects_only_include_pm_linked_team_projects()
+    {
+        $otherTeam = Team::factory()->create(['name' => 'Team Beta']);
+        $otherContract = Contract::factory()->create(['status' => 'completed']);
+        $otherContract->teams()->attach($otherTeam->id);
+
+        $response = $this->actingAs($this->salesLeader, 'sanctum')
+            ->getJson('/api/sales/team/projects');
+
+        $response->assertStatus(200)
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.contract_id', $this->contract->id);
+    }
+
     public function test_employee_cannot_access_team_projects()
     {
         $response = $this->actingAs($this->salesEmployee, 'sanctum')
@@ -409,9 +430,20 @@ class SalesAuthorizationTest extends TestCase
 
     public function test_admin_can_assign_projects_to_leaders()
     {
+        $newTeam = Team::factory()->create(['name' => 'Team Assign Only']);
+        $newContract = Contract::factory()->create(['status' => 'completed']);
+        $newContract->teams()->attach($newTeam->id);
+        $newLeader = User::factory()->create([
+            'type' => 'sales',
+            'is_manager' => true,
+            'team' => 'Team Assign Only',
+            'team_id' => $newTeam->id,
+        ]);
+        $newLeader->assignRole('sales_leader');
+
         $data = [
-            'leader_id' => $this->salesLeader->id,
-            'contract_id' => $this->contract->id,
+            'team_code' => $newTeam->code,
+            'contract_id' => $newContract->id,
         ];
 
         $response = $this->actingAs($this->admin, 'sanctum')
@@ -423,7 +455,7 @@ class SalesAuthorizationTest extends TestCase
     public function test_sales_leader_cannot_assign_projects()
     {
         $data = [
-            'leader_id' => $this->salesLeader->id,
+            'team_code' => $this->team->code,
             'contract_id' => $this->contract->id,
         ];
 

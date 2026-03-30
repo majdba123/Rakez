@@ -2,8 +2,9 @@
 
 namespace App\Services\AI\Rag;
 
+use App\Services\AI\AiOpenAiGateway;
+use App\Services\AI\Exceptions\AiAssistantException;
 use Illuminate\Support\Facades\Log;
-use OpenAI\Laravel\Facades\OpenAI;
 use Throwable;
 
 class EmbeddingService
@@ -14,8 +15,9 @@ class EmbeddingService
 
     private int $batchSize;
 
-    public function __construct()
-    {
+    public function __construct(
+        private readonly AiOpenAiGateway $gateway,
+    ) {
         $this->model = config('ai_assistant.embeddings.model', 'text-embedding-3-small');
         $this->dimensions = (int) config('ai_assistant.embeddings.dimensions', 1536);
         $this->batchSize = (int) config('ai_assistant.embeddings.batch_size', 100);
@@ -34,13 +36,17 @@ class EmbeddingService
             return array_fill(0, $this->dimensions, 0.0);
         }
 
-        $response = $this->withRetry(fn () => OpenAI::embeddings()->create([
-            'model' => $this->model,
-            'input' => $text,
-            'dimensions' => $this->dimensions,
-        ]));
+        try {
+            $response = $this->gateway->embeddingsCreate([
+                'model' => $this->model,
+                'input' => $text,
+                'dimensions' => $this->dimensions,
+            ], []);
 
-        return $response->embeddings[0]->embedding;
+            return $response->embeddings[0]->embedding;
+        } catch (Throwable $e) {
+            throw $e instanceof AiAssistantException ? $e : $this->gateway->normalizeException($e);
+        }
     }
 
     /**
@@ -63,7 +69,6 @@ class EmbeddingService
             $batchTexts = array_values($batch);
             $batchKeys = array_keys($batch);
 
-            // Filter out empty texts
             $nonEmpty = [];
             $emptyKeys = [];
             foreach ($batchTexts as $i => $t) {
@@ -74,26 +79,29 @@ class EmbeddingService
                 }
             }
 
-            // Fill empty with zero vectors
             foreach ($emptyKeys as $key) {
                 $results[$key] = array_fill(0, $this->dimensions, 0.0);
             }
 
             if (! empty($nonEmpty)) {
-                $response = $this->withRetry(fn () => OpenAI::embeddings()->create([
-                    'model' => $this->model,
-                    'input' => array_values($nonEmpty),
-                    'dimensions' => $this->dimensions,
-                ]));
+                try {
+                    $response = $this->gateway->embeddingsCreate([
+                        'model' => $this->model,
+                        'input' => array_values($nonEmpty),
+                        'dimensions' => $this->dimensions,
+                    ], []);
 
-                $keys = array_keys($nonEmpty);
-                foreach ($response->embeddings as $i => $embedding) {
-                    $results[$keys[$i]] = $embedding->embedding;
+                    $keys = array_keys($nonEmpty);
+                    foreach ($response->embeddings as $i => $embedding) {
+                        $results[$keys[$i]] = $embedding->embedding;
+                    }
+                } catch (Throwable $e) {
+                    Log::warning('EmbeddingService: batch failed', ['error' => $e->getMessage()]);
+                    throw $e instanceof AiAssistantException ? $e : $this->gateway->normalizeException($e);
                 }
             }
         }
 
-        // Sort by original index
         ksort($results);
 
         return array_values($results);
@@ -115,55 +123,10 @@ class EmbeddingService
         $text = trim($text);
         $text = preg_replace('/\s+/', ' ', $text) ?? $text;
 
-        // OpenAI text-embedding-3-small accepts up to ~8191 tokens (~32K chars)
         if (mb_strlen($text) > 30000) {
             $text = mb_substr($text, 0, 30000);
         }
 
         return $text;
-    }
-
-    /**
-     * Retry logic matching OpenAIResponsesClient pattern.
-     */
-    private function withRetry(callable $callback): mixed
-    {
-        $maxAttempts = (int) config('ai_assistant.retries.max_attempts', 3);
-        $baseDelayMs = (int) config('ai_assistant.retries.base_delay_ms', 500);
-        $maxDelayMs = (int) config('ai_assistant.retries.max_delay_ms', 5000);
-        $jitterMs = (int) config('ai_assistant.retries.jitter_ms', 250);
-
-        $attempts = 0;
-
-        while (true) {
-            $attempts++;
-
-            try {
-                return $callback();
-            } catch (Throwable $e) {
-                $msg = strtolower($e->getMessage());
-
-                $retryable =
-                    str_contains($msg, '429') ||
-                    str_contains($msg, 'rate limit') ||
-                    str_contains($msg, 'timeout') ||
-                    str_contains($msg, 'temporarily unavailable') ||
-                    str_contains($msg, '503') ||
-                    str_contains($msg, '502');
-
-                if (! $retryable || $attempts >= $maxAttempts) {
-                    Log::warning('EmbeddingService: request failed (no more retries)', [
-                        'attempts' => $attempts,
-                        'error' => $e->getMessage(),
-                    ]);
-                    throw $e;
-                }
-
-                $delay = $baseDelayMs * (2 ** ($attempts - 1));
-                $delay = min($delay, $maxDelayMs);
-                $jitter = random_int(0, max(0, $jitterMs));
-                usleep((int) (($delay + $jitter) * 1000));
-            }
-        }
     }
 }

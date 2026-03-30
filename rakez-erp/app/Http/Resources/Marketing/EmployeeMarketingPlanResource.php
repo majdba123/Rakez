@@ -12,7 +12,7 @@ class EmployeeMarketingPlanResource extends JsonResource
         return [
             'id' => $this->id,
             'marketing_project_id' => $this->marketing_project_id,
-            'user' => $this->user->name ?? null,
+            'user' => $this->relationLoaded('user') ? $this->user?->name : null,
             'commission_value' => $this->commission_value,
             'marketing_percent' => $this->marketing_percent,
             'marketing_value' => $this->marketing_value,

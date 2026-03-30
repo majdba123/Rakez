@@ -2,6 +2,9 @@
 
 return [
 
+    /** Normalized currency for CRM/outbox rows when upstream sends a different provider currency. */
+    'default_normalized_currency' => env('ADS_DEFAULT_NORMALIZED_CURRENCY', 'USD'),
+
     'meta' => [
         'app_id' => env('META_APP_ID'),
         'app_secret' => env('META_APP_SECRET'),
@@ -23,6 +26,10 @@ return [
         'ads_base_url' => 'https://adsapi.snapchat.com/v1',
         'capi_base_url' => 'https://tr.snapchat.com/v3',
         'auth_url' => 'https://accounts.snapchat.com/login/oauth2/access_token',
+        /** Relative to ads_base_url; use {ad_account_id} placeholder. */
+        'lead_forms_list_path' => env('SNAP_LEAD_FORMS_LIST_PATH', 'adaccounts/{ad_account_id}/lead_generation_forms'),
+        /** Relative to ads_base_url; use {lead_form_id} placeholder. */
+        'leads_for_form_path' => env('SNAP_LEADS_FOR_FORM_PATH', 'lead_generation_forms/{lead_form_id}/leads'),
     ],
 
     'tiktok' => [
