@@ -22,11 +22,12 @@ class CreditFinancingTest extends TestCase
 
         // Create permissions
         Permission::firstOrCreate(['name' => 'credit.bookings.view', 'guard_name' => 'web']);
+        Permission::firstOrCreate(['name' => 'credit.financing.view', 'guard_name' => 'web']);
         Permission::firstOrCreate(['name' => 'credit.financing.manage', 'guard_name' => 'web']);
 
         // Create role
         $creditRole = Role::firstOrCreate(['name' => 'credit', 'guard_name' => 'web']);
-        $creditRole->syncPermissions(['credit.bookings.view', 'credit.financing.manage']);
+        $creditRole->syncPermissions(['credit.bookings.view', 'credit.financing.view', 'credit.financing.manage']);
 
         // Create user
         $this->creditUser = User::factory()->create(['type' => 'credit']);
@@ -108,14 +109,14 @@ class CreditFinancingTest extends TestCase
             ->assertJsonPath('data.stage_2_status', 'in_progress');
     }
 
-    public function test_stage_1_requires_bank_name(): void
+    public function test_stage_1_can_complete_without_bank_name(): void
     {
         $reservation = SalesReservation::factory()->create([
             'status' => 'confirmed',
             'purchase_mechanism' => 'supported_bank',
         ]);
 
-        $tracker = CreditFinancingTracker::factory()->create([
+        CreditFinancingTracker::factory()->create([
             'sales_reservation_id' => $reservation->id,
         ]);
 
@@ -124,8 +125,8 @@ class CreditFinancingTest extends TestCase
                 'client_salary' => 15000,
             ]);
 
-        // Bank name is required for stage 1 - 422 from request validation when stage is merged
-        $response->assertStatus(422);
+        $response->assertStatus(200)
+            ->assertJsonPath('data.stage_1_status', 'completed');
     }
 
     public function test_cannot_skip_stages(): void

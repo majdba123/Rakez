@@ -148,6 +148,37 @@ class AiRealQaHardProofToolsDecisionTest extends TestCase
         $this->assertTrue(AiHardProofJudge::hardProofPass($eval, $proof), json_encode([$eval, $calls, $data], JSON_UNESCAPED_UNICODE));
     }
 
+    /**
+     * G-09 partial hard-proof: sequential multi-tool when the model follows explicit tool names in the prompt.
+     * Non-deterministic: may rarely fail if the model skips a step; re-run or tighten prompt if flaky.
+     */
+    public function test_sequential_multi_tool_trace_when_model_follows_explicit_tool_instructions(): void
+    {
+        $user = $this->createUserWithBootstrapRole('admin');
+        Sanctum::actingAs($user);
+
+        $token = 'HP-MULTI-'.uniqid();
+        Lead::factory()->create([
+            'name' => $token,
+            'assigned_to' => $user->id,
+        ]);
+
+        $before = $this->maxToolAuditId($user->id);
+        $response = $this->postJson('/api/ai/tools/chat', [
+            'message' => "الخطوة 1: نفّذ tool_search_records للبحث عن lead بالاسم {$token}. الخطوة 2: إن وُجدت نتيجة، نفّذ tool_get_lead_summary باستخدام lead_id من النتائج. لخّص في جملتين.",
+            'section' => 'general',
+        ]);
+        $response->assertOk();
+
+        $calls = $this->toolAuditDelta($user->id, $before);
+        $unique = array_values(array_unique(array_filter($calls)));
+        $this->assertGreaterThanOrEqual(
+            2,
+            count($unique),
+            'Expected ≥2 distinct tools in audit (search + summary). Got: '.json_encode($calls, JSON_UNESCAPED_UNICODE)
+        );
+    }
+
     private function maxToolAuditId(int $userId): int
     {
         return (int) (AiAuditEntry::query()
@@ -180,4 +211,3 @@ class AiRealQaHardProofToolsDecisionTest extends TestCase
             ->all();
     }
 }
-

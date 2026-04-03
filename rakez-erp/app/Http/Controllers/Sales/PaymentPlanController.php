@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Sales;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Sales\StorePaymentPlanRequest;
 use App\Http\Requests\Sales\UpdatePaymentInstallmentRequest;
+use App\Models\User;
 use App\Services\Sales\PaymentPlanService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -19,14 +20,22 @@ class PaymentPlanController extends Controller
         $this->paymentPlanService = $paymentPlanService;
     }
 
+    private function userCanManagePaymentPlans(?User $user): bool
+    {
+        if (! $user) {
+            return false;
+        }
+
+        return $user->can('sales.payment-plan.manage') || $user->can('credit.payment_plan.manage');
+    }
+
     /**
      * Get payment plan for a reservation.
      * GET /sales/reservations/{id}/payment-plan
      */
     public function show(Request $request, int $reservationId): JsonResponse
     {
-        // Check permission (sales or credit)
-        if (!$request->user()->can('sales.payment-plan.manage') && !$request->user()->can('credit.payment_plan.manage')) {
+        if (! $this->userCanManagePaymentPlans($request->user())) {
             return response()->json(['message' => 'Unauthorized'], 403);
         }
 
@@ -55,6 +64,10 @@ class PaymentPlanController extends Controller
      */
     public function store(StorePaymentPlanRequest $request, int $reservationId): JsonResponse
     {
+        if (! $this->userCanManagePaymentPlans($request->user())) {
+            return response()->json(['message' => 'Unauthorized'], 403);
+        }
+
         try {
             $installments = $this->paymentPlanService->createPlan(
                 $reservationId,
@@ -79,11 +92,15 @@ class PaymentPlanController extends Controller
      * Update a payment installment.
      * PUT /sales/payment-installments/{id}
      */
-    public function update(UpdatePaymentInstallmentRequest $request, int $installmentId): JsonResponse
+    public function update(UpdatePaymentInstallmentRequest $request, int $id): JsonResponse
     {
+        if (! $this->userCanManagePaymentPlans($request->user())) {
+            return response()->json(['message' => 'Unauthorized'], 403);
+        }
+
         try {
             $installment = $this->paymentPlanService->updateInstallment(
-                $installmentId,
+                $id,
                 $request->validated(),
                 $request->user()
             );
@@ -105,15 +122,14 @@ class PaymentPlanController extends Controller
      * Delete a payment installment.
      * DELETE /sales/payment-installments/{id}
      */
-    public function destroy(Request $request, int $installmentId): JsonResponse
+    public function destroy(Request $request, int $id): JsonResponse
     {
-        // Check permission (sales or credit)
-        if (!$request->user()->can('sales.payment-plan.manage') && !$request->user()->can('credit.payment_plan.manage')) {
+        if (! $this->userCanManagePaymentPlans($request->user())) {
             return response()->json(['message' => 'Unauthorized'], 403);
         }
 
         try {
-            $this->paymentPlanService->deleteInstallment($installmentId, $request->user());
+            $this->paymentPlanService->deleteInstallment($id, $request->user());
 
             return response()->json([
                 'success' => true,

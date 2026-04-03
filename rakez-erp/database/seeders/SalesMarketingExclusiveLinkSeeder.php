@@ -120,7 +120,7 @@ class SalesMarketingExclusiveLinkSeeder extends Seeder
             return;
         }
 
-        $unit = ContractUnit::query()->where('second_party_data_id', $secondParty->id)->orderBy('id')->first();
+        $unit = ContractUnit::query()->where('contract_id', $contract->id)->orderBy('id')->first();
         if (! $unit) {
             $this->command?->warn('SalesMarketingExclusiveLinkSeeder: لا توجد وحدات للعقد الحصري — تم التخطي.');
 

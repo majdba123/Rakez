@@ -3,12 +3,13 @@
 namespace App\Services\AI;
 
 use App\Events\AI\AiRequestCompleted;
-use App\Services\AI\Exceptions\AiAssistantDisabledException;
-use App\Services\AI\Exceptions\AiBudgetExceededException;
-use App\Services\AI\Exceptions\AiAssistantException;
-use App\Services\AI\Exceptions\AiUnauthorizedSectionException;
 use App\Models\AIConversation;
 use App\Models\User;
+use App\Services\AI\Exceptions\AiAssistantDisabledException;
+use App\Services\AI\Exceptions\AiAssistantException;
+use App\Services\AI\Exceptions\AiBudgetExceededException;
+use App\Services\AI\Exceptions\AiUnauthorizedSectionException;
+use App\Services\AI\Policy\RakizAiPolicyContextBuilder;
 use Carbon\Carbon;
 use Generator;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
@@ -29,6 +30,7 @@ class AIAssistantService
         private readonly AccessExplanationEngine $explanationEngine,
         private readonly AiAuditService $auditService,
         private readonly PromptVersionManager $promptVersionManager,
+        private readonly RakizAiPolicyContextBuilder $rakizPolicyContext,
         private readonly ?RakizAiOrchestrator $orchestrator = null,
     ) {}
 
@@ -40,7 +42,7 @@ class AIAssistantService
         if ($explanation = $this->explanationEngine->explain($user, $question)) {
             return $this->buildExplanationResponse($explanation, $user, $sectionKey);
         }
-        
+
         $capabilities = $this->capabilityResolver->resolve($user);
 
         if ($sectionKey && ! $this->isSectionAvailable($sectionKey, $capabilities)) {
@@ -111,7 +113,7 @@ class AIAssistantService
         if ($explanation = $this->explanationEngine->explain($user, $message)) {
             return $this->buildExplanationResponse($explanation, $user, $sectionKey, $sessionId);
         }
-        
+
         $capabilities = $this->capabilityResolver->resolve($user);
 
         if ($sectionKey && ! $this->isSectionAvailable($sectionKey, $capabilities)) {
@@ -151,7 +153,7 @@ class AIAssistantService
         );
         $instructions = $promptVersion['content'];
         if ($summary) {
-            $instructions .= "\n\nConversation summary:\n" . $summary->message;
+            $instructions .= "\n\nConversation summary:\n".$summary->message;
         }
 
         $messages = $recentMessages->map(fn (AIConversation $entry) => [
@@ -231,9 +233,10 @@ class AIAssistantService
         // Fast-path: Access Explanation (non-streamable, send as single chunk)
         if ($explanation = $this->explanationEngine->explain($user, $message)) {
             $payload = $this->buildExplanationResponse($explanation, $user, $sectionKey, $sessionId);
-            yield 'data: ' . json_encode(['chunk' => $payload['message']], JSON_UNESCAPED_UNICODE) . "\n\n";
-            yield 'data: ' . json_encode(['session_id' => $payload['session_id'], 'done' => true]) . "\n\n";
+            yield 'data: '.json_encode(['chunk' => $payload['message']], JSON_UNESCAPED_UNICODE)."\n\n";
+            yield 'data: '.json_encode(['session_id' => $payload['session_id'], 'done' => true])."\n\n";
             yield "data: [DONE]\n\n";
+
             return;
         }
 
@@ -271,7 +274,7 @@ class AIAssistantService
 
         $instructions = $this->promptBuilder->build($user, $capabilities, $section, $contextSummary);
         if ($summary) {
-            $instructions .= "\n\nConversation summary:\n" . $summary->message;
+            $instructions .= "\n\nConversation summary:\n".$summary->message;
         }
 
         $messages = $recentMessages->map(fn (AIConversation $entry) => [
@@ -301,7 +304,7 @@ class AIAssistantService
             foreach ($this->openAIClient->createStreamedResponse($instructions, $messages, $metadata) as $delta) {
                 $fullAnswer .= $delta;
                 $streamed = true;
-                yield 'data: ' . json_encode(['chunk' => $delta], JSON_UNESCAPED_UNICODE) . "\n\n";
+                yield 'data: '.json_encode(['chunk' => $delta], JSON_UNESCAPED_UNICODE)."\n\n";
             }
         } catch (\Throwable $streamException) {
             Log::warning('ai.assistant.stream_fallback', [
@@ -321,19 +324,20 @@ class AIAssistantService
                         $fullAnswer = 'I could not generate a response. Please try again.';
                     }
 
-                    yield 'data: ' . json_encode(['chunk' => $fullAnswer], JSON_UNESCAPED_UNICODE) . "\n\n";
+                    yield 'data: '.json_encode(['chunk' => $fullAnswer], JSON_UNESCAPED_UNICODE)."\n\n";
 
                     $assistantMsg = $this->storeAssistantMessage($user, $sessionId, $fullAnswer, $sectionKey, $response);
                     $this->summarizeConversationIfNeeded($user, $sessionId);
 
                     $this->logResponse($user, $sectionKey, $sessionId, $assistantMsg);
 
-                    yield 'data: ' . json_encode([
+                    yield 'data: '.json_encode([
                         'session_id' => $sessionId,
                         'conversation_id' => $assistantMsg->id,
                         'done' => true,
-                    ]) . "\n\n";
+                    ])."\n\n";
                     yield "data: [DONE]\n\n";
+
                     return;
                 } catch (\Throwable $fallbackException) {
                     Log::error('ai.assistant.stream_fallback_failed', [
@@ -349,7 +353,7 @@ class AIAssistantService
 
         if ($fullAnswer === '') {
             $fullAnswer = 'I could not generate a response. Please try again.';
-            yield 'data: ' . json_encode(['chunk' => $fullAnswer], JSON_UNESCAPED_UNICODE) . "\n\n";
+            yield 'data: '.json_encode(['chunk' => $fullAnswer], JSON_UNESCAPED_UNICODE)."\n\n";
         }
 
         $assistantMsg = AIConversation::query()->create([
@@ -373,11 +377,11 @@ class AIAssistantService
             'streamed' => $streamed,
         ]);
 
-        yield 'data: ' . json_encode([
+        yield 'data: '.json_encode([
             'session_id' => $sessionId,
             'conversation_id' => $assistantMsg->id,
             'done' => true,
-        ]) . "\n\n";
+        ])."\n\n";
         yield "data: [DONE]\n\n";
     }
 
@@ -401,12 +405,30 @@ class AIAssistantService
             'tool_mode' => true,
         ]);
 
-        $result = $this->orchestrator->chat($user, $message, $sessionId, [
-            'section' => $sectionKey,
-            'context' => $context,
-        ]);
+        $section = (string) ($sectionKey ?? 'general');
+        $policySnapshot = $this->rakizPolicyContext->buildDeterministicPolicySnapshot($user, $message, $section);
+        $early = $this->rakizPolicyContext->earlyPolicyGateResponse($user, $message, $section, $policySnapshot);
+        if ($early !== null) {
+            $result = $early;
+            $execMeta = [
+                'prompt_tokens' => 0,
+                'completion_tokens' => 0,
+                'total_tokens' => 0,
+                'request_id' => null,
+                'correlation_id' => (string) Str::uuid(),
+                'latency_ms' => 0,
+                'model' => 'policy_gate',
+            ];
+        } else {
+            $pageContext = array_merge($context, [
+                'section' => $section,
+                'policy_snapshot' => $policySnapshot,
+            ]);
+            $result = $this->orchestrator->chat($user, $message, $sessionId, $pageContext);
+            $result = $this->rakizPolicyContext->applySnapshotNormalization($result, $policySnapshot);
+            $execMeta = $result['_execution_meta'] ?? [];
+        }
 
-        $execMeta = $result['_execution_meta'] ?? [];
         unset($result['_execution_meta']);
 
         $assistantMessage = AIConversation::query()->create([
@@ -470,12 +492,12 @@ class AIAssistantService
     public function deleteSession(User $user, string $sessionId): int
     {
         $this->ensureEnabled();
-        
+
         $exists = AIConversation::query()
             ->where('session_id', $sessionId)
             ->exists();
-            
-        if (!$exists) {
+
+        if (! $exists) {
             return 0;
         }
 
@@ -484,7 +506,7 @@ class AIAssistantService
             ->where('session_id', $sessionId)
             ->exists();
 
-        if (!$owned) {
+        if (! $owned) {
             throw new \App\Services\AI\Exceptions\AiAssistantException(
                 'You do not have permission to delete this conversation.',
                 'UNAUTHORIZED_SESSION_ACCESS',
@@ -677,7 +699,7 @@ class AIAssistantService
     private function ensureEnabled(): void
     {
         if (! config('ai_assistant.enabled')) {
-            throw new AiAssistantDisabledException();
+            throw new AiAssistantDisabledException;
         }
     }
 
@@ -703,7 +725,7 @@ class AIAssistantService
     private function buildExplanationResponse(array $explanation, User $user, ?string $sectionKey, ?string $sessionId = null): array
     {
         $sessionId = $sessionId ?: (string) Str::uuid();
-        
+
         // Store the user message
         $this->storeMessage($user, $sessionId, 'user', 'Access Explanation Request', $sectionKey, [
             'explanation_result' => $explanation,

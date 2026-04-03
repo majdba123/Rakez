@@ -4,6 +4,8 @@
 **Auth:** All requests require `Authorization: Bearer <token>` (Laravel Sanctum).  
 **Roles:** `credit` or `admin`.
 
+**Permissions (typical):** `credit.bookings.view` (read lists/details), `credit.bookings.manage` (cancel, PATCH client fields, log client-contact action), `credit.payment_plan.manage` (payment plan under `/api/credit/...`), plus financing/title-transfer/claim-files as documented below.
+
 **Response shape (success):** `{ success: true, message?: string, data?: T, meta?: PaginationMeta }`  
 **Response shape (error):** `{ success: false, message: string }`  
 **Pagination meta:** `{ total, per_page, current_page, last_page }` (or `meta.pagination` for sold-projects)
@@ -73,8 +75,9 @@ await fetch('/api/credit/notifications/read-all', {
 | GET | `/api/credit/bookings/sold` | Sold bookings (paginated) |
 | GET | `/api/credit/bookings/cancelled` | Cancelled/rejected (paginated) |
 | GET | `/api/credit/bookings/{id}` | Single booking detail (عرض التفاصيل) |
-| GET | `/api/credit/bookings/show/{id}` | Same as above (alias for show details) |
-| POST | `/api/credit/bookings/{id}/cancel` | Cancel booking |
+| PATCH | `/api/credit/bookings/{id}` | Update **client contact fields only** (confirmed, not sold); see body below |
+| POST | `/api/credit/bookings/{id}/actions` | Log **credit client contact** (`action_type` fixed server-side); optional `notes` |
+| POST | `/api/credit/bookings/{id}/cancel` | Cancel booking (إلغاء الحجز) — **there is no `DELETE` for bookings; UI “حذف” should use cancel** |
 
 **List item shape (all list endpoints):** Each item includes top-level `client_name`, `project_name` (always a string; `"غير محدد"` when missing), `booking_date`, `credit_status_label_ar`. Use these for the table. Detail response includes `data.id` and `data.client.name`.
 
@@ -107,7 +110,34 @@ await fetch(`/api/credit/bookings/${bookingId}/cancel`, {
   method: 'POST',
   headers: { Authorization: `Bearer ${token}`, Accept: 'application/json' },
 });
+
+await fetch(`/api/credit/bookings/${bookingId}`, {
+  method: 'PATCH',
+  headers: {
+    Authorization: `Bearer ${token}`,
+    Accept: 'application/json',
+    'Content-Type': 'application/json',
+  },
+  body: JSON.stringify({
+    client_name: 'Name',
+    client_mobile: '05xxxxxxxx',
+    client_nationality: 'Saudi',
+    client_iban: 'SA...',
+  }),
+});
+
+await fetch(`/api/credit/bookings/${bookingId}/actions`, {
+  method: 'POST',
+  headers: {
+    Authorization: `Bearer ${token}`,
+    Accept: 'application/json',
+    'Content-Type': 'application/json',
+  },
+  body: JSON.stringify({ notes: 'تم الاتصال بالعميل' }),
+});
 ```
+
+**PATCH `/api/credit/bookings/{id}` body:** all keys optional but **at least one** must be present: `client_name`, `client_mobile`, `client_nationality`, `client_iban`. Only **confirmed** bookings; **not** when `credit_status` is `sold`.
 
 ---
 
@@ -120,7 +150,7 @@ All financing endpoints are **booking-centric** (use `bookings/{id}`; no tracker
 | POST | `/api/credit/bookings/{id}/financing` | Initialize financing tracker |
 | POST | `/api/credit/bookings/{id}/financing/advance` | Advance to next stage (or init if none) |
 | GET | `/api/credit/bookings/{id}/financing` | Get financing status (null if not started) |
-| PATCH | `/api/credit/bookings/{id}/financing/stage/{stage}` | Complete a specific stage |
+| PATCH | `/api/credit/bookings/{bookingId}/financing/stage/{stage}` | Complete a specific stage |
 | POST | `/api/credit/bookings/{id}/financing/reject` | Reject financing |
 
 **POST financing/advance body (optional):**
@@ -276,7 +306,11 @@ const blob = await pdfRes.blob();
 
 ---
 
-## 7. Payment Plan (خطة دفعات — on-map projects)
+## 7. Payment Plan (خطة دفعات — مشاريع على الخارطة / off-plan)
+
+**Credit:** role `credit` or `admin`, permission `credit.payment_plan.manage`. `{id}` is the **reservation / booking id**.
+
+**Sales (same controller, different URLs):** `/api/sales/reservations/{id}/payment-plan` and `/api/sales/payment-installments/{id}` with role `sales` | `sales_leader` | `admin` and permission `sales.payment-plan.manage`.
 
 | Method | Path | Description |
 |--------|------|-------------|

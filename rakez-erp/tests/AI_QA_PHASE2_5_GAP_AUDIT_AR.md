@@ -10,6 +10,7 @@
 | G-06 | Tool failure resilience | fallback resilient | **تم إغلاقها**: `AiRealQaToolFailureResilienceTest` أصبحت PASS مع خفض confidence بعد فشل الأداة | كان عالي جدًا، أصبح منخفض | إبقاء guard ضد false-certainty |
 | G-07 | Retrieval quality | retrieval موثوقة | **تحسنت**: `AiRealQaRetrievalHardCasesTest` PASS (relevant/zero/scope/mixed) | متوسط | توسيع benchmark relevance على dataset أكبر |
 | G-08 | Heuristic heaviness | rubric صارمة بالكامل | ما زال جزء من التقييم يعتمد نصيًا (keywords) | متوسط | hard-proof pass يتطلب trace evidence + decision evidence (تمت إضافته جزئيًا) |
-| G-09 | Multi-step / multi-tool | multi-tool مثبتة | غير مثبتة بشكل قاطع حتى الآن | متوسط | case إلزامي بأكثر من tool مع trace count + tool order |
+| G-09 | Multi-step / multi-tool | multi-tool مثبتة | **جزئيًا مثبت**: `AiRealQaHardProofToolsDecisionTest::test_sequential_multi_tool_trace_when_model_follows_explicit_tool_instructions` يطلب ≥2 أداة مميزة في `ai_audit_trail` عندما يتبع الموديل تعليمات صريحة (اعتماد على سلوك غير حتمي للموديل) | متوسط | توسيع الحالات + مراقبة flaky |
 | G-10 | Assistant quality claim | "ذكاء عالي الجودة" مثبت | **مثبت جزئيًا بقوة أعلى** بعد إغلاق إخفاقات stream/failure/retrieval في suite الحالية | متوسط | تعميم الإثبات على كل الأدوات المسجلة |
+| G-11 | Hybrid v1 chat + orchestrator | نفس سياسة v2 | **مغلق في الكود**: `RakizAiPolicyContextBuilder` + `policy_snapshot` في `AIAssistantService::chatWithOrchestrator`؛ اختبارات الوحدة `RakizAiPolicyContextBuilderTest` تثبت `tool_mode` والبوابات | كان عاليًا، أصبح منخفضًا | اختبار HTTP اختياري لـ `/api/ai/chat` الهجين مقابل أدوات حقيقية |
 

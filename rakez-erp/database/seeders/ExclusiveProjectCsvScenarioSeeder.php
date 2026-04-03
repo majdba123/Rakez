@@ -3,8 +3,10 @@
 namespace Database\Seeders;
 
 use App\Models\BoardsDepartment;
+use App\Models\City;
 use App\Models\Contract;
 use App\Models\ContractInfo;
+use App\Models\District;
 use App\Models\ExclusiveProjectRequest;
 use App\Models\MontageDepartment;
 use App\Models\PhotographyDepartment;
@@ -12,6 +14,7 @@ use App\Models\ProjectMedia;
 use App\Models\SecondPartyData;
 use App\Models\User;
 use App\Services\Contract\ContractUnitService;
+use App\Support\ContractCodeGenerator;
 use Illuminate\Database\Seeder;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Arr;
@@ -83,19 +86,35 @@ class ExclusiveProjectCsvScenarioSeeder extends Seeder
         $request->approve($pmManager);
 
         DB::transaction(function () use ($request) {
-            $contract = Contract::create([
+            $city = City::firstOrCreate(
+                ['name' => $request->location_city],
+                ['code' => 'EXC']
+            );
+            $district = District::firstOrCreate(
+                [
+                    'city_id' => $city->id,
+                    'name' => $request->location_district,
+                ],
+                []
+            );
+
+            $contractRow = [
                 'user_id' => $request->requested_by,
                 'project_name' => $request->project_name,
                 'developer_name' => $request->developer_name,
                 'developer_number' => $request->developer_contact,
-                'city' => $request->location_city,
-                'district' => $request->location_district,
+                'city_id' => $city->id,
+                'district_id' => $district->id,
+                'contract_type' => 'exclusive',
                 'units' => [
                     ['type' => 'Apartment', 'count' => 16, 'price' => 800000],
                 ],
                 'status' => 'pending',
                 'notes' => 'إكمال العقد من السيدر (نفس حمولة API لوضع العقد)',
-            ]);
+            ];
+            ContractCodeGenerator::assignCodeToDataArray($contractRow);
+
+            $contract = Contract::create($contractRow);
             $request->completeContract($contract);
         });
 

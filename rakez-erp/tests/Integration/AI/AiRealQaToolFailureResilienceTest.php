@@ -70,6 +70,12 @@ class AiRealQaToolFailureResilienceTest extends TestCase
         // Hard-proof: if the failure-injected tool was actually invoked, confidence must not be high.
         if ($toolWasCalled) {
             $this->assertContains($confidence, ['low', 'medium']);
+            $auditInput = $this->lastToolCallInputAfter($user->id, $before);
+            $this->assertNotNull($auditInput, 'Expected tool_call audit row when tool was invoked');
+            $this->assertSame('tool_search_records', $auditInput['tool'] ?? null);
+            if ($mode === 'unauthorized') {
+                $this->assertTrue((bool) ($auditInput['denied'] ?? false), 'Unauthorized QA injection must set denied=true on audit');
+            }
         }
         $this->assertFalse($this->claimsHardSuccess($text), "False success claim detected in mode={$mode}: {$text}");
     }
@@ -131,5 +137,23 @@ class AiRealQaToolFailureResilienceTest extends TestCase
             ->where('input_summary', 'like', '%"tool":"'.$toolName.'"%')
             ->exists();
     }
-}
 
+    /**
+     * @return array<string, mixed>|null
+     */
+    private function lastToolCallInputAfter(int $userId, int $beforeId): ?array
+    {
+        $row = AiAuditEntry::query()
+            ->where('user_id', $userId)
+            ->where('action', 'tool_call')
+            ->where('id', '>', $beforeId)
+            ->orderByDesc('id')
+            ->first();
+        if ($row === null) {
+            return null;
+        }
+        $decoded = json_decode((string) $row->input_summary, true);
+
+        return is_array($decoded) ? $decoded : null;
+    }
+}

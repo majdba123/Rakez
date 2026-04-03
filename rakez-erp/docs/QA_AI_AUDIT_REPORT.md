@@ -11,10 +11,10 @@
 | المسار (تحت `auth:sanctum` ما لم يُذكر خلافه) | الغرض | ملاحظات من الكود |
 |-----------------------------------------------|--------|-------------------|
 | `POST /api/ai/ask` | سؤال لمرة واحدة (v1) | `AskQuestionRequest`: `question` مطلوب، `max:2000`، `section` من `config('ai_sections')`، `throttle:ai-assistant` |
-| `POST /api/ai/chat` | محادثة v1 (مع دعم stream عبر الحقل `stream`) | `ChatRequest`: `message` مطلوب، `max:2000`، `session_id` اختياري UUID |
+| `POST /api/ai/chat` | محادثة v1 (مع دعم stream عبر الحقل `stream`) | `ChatRequest`: `message` مطلوب، `max:2000`، `session_id` اختياري UUID. عند تفعيل المسار الهجين (`shouldUseOrchestrator`) يُمرَّر نفس `policy_snapshot` إلى `RakizAiOrchestrator` كما في `tools/chat`. |
 | `GET /api/ai/conversations`، `DELETE /api/ai/conversations/{sessionId}` | جلسات المحادثة | نفس مجموعة الـ throttle |
 | `GET /api/ai/sections` | الأقسام المتاحة حسب القدرات | |
-| `POST /api/ai/tools/chat`، `POST /api/ai/tools/stream` | أوركسترا الأدوات (v2) | `AiV2Controller`: تحقق مباشر `message` مطلوب `max:16000` — **اختلاف عن v1** |
+| `POST /api/ai/tools/chat`، `POST /api/ai/tools/stream` | أوركسترا الأدوات (v2) | `AiV2Controller`: تحقق مباشر `message` مطلوب `max:16000` — **اختلاف عن v1**. سياسة ما قبل الـ LLM (`policy_snapshot`، `tool_mode`، رفض KPI/حساس) في `App\Services\AI\Policy\RakizAiPolicyContextBuilder` وتُستدعى من المتحكم ومن `AIAssistantService::chatWithOrchestrator` عند المسار الهجين. **Stream:** `AiAssistantException` → SSE يحتوي `error_code` + `message`؛ أي `Throwable` آخر → رسالة عامة فقط بدون تسريب داخلي. |
 | `POST /api/ai/v2/chat`، `POST /api/ai/v2/stream` | أسماء بديلة لنفس منطق v2 | |
 | `POST/GET/DELETE ... /api/ai/documents/*`، `POST /api/ai/documents/search` | RAG / المستندات | سياسات وصلاحيات في المتحكمات والخدمات (لا يُفترض السلوك هنا دون قراءة كل مسار) |
 | `POST /api/ai/assistant/chat` | مسار مساعد منفصل (`AssistantChatController`) | `auth:sanctum` فقط — **ليس** تحت `prefix('ai')->throttle:ai-assistant` في `routes/api.php` |

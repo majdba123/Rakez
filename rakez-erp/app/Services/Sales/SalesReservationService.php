@@ -309,6 +309,47 @@ class SalesReservationService
     }
 
     /**
+     * Update client contact fields from Credit (confirmed bookings only; not sold).
+     *
+     * @param  array<string, mixed>  $data  Only client_* keys from validated input.
+     */
+    public function updateClientDetailsForCredit(int $reservationId, array $data, User $user): SalesReservation
+    {
+        $reservation = SalesReservation::findOrFail($reservationId);
+
+        if ($reservation->status !== 'confirmed') {
+            throw new Exception('يمكن تعديل بيانات العميل من الائتمان للحجوزات المؤكدة فقط');
+        }
+
+        if ($reservation->credit_status === 'sold') {
+            throw new Exception('لا يمكن تعديل حجز مباع');
+        }
+
+        $allowedKeys = ['client_name', 'client_mobile', 'client_nationality', 'client_iban'];
+        $payload = array_intersect_key($data, array_flip($allowedKeys));
+
+        $reservation->update($payload);
+
+        return $reservation->fresh();
+    }
+
+    /**
+     * Log a credit-department client contact action (audit trail).
+     */
+    public function logCreditClientContact(int $reservationId, ?string $notes, User $user): SalesReservationAction
+    {
+        SalesReservation::findOrFail($reservationId);
+
+        return SalesReservationAction::create([
+            'sales_reservation_id' => $reservationId,
+            'user_id' => $user->id,
+            'action_type' => 'credit_client_contact',
+            'notes' => $notes,
+            'created_at' => now(),
+        ]);
+    }
+
+    /**
      * Notify departments about new reservation.
      */
     protected function notifyDepartments(SalesReservation $reservation, Contract $contract, ContractUnit $unit): void

@@ -1,113 +1,117 @@
-# Final Cleanup Report (Strict)
+# Final Cleanup Report (Strict) — جولة الأدلة والتوحيد
 
-هذا التقرير يمثل الجولة الأخيرة للتنظيف/التثبيت ضمن نطاق AI orchestration + AI QA hard-proof.
+**تاريخ المرجع:** 2026-03-30  
+**النطاق:** توحيد سياسة الأوركسترا بين `tools/*` والمسار الهجين، عقود أخطاء stream، اختبارات الوحدة/hard-proof، توثيق صادق.
 
-## 1) Full Final Audit (Scoped, evidence-based)
+---
+
+## 1) Full Final Audit (موسّع، مبني على الكود)
 
 | Issue ID | Type | Location | Risk | Why it matters | Safe fix strategy |
 |---|---|---|---|---|---|
-| FA-01 | Duplicate policy logic | `AiV2Controller` (`chat`/`stream`) | High | اختلاف القرار بين stream/non-stream | توحيد pre-check + snapshot مشترك |
-| FA-02 | Non-deterministic pre-generation policy | `AiV2Controller` + `RakizAiOrchestrator` | High | نفس الطلب قد يمر بمسار قرار مختلف | deterministic policy snapshot injected in both paths |
-| FA-03 | False confidence after tool failure | `RakizAiOrchestrator` | Critical | claim ثقة عالية بعد فشل أداة يضلل المستخدم | post-decision normalization: lower confidence + failure note |
-| FA-04 | Retrieval relevance gap | `VectorSearchService` | High | حالات relevant ترجع zero نتائج | keyword fallback when vector search empty |
-| FA-05 | Weak tool-failure evidence coupling in tests | `AiRealQaToolFailureResilienceTest` | Medium | test قد يطلب confidence low حتى لو tool لم يُستدعَ | trace-aware assertion based on audit delta |
-| FA-06 | Dead/unused variable | `RakizAiOrchestrator::stripHallucinatedSections` | Low | ضجيج/دين تقني | حذف المتغير غير المستخدم |
-| FA-07 | Stream payload parsing fragility in tests | `AiRealQaStreamParityTest` | Medium | false negatives في parity بسبب parser | robust SSE extraction fallback |
+| FA-01 | Duplicate policy logic | `AiV2Controller` (قبل الاستخراج) | عالٍ | قرار مختلف حسب نقطة الدخول | `RakizAiPolicyContextBuilder` مشترك |
+| FA-02 | Hybrid بدون `policy_snapshot` | `AIAssistantService::chatWithOrchestrator` | **حرج** | `tool_mode=none` وبوابات ما قبل LLM لا تنطبق على `/api/ai/chat` | تمرير `policy_snapshot` + early gate مثل v2 |
+| FA-03 | تسرّب رسالة خطأ stream | `AiV2Controller::stream` `catch (\Throwable)` | متوسط–عالٍ | `getMessage()` قد يكشف داخليات | `AiAssistantException` → `error_code`؛ غير ذلك رسالة عامة |
+| FA-04 | FA-05 tests | `AiRealQaToolFailureResilienceTest` | متوسط | confidence دون ربط audit | عند استدعاء الأداة: التحقق من صف `tool_call` و`denied` لوضع `unauthorized` |
+| FA-05 | G-09 multi-tool | Hard-proof | متوسط | ادعاء سلسلة أدوات غير مثبت | اختبار يطلب ≥2 أداة في audit (يعتمد على الموديل) |
+| FA-06 | Suite منفصلة لـ hard-proof | `phpunit.xml` | منخفض | تشغيل جزئي | `testsuite name="AI-HardProof"` |
 
 ---
 
-## 2) Freeze Scope - Final Target Architecture
+## 2) Target Architecture (ملخّص نهائي)
 
-- **Policy checks**
-  - pre-generation policy gating في `AiV2Controller` (entry-point موحد)
-  - refusal/security pre-check deterministic قبل LLM
-- **Tool decision logic**
-  - orchestration loop في `RakizAiOrchestrator`
-  - allowed tools من `ToolRegistry`
-  - policy snapshot يحدد `tool_mode` (`none`/`auto`)
-- **Response normalization**
-  - post-decision normalization في orchestrator (confidence + safe note عند فشل الأداة)
-  - snapshot normalization في controller لضبط parity behavior
-- **Confidence/failure correction**
-  - `RakizAiOrchestrator::applyPostDecisionNormalization`
-- **Retrieval scope/relevance**
-  - scope enforcement بقي في query (owner/doc constraints)
-  - relevance hardening: vector + lexical fallback
-- **Shared stream/chat behavior**
-  - policy snapshot + early gate + same orchestrator call path
-- **Contract unification**
-  - نفس JSON schema output من orchestrator للمسارين
+- **Policy / pre-LLM gates:** `App\Services\AI\Policy\RakizAiPolicyContextBuilder` — يبنى `policy_snapshot`، `earlyPolicyGateResponse`، `applySnapshotNormalization`.
+- **استدعاء من:** `AiV2Controller` (حقن تبعية)، `AIAssistantService::chatWithOrchestrator` (حقن تبعية).
+- **Tool orchestration:** `RakizAiOrchestrator` + `ToolRegistry`؛ `tool_mode` من الـ snapshot.
+- **Post-decision confidence:** `RakizAiOrchestrator::applyPostDecisionNormalization` (بدون تغيير في هذه الجولة).
+- **Stream vs JSON:** نفس المسار المنطقي؛ أخطاء SSE موحّدة مع `chat` حيث ينطبق `AiAssistantException`.
 
 ---
 
-## 3) What Was Executed
+## 3) ما تم تنفيذه (Change log)
 
 | Change ID | Category | Files affected | Why | Risk | Result |
 |---|---|---|---|---|---|
-| CH-01 | Refactor | `app/Http/Controllers/AI/AiV2Controller.php` | توحيد policy pre-check بين chat/stream | Medium | parity decision logic unified |
-| CH-02 | Hardening | `app/Http/Controllers/AI/AiV2Controller.php` | deterministic request policy snapshot | Medium | stable cross-path behavior |
-| CH-03 | Hardening | `app/Services/AI/RakizAiOrchestrator.php` | منع false confidence بعد فشل أداة | High | confidence forced low on tool failure |
-| CH-04 | Hardening | `app/Services/AI/Rag/VectorSearchService.php` | سد gap relevance | Medium | relevant retrieval case passes |
-| CH-05 | Test hardening | `tests/Integration/AI/AiRealQaToolFailureResilienceTest.php` | ربط assertions مع traces فعلية | Low | reduces false-negative/false-positive |
-| CH-06 | Test hardening | `tests/Integration/AI/AiRealQaStreamParityTest.php` | parser resilience | Low | prevents parser-only failures |
-| CH-07 | Cleanup | `app/Services/AI/RakizAiOrchestrator.php` | إزالة dead variable | Low | cleaner code |
-| CH-08 | Documentation | `tests/AI_QA_STREAM_PARITY_BEFORE_AFTER_AR.md` + reports | truth alignment | Low | claims reflect actual run evidence |
+| CH-09 | Refactor | `app/Services/AI/Policy/RakizAiPolicyContextBuilder.php` (جديد) | مركزية سياسة v2 قابلة للاختبار | متوسط | مصدر واحد للـ snapshot والبوابات |
+| CH-10 | Refactor | `app/Http/Controllers/AI/AiV2Controller.php` | استخدام الباني المشترك + stream آمن | متوسط | متحكم أرفع؛ أخطاء stream متوافقة |
+| CH-11 | Fix / parity | `app/Services/AI/AIAssistantService.php` | هجين يمرّر `policy_snapshot` و early gate | **حرج→مغلق** | سلوك متوافق مع `tools/chat` |
+| CH-12 | Tests | `tests/Unit/AI/Policy/RakizAiPolicyContextBuilderTest.php` | إثبات `tool_mode` والبوابات | منخفض | 6 اختبارات وحدة |
+| CH-13 | Tests | `tests/Integration/AI/AiRealQaHardProofToolsDecisionTest.php` | G-09 جزئي | متوسط | اختبار multi-tool تسلسلي |
+| CH-14 | Tests | `tests/Integration/AI/AiRealQaToolFailureResilienceTest.php` | FA-05 audit coupling | منخفض | `lastToolCallInputAfter` + `denied` |
+| CH-15 | Tests | `tests/Feature/AI/AiScenarioMatrixFeatureTest.php` | نص الرفض في stream | منخفض | يطابق رسالة JSON 403 |
+| CH-16 | Config | `phpunit.xml` | suite `AI-HardProof` | منخفض | `php artisan test --testsuite=AI-HardProof` |
+| CH-17 | Docs | `docs/QA_AI_AUDIT_REPORT.md`, `tests/AI_QA_PHASE2_5_GAP_AUDIT_AR.md` | صدق التوثيق | منخفض | G-09/G-11 + مسارات محدّثة |
+
+**ما رُفض تغييره (في هذه الجولة):**
+
+- توحيد `max:2000` (v1) مع `max:16000` (v2) — قد يكسر عقود الواجهة؛ بقي اختلاف **مقصود ومذكور** في التوثيق.
+- حذف واسع لملفات/اختبارات خارج نطاق AI دون تحقق من الاعتماديات.
 
 ---
 
-## 4) Final Architecture Summary
+## 4) Final Architecture Summary (أين ماذا)
 
-- **صلاحيات/سياسات:**  
-  مركزية أولية في `AiV2Controller` عبر pre-check deterministic + early refusal.
-- **الأدوات/tool orchestration:**  
-  `RakizAiOrchestrator` + `ToolRegistry` مع enforce إضافي لـ `tool_mode` من snapshot.
-- **منطق stream/chat المشترك:**  
-  نفس snapshot، نفس early gate، نفس orchestrator call.
-- **confidence/failure/retrieval:**  
-  - confidence correction بعد tool failure داخل orchestrator  
-  - retrieval relevance fallback داخل `VectorSearchService`  
-  - scope enforcement بقيت في query constraints
+| المحور | الموقع |
+|--------|--------|
+| صلاحيات ما قبل الـ LLM (KPI، حساس، `tool_mode`) | `RakizAiPolicyContextBuilder` |
+| قرار الأدوات والتنفيذ | `RakizAiOrchestrator` + `ToolRegistry` |
+| Stream / chat المشترك (v2) | نفس الـ snapshot والأوركسترا؛ SSE يعكس أخطاء آمنة |
+| الثقة بعد فشل أداة | `RakizAiOrchestrator::applyPostDecisionNormalization` |
+| استرجاع / RAG | دون تغيير في هذه الجولة (كما في الكود الحالي) |
 
 ---
 
-## 5) Final QA Status (Real execution)
+## 5) Final QA Status
 
-Hard-proof suite run:
-- `AiRealQaHardProofToolsDecisionTest` ✅
-- `AiRealQaStreamParityTest` ✅
-- `AiRealQaToolFailureResilienceTest` ✅
-- `AiRealQaRetrievalHardCasesTest` ✅
-- `AiRealQaRoleDepthMatrixTest` ✅
+**تم تشغيل محليًا (بدون مفتاح OpenAI حقيقي):**
 
-**Aggregate:** 18 passed, 203 assertions.
+- `tests/Unit/AI/Policy/RakizAiPolicyContextBuilderTest.php`
+- `tests/Feature/AI/AiScenarioMatrixFeatureTest.php`
+- `tests/Feature/AI/AIAssistantServiceTest.php`
+- `tests/Feature/AI/AiToolsPermissionTest.php`
+- `tests/Feature/AI/AiApiUnauthenticatedTest.php`
 
-### Scores (/10)
+**اختبارات `--testsuite=Unit` الكاملة:** في هذا البيئة ظهرت فشلات مسبقة غير مرتبطة بالتغييرات (مثل `CommissionDistributionTest` / CHECK `type` على SQLite) — **لا تُنسب لهذه الجولة**.
 
-- technical reliability: **8.7**
-- behavioral intelligence: **7.8**
-- security robustness: **8.9**
-- tool-orchestration reliability: **8.4**
-- retrieval quality: **7.6**
-- maintainability: **8.3**
-- codebase cleanliness: **7.7**
-- production trustworthiness: **8.2**
+**Hard-proof الحي (`composer run test:ai-hard-proof-live`):** يتطلب `AI_REAL_TESTS` + مفتاحًا حقيقيًا؛ يُشغَّل في بيئة الاعتماد.
+
+### Scores (/10) — تقدير بعد التوحيد والاختبارات المضافة
+
+| المحور | الدرجة | ملاحظة |
+|--------|--------|--------|
+| technical reliability | 8.8 | توحيد policy يقلل مسارات خاطئة |
+| behavioral intelligence | 7.8 | ما زال يعتمد على الموديل في multi-tool |
+| security robustness | 9.0 | تقليل تسرّب SSE + تكافؤ هجين |
+| tool-orchestration reliability | 8.5 | snapshot موحّد |
+| retrieval quality | 7.6 | دون تغيير في هذه الجولة |
+| maintainability | 8.6 | طبقة Policy واضحة |
+| codebase cleanliness | 8.2 | أقل تكرارًا في المتحكم |
+| production trustworthiness | 8.4 | توثيق واختبارات أوضح |
 
 ---
 
 ## 6) Documentation Truth Alignment
 
-- تم خفض أي ادعاءات عامة غير مثبتة إلى claims evidence-based فقط.
-- تم التفريق بوضوح بين:
-  - **proven**: stream parity الأساسي، tool-failure resilience الأساسية، role-depth matrix
-  - **partially proven**: جودة retrieval الشاملة (تم سد حالة relevant/zero/scope، لكن ليس benchmark شامل متعدد datasets)
-  - **not yet proven**: exhaustive multi-tool deterministic order/chain coverage لكل الأدوات المسجلة
+- **proven (كود + وحدات):** بناء `policy_snapshot`، `tool_mode=none` للأسئلة المفهومية، بوابات KPI/حساس، تطبيع `access_notes`، stream `AiAssistantException` + رسالة عامة لغير المتوقع.
+- **partially proven:** G-09 multi-tool (يعتمد على امتثال LLM)؛ G-04/G-10 كما في مصفوفة الفجوات.
+- **not yet proven:** combinatorial لكل الأدوات؛ معايير زمن/تكلفة توكن كـ gates؛ suite Unit كاملة خضراء على SQLite لهذا المشروع.
 
 ---
 
 ## 7) ما الذي لم أصل به للنهاية بعد
 
-- لم يُنفذ حذف واسع لكل legacy tests القديمة خارج نطاق AI hard-proof (لتجنب كسر تاريخ QA السابق دون migration plan).
-- لا يزال هناك مجال لتحسين benchmark retrieval (قياس precision/recall على dataset أكبر).
-- لا يوجد حتى الآن SLA-like regression budgets (زمن/تكلفة توكن) ضمن hard-proof gates.
-- التغطية الحالية قوية للـ critical paths، لكنها ليست exhaustive combinatorial على كل tool permutations.
+- **اختبارات hard-proof الحية** لم تُشغَّل هنا بمفتاح حقيقي؛ يجب تأكيد `test:ai-hard-proof-live` في CI/Staging.
+- **اختبار `test_sequential_multi_tool_trace_*`** قد يكون flaky إذا تجاهل الموديل خطوة ثانية؛ يُراجع عند تغيير الموديل أو البرومبت.
+- **فشل Unit suite الأوسع** (عمولات / CHECK SQLite) يحتاج جولة منفصلة خارج نطاق AI.
+- **`streamChat` الهجين** (v1) إن وُجد مسار أوركسترا عبر التدفق لاحقًا — غير مطبّق في هذه الجولة (المسار الحالي يمر عبر `chat` فقط للأوركسترا).
 
+---
+
+## 8) Honesty section (إلزامي)
+
+| البند | الوضع |
+|--------|--------|
+| Gaps متبقية | شمولية كل الأدوات، rubric نصي بالكامل، flaky محتمل لـ multi-tool |
+| غير مثبت بلا مفتاح حقيقي | مجموعة AI-HardProof كاملة على الإنتاج الفعلي |
+| ديون تقنية صغيرة | `earlyPolicyGateResponse` يستقبل `section` غير مستخدم حاليًا في الجسم (لتوافق API) |
+| Trade-offs | الإبقاء على حدّي رسالة v1/v2 مختلفين لتجنب كسر الواجهات |

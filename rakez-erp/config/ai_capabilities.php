@@ -150,6 +150,7 @@ return [
         // Credit
         'credit.dashboard.view' => 'View Credit department dashboard KPIs.',
         'credit.bookings.view' => 'View bookings in Credit department.',
+        'credit.bookings.manage' => 'Cancel bookings, update client contact fields, log credit client contact, payment plan (Credit).',
         'credit.financing.view' => 'View financing details for a booking (Credit).',
         'credit.financing.manage' => 'Manage bank financing tracker stages.',
         'credit.title_transfer.manage' => 'Manage title transfer process.',
@@ -412,6 +413,7 @@ return [
             'contracts.view_all',
             'credit.dashboard.view',
             'credit.bookings.view',
+            'credit.bookings.manage',
             'credit.financing.view',
             'credit.financing.manage',
             'credit.title_transfer.manage',

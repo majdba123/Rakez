@@ -772,6 +772,14 @@ Route::prefix('credit')->middleware(['auth:sanctum', 'role:credit|admin'])->grou
     Route::get('bookings/{id}', [CreditBookingController::class, 'show'])->middleware('permission:credit.bookings.view');
     Route::patch('bookings/negotiation/{id}', [CreditBookingController::class, 'updateNegotiation'])->middleware('permission:credit.bookings.view');
     Route::post('bookings/{id}/cancel', [CreditBookingController::class, 'cancel'])->middleware('permission:credit.bookings.manage');
+    Route::patch('bookings/{id}', [CreditBookingController::class, 'update'])->middleware('permission:credit.bookings.manage');
+    Route::post('bookings/{id}/actions', [CreditBookingController::class, 'logCreditClientContact'])->middleware('permission:credit.bookings.manage');
+
+    // Payment plans (Credit — same controller as Sales; booking id = reservation id)
+    Route::get('bookings/{id}/payment-plan', [PaymentPlanController::class, 'show'])->middleware('permission:credit.payment_plan.manage');
+    Route::post('bookings/{id}/payment-plan', [PaymentPlanController::class, 'store'])->middleware('permission:credit.payment_plan.manage');
+    Route::put('payment-installments/{id}', [PaymentPlanController::class, 'update'])->middleware('permission:credit.payment_plan.manage');
+    Route::delete('payment-installments/{id}', [PaymentPlanController::class, 'destroy'])->middleware('permission:credit.payment_plan.manage');
 
     // Financing
     Route::get('bookings/{id}/financing', [CreditFinancingController::class, 'show'])->middleware('permission:credit.financing.view');
@@ -865,8 +873,8 @@ Route::prefix('sales')->middleware(['auth:sanctum', 'role:sales|sales_leader|adm
     Route::post('negotiations/{id}/reject', [NegotiationApprovalController::class, 'reject'])->middleware('permission:sales.negotiation.approve');
 
     // Payment Plans
-    Route::get('reservations/{id}/payment-plan', [PaymentPlanController::class, 'show'])->middleware('permission:sales.payment_plan.manage');
-    Route::post('reservations/{id}/payment-plan', [PaymentPlanController::class, 'store'])->middleware('permission:sales.payment_plan.manage');
-    Route::put('payment-installments/{id}', [PaymentPlanController::class, 'update'])->middleware('permission:sales.payment_plan.manage');
-    Route::delete('payment-installments/{id}', [PaymentPlanController::class, 'destroy'])->middleware('permission:sales.payment_plan.manage');
+    Route::get('reservations/{id}/payment-plan', [PaymentPlanController::class, 'show'])->middleware('permission:sales.payment-plan.manage');
+    Route::post('reservations/{id}/payment-plan', [PaymentPlanController::class, 'store'])->middleware('permission:sales.payment-plan.manage');
+    Route::put('payment-installments/{id}', [PaymentPlanController::class, 'update'])->middleware('permission:sales.payment-plan.manage');
+    Route::delete('payment-installments/{id}', [PaymentPlanController::class, 'destroy'])->middleware('permission:sales.payment-plan.manage');
 });

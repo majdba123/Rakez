@@ -14,6 +14,13 @@
         <testsuite name="Integration">
             <directory>tests/Integration</directory>
         </testsuite>
+        <testsuite name="AI-HardProof">
+            <file>tests/Integration/AI/AiRealQaHardProofToolsDecisionTest.php</file>
+            <file>tests/Integration/AI/AiRealQaStreamParityTest.php</file>
+            <file>tests/Integration/AI/AiRealQaToolFailureResilienceTest.php</file>
+            <file>tests/Integration/AI/AiRealQaRetrievalHardCasesTest.php</file>
+            <file>tests/Integration/AI/AiRealQaRoleDepthMatrixTest.php</file>
+        </testsuite>
     </testsuites>
     <source>
         <include>

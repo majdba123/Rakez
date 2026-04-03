@@ -3,6 +3,8 @@
 namespace App\Http\Controllers\Credit;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Credit\StoreCreditClientContactRequest;
+use App\Http\Requests\Credit\UpdateCreditBookingRequest;
 use App\Models\SalesReservation;
 use App\Models\SalesWaitingList;
 use App\Services\Sales\SalesReservationService;
@@ -499,6 +501,78 @@ class CreditBookingController extends Controller
                 'success' => false,
                 'message' => $e->getMessage(),
             ], $statusCode);
+        }
+    }
+
+    /**
+     * PATCH /credit/bookings/{id} — تحديث بيانات تواصل العميل (نطاق ضيق).
+     */
+    public function update(UpdateCreditBookingRequest $request, int $id): JsonResponse
+    {
+        try {
+            $reservation = $this->reservationService->updateClientDetailsForCredit(
+                $id,
+                $request->validated(),
+                $request->user()
+            );
+
+            return response()->json([
+                'success' => true,
+                'message' => 'تم تحديث بيانات العميل بنجاح',
+                'data' => [
+                    'id' => $reservation->id,
+                    'client' => [
+                        'name' => $reservation->client_name,
+                        'mobile' => $reservation->client_mobile,
+                        'nationality' => $reservation->client_nationality,
+                        'iban' => $reservation->client_iban,
+                    ],
+                ],
+            ], 200);
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'الحجز غير موجود',
+            ], 404);
+        } catch (Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage(),
+            ], 422);
+        }
+    }
+
+    /**
+     * POST /credit/bookings/{id}/actions — تسجيل تواصل الائتمان مع العميل.
+     */
+    public function logCreditClientContact(StoreCreditClientContactRequest $request, int $id): JsonResponse
+    {
+        try {
+            $action = $this->reservationService->logCreditClientContact(
+                $id,
+                $request->input('notes'),
+                $request->user()
+            );
+
+            return response()->json([
+                'success' => true,
+                'message' => 'تم تسجيل التواصل مع العميل',
+                'data' => [
+                    'action_id' => $action->id,
+                    'action_type' => $action->action_type,
+                    'created_at' => $action->created_at,
+                ],
+            ], 201);
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'الحجز غير موجود',
+            ], 404);
+        } catch (Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage(),
+            ], 500);
         }
     }
 

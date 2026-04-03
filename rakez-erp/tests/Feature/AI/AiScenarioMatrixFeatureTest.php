@@ -2,12 +2,12 @@
 
 namespace Tests\Feature\AI;
 
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use Laravel\Sanctum\Sanctum;
 use OpenAI\Laravel\Facades\OpenAI;
 use OpenAI\Responses\Responses\CreateResponse;
 use Tests\TestCase;
 use Tests\Traits\CreatesUsersWithBootstrapRole;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 
 /**
  * سيناريوهات مصفوفة Role × Section × Permission (بدون OpenAI حقيقي حيثما أمكن).
@@ -158,7 +158,7 @@ class AiScenarioMatrixFeatureTest extends TestCase
         ]);
 
         $response->assertOk();
-        $this->assertStringContainsString('Forbidden', $response->streamedContent());
+        $this->assertStringContainsString('You do not have permission to use the AI assistant.', $response->streamedContent());
     }
 
     private function fakeOpenAiResponse(string $text): CreateResponse
