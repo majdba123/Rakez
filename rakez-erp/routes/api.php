@@ -252,90 +252,92 @@ Route::middleware('auth:sanctum')->group(function () {
 
 
 
-        Route::prefix('project_management')->group(function () {
+            Route::prefix('project_management')->group(function () {
 
-            Route::prefix('teams')->group(function () {
+                    Route::prefix('teams')->group(function () {
 
-                Route::get('/index', [TeamController::class, 'index']);
-                Route::post('/store', [TeamController::class, 'store']);
-                Route::put('/update/{id}', [TeamController::class, 'update']);
-                Route::delete('/delete/{id}', [TeamController::class, 'destroy']);
-                Route::get('/show/{id}', [TeamController::class, 'show']);
+                        Route::get('/index', [TeamController::class, 'index']);
+                        Route::post('/store', [TeamController::class, 'store']);
+                        Route::put('/update/{id}', [TeamController::class, 'update']);
+                        Route::delete('/delete/{id}', [TeamController::class, 'destroy']);
+                        Route::get('/show/{id}', [TeamController::class, 'show']);
 
-                Route::post('members/{teamId}/', [TeamController::class, 'assignMember'])->whereNumber('teamId');
-                Route::delete('members/{teamId}/{userId}', [TeamController::class, 'removeMember'])->whereNumber(['teamId', 'userId']);
+                        Route::get('sales-without-team', [TeamController::class, 'salesWithoutTeam']);
+                        Route::get('members/{teamId}', [TeamController::class, 'members'])->whereNumber('teamId');
+                        Route::post('members/{teamId}/', [TeamController::class, 'assignMember'])->whereNumber('teamId');
+                        Route::delete('members/{teamId}/{userId}', [TeamController::class, 'removeMember'])->whereNumber(['teamId', 'userId']);
 
-                Route::get('/index/{contractId}', [ContractController::class, 'getTeamsForContract_HR']);
-                Route::get('/contracts/{teamId}', [TeamController::class, 'contracts'])->whereNumber('teamId');
+                        Route::get('/index/{contractId}', [ContractController::class, 'getTeamsForContract_HR']);
+                        Route::get('/contracts/{teamId}', [TeamController::class, 'contracts'])->whereNumber('teamId');
 
-                Route::post('/add/{contractId}', [ContractController::class, 'addTeamsToContract']);
-                Route::post('/remove/{contractId}', [ContractController::class, 'removeTeamsFromContract']);
+                        Route::post('/add/{contractId}', [ContractController::class, 'addTeamsToContract']);
+                        Route::post('/remove/{contractId}', [ContractController::class, 'removeTeamsFromContract']);
 
-                Route::get('/contracts/locations/{teamId}', [TeamController::class, 'contractLocations'])->whereNumber('teamId');
+                        Route::get('/contracts/locations/{teamId}', [TeamController::class, 'contractLocations'])->whereNumber('teamId');
+
+                    });
+
+
 
             });
 
-
-
         });
 
-    });
 
+        Route::prefix('editor')->middleware(['auth:sanctum', 'role:editor|admin'])->group(function () {
 
-    Route::prefix('editor')->middleware(['auth:sanctum', 'role:editor|admin'])->group(function () {
+            // Contracts - view all & individual contract
+            Route::prefix('contracts')->group(function () {
+                Route::get('/index', [ContractController::class, 'adminIndex'])->middleware('permission:contracts.view_all');
+                Route::get('/show/{id}', [ContractController::class, 'show']);
+            });
 
-        // Contracts - view all & individual contract
-        Route::prefix('contracts')->group(function () {
-            Route::get('/index', [ContractController::class, 'adminIndex'])->middleware('permission:contracts.view_all');
-            Route::get('/show/{id}', [ContractController::class, 'show']);
+            Route::prefix('teams')->group(function () {
+
+                Route::get('/', [MontageDepartmentController::class, 'team_index']);
+
+            });
+
+            // Second Party Data - view only
+            Route::prefix('second-party-data')->group(function () {
+                Route::get('show/{id}', [SecondPartyDataController::class, 'show'])->middleware('permission:second_party.view');
+            });
+
+            // Contract Units - view only
+            Route::prefix('contracts/units')->group(function () {
+                Route::get('show/{contractId}', [ContractUnitController::class, 'indexByContract'])->middleware('permission:units.view');
+            });
+
+            // Developers - browse & detail
+            Route::prefix('developers')->group(function () {
+                Route::get('/', [DeveloperController::class, 'index'])->middleware('permission:contracts.view_all');
+                Route::get('/{developer_number}', [DeveloperController::class, 'show'])->middleware('permission:contracts.view');
+            });
+
+            // Montage Department - قسم المونتاج
+            Route::prefix('montage-department')->group(function () {
+                Route::get('show/{contractId}', [MontageDepartmentController::class, 'show'])->middleware('permission:departments.montage.view');
+                Route::post('store/{contractId}', [MontageDepartmentController::class, 'store'])->middleware('permission:departments.montage.edit');
+                Route::put('update/{contractId}', [MontageDepartmentController::class, 'update'])->middleware('permission:departments.montage.edit');
+                Route::patch('approve/{contractId}', [MontageDepartmentController::class, 'approve'])->middleware('permission:departments.montage.edit');
+            });
+
+            // Photography Department - قسم التصوير
+            Route::prefix('photography-department')->group(function () {
+                Route::get('show/{contractId}', [PhotographyDepartmentController::class, 'show'])->middleware('permission:departments.photography.view');
+                Route::post('store/{contractId}', [PhotographyDepartmentController::class, 'store'])->middleware('permission:departments.photography.edit');
+                Route::put('update/{contractId}', [PhotographyDepartmentController::class, 'update'])->middleware('permission:departments.photography.edit');
+                Route::patch('approve/{contractId}', [PhotographyDepartmentController::class, 'approve'])->middleware('permission:departments.photography.edit');
+            });
+
+            // Boards Department - قسم اللوحات
+            Route::prefix('boards-department')->group(function () {
+                Route::get('show/{contractId}', [BoardsDepartmentController::class, 'show'])->middleware('permission:departments.boards.view');
+                Route::post('store/{contractId}', [BoardsDepartmentController::class, 'store'])->middleware('permission:departments.boards.edit');
+                Route::put('update/{contractId}', [BoardsDepartmentController::class, 'update'])->middleware('permission:departments.boards.edit');
+            });
+
         });
-
-        Route::prefix('teams')->group(function () {
-
-            Route::get('/', [MontageDepartmentController::class, 'team_index']);
-
-        });
-
-        // Second Party Data - view only
-        Route::prefix('second-party-data')->group(function () {
-            Route::get('show/{id}', [SecondPartyDataController::class, 'show'])->middleware('permission:second_party.view');
-        });
-
-        // Contract Units - view only
-        Route::prefix('contracts/units')->group(function () {
-            Route::get('show/{contractId}', [ContractUnitController::class, 'indexByContract'])->middleware('permission:units.view');
-        });
-
-        // Developers - browse & detail
-        Route::prefix('developers')->group(function () {
-            Route::get('/', [DeveloperController::class, 'index'])->middleware('permission:contracts.view_all');
-            Route::get('/{developer_number}', [DeveloperController::class, 'show'])->middleware('permission:contracts.view');
-        });
-
-        // Montage Department - قسم المونتاج
-        Route::prefix('montage-department')->group(function () {
-            Route::get('show/{contractId}', [MontageDepartmentController::class, 'show'])->middleware('permission:departments.montage.view');
-            Route::post('store/{contractId}', [MontageDepartmentController::class, 'store'])->middleware('permission:departments.montage.edit');
-            Route::put('update/{contractId}', [MontageDepartmentController::class, 'update'])->middleware('permission:departments.montage.edit');
-            Route::patch('approve/{contractId}', [MontageDepartmentController::class, 'approve'])->middleware('permission:departments.montage.edit');
-        });
-
-        // Photography Department - قسم التصوير
-        Route::prefix('photography-department')->group(function () {
-            Route::get('show/{contractId}', [PhotographyDepartmentController::class, 'show'])->middleware('permission:departments.photography.view');
-            Route::post('store/{contractId}', [PhotographyDepartmentController::class, 'store'])->middleware('permission:departments.photography.edit');
-            Route::put('update/{contractId}', [PhotographyDepartmentController::class, 'update'])->middleware('permission:departments.photography.edit');
-            Route::patch('approve/{contractId}', [PhotographyDepartmentController::class, 'approve'])->middleware('permission:departments.photography.edit');
-        });
-
-        // Boards Department - قسم اللوحات
-        Route::prefix('boards-department')->group(function () {
-            Route::get('show/{contractId}', [BoardsDepartmentController::class, 'show'])->middleware('permission:departments.boards.view');
-            Route::post('store/{contractId}', [BoardsDepartmentController::class, 'store'])->middleware('permission:departments.boards.edit');
-            Route::put('update/{contractId}', [BoardsDepartmentController::class, 'update'])->middleware('permission:departments.boards.edit');
-        });
-
-    });
 
 
 

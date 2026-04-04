@@ -7,6 +7,7 @@ use App\Http\Requests\Team\TeamContractsRequest;
 use App\Http\Requests\Team\StoreTeamRequest;
 use App\Http\Requests\Team\UpdateTeamRequest;
 use App\Http\Resources\Contract\ContractIndexResource;
+use App\Http\Resources\Shared\UserResource;
 use App\Http\Resources\TeamResource;
 use App\Models\Team;
 use App\Services\Contract\ContractService;
@@ -100,6 +101,81 @@ class TeamController extends Controller
         }
     }
 
+    /**
+     * GET /api/project_management/teams/members/{teamId}
+     */
+    public function members(Request $request, int $teamId): JsonResponse
+    {
+        try {
+            $team = $this->teamService->getTeamById($teamId);
+            $perPage = (int) $request->input('per_page', 15);
+            $members = $this->teamService->getTeamMembers($teamId, $perPage);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'تم جلب أعضاء الفريق بنجاح',
+                'team' => [
+                    'id' => $team->id,
+                    'name' => $team->name,
+                ],
+                'data' => UserResource::collection($members->items()),
+                'meta' => [
+                    'total' => $members->total(),
+                    'count' => $members->count(),
+                    'per_page' => $members->perPage(),
+                    'current_page' => $members->currentPage(),
+                    'last_page' => $members->lastPage(),
+                ],
+            ], 200);
+        } catch (Exception $e) {
+            $message = $e->getMessage();
+            $statusCode = str_contains($message, 'Team not found')
+                || str_contains($message, 'No query results')
+                ? 404
+                : 500;
+
+            return response()->json([
+                'success' => false,
+                'message' => $message,
+            ], $statusCode);
+        }
+    }
+
+    /**
+     * GET /api/project_management/teams/sales-without-team
+     * Sales users with no team (available to assign).
+     */
+    public function salesWithoutTeam(Request $request): JsonResponse
+    {
+        try {
+            $perPage = (int) $request->input('per_page', 15);
+            $search = $request->input('search');
+            $search = is_string($search) ? trim($search) : null;
+            if ($search === '') {
+                $search = null;
+            }
+
+            $users = $this->teamService->getSalesUsersWithoutTeam($perPage, $search);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'تم جلب موظفي المبيعات غير المرتبطين بفريق بنجاح',
+                'data' => UserResource::collection($users->items()),
+                'meta' => [
+                    'total' => $users->total(),
+                    'count' => $users->count(),
+                    'per_page' => $users->perPage(),
+                    'current_page' => $users->currentPage(),
+                    'last_page' => $users->lastPage(),
+                ],
+            ], 200);
+        } catch (Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage(),
+            ], 500);
+        }
+    }
 
     public function contracts(TeamContractsRequest $request, int $teamId): JsonResponse
     {

@@ -87,6 +87,42 @@ class TeamService
         }
     }
 
+    /**
+     * Users assigned to this team (users.team_id). Team existence should be validated by caller.
+     */
+    public function getTeamMembers(int $teamId, int $perPage = 15): LengthAwarePaginator
+    {
+        $perPage = (int) min(100, max(1, $perPage));
+
+        return User::query()
+            ->where('team_id', $teamId)
+            ->orderBy('name')
+            ->paginate($perPage);
+    }
+
+    /**
+     * Sales users not assigned to any team (team_id IS NULL). Same pool allowed by assignSalesMemberToTeam.
+     */
+    public function getSalesUsersWithoutTeam(int $perPage = 15, ?string $search = null): LengthAwarePaginator
+    {
+        $perPage = (int) min(100, max(1, $perPage));
+
+        $query = User::query()
+            ->where('type', 'sales')
+            ->whereNull('team_id');
+
+        if ($search !== null && $search !== '') {
+            $term = '%' . addslashes($search) . '%';
+            $query->where(function ($q) use ($term) {
+                $q->where('name', 'like', $term)
+                    ->orWhere('email', 'like', $term)
+                    ->orWhere('phone', 'like', $term);
+            });
+        }
+
+        return $query->orderBy('name')->paginate($perPage);
+    }
+
     public function updateTeam(int $id, array $data): Team
     {
         DB::beginTransaction();
