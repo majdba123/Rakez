@@ -180,6 +180,19 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::patch('/{id}/read', [NotificationController::class, 'userMarkAsRead']);
         });
 
+
+        Route::prefix('cities')->group(function () {
+            Route::get('/', [CityController::class, 'index']);
+            Route::get('/{id}', [CityController::class, 'show'])->whereNumber('id');
+        });
+
+        // Districts (belongs to city; admin only)
+        Route::prefix('districts')->group(function () {
+            Route::get('/', [DistrictController::class, 'index']);
+            Route::get('/{id}', [DistrictController::class, 'show'])->whereNumber('id');
+        });
+
+
         // Shorthand /api/notifications -> returns private notifications for the authenticated user
         Route::get('/notifications', [NotificationController::class, 'getUserPrivateNotifications']);
         Route::patch('/notifications/mark-all-read', [NotificationController::class, 'userMarkAllAsRead']);

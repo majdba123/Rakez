@@ -30,14 +30,14 @@ class MontageDepartmentService
                 throw new Exception('بيانات قسم المونتاج موجودة بالفعل لهذا العقد');
             }
 
-            if (!$contract->info) {
+        /*   if (!$contract->info) {
                 throw new Exception('يجب أن يكون العقد لديه معلومات عليه قبل إضافة بيانات قسم المونتاج');
             }
-
+        */
             // Must have photography department approved before montage can be stored
-            if (!$contract->photographyDepartment) {
+        /*    if (!$contract->photographyDepartment) {
                 throw new Exception('يجب إضافة بيانات قسم التصوير أولاً قبل إضافة بيانات قسم المونتاج');
-            }
+            }*/
 
             $data['contract_id'] = $contractId;
             $data['processed_by'] = Auth::id();
