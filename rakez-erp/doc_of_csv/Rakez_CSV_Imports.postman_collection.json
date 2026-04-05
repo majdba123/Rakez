@@ -1,0 +1,350 @@
+{
+	"info": {
+		"name": "Rakez ERP - CSV Imports",
+		"description": "All CSV bulk-import endpoints for Rakez ERP.\n\nVariables:\n- {{base_url}}: Your API base URL (e.g. http://ahmad.localhost:8000/api)\n- {{token}}: Bearer token from login\n- {{contractId}}: ID of an existing contract (for contract info & second party imports)",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"variable": [
+		{ "key": "base_url", "value": "http://ahmad.localhost:8000/api" },
+		{ "key": "token", "value": "YOUR_TOKEN_HERE" },
+		{ "key": "contractId", "value": "1" }
+	],
+	"item": [
+		{
+			"name": "1 - Employees CSV Import",
+			"item": [
+				{
+					"name": "Import Employees CSV",
+					"request": {
+						"method": "POST",
+						"header": [
+							{ "key": "Authorization", "value": "Bearer {{token}}" },
+							{ "key": "Accept", "value": "application/json" }
+						],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "file",
+									"type": "file",
+									"src": "",
+									"description": "Upload employees.csv"
+								}
+							]
+						},
+						"url": {
+							"raw": "{{base_url}}/admin/employees/import_employees_csv",
+							"host": ["{{base_url}}"],
+							"path": ["admin", "employees", "import_employees_csv"]
+						},
+						"description": "Upload a CSV file to bulk-import employees.\n\nRequired columns: name, email, password, type\nOptional columns: phone, role, is_manager, team, identity_number, birthday, date_of_works, contract_type, iban, salary, marital_status\n\nSample file: doc_of_csv/employees.csv"
+					}
+				},
+				{
+					"name": "Check Employees Import Status",
+					"request": {
+						"method": "GET",
+						"header": [
+							{ "key": "Authorization", "value": "Bearer {{token}}" },
+							{ "key": "Accept", "value": "application/json" }
+						],
+						"url": {
+							"raw": "{{base_url}}/admin/employees/import_status/1",
+							"host": ["{{base_url}}"],
+							"path": ["admin", "employees", "import_status", "1"]
+						},
+						"description": "Poll the status of an employees CSV import. Replace the ID in the URL with the import_id from the upload response."
+					}
+				}
+			]
+		},
+		{
+			"name": "2 - Contracts CSV Import",
+			"item": [
+				{
+					"name": "Import Contracts CSV",
+					"request": {
+						"method": "POST",
+						"header": [
+							{ "key": "Authorization", "value": "Bearer {{token}}" },
+							{ "key": "Accept", "value": "application/json" }
+						],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "file",
+									"type": "file",
+									"src": "",
+									"description": "Upload contracts.csv"
+								}
+							]
+						},
+						"url": {
+							"raw": "{{base_url}}/contracts/import_csv",
+							"host": ["{{base_url}}"],
+							"path": ["contracts", "import_csv"]
+						},
+						"description": "Upload a CSV file to bulk-import contracts.\n\nEach row = one contract with one unit. Contract ID is auto-generated.\n\nRequired columns: developer_name, developer_number, city_id, district_id, project_name, developer_requiment, unit_type, unit_count, unit_price\nOptional columns: side (N/W/E/S), contract_type, project_image_url, notes, commission_percent, commission_from\n\nImported contracts are automatically set to 'approved' status.\n\nSample file: doc_of_csv/contracts.csv"
+					}
+				},
+				{
+					"name": "Check Contracts Import Status",
+					"request": {
+						"method": "GET",
+						"header": [
+							{ "key": "Authorization", "value": "Bearer {{token}}" },
+							{ "key": "Accept", "value": "application/json" }
+						],
+						"url": {
+							"raw": "{{base_url}}/contracts/import_status/1",
+							"host": ["{{base_url}}"],
+							"path": ["contracts", "import_status", "1"]
+						},
+						"description": "Poll the status of a contracts CSV import."
+					}
+				}
+			]
+		},
+		{
+			"name": "3 - Contract Info CSV Import",
+			"item": [
+				{
+					"name": "Import Contract Info CSV",
+					"request": {
+						"method": "POST",
+						"header": [
+							{ "key": "Authorization", "value": "Bearer {{token}}" },
+							{ "key": "Accept", "value": "application/json" }
+						],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "file",
+									"type": "file",
+									"src": "",
+									"description": "Upload contract_info.csv"
+								}
+							]
+						},
+						"url": {
+							"raw": "{{base_url}}/contracts/import_info_csv/{{contractId}}",
+							"host": ["{{base_url}}"],
+							"path": ["contracts", "import_info_csv", "{{contractId}}"]
+						},
+						"description": "Upload a CSV file to import contract information for a specific contract.\n\nThe contract ID is passed in the URL (not in the CSV).\nThe contract must exist and be in 'approved' status with no existing info.\nAfter successful import, the contract status changes to 'completed'.\n\nColumns: gregorian_date, hijri_date, contract_city, location_url, agreement_duration_days, agency_number, agency_date, avg_property_value, release_date, second_party_name, second_party_address, second_party_cr_number, second_party_signatory, second_party_id_number, second_party_role, second_party_phone, second_party_email\n\nSample file: doc_of_csv/contract_info.csv"
+					}
+				},
+				{
+					"name": "Check Contract Info Import Status",
+					"request": {
+						"method": "GET",
+						"header": [
+							{ "key": "Authorization", "value": "Bearer {{token}}" },
+							{ "key": "Accept", "value": "application/json" }
+						],
+						"url": {
+							"raw": "{{base_url}}/contracts/import_info_status/1",
+							"host": ["{{base_url}}"],
+							"path": ["contracts", "import_info_status", "1"]
+						},
+						"description": "Poll the status of a contract info CSV import."
+					}
+				}
+			]
+		},
+		{
+			"name": "4 - Second Party Data CSV Import",
+			"item": [
+				{
+					"name": "Import Second Party Data CSV",
+					"request": {
+						"method": "POST",
+						"header": [
+							{ "key": "Authorization", "value": "Bearer {{token}}" },
+							{ "key": "Accept", "value": "application/json" }
+						],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "file",
+									"type": "file",
+									"src": "",
+									"description": "Upload second_party_data.csv"
+								}
+							]
+						},
+						"url": {
+							"raw": "{{base_url}}/second-party-data/import_csv/{{contractId}}",
+							"host": ["{{base_url}}"],
+							"path": ["second-party-data", "import_csv", "{{contractId}}"]
+						},
+						"description": "Upload a CSV file to import second party data for a specific contract.\n\nThe contract ID is passed in the URL (not in the CSV).\nThe contract must have contract info and no existing second party data.\n\nColumns: real_estate_papers_url, plans_equipment_docs_url, project_logo_url, prices_units_url, marketing_license_url, advertiser_section_url\n\nSample file: doc_of_csv/second_party_data.csv"
+					}
+				},
+				{
+					"name": "Check Second Party Data Import Status",
+					"request": {
+						"method": "GET",
+						"header": [
+							{ "key": "Authorization", "value": "Bearer {{token}}" },
+							{ "key": "Accept", "value": "application/json" }
+						],
+						"url": {
+							"raw": "{{base_url}}/second-party-data/import_status/1",
+							"host": ["{{base_url}}"],
+							"path": ["second-party-data", "import_status", "1"]
+						},
+						"description": "Poll the status of a second party data CSV import."
+					}
+				}
+			]
+		},
+		{
+			"name": "5 - Cities & Districts CSV Import",
+			"item": [
+				{
+					"name": "Import Cities & Districts CSV",
+					"request": {
+						"method": "POST",
+						"header": [
+							{ "key": "Authorization", "value": "Bearer {{token}}" },
+							{ "key": "Accept", "value": "application/json" }
+						],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "file",
+									"type": "file",
+									"src": "",
+									"description": "Upload cities_districts.csv"
+								}
+							]
+						},
+						"url": {
+							"raw": "{{base_url}}/admin/cities/import_csv",
+							"host": ["{{base_url}}"],
+							"path": ["admin", "cities", "import_csv"]
+						},
+						"description": "Upload a CSV file to bulk-import cities and their districts.\n\nRequired columns: city_name, city_code\nOptional column: district_name\n\nCities are created or matched by name. Districts are created under their city.\nDuplicate city/district combinations are safely skipped (firstOrCreate).\n\nSample file: doc_of_csv/cities_districts.csv"
+					}
+				},
+				{
+					"name": "Check Cities Import Status",
+					"request": {
+						"method": "GET",
+						"header": [
+							{ "key": "Authorization", "value": "Bearer {{token}}" },
+							{ "key": "Accept", "value": "application/json" }
+						],
+						"url": {
+							"raw": "{{base_url}}/admin/cities/import_status/1",
+							"host": ["{{base_url}}"],
+							"path": ["admin", "cities", "import_status", "1"]
+						},
+						"description": "Poll the status of a cities/districts CSV import."
+					}
+				}
+			]
+		},
+		{
+			"name": "6 - Districts CSV Import",
+			"item": [
+				{
+					"name": "Import Districts CSV",
+					"request": {
+						"method": "POST",
+						"header": [
+							{ "key": "Authorization", "value": "Bearer {{token}}" },
+							{ "key": "Accept", "value": "application/json" }
+						],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "file",
+									"type": "file",
+									"src": "",
+									"description": "Upload districts.csv"
+								}
+							]
+						},
+						"url": {
+							"raw": "{{base_url}}/admin/districts/import_csv",
+							"host": ["{{base_url}}"],
+							"path": ["admin", "districts", "import_csv"]
+						},
+						"description": "Upload a CSV file to bulk-import districts under existing cities.\n\nRequired columns: city_id, name\n\ncity_id must reference an existing city in the database.\nDuplicate district names per city are rejected.\n\nSample file: doc_of_csv/districts.csv"
+					}
+				},
+				{
+					"name": "Check Districts Import Status",
+					"request": {
+						"method": "GET",
+						"header": [
+							{ "key": "Authorization", "value": "Bearer {{token}}" },
+							{ "key": "Accept", "value": "application/json" }
+						],
+						"url": {
+							"raw": "{{base_url}}/admin/districts/import_status/1",
+							"host": ["{{base_url}}"],
+							"path": ["admin", "districts", "import_status", "1"]
+						},
+						"description": "Poll the status of a districts CSV import."
+					}
+				}
+			]
+		},
+		{
+			"name": "7 - Teams CSV Import",
+			"item": [
+				{
+					"name": "Import Teams CSV",
+					"request": {
+						"method": "POST",
+						"header": [
+							{ "key": "Authorization", "value": "Bearer {{token}}" },
+							{ "key": "Accept", "value": "application/json" }
+						],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "file",
+									"type": "file",
+									"src": "",
+									"description": "Upload teams.csv"
+								}
+							]
+						},
+						"url": {
+							"raw": "{{base_url}}/project_management/teams/import_csv",
+							"host": ["{{base_url}}"],
+							"path": ["project_management", "teams", "import_csv"]
+						},
+						"description": "Upload a CSV file to bulk-import teams.\n\nRequired columns: name\nOptional columns: code, description\n\nTeam names must be unique. If code is omitted, it is auto-generated (T000001 pattern).\n\nSample file: doc_of_csv/teams.csv"
+					}
+				},
+				{
+					"name": "Check Teams Import Status",
+					"request": {
+						"method": "GET",
+						"header": [
+							{ "key": "Authorization", "value": "Bearer {{token}}" },
+							{ "key": "Accept", "value": "application/json" }
+						],
+						"url": {
+							"raw": "{{base_url}}/project_management/teams/import_status/1",
+							"host": ["{{base_url}}"],
+							"path": ["project_management", "teams", "import_status", "1"]
+						},
+						"description": "Poll the status of a teams CSV import."
+					}
+				}
+			]
+		}
+	]
+}

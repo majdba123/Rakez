@@ -5,10 +5,14 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\StoreDistrictRequest;
 use App\Http\Requests\Admin\UpdateDistrictRequest;
+use App\Http\Requests\Admin\ImportDistrictsCsv;
 use App\Http\Responses\ApiResponse;
+use App\Jobs\ProcessDistrictsCsv;
+use App\Models\CsvImport;
 use App\Models\District;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 
 class DistrictController extends Controller
 {
@@ -122,6 +126,76 @@ class DistrictController extends Controller
         $district->delete();
 
         return ApiResponse::success(null, 'تم حذف الحي بنجاح');
+    }
+
+    /**
+     * Upload CSV for bulk district import. Dispatches a queue job.
+     */
+    public function import_csv(ImportDistrictsCsv $request): JsonResponse
+    {
+        $file = $request->file('file');
+
+        $handle = fopen($file->getRealPath(), 'r');
+        if ($handle === false) {
+            return ApiResponse::error('Unable to read the CSV file.', 422);
+        }
+
+        $header = fgetcsv($handle);
+        fclose($handle);
+
+        if (!$header) {
+            return ApiResponse::error('CSV file is empty or has no header row.', 422);
+        }
+
+        $header = array_map(fn ($col) => strtolower(trim($col)), $header);
+        $missing = array_diff(['city_id', 'name'], $header);
+
+        if (!empty($missing)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'CSV is missing required columns.',
+                'missing_columns' => array_values($missing),
+            ], 422);
+        }
+
+        $storedPath = $file->store('csv-imports', 'local');
+
+        $csvImport = CsvImport::create([
+            'type' => CsvImport::TYPE_DISTRICTS,
+            'uploaded_by' => Auth::id(),
+            'file_path' => $storedPath,
+            'status' => CsvImport::STATUS_PENDING,
+        ]);
+
+        ProcessDistrictsCsv::dispatch($csvImport->id);
+
+        return ApiResponse::accepted('CSV uploaded successfully. Import is being processed.', [
+            'import_id' => $csvImport->id,
+            'status' => $csvImport->status,
+        ]);
+    }
+
+    /**
+     * Poll the status of a CSV district import.
+     */
+    public function import_status(int $id): JsonResponse
+    {
+        $csvImport = CsvImport::where('id', $id)
+            ->where('uploaded_by', Auth::id())
+            ->where('type', CsvImport::TYPE_DISTRICTS)
+            ->firstOrFail();
+
+        return ApiResponse::success([
+            'import_id' => $csvImport->id,
+            'status' => $csvImport->status,
+            'total_rows' => $csvImport->total_rows,
+            'processed_rows' => $csvImport->processed_rows,
+            'successful_rows' => $csvImport->successful_rows,
+            'failed_rows' => $csvImport->failed_rows,
+            'row_errors' => $csvImport->row_errors,
+            'error_message' => $csvImport->error_message,
+            'completed_at' => $csvImport->completed_at,
+        ]);
     }
 
     /**

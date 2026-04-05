@@ -159,6 +159,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::middleware('auth:sanctum')->group(function () {
         Route::get('/contracts/index', [ContractController::class, 'index']);
         Route::post('/contracts/store', [ContractController::class, 'store']);
+        Route::post('/contracts/import_csv', [ContractController::class, 'import_contracts_csv']);
+        Route::get('/contracts/import_status/{id}', [ContractController::class, 'import_contracts_status']);
         Route::get('/contracts/show/{id}', [ContractController::class, 'show']);
         Route::get('/contracts/{id}/fill-data', [ContractController::class, 'fillData']);
         Route::get('/contracts/{id}/summary-pdf-data', [ContractController::class, 'summaryPdfData']);
@@ -166,6 +168,8 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::delete('/contracts/{id}', [ContractController::class, 'destroy']);
 
         Route::post('/contracts/store/info/{id}', [ContractInfoController::class, 'store']);
+        Route::post('/contracts/import_info_csv/{contractId}', [ContractInfoController::class, 'import_csv']);
+        Route::get('/contracts/import_info_status/{id}', [ContractInfoController::class, 'import_csv_status']);
         Route::put('/contracts/update/info/{id}', [ContractInfoController::class, 'update']);
 
         // Sales / project-tracker: view second-party-data and photography-department (authorized via ContractPolicy in controller)
@@ -208,6 +212,8 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::prefix('second-party-data')->group(function () {
             // GET show/{id} is only on the auth-only group above (line ~127) so sales/sales_leader can use it; controller authorizes via ContractPolicy
             Route::post('store/{id}', [SecondPartyDataController::class, 'store'])->middleware('permission:second_party.edit');
+            Route::post('import_csv/{contractId}', [SecondPartyDataController::class, 'import_csv'])->middleware('permission:second_party.edit');
+            Route::get('import_status/{id}', [SecondPartyDataController::class, 'import_csv_status'])->middleware('permission:second_party.edit');
             Route::put('update/{id}', [SecondPartyDataController::class, 'update'])->middleware('permission:second_party.edit');
 
             Route::get('/second-parties', [ContractInfoController::class, 'getAllSecondParties'])->middleware('permission:second_party.view');
@@ -249,15 +255,14 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::get('/units-statistics', [ProjectManagementDashboardController::class, 'unitsStatistics'])->middleware('permission:dashboard.analytics.view');
         });
 
-
-
-
-            Route::prefix('project_management')->group(function () {
+        Route::prefix('project_management')->group(function () {
 
                     Route::prefix('teams')->group(function () {
 
                         Route::get('/index', [TeamController::class, 'index']);
                         Route::post('/store', [TeamController::class, 'store']);
+                        Route::post('/import_csv', [TeamController::class, 'import_csv']);
+                        Route::get('/import_status/{id}', [TeamController::class, 'import_status']);
                         Route::put('/update/{id}', [TeamController::class, 'update']);
                         Route::delete('/delete/{id}', [TeamController::class, 'destroy']);
                         Route::get('/show/{id}', [TeamController::class, 'show']);
@@ -437,6 +442,8 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::prefix('employees')->group(function () {
                 Route::get('/roles', [RegisterController::class, 'list_roles'])->middleware('permission:employees.manage');
                 Route::post('/add_employee', [RegisterController::class, 'add_employee'])->middleware('permission:employees.manage');
+                Route::post('/import_employees_csv', [RegisterController::class, 'import_employees_csv'])->middleware('permission:employees.manage');
+                Route::get('/import_status/{id}', [RegisterController::class, 'import_status'])->middleware('permission:employees.manage');
                     Route::get('/list_employees', [RegisterController::class, 'list_employees'])->middleware('permission:employees.manage');
                     Route::get('/show_employee/{id}', [RegisterController::class, 'show_employee'])->middleware('permission:employees.manage');
                     Route::put('/update_employee/{id}', [RegisterController::class, 'update_employee'])->middleware('permission:employees.manage');
@@ -471,6 +478,8 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::prefix('cities')->group(function () {
                 Route::get('/', [CityController::class, 'index']);
                 Route::post('/', [CityController::class, 'store']);
+                Route::post('/import_csv', [CityController::class, 'import_csv']);
+                Route::get('/import_status/{id}', [CityController::class, 'import_status']);
                 Route::get('/{id}', [CityController::class, 'show'])->whereNumber('id');
                 Route::put('/{id}', [CityController::class, 'update'])->whereNumber('id');
                 Route::patch('/{id}', [CityController::class, 'update'])->whereNumber('id');
@@ -481,6 +490,8 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::prefix('districts')->group(function () {
                 Route::get('/', [DistrictController::class, 'index']);
                 Route::post('/', [DistrictController::class, 'store']);
+                Route::post('/import_csv', [DistrictController::class, 'import_csv']);
+                Route::get('/import_status/{id}', [DistrictController::class, 'import_status']);
                 Route::get('/{id}', [DistrictController::class, 'show'])->whereNumber('id');
                 Route::put('/{id}', [DistrictController::class, 'update'])->whereNumber('id');
                 Route::patch('/{id}', [DistrictController::class, 'update'])->whereNumber('id');

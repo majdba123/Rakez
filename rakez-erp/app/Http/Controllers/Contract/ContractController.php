@@ -6,15 +6,19 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Contract\StoreContractRequest;
 use App\Http\Requests\Contract\UpdateContractRequest;
 use App\Http\Requests\Contract\UpdateContractStatusRequest;
+use App\Http\Requests\Contract\ImportContractsCsv;
 use App\Http\Resources\Contract\ContractResource;
 use App\Http\Resources\Contract\ContractIndexResource;
+use App\Jobs\ProcessContractsCsv;
 use App\Models\Contract;
+use App\Models\CsvImport;
 use App\Services\Contract\ContractService;
 use App\Services\Contract\InventoryAgencyOverviewService;
 use App\Services\Contract\InventoryDashboardService;
 use App\Services\Pdf\ContractPdfDataService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Exception;
 
 class ContractController extends Controller
@@ -528,5 +532,85 @@ class ContractController extends Controller
                 'message' => $e->getMessage(),
             ], str_contains($e->getMessage(), 'No query results') || str_contains($e->getMessage(), 'Contract not found') ? 404 : 422);
         }
+    }
+
+    /**
+     * Upload a CSV file for bulk contract import.
+     * Validates file and header, then dispatches a queue job.
+     */
+    public function import_contracts_csv(ImportContractsCsv $request): JsonResponse
+    {
+        $file = $request->file('file');
+
+        $handle = fopen($file->getRealPath(), 'r');
+        if ($handle === false) {
+            return response()->json(['success' => false, 'message' => 'Unable to read the CSV file.'], 422);
+        }
+
+        $header = fgetcsv($handle);
+        fclose($handle);
+
+        if (!$header) {
+            return response()->json(['success' => false, 'message' => 'CSV file is empty or has no header row.'], 422);
+        }
+
+        $header = array_map(fn ($col) => strtolower(trim($col)), $header);
+
+        $requiredColumns = [
+            'developer_name', 'developer_number',
+            'city_id', 'district_id', 'project_name', 'developer_requiment',
+            'unit_type', 'unit_count', 'unit_price',
+        ];
+        $missing = array_diff($requiredColumns, $header);
+
+        if (!empty($missing)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'CSV is missing required columns.',
+                'missing_columns' => array_values($missing),
+            ], 422);
+        }
+
+        $storedPath = $file->store('csv-imports', 'local');
+
+        $csvImport = CsvImport::create([
+            'type' => CsvImport::TYPE_CONTRACTS,
+            'uploaded_by' => Auth::id(),
+            'file_path' => $storedPath,
+            'status' => CsvImport::STATUS_PENDING,
+        ]);
+
+        ProcessContractsCsv::dispatch($csvImport->id, Auth::id());
+
+        return response()->json([
+            'success' => true,
+            'message' => 'CSV uploaded successfully. Import is being processed.',
+            'import_id' => $csvImport->id,
+            'status' => $csvImport->status,
+        ], 202);
+    }
+
+    /**
+     * Poll the status of a CSV contract import.
+     */
+    public function import_contracts_status(int $id): JsonResponse
+    {
+        $csvImport = CsvImport::where('id', $id)
+            ->where('uploaded_by', Auth::id())
+            ->where('type', CsvImport::TYPE_CONTRACTS)
+            ->firstOrFail();
+
+        return response()->json([
+            'success' => true,
+            'import_id' => $csvImport->id,
+            'status' => $csvImport->status,
+            'total_rows' => $csvImport->total_rows,
+            'processed_rows' => $csvImport->processed_rows,
+            'successful_rows' => $csvImport->successful_rows,
+            'failed_rows' => $csvImport->failed_rows,
+            'row_errors' => $csvImport->row_errors,
+            'error_message' => $csvImport->error_message,
+            'completed_at' => $csvImport->completed_at,
+        ]);
     }
 }

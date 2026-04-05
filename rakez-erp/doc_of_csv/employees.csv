@@ -1,0 +1,4 @@
+name,email,phone,password,type,role,is_manager,team,identity_number,birthday,date_of_works,contract_type,iban,salary,marital_status
+أحمد محمد,ahmed@example.com,0501234567,Secret@123,1,sales,false,,1234567890,1995-01-15,2024-01-01,full_time,SA1234567890123456789012,8000,single
+سارة علي,sara@example.com,0509876543,Secret@456,2,hr,false,,9876543210,1990-06-20,2023-06-15,full_time,SA9876543210987654321098,10000,married
+خالد حسن,khaled@example.com,0551112233,Secret@789,1,sales,true,1,5555555555,1988-03-10,2022-01-01,full_time,SA5555555555123456789012,12000,married

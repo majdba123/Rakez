@@ -3,17 +3,22 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\Team\AssignSalesTeamMemberRequest;
+use App\Http\Requests\Team\ImportTeamsCsv;
 use App\Http\Requests\Team\TeamContractsRequest;
 use App\Http\Requests\Team\StoreTeamRequest;
 use App\Http\Requests\Team\UpdateTeamRequest;
 use App\Http\Resources\Contract\ContractIndexResource;
 use App\Http\Resources\Shared\UserResource;
 use App\Http\Resources\TeamResource;
+use App\Jobs\ProcessTeamsCsv;
+use App\Models\CsvImport;
 use App\Models\Team;
 use App\Services\Contract\ContractService;
 use App\Services\Team\TeamService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Storage;
 use Exception;
 
 class TeamController extends Controller
@@ -385,6 +390,80 @@ class TeamController extends Controller
             ], $statusCode);
         }
     }
+
+    public function import_csv(ImportTeamsCsv $request): JsonResponse
+    {
+        $file = $request->file('file');
+        $path = $file->store('csv_imports/teams', 'local');
+
+        $handle = fopen($file->getRealPath(), 'r');
+        $header = $handle ? fgetcsv($handle) : null;
+        if ($handle) {
+            fclose($handle);
+        }
+
+        if (!$header) {
+            return response()->json([
+                'success' => false,
+                'message' => 'CSV file is empty or has no header row.',
+            ], 422);
+        }
+
+        $header = array_map(fn ($col) => strtolower(trim($col)), $header);
+        $required = ['name'];
+        $missing = array_diff($required, $header);
+
+        if (!empty($missing)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'CSV is missing required columns: ' . implode(', ', $missing),
+            ], 422);
+        }
+
+        $csvImport = CsvImport::create([
+            'type'      => CsvImport::TYPE_TEAMS,
+            'file_path' => $path,
+            'status'    => 'pending',
+            'user_id'   => Auth::id(),
+        ]);
+
+        ProcessTeamsCsv::dispatch($csvImport->id, Auth::id());
+
+        return response()->json([
+            'success' => true,
+            'message' => 'تم رفع الملف وبدأ الاستيراد.',
+            'data'    => [
+                'import_id' => $csvImport->id,
+                'status'    => $csvImport->status,
+            ],
+        ], 202);
+    }
+
+    public function import_status(int $id): JsonResponse
+    {
+        $csvImport = CsvImport::where('id', $id)
+            ->where('type', CsvImport::TYPE_TEAMS)
+            ->first();
+
+        if (!$csvImport) {
+            return response()->json([
+                'success' => false,
+                'message' => 'سجل الاستيراد غير موجود.',
+            ], 404);
+        }
+
+        return response()->json([
+            'success' => true,
+            'data'    => [
+                'id'              => $csvImport->id,
+                'status'          => $csvImport->status,
+                'total_rows'      => $csvImport->total_rows,
+                'processed_rows'  => $csvImport->processed_rows,
+                'successful_rows' => $csvImport->successful_rows,
+                'failed_rows'     => $csvImport->failed_rows,
+                'row_errors'      => $csvImport->row_errors,
+                'error_message'   => $csvImport->error_message,
+            ],
+        ]);
+    }
 }
-
-

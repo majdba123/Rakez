@@ -6,8 +6,13 @@ use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\registartion\RegisterUser;
 use App\Http\Requests\registartion\UpdateUser;
+use App\Http\Requests\registartion\ImportEmployeesCsv;
 use App\Services\registartion\register;
+use App\Jobs\ProcessEmployeesCsv;
+use App\Models\CsvImport;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Storage;
 use App\Models\User;
 use App\Http\Resources\UserResource;
 
@@ -38,6 +43,80 @@ class RegisterController extends Controller
     }
 
     /**
+     * Upload a CSV file for bulk employee import.
+     * Validates the file and header, then dispatches a queue job.
+     * Returns an import ID the frontend can poll for status.
+     */
+    public function import_employees_csv(ImportEmployeesCsv $request): JsonResponse
+    {
+        $file = $request->file('file');
+
+        // Quick header validation before storing
+        $handle = fopen($file->getRealPath(), 'r');
+        if ($handle === false) {
+            return response()->json(['message' => 'Unable to read the CSV file.'], 422);
+        }
+
+        $header = fgetcsv($handle);
+        fclose($handle);
+
+        if (!$header) {
+            return response()->json(['message' => 'CSV file is empty or has no header row.'], 422);
+        }
+
+        $header = array_map(fn ($col) => strtolower(trim($col)), $header);
+        $requiredColumns = ['name', 'email', 'password', 'type'];
+        $missing = array_diff($requiredColumns, $header);
+
+        if (!empty($missing)) {
+            return response()->json([
+                'message' => 'CSV is missing required columns.',
+                'missing_columns' => array_values($missing),
+            ], 422);
+        }
+
+        $storedPath = $file->store('csv-imports', 'local');
+
+        $csvImport = CsvImport::create([
+            'type' => CsvImport::TYPE_EMPLOYEES,
+            'uploaded_by' => Auth::id(),
+            'file_path' => $storedPath,
+            'status' => CsvImport::STATUS_PENDING,
+        ]);
+
+        ProcessEmployeesCsv::dispatch($csvImport->id);
+
+        return response()->json([
+            'message' => 'CSV uploaded successfully. Import is being processed.',
+            'import_id' => $csvImport->id,
+            'status' => $csvImport->status,
+        ], 202);
+    }
+
+    /**
+     * Poll the status of a CSV employee import.
+     */
+    public function import_status(int $id): JsonResponse
+    {
+        $csvImport = CsvImport::where('id', $id)
+            ->where('uploaded_by', Auth::id())
+            ->where('type', CsvImport::TYPE_EMPLOYEES)
+            ->firstOrFail();
+
+        return response()->json([
+            'import_id' => $csvImport->id,
+            'status' => $csvImport->status,
+            'total_rows' => $csvImport->total_rows,
+            'processed_rows' => $csvImport->processed_rows,
+            'successful_rows' => $csvImport->successful_rows,
+            'failed_rows' => $csvImport->failed_rows,
+            'row_errors' => $csvImport->row_errors,
+            'error_message' => $csvImport->error_message,
+            'completed_at' => $csvImport->completed_at,
+        ]);
+    }
+
+    /**
      * List all employees with filtering and pagination
      *
      * @param Request $request
@@ -58,7 +137,7 @@ class RegisterController extends Controller
             'sort_order' => 'nullable|string|in:asc,desc',
             'per_page' => 'nullable|integer|min:1|max:100',
         ]);
-        
+
         $users = $this->userService->listEmployees($validated);
 
         return UserResource::collection($users)

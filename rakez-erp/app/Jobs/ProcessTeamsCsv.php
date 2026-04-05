@@ -1,0 +1,236 @@
+<?php
+
+namespace App\Jobs;
+
+use App\Models\CsvImport;
+use App\Services\Team\TeamService;
+use Illuminate\Bus\Queueable;
+use Illuminate\Contracts\Queue\ShouldQueue;
+use Illuminate\Foundation\Bus\Dispatchable;
+use Illuminate\Queue\InteractsWithQueue;
+use Illuminate\Queue\SerializesModels;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Validator;
+use Illuminate\Validation\Rule;
+use Exception;
+
+class ProcessTeamsCsv implements ShouldQueue
+{
+    use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
+
+    public int $tries = 1;
+    public int $timeout = 300;
+
+    protected int $csvImportId;
+    protected int $userId;
+
+    private const REQUIRED_COLUMNS = ['name'];
+
+    public function __construct(int $csvImportId, int $userId)
+    {
+        $this->csvImportId = $csvImportId;
+        $this->userId = $userId;
+    }
+
+    public function handle(): void
+    {
+        $csvImport = CsvImport::findOrFail($this->csvImportId);
+        $csvImport->markProcessing();
+
+        try {
+            $rows = $this->parseFile($csvImport->file_path);
+            $csvImport->update(['total_rows' => count($rows)]);
+
+            // Phase 1: validate all rows
+            $rowErrors = [];
+            $validRows = [];
+            $seenNames = [];
+            $seenCodes = [];
+
+            foreach ($rows as $index => $row) {
+                $csvRowNumber = $index + 2;
+
+                foreach ($row as $k => $v) {
+                    if ($v === '') {
+                        $row[$k] = null;
+                    }
+                }
+
+                $errors = $this->validateRow($row, $seenNames, $seenCodes);
+
+                if (!empty($errors)) {
+                    $rowErrors["row_{$csvRowNumber}"] = $errors;
+                    continue;
+                }
+
+                $nameLower = strtolower(trim($row['name']));
+                $seenNames[$nameLower] = $csvRowNumber;
+
+                if (!empty($row['code'])) {
+                    $seenCodes[strtolower(trim($row['code']))] = $csvRowNumber;
+                }
+
+                $validRows[$index] = $row;
+            }
+
+            // Phase 2: insert
+            $service = app(TeamService::class);
+            $successful = 0;
+            $failed = count($rowErrors);
+
+            if (!empty($validRows)) {
+                DB::beginTransaction();
+                try {
+                    foreach ($validRows as $index => $row) {
+                        $csvRowNumber = $index + 2;
+                        try {
+                            $service->storeTeam($row, $this->userId);
+                            $successful++;
+                        } catch (Exception $e) {
+                            $rowErrors["row_{$csvRowNumber}"] = ['store' => [$e->getMessage()]];
+                            $failed++;
+                        }
+
+                        $csvImport->update(['processed_rows' => $successful + $failed]);
+                    }
+
+                    if ($successful > 0) {
+                        DB::commit();
+                    } else {
+                        DB::rollBack();
+                    }
+                } catch (Exception $e) {
+                    DB::rollBack();
+                    throw $e;
+                }
+            }
+
+            $csvImport->update([
+                'successful_rows' => $successful,
+                'failed_rows' => $failed,
+                'processed_rows' => $successful + $failed,
+                'row_errors' => !empty($rowErrors) ? $rowErrors : null,
+            ]);
+
+            $csvImport->markCompleted();
+            Storage::disk('local')->delete($csvImport->file_path);
+
+            Log::info("Teams CSV import #{$this->csvImportId} completed: {$successful} ok, {$failed} failed.");
+
+        } catch (Exception $e) {
+            $csvImport->markFailed($e->getMessage());
+
+            if (Storage::disk('local')->exists($csvImport->file_path)) {
+                Storage::disk('local')->delete($csvImport->file_path);
+            }
+
+            Log::error("Teams CSV import #{$this->csvImportId} failed: " . $e->getMessage());
+            throw $e;
+        }
+    }
+
+    public function failed(Exception $exception): void
+    {
+        $csvImport = CsvImport::find($this->csvImportId);
+
+        if ($csvImport) {
+            $csvImport->markFailed($exception->getMessage());
+
+            if (Storage::disk('local')->exists($csvImport->file_path)) {
+                Storage::disk('local')->delete($csvImport->file_path);
+            }
+        }
+
+        Log::error("ProcessTeamsCsv job #{$this->csvImportId} failed", [
+            'error' => $exception->getMessage(),
+        ]);
+    }
+
+    private function parseFile(string $filePath): array
+    {
+        $fullPath = Storage::disk('local')->path($filePath);
+
+        if (!file_exists($fullPath)) {
+            throw new Exception('CSV file not found on disk.');
+        }
+
+        $handle = fopen($fullPath, 'r');
+        if ($handle === false) {
+            throw new Exception('Unable to open CSV file.');
+        }
+
+        $header = fgetcsv($handle);
+        if (!$header) {
+            fclose($handle);
+            throw new Exception('CSV file is empty or has no header row.');
+        }
+
+        $header = array_map(fn ($col) => strtolower(trim($col)), $header);
+
+        $missing = array_diff(self::REQUIRED_COLUMNS, $header);
+        if (!empty($missing)) {
+            fclose($handle);
+            throw new Exception('CSV is missing required columns: ' . implode(', ', $missing));
+        }
+
+        $rows = [];
+        $lineNumber = 1;
+
+        while (($line = fgetcsv($handle)) !== false) {
+            $lineNumber++;
+            if (count($line) !== count($header)) {
+                fclose($handle);
+                throw new Exception("Row {$lineNumber} has a column count mismatch with the header.");
+            }
+            $rows[] = array_combine($header, array_map('trim', $line));
+        }
+
+        fclose($handle);
+
+        if (empty($rows)) {
+            throw new Exception('CSV file contains no data rows.');
+        }
+
+        return $rows;
+    }
+
+    private function validateRow(array $row, array $seenNames, array $seenCodes): array
+    {
+        $rules = [
+            'name'        => ['required', 'string', 'max:255', 'unique:teams,name'],
+            'code'        => ['nullable', 'string', 'max:32', 'unique:teams,code'],
+            'description' => ['nullable', 'string'],
+        ];
+
+        $messages = [
+            'name.required' => 'اسم الفريق مطلوب',
+            'name.max'      => 'اسم الفريق يجب ألا يتجاوز 255 حرفاً',
+            'name.unique'   => 'اسم الفريق مستخدم مسبقاً في قاعدة البيانات',
+            'code.max'      => 'رمز الفريق يجب ألا يتجاوز 32 حرفاً',
+            'code.unique'   => 'رمز الفريق مستخدم مسبقاً في قاعدة البيانات',
+        ];
+
+        $validator = Validator::make($row, $rules, $messages);
+
+        if ($validator->fails()) {
+            return $validator->errors()->toArray();
+        }
+
+        // Intra-CSV duplicate checks
+        $nameLower = strtolower(trim($row['name']));
+        if (isset($seenNames[$nameLower])) {
+            return ['name' => ["اسم الفريق مكرر في ملف CSV (أول ظهور في صف {$seenNames[$nameLower]})."]];
+        }
+
+        if (!empty($row['code'])) {
+            $codeLower = strtolower(trim($row['code']));
+            if (isset($seenCodes[$codeLower])) {
+                return ['code' => ["رمز الفريق مكرر في ملف CSV (أول ظهور في صف {$seenCodes[$codeLower]})."]];
+            }
+        }
+
+        return [];
+    }
+}
