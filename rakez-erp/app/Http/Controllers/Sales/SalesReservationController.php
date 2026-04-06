@@ -230,7 +230,7 @@ class SalesReservationController extends Controller
             ])->findOrFail($id);
 
             $user = request()->user();
-            if ($reservation->marketing_employee_id !== $user->id && !$user->hasRole('admin')) {
+            if ($reservation->marketing_employee_id !== $user->id && !$user->hasRole('admin') && !$user->hasRole('project_management')) {
                 return response()->json([
                     'success' => false,
                     'message' => 'Unauthorized to view this voucher',
@@ -296,7 +296,7 @@ class SalesReservationController extends Controller
 
             // Check authorization
             $user = request()->user();
-            if ($reservation->marketing_employee_id !== $user->id && !$user->hasRole('admin')) {
+            if ($reservation->marketing_employee_id !== $user->id && !$user->hasRole('admin') && !$user->hasRole('project_management')) {
                 return response()->json([
                     'success' => false,
                     'message' => 'Unauthorized to download this voucher',

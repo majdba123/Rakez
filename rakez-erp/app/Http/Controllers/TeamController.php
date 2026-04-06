@@ -421,10 +421,10 @@ class TeamController extends Controller
         }
 
         $csvImport = CsvImport::create([
-            'type'      => CsvImport::TYPE_TEAMS,
-            'file_path' => $path,
-            'status'    => 'pending',
-            'user_id'   => Auth::id(),
+            'type'        => CsvImport::TYPE_TEAMS,
+            'uploaded_by' => Auth::id(),
+            'file_path'   => $path,
+            'status'      => CsvImport::STATUS_PENDING,
         ]);
 
         ProcessTeamsCsv::dispatch($csvImport->id, Auth::id());

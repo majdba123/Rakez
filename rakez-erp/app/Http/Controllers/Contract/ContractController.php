@@ -53,7 +53,10 @@ class ContractController extends Controller
 
             // Apply access control filters: all users see own contracts + contracts with status approved/completed
             if ($user->can('contracts.view_all')) {
-                // Can view all, no user filter enforced
+                // Can view all; allow optional user_id filter from request
+                if ($request->filled('user_id')) {
+                    $filters['user_id'] = (int) $request->input('user_id');
+                }
             } elseif ($user->isManager() && $user->team) {
                 $filters['user_id'] = $user->id;
                 $filters['include_public_status_contracts'] = true;

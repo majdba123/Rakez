@@ -282,7 +282,18 @@ Route::middleware('auth:sanctum')->group(function () {
 
                     });
 
+                    Route::get('units/{unitId}/reservation-context', [SalesReservationController::class, 'context'])->middleware('permission:sales.reservations.create');
 
+                    Route::prefix('reservations')->group(function () {
+                        Route::post('/', [SalesReservationController::class, 'store'])->middleware('permission:sales.reservations.create');
+                        Route::get('/', [SalesReservationController::class, 'index'])->middleware('permission:sales.reservations.view');
+                        Route::get('/{id}', [SalesReservationController::class, 'show'])->whereNumber('id')->middleware('permission:sales.reservations.view');
+                        Route::post('/{id}/confirm', [SalesReservationController::class, 'confirm'])->middleware('permission:sales.reservations.confirm');
+                        Route::post('/{id}/cancel', [SalesReservationController::class, 'cancel'])->middleware('permission:sales.reservations.cancel');
+                        Route::post('/{id}/actions', [SalesReservationController::class, 'storeAction'])->middleware('permission:sales.reservations.view');
+                        Route::get('/{id}/voucher', [SalesReservationController::class, 'downloadVoucher'])->middleware('permission:sales.reservations.view');
+                        Route::get('/{id}/voucher-data', [SalesReservationController::class, 'voucherData'])->middleware('permission:sales.reservations.view');
+                    });
 
             });
 

@@ -174,8 +174,8 @@ class SalesReservationService
 
         // Check ownership first - regular sales employees can only confirm their own reservations
         if ($reservation->marketing_employee_id !== $user->id) {
-            // Only admins can confirm others' reservations
-            if (!$user->hasRole('admin')) {
+            // Only admins and project_management can confirm others' reservations
+            if (!$user->hasRole('admin') && !$user->hasRole('project_management')) {
                 throw new \Illuminate\Auth\Access\AuthorizationException('Unauthorized to confirm this reservation');
             }
         }
@@ -203,9 +203,9 @@ class SalesReservationService
     {
         $reservation = SalesReservation::findOrFail($id);
 
-        // Check ownership: sales can cancel own; admin and credit can cancel any (e.g. bank rejected, client withdrew)
+        // Check ownership: sales can cancel own; admin, credit and project_management can cancel any
         if ($reservation->marketing_employee_id !== $user->id) {
-            if (!$user->hasRole('admin') && !$user->hasRole('credit')) {
+            if (!$user->hasRole('admin') && !$user->hasRole('credit') && !$user->hasRole('project_management')) {
                 throw new \Illuminate\Auth\Access\AuthorizationException('Unauthorized to cancel this reservation');
             }
         }
