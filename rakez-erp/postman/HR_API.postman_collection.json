@@ -1,0 +1,581 @@
+{
+	"info": {
+		"name": "HR API",
+		"description": "Rakez ERP – HR module endpoints.\n\nAll routes require `auth:sanctum` + `hr` middleware.\nBase URL: `{{base_url}}/api/hr`",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"variable": [
+		{
+			"key": "base_url",
+			"value": "http://localhost:8000",
+			"type": "string"
+		},
+		{
+			"key": "token",
+			"value": "",
+			"type": "string"
+		}
+	],
+	"auth": {
+		"type": "bearer",
+		"bearer": [
+			{
+				"key": "token",
+				"value": "{{token}}",
+				"type": "string"
+			}
+		]
+	},
+	"item": [
+		{
+			"name": "Employees",
+			"item": [
+				{
+					"name": "Add Employee",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"أحمد محمد\",\n  \"email\": \"ahmad@example.com\",\n  \"password\": \"password123\",\n  \"phone\": \"0512345678\"\n}",
+							"options": { "raw": { "language": "json" } }
+						},
+						"url": { "raw": "{{base_url}}/api/hr/add_employee", "host": ["{{base_url}}"], "path": ["api","hr","add_employee"] }
+					}
+				},
+				{
+					"name": "List Employees",
+					"request": {
+						"method": "GET",
+						"url": { "raw": "{{base_url}}/api/hr/list_employees", "host": ["{{base_url}}"], "path": ["api","hr","list_employees"] }
+					}
+				},
+				{
+					"name": "Show Employee",
+					"request": {
+						"method": "GET",
+						"url": { "raw": "{{base_url}}/api/hr/show_employee/1", "host": ["{{base_url}}"], "path": ["api","hr","show_employee","1"] }
+					}
+				},
+				{
+					"name": "Update Employee",
+					"request": {
+						"method": "PUT",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"أحمد محمد (محدث)\",\n  \"phone\": \"0598765432\"\n}",
+							"options": { "raw": { "language": "json" } }
+						},
+						"url": { "raw": "{{base_url}}/api/hr/update_employee/1", "host": ["{{base_url}}"], "path": ["api","hr","update_employee","1"] }
+					}
+				},
+				{
+					"name": "Delete Employee",
+					"request": {
+						"method": "DELETE",
+						"url": { "raw": "{{base_url}}/api/hr/delete_employee/1", "host": ["{{base_url}}"], "path": ["api","hr","delete_employee","1"] }
+					}
+				}
+			]
+		},
+		{
+			"name": "Employee Contracts",
+			"item": [
+				{
+					"name": "Get Contract PDF Data",
+					"request": {
+						"method": "GET",
+						"url": { "raw": "{{base_url}}/api/hr/contracts/1/pdf-data", "host": ["{{base_url}}"], "path": ["api","hr","contracts","1","pdf-data"] }
+					}
+				},
+				{
+					"name": "List Employee Contracts",
+					"request": {
+						"method": "GET",
+						"url": { "raw": "{{base_url}}/api/hr/users/1/contracts", "host": ["{{base_url}}"], "path": ["api","hr","users","1","contracts"] }
+					}
+				},
+				{
+					"name": "Create Employee Contract",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"contract_type\": \"full_time\",\n  \"start_date\": \"2026-01-01\",\n  \"end_date\": \"2027-01-01\",\n  \"salary\": 8000\n}",
+							"options": { "raw": { "language": "json" } }
+						},
+						"url": { "raw": "{{base_url}}/api/hr/users/1/contracts", "host": ["{{base_url}}"], "path": ["api","hr","users","1","contracts"] }
+					}
+				}
+			]
+		},
+		{
+			"name": "Users",
+			"item": [
+				{
+					"name": "List Users",
+					"request": {
+						"method": "GET",
+						"url": { "raw": "{{base_url}}/api/hr/users", "host": ["{{base_url}}"], "path": ["api","hr","users"] }
+					}
+				},
+				{
+					"name": "Create User",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"موظف جديد\",\n  \"email\": \"new@example.com\",\n  \"password\": \"password123\",\n  \"phone\": \"0501234567\"\n}",
+							"options": { "raw": { "language": "json" } }
+						},
+						"url": { "raw": "{{base_url}}/api/hr/users", "host": ["{{base_url}}"], "path": ["api","hr","users"] }
+					}
+				},
+				{
+					"name": "Show User",
+					"request": {
+						"method": "GET",
+						"url": { "raw": "{{base_url}}/api/hr/users/1", "host": ["{{base_url}}"], "path": ["api","hr","users","1"] }
+					}
+				},
+				{
+					"name": "Update User",
+					"request": {
+						"method": "PUT",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"اسم محدث\",\n  \"phone\": \"0509876543\"\n}",
+							"options": { "raw": { "language": "json" } }
+						},
+						"url": { "raw": "{{base_url}}/api/hr/users/1", "host": ["{{base_url}}"], "path": ["api","hr","users","1"] }
+					}
+				},
+				{
+					"name": "Delete User",
+					"request": {
+						"method": "DELETE",
+						"url": { "raw": "{{base_url}}/api/hr/users/1", "host": ["{{base_url}}"], "path": ["api","hr","users","1"] }
+					}
+				},
+				{
+					"name": "Upload User Files",
+					"request": {
+						"method": "POST",
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{ "key": "files[]", "type": "file", "src": "" }
+							]
+						},
+						"url": { "raw": "{{base_url}}/api/hr/users/1/files", "host": ["{{base_url}}"], "path": ["api","hr","users","1","files"] }
+					}
+				},
+				{
+					"name": "Toggle User Status",
+					"request": {
+						"method": "PATCH",
+						"url": { "raw": "{{base_url}}/api/hr/users/1/status", "host": ["{{base_url}}"], "path": ["api","hr","users","1","status"] }
+					}
+				}
+			]
+		},
+		{
+			"name": "Warnings",
+			"item": [
+				{
+					"name": "List Employee Warnings",
+					"request": {
+						"method": "GET",
+						"url": { "raw": "{{base_url}}/api/hr/users/1/warnings", "host": ["{{base_url}}"], "path": ["api","hr","users","1","warnings"] }
+					}
+				},
+				{
+					"name": "Create Employee Warning",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"reason\": \"تأخر متكرر\",\n  \"warning_type\": \"verbal\"\n}",
+							"options": { "raw": { "language": "json" } }
+						},
+						"url": { "raw": "{{base_url}}/api/hr/users/1/warnings", "host": ["{{base_url}}"], "path": ["api","hr","users","1","warnings"] }
+					}
+				}
+			]
+		},
+		{
+			"name": "Teams",
+			"item": [
+				{
+					"name": "List Teams",
+					"request": {
+						"method": "GET",
+						"url": { "raw": "{{base_url}}/api/hr/teams", "host": ["{{base_url}}"], "path": ["api","hr","teams"] }
+					}
+				},
+				{
+					"name": "Create Team",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"فريق المبيعات\",\n  \"code\": \"SALES-01\"\n}",
+							"options": { "raw": { "language": "json" } }
+						},
+						"url": { "raw": "{{base_url}}/api/hr/teams", "host": ["{{base_url}}"], "path": ["api","hr","teams"] }
+					}
+				},
+				{
+					"name": "Show Team",
+					"request": {
+						"method": "GET",
+						"url": { "raw": "{{base_url}}/api/hr/teams/1", "host": ["{{base_url}}"], "path": ["api","hr","teams","1"] }
+					}
+				},
+				{
+					"name": "Update Team",
+					"request": {
+						"method": "PUT",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"فريق المبيعات (محدث)\"\n}",
+							"options": { "raw": { "language": "json" } }
+						},
+						"url": { "raw": "{{base_url}}/api/hr/teams/1", "host": ["{{base_url}}"], "path": ["api","hr","teams","1"] }
+					}
+				},
+				{
+					"name": "Delete Team",
+					"request": {
+						"method": "DELETE",
+						"url": { "raw": "{{base_url}}/api/hr/teams/1", "host": ["{{base_url}}"], "path": ["api","hr","teams","1"] }
+					}
+				},
+				{
+					"name": "List Team Members",
+					"request": {
+						"method": "GET",
+						"url": { "raw": "{{base_url}}/api/hr/teams/1/members", "host": ["{{base_url}}"], "path": ["api","hr","teams","1","members"] }
+					}
+				},
+				{
+					"name": "Assign Member to Team",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"user_id\": 2\n}",
+							"options": { "raw": { "language": "json" } }
+						},
+						"url": { "raw": "{{base_url}}/api/hr/teams/1/members", "host": ["{{base_url}}"], "path": ["api","hr","teams","1","members"] }
+					}
+				},
+				{
+					"name": "Remove Member from Team",
+					"request": {
+						"method": "DELETE",
+						"url": { "raw": "{{base_url}}/api/hr/teams/1/members/2", "host": ["{{base_url}}"], "path": ["api","hr","teams","1","members","2"] }
+					}
+				},
+				{
+					"name": "Team Contracts",
+					"request": {
+						"method": "GET",
+						"url": { "raw": "{{base_url}}/api/hr/teams/contracts/1", "host": ["{{base_url}}"], "path": ["api","hr","teams","contracts","1"] }
+					}
+				},
+				{
+					"name": "Team Contract Locations",
+					"request": {
+						"method": "GET",
+						"url": { "raw": "{{base_url}}/api/hr/teams/contracts/locations/1", "host": ["{{base_url}}"], "path": ["api","hr","teams","contracts","locations","1"] }
+					}
+				},
+				{
+					"name": "Team Sales Average",
+					"request": {
+						"method": "GET",
+						"url": { "raw": "{{base_url}}/api/hr/teams/sales-average/1", "host": ["{{base_url}}"], "path": ["api","hr","teams","sales-average","1"] }
+					}
+				},
+				{
+					"name": "Get Teams for Contract",
+					"request": {
+						"method": "GET",
+						"url": { "raw": "{{base_url}}/api/hr/teams/getTeamsForContract/1", "host": ["{{base_url}}"], "path": ["api","hr","teams","getTeamsForContract","1"] }
+					}
+				}
+			]
+		},
+		{
+			"name": "Marketers",
+			"item": [
+				{
+					"name": "All Marketers Performance",
+					"request": {
+						"method": "GET",
+						"url": { "raw": "{{base_url}}/api/hr/marketers/performance", "host": ["{{base_url}}"], "path": ["api","hr","marketers","performance"] }
+					}
+				},
+				{
+					"name": "Single Marketer Performance",
+					"request": {
+						"method": "GET",
+						"url": { "raw": "{{base_url}}/api/hr/marketers/1/performance", "host": ["{{base_url}}"], "path": ["api","hr","marketers","1","performance"] }
+					}
+				}
+			]
+		},
+		{
+			"name": "Targets",
+			"item": [
+				{
+					"name": "List Targets",
+					"request": {
+						"method": "GET",
+						"url": {
+							"raw": "{{base_url}}/api/hr/targets?status=&marketer_id=&leader_id=&contract_id=&target_type=&from=&to=&per_page=15",
+							"host": ["{{base_url}}"],
+							"path": ["api","hr","targets"],
+							"query": [
+								{ "key": "status", "value": "", "description": "Filter: new, in_progress, completed" },
+								{ "key": "marketer_id", "value": "", "description": "Filter by marketer ID" },
+								{ "key": "leader_id", "value": "", "description": "Filter by leader ID" },
+								{ "key": "contract_id", "value": "", "description": "Filter by contract/project ID" },
+								{ "key": "target_type", "value": "", "description": "Filter: reservation, negotiation, closing" },
+								{ "key": "from", "value": "", "description": "Start date (Y-m-d)" },
+								{ "key": "to", "value": "", "description": "End date (Y-m-d)" },
+								{ "key": "per_page", "value": "15", "description": "Items per page (max 100)" }
+							]
+						}
+					}
+				},
+				{
+					"name": "Target Statistics by Marketer",
+					"request": {
+						"method": "GET",
+						"url": {
+							"raw": "{{base_url}}/api/hr/targets/statistics/1?leader_id=&contract_id=&from=&to=",
+							"host": ["{{base_url}}"],
+							"path": ["api","hr","targets","statistics","1"],
+							"query": [
+								{ "key": "leader_id", "value": "", "description": "Filter by leader ID" },
+								{ "key": "contract_id", "value": "", "description": "Filter by contract/project ID" },
+								{ "key": "from", "value": "", "description": "Start date (Y-m-d)" },
+								{ "key": "to", "value": "", "description": "End date (Y-m-d)" }
+							]
+						}
+					}
+				},
+				{
+					"name": "Marketers Target Stats",
+					"request": {
+						"method": "GET",
+						"url": {
+							"raw": "{{base_url}}/api/hr/targets/marketers?from=&to=",
+							"host": ["{{base_url}}"],
+							"path": ["api","hr","targets","marketers"],
+							"query": [
+								{ "key": "from", "value": "", "description": "Start date (Y-m-d)" },
+								{ "key": "to", "value": "", "description": "End date (Y-m-d)" }
+							]
+						}
+					}
+				},
+				{
+					"name": "Reservation Statistics",
+					"request": {
+						"method": "GET",
+						"url": {
+							"raw": "{{base_url}}/api/hr/targets/reservation-statistics?marketer_id=&contract_id=&from=&to=",
+							"host": ["{{base_url}}"],
+							"path": ["api","hr","targets","reservation-statistics"],
+							"query": [
+								{ "key": "marketer_id", "value": "", "description": "Filter by marketer ID" },
+								{ "key": "contract_id", "value": "", "description": "Filter by contract/project ID" },
+								{ "key": "from", "value": "", "description": "Start date (Y-m-d)" },
+								{ "key": "to", "value": "", "description": "End date (Y-m-d)" }
+							]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "Dashboard",
+			"item": [
+				{
+					"name": "HR Dashboard (Legacy)",
+					"request": {
+						"method": "GET",
+						"url": { "raw": "{{base_url}}/api/hr/dashboard", "host": ["{{base_url}}"], "path": ["api","hr","dashboard"] }
+					}
+				},
+				{
+					"name": "HR Dashboard KPIs",
+					"request": {
+						"method": "GET",
+						"url": { "raw": "{{base_url}}/api/hr/dashboard", "host": ["{{base_url}}"], "path": ["api","hr","dashboard"] }
+					}
+				},
+				{
+					"name": "Refresh Dashboard",
+					"request": {
+						"method": "POST",
+						"url": { "raw": "{{base_url}}/api/hr/dashboard/refresh", "host": ["{{base_url}}"], "path": ["api","hr","dashboard","refresh"] }
+					}
+				}
+			]
+		},
+		{
+			"name": "Reports",
+			"item": [
+				{
+					"name": "Team Performance",
+					"request": {
+						"method": "GET",
+						"url": { "raw": "{{base_url}}/api/hr/reports/team-performance", "host": ["{{base_url}}"], "path": ["api","hr","reports","team-performance"] }
+					}
+				},
+				{
+					"name": "Marketer Performance",
+					"request": {
+						"method": "GET",
+						"url": { "raw": "{{base_url}}/api/hr/reports/marketer-performance", "host": ["{{base_url}}"], "path": ["api","hr","reports","marketer-performance"] }
+					}
+				},
+				{
+					"name": "Marketer Performance PDF",
+					"request": {
+						"method": "GET",
+						"url": { "raw": "{{base_url}}/api/hr/reports/marketer-performance/pdf", "host": ["{{base_url}}"], "path": ["api","hr","reports","marketer-performance","pdf"] }
+					}
+				},
+				{
+					"name": "Employee Count",
+					"request": {
+						"method": "GET",
+						"url": { "raw": "{{base_url}}/api/hr/reports/employee-count", "host": ["{{base_url}}"], "path": ["api","hr","reports","employee-count"] }
+					}
+				},
+				{
+					"name": "Expiring Contracts",
+					"request": {
+						"method": "GET",
+						"url": { "raw": "{{base_url}}/api/hr/reports/expiring-contracts", "host": ["{{base_url}}"], "path": ["api","hr","reports","expiring-contracts"] }
+					}
+				},
+				{
+					"name": "Expiring Contracts PDF",
+					"request": {
+						"method": "GET",
+						"url": { "raw": "{{base_url}}/api/hr/reports/expiring-contracts/pdf", "host": ["{{base_url}}"], "path": ["api","hr","reports","expiring-contracts","pdf"] }
+					}
+				},
+				{
+					"name": "Ended Contracts",
+					"request": {
+						"method": "GET",
+						"url": { "raw": "{{base_url}}/api/hr/reports/ended-contracts", "host": ["{{base_url}}"], "path": ["api","hr","reports","ended-contracts"] }
+					}
+				}
+			]
+		},
+		{
+			"name": "Manager",
+			"description": "Manager endpoints (prefix /api/manager, auth:sanctum only – no hr middleware)",
+			"item": [
+				{
+					"name": "List My Employees",
+					"request": {
+						"method": "GET",
+						"url": { "raw": "{{base_url}}/api/manager/employees", "host": ["{{base_url}}"], "path": ["api","manager","employees"] }
+					}
+				},
+				{
+					"name": "Show Employee",
+					"request": {
+						"method": "GET",
+						"url": { "raw": "{{base_url}}/api/manager/employees/1", "host": ["{{base_url}}"], "path": ["api","manager","employees","1"] }
+					}
+				},
+				{
+					"name": "List Employee Reviews",
+					"request": {
+						"method": "GET",
+						"url": { "raw": "{{base_url}}/api/manager/employees/1/reviews", "host": ["{{base_url}}"], "path": ["api","manager","employees","1","reviews"] }
+					}
+				},
+				{
+					"name": "Create Review",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"rating\": 4,\n  \"comment\": \"أداء ممتاز خلال الشهر\"\n}",
+							"options": { "raw": { "language": "json" } }
+						},
+						"url": { "raw": "{{base_url}}/api/manager/employees/1/reviews", "host": ["{{base_url}}"], "path": ["api","manager","employees","1","reviews"] }
+					}
+				},
+				{
+					"name": "Show Review",
+					"request": {
+						"method": "GET",
+						"url": { "raw": "{{base_url}}/api/manager/employees/1/reviews/1", "host": ["{{base_url}}"], "path": ["api","manager","employees","1","reviews","1"] }
+					}
+				},
+				{
+					"name": "Update Review",
+					"request": {
+						"method": "PUT",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"rating\": 5,\n  \"comment\": \"تعديل التقييم\"\n}",
+							"options": { "raw": { "language": "json" } }
+						},
+						"url": { "raw": "{{base_url}}/api/manager/employees/1/reviews/1", "host": ["{{base_url}}"], "path": ["api","manager","employees","1","reviews","1"] }
+					}
+				},
+				{
+					"name": "Delete Review",
+					"request": {
+						"method": "DELETE",
+						"url": { "raw": "{{base_url}}/api/manager/employees/1/reviews/1", "host": ["{{base_url}}"], "path": ["api","manager","employees","1","reviews","1"] }
+					}
+				},
+				{
+					"name": "Task Statistics",
+					"request": {
+						"method": "GET",
+						"url": { "raw": "{{base_url}}/api/manager/tasks/statistics", "host": ["{{base_url}}"], "path": ["api","manager","tasks","statistics"] }
+					}
+				},
+				{
+					"name": "List Tasks",
+					"request": {
+						"method": "GET",
+						"url": { "raw": "{{base_url}}/api/manager/tasks", "host": ["{{base_url}}"], "path": ["api","manager","tasks"] }
+					}
+				},
+				{
+					"name": "Show Task",
+					"request": {
+						"method": "GET",
+						"url": { "raw": "{{base_url}}/api/manager/tasks/1", "host": ["{{base_url}}"], "path": ["api","manager","tasks","1"] }
+					}
+				}
+			]
+		}
+	]
+}

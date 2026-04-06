@@ -78,6 +78,7 @@ use App\Http\Controllers\HR\HrReportController;
 use App\Http\Controllers\HR\EmployeeContractController;
 use App\Http\Controllers\HR\EmployeeWarningController;
 use App\Http\Controllers\HR\MarketerPerformanceController;
+use App\Http\Controllers\HR\HrTargetController;
 use App\Http\Controllers\MyTasksController;
 use App\Http\Controllers\TaskMetaController;
 use App\Http\Controllers\Admin\CityController;
@@ -656,6 +657,13 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::prefix('marketers')->group(function () {
             Route::get('/performance', [MarketerPerformanceController::class, 'index']);
             Route::get('/{id}/performance', [MarketerPerformanceController::class, 'show'])->whereNumber('id');
+        });
+
+        Route::prefix('targets')->group(function () {
+         //   Route::get('/', [HrTargetController::class, 'index']);
+            Route::get('/statistics/{marketerId}', [HrTargetController::class, 'statistics'])->whereNumber('marketerId');
+            Route::get('/marketers', [HrTargetController::class, 'marketers']);
+            Route::get('/reservation-statistics', [HrTargetController::class, 'reservationStatistics']);
         });
 
         Route::get('/dashboard', [DashboardController::class, 'hr']);

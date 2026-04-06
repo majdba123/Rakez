@@ -95,7 +95,7 @@ class ManagerEmployeeService
      *
      * @throws Exception When not a manager or employee not found
      */
-    public function addReview(User $manager, int $employeeId, string $comment): ManagerEmployeeReview
+    public function addReview(User $manager, int $employeeId, int $rating, ?string $comment): ManagerEmployeeReview
     {
         if (!$manager->isManager() && !$manager->isAdmin()) {
             throw new Exception('غير مصرح - فقط المديرون أو الأدمن يمكنهم إضافة تقييمات.');
@@ -109,6 +109,7 @@ class ManagerEmployeeService
         return ManagerEmployeeReview::create([
             'employee_id' => $employeeId,
             'manager_id' => $manager->id,
+            'rating' => $rating,
             'comment' => $comment,
         ]);
     }
@@ -150,7 +151,7 @@ class ManagerEmployeeService
     /**
      * Update a review. Only the manager who created it can update.
      */
-    public function updateReview(User $manager, int $employeeId, int $reviewId, string $comment): ManagerEmployeeReview
+    public function updateReview(User $manager, int $employeeId, int $reviewId, array $data): ManagerEmployeeReview
     {
         $this->ensureCanAccessEmployee($manager, $employeeId);
 
@@ -164,7 +165,7 @@ class ManagerEmployeeService
             throw new Exception('غير مصرح - لا يمكنك تعديل تقييم لم تضفه أنت.');
         }
 
-        $review->update(['comment' => $comment]);
+        $review->update($data);
 
         return $review->fresh(['manager', 'employee']);
     }
