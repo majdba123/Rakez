@@ -119,9 +119,10 @@ class PhotographyDepartmentService
     }
 
     /**
-     * Approve photography department (project_management manager only, admin allowed)
+     * Approve or reject photography department (project_management manager or admin only)
+     * اعتماد أو رفض بيانات قسم التصوير
      */
-    public function approveByContractId(int $contractId): PhotographyDepartment
+    public function approveByContractId(int $contractId, bool $approved, ?string $rejectionComment = null): PhotographyDepartment
     {
         DB::beginTransaction();
         try {
@@ -134,19 +135,30 @@ class PhotographyDepartmentService
 
             $user = Auth::user();
             $isAdmin = $user && $user->type === 'admin';
-            $isPmManager = $user && $user->type === 'project_management' && ($user->is_manager ?? false);
+            $isPmManager = $user && ($user->is_manager ?? false);
 
             if (!$isAdmin && !$isPmManager) {
                 throw new Exception('غير مصرح - هذه الصلاحية متاحة فقط لمدير إدارة المشاريع');
             }
 
-            $record->update([
-                'status' => 'approved',
-                'processed_by' => Auth::id(),
-                'processed_at' => now(),
-            ]);
+            if ($approved) {
+                $record->update([
+                    'status' => 'approved',
+                    'rejection_comment' => null,
+                    'processed_by' => Auth::id(),
+                    'processed_at' => now(),
+                ]);
+            } else {
+                $record->update([
+                    'status' => 'rejected',
+                    'rejection_comment' => $rejectionComment !== null ? trim($rejectionComment) : null,
+                    'processed_by' => Auth::id(),
+                    'processed_at' => now(),
+                ]);
+            }
 
             DB::commit();
+
             return $record->fresh()->load('processedByUser');
         } catch (Exception $e) {
             DB::rollBack();

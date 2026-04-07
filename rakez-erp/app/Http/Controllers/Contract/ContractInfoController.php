@@ -5,13 +5,17 @@ namespace App\Http\Controllers\Contract;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Contract\StoreContractInfoRequest;
 use App\Http\Requests\Contract\UpdateContractInfoRequest;
+use App\Http\Requests\Contract\ImportContractInfoCsv;
 use App\Http\Resources\Contract\ContractResource;
 use App\Http\Resources\Contract\ContractInfoResource;
+use App\Jobs\ProcessContractInfoCsv;
 use App\Models\ContractInfo;
 use App\Models\Contract;
+use App\Models\CsvImport;
 use App\Services\Contract\ContractService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
 use Exception;
 
@@ -181,5 +185,82 @@ class ContractInfoController extends Controller
                 'message' => $e->getMessage(),
             ], 500);
         }
+    }
+
+    /**
+     * Upload CSV with contract info fields for a specific contract (ID from URL).
+     * CSV should have exactly one data row with the info columns.
+     */
+    public function import_csv(ImportContractInfoCsv $request, int $contractId): JsonResponse
+    {
+        $contract = Contract::with('info')->find($contractId);
+
+        if (!$contract) {
+            return response()->json(['success' => false, 'message' => 'العقد غير موجود'], 404);
+        }
+
+        if ($contract->info) {
+            return response()->json(['success' => false, 'message' => 'بيانات العقد موجودة بالفعل ولا يمكن إنشاؤها مرة أخرى'], 422);
+        }
+
+        if ($contract->status !== 'approved') {
+            return response()->json(['success' => false, 'message' => 'يمكن فقط حفظ بيانات العقد عندما تكون حالته موافق عليها'], 422);
+        }
+
+        $file = $request->file('file');
+
+        $handle = fopen($file->getRealPath(), 'r');
+        if ($handle === false) {
+            return response()->json(['success' => false, 'message' => 'Unable to read the CSV file.'], 422);
+        }
+
+        $header = fgetcsv($handle);
+        fclose($handle);
+
+        if (!$header) {
+            return response()->json(['success' => false, 'message' => 'CSV file is empty or has no header row.'], 422);
+        }
+
+        $storedPath = $file->store('csv-imports', 'local');
+
+        $csvImport = CsvImport::create([
+            'type' => CsvImport::TYPE_CONTRACT_INFO,
+            'uploaded_by' => Auth::id(),
+            'file_path' => $storedPath,
+            'status' => CsvImport::STATUS_PENDING,
+        ]);
+
+        ProcessContractInfoCsv::dispatch($csvImport->id, Auth::id(), $contractId);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'CSV uploaded successfully. Import is being processed.',
+            'import_id' => $csvImport->id,
+            'status' => $csvImport->status,
+        ], 202);
+    }
+
+    /**
+     * Poll the status of a CSV contract info import.
+     */
+    public function import_csv_status(int $id): JsonResponse
+    {
+        $csvImport = CsvImport::where('id', $id)
+            ->where('uploaded_by', Auth::id())
+            ->where('type', CsvImport::TYPE_CONTRACT_INFO)
+            ->firstOrFail();
+
+        return response()->json([
+            'success' => true,
+            'import_id' => $csvImport->id,
+            'status' => $csvImport->status,
+            'total_rows' => $csvImport->total_rows,
+            'processed_rows' => $csvImport->processed_rows,
+            'successful_rows' => $csvImport->successful_rows,
+            'failed_rows' => $csvImport->failed_rows,
+            'row_errors' => $csvImport->row_errors,
+            'error_message' => $csvImport->error_message,
+            'completed_at' => $csvImport->completed_at,
+        ]);
     }
 }

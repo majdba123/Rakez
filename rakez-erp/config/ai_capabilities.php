@@ -330,6 +330,9 @@ return [
             'exclusive_projects.contract.complete',
             'exclusive_projects.contract.export',
             'sales.reservations.create',
+            'sales.reservations.view',
+            'sales.reservations.confirm',
+            'sales.reservations.cancel',
             'use-ai-assistant',
             'tasks.create',
             // Manager permissions added dynamically when is_manager=true

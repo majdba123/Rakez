@@ -1,0 +1,4 @@
+developer_name,developer_number,city_id,district_id,side,contract_type,project_name,project_image_url,developer_requiment,notes,commission_percent,commission_from,unit_type,unit_count,unit_price
+شركة الإعمار,DEV-001,1,1,N,sale,مشروع النور,,متطلبات المطور الأول,ملاحظات العقد الأول,5,developer,apartment,10,500000
+شركة البناء,DEV-002,2,2,W,rent,مشروع الفجر,,متطلبات المطور الثاني,,3,owner,villa,5,1200000
+شركة التطوير,DEV-003,1,1,S,,مشروع الشمس,,متطلبات المطور الثالث,,,,office,20,300000

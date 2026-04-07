@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Contract;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Contract\ApprovePhotographyDepartmentRequest;
 use App\Http\Requests\Contract\StorePhotographyDepartmentRequest;
 use App\Http\Requests\Contract\UpdatePhotographyDepartmentRequest;
 use App\Http\Resources\Contract\PhotographyDepartmentResource;
@@ -116,16 +117,27 @@ class PhotographyDepartmentController extends Controller
     }
 
     /**
-     * Approve photography department (project_management manager only)
+     * Approve or reject photography department (project_management manager or admin only)
+     * اعتماد أو رفض بيانات قسم التصوير — يلزم JSON: approved (bool)، وعند الرفض comment (سبب الرفض)
      */
-    public function approve(int $contractId): JsonResponse
+    public function approve(ApprovePhotographyDepartmentRequest $request, int $contractId): JsonResponse
     {
         try {
-            $photographyDepartment = $this->photographyDepartmentService->approveByContractId($contractId);
+            $validated = $request->validated();
+            $approved = (bool) $validated['approved'];
+            $comment = isset($validated['comment']) ? (string) $validated['comment'] : null;
+
+            $photographyDepartment = $this->photographyDepartmentService->approveByContractId(
+                $contractId,
+                $approved,
+                $comment
+            );
 
             return response()->json([
                 'success' => true,
-                'message' => 'تم اعتماد بيانات قسم التصوير بنجاح',
+                'message' => $approved
+                    ? 'تم اعتماد بيانات قسم التصوير بنجاح'
+                    : 'تم رفض بيانات قسم التصوير',
                 'data' => new PhotographyDepartmentResource($photographyDepartment),
             ], 200);
         } catch (Exception $e) {

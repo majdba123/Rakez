@@ -3,16 +3,22 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\Team\AssignSalesTeamMemberRequest;
+use App\Http\Requests\Team\ImportTeamsCsv;
 use App\Http\Requests\Team\TeamContractsRequest;
 use App\Http\Requests\Team\StoreTeamRequest;
 use App\Http\Requests\Team\UpdateTeamRequest;
 use App\Http\Resources\Contract\ContractIndexResource;
+use App\Http\Resources\Shared\UserResource;
 use App\Http\Resources\TeamResource;
+use App\Jobs\ProcessTeamsCsv;
+use App\Models\CsvImport;
 use App\Models\Team;
 use App\Services\Contract\ContractService;
 use App\Services\Team\TeamService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Storage;
 use Exception;
 
 class TeamController extends Controller
@@ -100,6 +106,81 @@ class TeamController extends Controller
         }
     }
 
+    /**
+     * GET /api/project_management/teams/members/{teamId}
+     */
+    public function members(Request $request, int $teamId): JsonResponse
+    {
+        try {
+            $team = $this->teamService->getTeamById($teamId);
+            $perPage = (int) $request->input('per_page', 15);
+            $members = $this->teamService->getTeamMembers($teamId, $perPage);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'تم جلب أعضاء الفريق بنجاح',
+                'team' => [
+                    'id' => $team->id,
+                    'name' => $team->name,
+                ],
+                'data' => UserResource::collection($members->items()),
+                'meta' => [
+                    'total' => $members->total(),
+                    'count' => $members->count(),
+                    'per_page' => $members->perPage(),
+                    'current_page' => $members->currentPage(),
+                    'last_page' => $members->lastPage(),
+                ],
+            ], 200);
+        } catch (Exception $e) {
+            $message = $e->getMessage();
+            $statusCode = str_contains($message, 'Team not found')
+                || str_contains($message, 'No query results')
+                ? 404
+                : 500;
+
+            return response()->json([
+                'success' => false,
+                'message' => $message,
+            ], $statusCode);
+        }
+    }
+
+    /**
+     * GET /api/project_management/teams/sales-without-team
+     * Sales users with no team (available to assign).
+     */
+    public function salesWithoutTeam(Request $request): JsonResponse
+    {
+        try {
+            $perPage = (int) $request->input('per_page', 15);
+            $search = $request->input('search');
+            $search = is_string($search) ? trim($search) : null;
+            if ($search === '') {
+                $search = null;
+            }
+
+            $users = $this->teamService->getSalesUsersWithoutTeam($perPage, $search);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'تم جلب موظفي المبيعات غير المرتبطين بفريق بنجاح',
+                'data' => UserResource::collection($users->items()),
+                'meta' => [
+                    'total' => $users->total(),
+                    'count' => $users->count(),
+                    'per_page' => $users->perPage(),
+                    'current_page' => $users->currentPage(),
+                    'last_page' => $users->lastPage(),
+                ],
+            ], 200);
+        } catch (Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage(),
+            ], 500);
+        }
+    }
 
     public function contracts(TeamContractsRequest $request, int $teamId): JsonResponse
     {
@@ -309,6 +390,80 @@ class TeamController extends Controller
             ], $statusCode);
         }
     }
+
+    public function import_csv(ImportTeamsCsv $request): JsonResponse
+    {
+        $file = $request->file('file');
+        $path = $file->store('csv_imports/teams', 'local');
+
+        $handle = fopen($file->getRealPath(), 'r');
+        $header = $handle ? fgetcsv($handle) : null;
+        if ($handle) {
+            fclose($handle);
+        }
+
+        if (!$header) {
+            return response()->json([
+                'success' => false,
+                'message' => 'CSV file is empty or has no header row.',
+            ], 422);
+        }
+
+        $header = array_map(fn ($col) => strtolower(trim($col)), $header);
+        $required = ['name'];
+        $missing = array_diff($required, $header);
+
+        if (!empty($missing)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'CSV is missing required columns: ' . implode(', ', $missing),
+            ], 422);
+        }
+
+        $csvImport = CsvImport::create([
+            'type'        => CsvImport::TYPE_TEAMS,
+            'uploaded_by' => Auth::id(),
+            'file_path'   => $path,
+            'status'      => CsvImport::STATUS_PENDING,
+        ]);
+
+        ProcessTeamsCsv::dispatch($csvImport->id, Auth::id());
+
+        return response()->json([
+            'success' => true,
+            'message' => 'تم رفع الملف وبدأ الاستيراد.',
+            'data'    => [
+                'import_id' => $csvImport->id,
+                'status'    => $csvImport->status,
+            ],
+        ], 202);
+    }
+
+    public function import_status(int $id): JsonResponse
+    {
+        $csvImport = CsvImport::where('id', $id)
+            ->where('type', CsvImport::TYPE_TEAMS)
+            ->first();
+
+        if (!$csvImport) {
+            return response()->json([
+                'success' => false,
+                'message' => 'سجل الاستيراد غير موجود.',
+            ], 404);
+        }
+
+        return response()->json([
+            'success' => true,
+            'data'    => [
+                'id'              => $csvImport->id,
+                'status'          => $csvImport->status,
+                'total_rows'      => $csvImport->total_rows,
+                'processed_rows'  => $csvImport->processed_rows,
+                'successful_rows' => $csvImport->successful_rows,
+                'failed_rows'     => $csvImport->failed_rows,
+                'row_errors'      => $csvImport->row_errors,
+                'error_message'   => $csvImport->error_message,
+            ],
+        ]);
+    }
 }
-
-
