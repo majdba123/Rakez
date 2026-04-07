@@ -42,7 +42,7 @@ class CreditFinancingController extends Controller
 
             return response()->json([
                 'success' => true,
-                'message' => 'تم تهيئة إجراءات التمويل بنجاح',
+                'message' => 'تم تهيئة إجراءات المتابعة الائتمانية بنجاح',
                 'data' => $this->financingForUser($tracker),
             ], 201);
         } catch (Exception $e) {
@@ -72,7 +72,7 @@ class CreditFinancingController extends Controller
             $result = $this->financingService->advanceOrInitialize($id, $validated, $request->user());
 
             $message = $result['action'] === 'initialized'
-                ? 'تم تهيئة إجراءات التمويل بنجاح'
+                ? 'تم تهيئة إجراءات المتابعة الائتمانية بنجاح'
                 : "تم إكمال المرحلة {$result['stage']} بنجاح";
 
             $data = $result;
@@ -106,7 +106,7 @@ class CreditFinancingController extends Controller
             if (!$tracker) {
                 return response()->json([
                     'success' => true,
-                    'message' => 'لم تبدأ إجراءات التمويل لهذا الحجز بعد',
+                    'message' => 'لم تبدأ إجراءات المتابعة الائتمانية لهذا الحجز بعد',
                     'data' => null,
                 ], 200);
             }
@@ -117,7 +117,7 @@ class CreditFinancingController extends Controller
 
             return response()->json([
                 'success' => true,
-                'message' => 'تم جلب حالة طلب التمويل بنجاح',
+                'message' => 'تم جلب حالة المتابعة الائتمانية بنجاح',
                 'data' => $details,
             ], 200);
         } catch (Exception $e) {

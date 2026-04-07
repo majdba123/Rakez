@@ -664,12 +664,29 @@ class CreditBookingController extends Controller
                 3 => 2,
                 4 => 3,
                 5 => 4,
+                6 => 6,
             ];
             foreach ($stageStatusMap as $stageNum => $stepIndex) {
                 $status = $tracker->{"stage_{$stageNum}_status"};
                 $steps[$stepIndex]['status'] = $status;
                 $date = $tracker->{"stage_{$stageNum}_completed_at"} ?? $tracker->{"stage_{$stageNum}_deadline"};
                 $steps[$stepIndex]['date'] = $date ? \Carbon\Carbon::parse($date)->format('Y-m-d') : null;
+            }
+
+            // Cash workflow skips bank-only middle stages in the UI (stages 2–5 in tracker are auto-completed).
+            if ($tracker->is_cash_workflow) {
+                for ($idx = 1; $idx <= 5; $idx++) {
+                    $steps[$idx]['status'] = 'skipped';
+                    $steps[$idx]['date'] = null;
+                }
+                $steps[0]['status'] = $tracker->stage_1_status;
+                $steps[0]['date'] = $tracker->stage_1_completed_at || $tracker->stage_1_deadline
+                    ? \Carbon\Carbon::parse($tracker->stage_1_completed_at ?? $tracker->stage_1_deadline)->format('Y-m-d')
+                    : null;
+                $steps[6]['status'] = $tracker->stage_6_status;
+                $steps[6]['date'] = $tracker->stage_6_completed_at || $tracker->stage_6_deadline
+                    ? \Carbon\Carbon::parse($tracker->stage_6_completed_at ?? $tracker->stage_6_deadline)->format('Y-m-d')
+                    : null;
             }
         }
 
@@ -679,6 +696,12 @@ class CreditBookingController extends Controller
             $steps[5]['date'] = $titleTransfer->scheduled_date?->format('Y-m-d') ?? $titleTransfer->completed_date?->format('Y-m-d');
             $steps[6]['status'] = $ttStatus === 'preparation' ? 'in_progress' : ($ttStatus === 'completed' ? 'completed' : 'pending');
             $steps[6]['date'] = $titleTransfer->completed_date?->format('Y-m-d');
+        }
+
+        // "تنفيذ العقود" (UI step index 5) has no tracker stage; not used in cash workflow.
+        if ($tracker && $tracker->is_cash_workflow) {
+            $steps[5]['status'] = 'skipped';
+            $steps[5]['date'] = null;
         }
 
         if ($reservation->credit_status === 'sold') {

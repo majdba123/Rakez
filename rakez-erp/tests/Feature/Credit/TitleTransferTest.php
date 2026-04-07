@@ -59,11 +59,16 @@ class TitleTransferTest extends TestCase
     //  Initialize
     // ──────────────────────────────────────────────
 
-    public function test_can_initialize_title_transfer_for_cash_purchase(): void
+    public function test_can_initialize_title_transfer_for_cash_purchase_after_cash_workflow_completed(): void
     {
         $reservation = SalesReservation::factory()->create([
             'status' => 'confirmed',
             'purchase_mechanism' => 'cash',
+            'credit_status' => 'in_progress',
+        ]);
+
+        CreditFinancingTracker::factory()->cashPurchaseCompleted()->create([
+            'sales_reservation_id' => $reservation->id,
         ]);
 
         $response = $this->actingAs($this->creditUser)
@@ -76,6 +81,19 @@ class TitleTransferTest extends TestCase
             'sales_reservation_id' => $reservation->id,
             'status' => 'preparation',
         ]);
+    }
+
+    public function test_cannot_initialize_title_transfer_for_cash_without_completed_tracker(): void
+    {
+        $reservation = SalesReservation::factory()->create([
+            'status' => 'confirmed',
+            'purchase_mechanism' => 'cash',
+        ]);
+
+        $response = $this->actingAs($this->creditUser)
+            ->postJson("/api/credit/bookings/{$reservation->id}/title-transfer");
+
+        $response->assertStatus(400);
     }
 
     public function test_can_initialize_title_transfer_after_financing_completed(): void

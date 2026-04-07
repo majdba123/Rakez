@@ -307,6 +307,14 @@ class SalesReservation extends Model
     }
 
     /**
+     * Confirmed bookings that use the credit department workflow (bank financing or cash pipeline).
+     */
+    public function eligibleForCreditFinancingWorkflow(): bool
+    {
+        return $this->isBankFinancing() || $this->isCashPurchase();
+    }
+
+    /**
      * Check if this is a supported bank financing.
      */
     public function isSupportedBank(): bool
