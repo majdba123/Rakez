@@ -190,6 +190,62 @@ class MarketingProjectTest extends TestCase
     }
 
     #[Test]
+    public function project_details_infer_sales_leaders_when_no_sales_project_assignment(): void
+    {
+        $contract = Contract::factory()->create([
+            'status' => 'completed',
+            'commission_percent' => 2.5,
+        ]);
+        ContractInfo::factory()->create([
+            'contract_id' => $contract->id,
+            'agreement_duration_days' => 100,
+            'avg_property_value' => 500000,
+        ]);
+
+        $team = Team::factory()->create(['created_by' => null]);
+        $salesUser = User::factory()->create([
+            'name' => 'Alpha Sales',
+            'type' => 'sales',
+            'team_id' => $team->id,
+            'is_active' => true,
+            'is_manager' => false,
+        ]);
+        $contract->teams()->attach($team->id);
+
+        $response = $this->actingAs($this->marketingUser, 'sanctum')
+            ->getJson("/api/marketing/projects/{$contract->id}");
+
+        $response->assertStatus(200)
+            ->assertJsonPath('data.responsible_sales_teams.0.leaders.0.id', $salesUser->id)
+            ->assertJsonPath('data.responsible_sales_teams.0.leaders.0.name', 'Alpha Sales');
+    }
+
+    #[Test]
+    public function project_details_fill_city_from_contract_info_when_city_relation_null(): void
+    {
+        $contract = Contract::factory()->create([
+            'status' => 'completed',
+            'city_id' => null,
+            'district_id' => null,
+            'commission_percent' => 2.5,
+        ]);
+        ContractInfo::factory()->create([
+            'contract_id' => $contract->id,
+            'contract_city' => 'الرياض',
+            'second_party_address' => 'حي الملز',
+            'agreement_duration_days' => 100,
+            'avg_property_value' => 500000,
+        ]);
+
+        $response = $this->actingAs($this->marketingUser, 'sanctum')
+            ->getJson("/api/marketing/projects/{$contract->id}");
+
+        $response->assertStatus(200)
+            ->assertJsonPath('data.city.name', 'الرياض')
+            ->assertJsonPath('data.district.name', 'حي الملز');
+    }
+
+    #[Test]
     public function it_can_calculate_campaign_budget()
     {
         $contract = Contract::factory()->create([

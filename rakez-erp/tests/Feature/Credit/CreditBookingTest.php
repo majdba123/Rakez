@@ -80,6 +80,46 @@ class CreditBookingTest extends TestCase
             ->assertJsonPath('meta.total', 2);
     }
 
+    public function test_confirmed_list_defaults_to_active_credit_pipeline_excluding_sold(): void
+    {
+        SalesReservation::factory()->count(2)->create([
+            'status' => 'confirmed',
+            'credit_status' => 'in_progress',
+        ]);
+        SalesReservation::factory()->count(2)->create([
+            'status' => 'confirmed',
+            'credit_status' => 'sold',
+        ]);
+
+        $response = $this->actingAs($this->creditUser)
+            ->getJson('/api/credit/bookings/confirmed');
+
+        $response->assertStatus(200)
+            ->assertJsonPath('meta.total', 2);
+    }
+
+    public function test_confirmed_list_credit_status_all_includes_all_credit_stages(): void
+    {
+        SalesReservation::factory()->create([
+            'status' => 'confirmed',
+            'credit_status' => 'pending',
+        ]);
+        SalesReservation::factory()->create([
+            'status' => 'confirmed',
+            'credit_status' => 'sold',
+        ]);
+        SalesReservation::factory()->create([
+            'status' => 'confirmed',
+            'credit_status' => 'title_transfer',
+        ]);
+
+        $response = $this->actingAs($this->creditUser)
+            ->getJson('/api/credit/bookings/confirmed?credit_status=all');
+
+        $response->assertStatus(200)
+            ->assertJsonPath('meta.total', 3);
+    }
+
     public function test_can_list_negotiation_bookings(): void
     {
         SalesReservation::factory()->count(2)->create([

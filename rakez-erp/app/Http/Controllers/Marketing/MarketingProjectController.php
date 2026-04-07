@@ -49,10 +49,11 @@ class MarketingProjectController extends Controller
         $details = $this->projectService->getProjectDetails($contractId);
         $durationStatus = $this->projectService->getContractDurationStatus($contractId);
         $responsibleSalesTeams = $this->projectService->buildResponsibleSalesTeams($details);
+        $detailEnrichment = $this->projectService->enrichContractDetailForMarketingApi($details);
 
         return response()->json([
             'success' => true,
-            'data' => array_merge($details->toArray(), [
+            'data' => array_merge($details->toArray(), $detailEnrichment, [
                 'duration_status' => $durationStatus,
                 'responsible_sales_teams' => $responsibleSalesTeams,
             ]),

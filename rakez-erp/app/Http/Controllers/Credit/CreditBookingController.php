@@ -80,6 +80,11 @@ class CreditBookingController extends Controller
     /**
      * Get confirmed bookings for credit.
      * GET /credit/bookings/confirmed
+     *
+     * Default (no credit_status): same subset as dashboard KPI `confirmed_bookings_count` —
+     * `credit_status` in pending + in_progress only (active credit pipeline).
+     * Use `credit_status=all` to list every confirmed reservation regardless of credit stage
+     * (sold, title_transfer, rejected, etc.).
      */
     public function confirmed(Request $request): JsonResponse
     {
@@ -93,9 +98,15 @@ class CreditBookingController extends Controller
             ])
                 ->confirmedForCredit();
 
-            // Filter by credit status
-            if ($request->has('credit_status')) {
-                $query->byCreditStatus($request->input('credit_status'));
+            if ($request->filled('credit_status')) {
+                $raw = $request->input('credit_status');
+                if ($raw === 'all') {
+                    // no extra credit_status filter
+                } else {
+                    $query->byCreditStatus($raw);
+                }
+            } else {
+                $query->whereIn('credit_status', ['pending', 'in_progress']);
             }
 
             // Filter by purchase mechanism

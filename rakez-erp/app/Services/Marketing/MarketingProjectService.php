@@ -7,13 +7,16 @@ use App\Models\Contract;
 use App\Models\ContractInfo;
 use App\Models\Team;
 use App\Models\User;
+use App\Models\MarketingProject;
 use App\Services\Sales\SalesTeamService;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Collection;
 
 class MarketingProjectService
 {
     public function __construct(
-        private MarketingProjectBootstrapService $bootstrapService
+        private MarketingProjectBootstrapService $bootstrapService,
+        private SalesTeamService $salesTeamService
     ) {}
 
     /**
@@ -133,21 +136,95 @@ class MarketingProjectService
     }
 
     /**
+     * Fill display-only fields when FK-based relations are null but contract_infos has text (e.g. city name).
+     *
+     * @return array<string, mixed>
+     */
+    public function enrichContractDetailForMarketingApi(Contract $contract): array
+    {
+        $contract->loadMissing(['info', 'city', 'district']);
+        $out = [];
+        $info = $contract->info;
+
+        if ($contract->relationLoaded('city') && $contract->getRelation('city') === null && $info?->contract_city) {
+            $out['city'] = [
+                'id' => null,
+                'name' => $info->contract_city,
+            ];
+        }
+
+        if (
+            $contract->relationLoaded('district')
+            && $contract->getRelation('district') === null
+            && $info?->second_party_address
+        ) {
+            $out['district'] = [
+                'id' => null,
+                'name' => $info->second_party_address,
+            ];
+        }
+
+        return $out;
+    }
+
+    /**
+     * When no active sales_project_assignment exists, infer leaders from marketing project assignee, team creator, managers, or first sales member.
+     *
+     * @param  Collection<int, \App\Models\SalesProjectAssignment>  $assignments
+     * @return Collection<int, User>
+     */
+    private function resolveSalesLeadersForTeam(
+        Collection $assignments,
+        Team $team,
+        ?MarketingProject $marketingProject
+    ): Collection {
+        $fromAssignments = $assignments->filter(function ($a) use ($team) {
+            return $a->leader && (int) $a->leader->team_id === (int) $team->id;
+        })->map(fn ($a) => $a->leader)->unique('id')->values();
+
+        if ($fromAssignments->isNotEmpty()) {
+            return $fromAssignments;
+        }
+
+        $candidates = collect();
+
+        if ($marketingProject?->assigned_team_leader) {
+            $u = User::query()
+                ->whereKey($marketingProject->assigned_team_leader)
+                ->where('team_id', $team->id)
+                ->where('type', 'sales')
+                ->where('is_active', true)
+                ->first();
+            if ($u) {
+                $candidates->push($u);
+            }
+        }
+
+        foreach ($this->salesTeamService->getDefaultSalesLeadersForTeam($team) as $u) {
+            if (!$candidates->contains(fn ($x) => (int) $x->id === (int) $u->id)) {
+                $candidates->push($u);
+            }
+        }
+
+        return $candidates->unique('id')->values();
+    }
+
+    /**
      * Responsible sales teams for a contract (from contract_team + sales_project_assignments), with leaders, members, and leader ratings (sales domain).
      *
      * @return array<int, array{id:int,name:string,leaders:array,members:array<int, array{id:int,name:string,role:string,rating:?int}>}>
      */
     public function buildResponsibleSalesTeams(Contract $contract): array
     {
-        $salesTeamService = app(SalesTeamService::class);
-
         $contract->loadMissing([
             'teams',
+            'marketingProject',
             'salesProjectAssignments' => fn ($q) => $q->active()->with('leader'),
         ]);
 
         $assignments = $contract->salesProjectAssignments;
         $teams = $contract->teams;
+        $marketingProject = $contract->marketingProject;
 
         if ($teams->isEmpty() && $assignments->isNotEmpty()) {
             $teamIds = $assignments->map(fn ($a) => $a->leader?->team_id)->filter()->unique()->values();
@@ -162,9 +239,7 @@ class MarketingProjectService
 
         $out = [];
         foreach ($teams as $team) {
-            $leaders = $assignments->filter(function ($a) use ($team) {
-                return $a->leader && (int) $a->leader->team_id === (int) $team->id;
-            })->map(fn ($a) => $a->leader)->unique('id')->values();
+            $leaders = $this->resolveSalesLeadersForTeam($assignments, $team, $marketingProject);
 
             $leaderIds = $leaders->pluck('id')->all();
             $primaryLeader = $leaders->first();
@@ -178,7 +253,7 @@ class MarketingProjectService
 
             $ratingsByMember = collect();
             if ($primaryLeader) {
-                $ratingsByMember = $salesTeamService->getLeaderRatingsKeyedByMember(
+                $ratingsByMember = $this->salesTeamService->getLeaderRatingsKeyedByMember(
                     $primaryLeader->id,
                     $memberUsers->pluck('id')->all()
                 );
