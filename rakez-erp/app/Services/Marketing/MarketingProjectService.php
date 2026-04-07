@@ -5,6 +5,9 @@ namespace App\Services\Marketing;
 use App\Enums\ContractWorkflowStatus;
 use App\Models\Contract;
 use App\Models\ContractInfo;
+use App\Models\Team;
+use App\Models\User;
+use App\Services\Sales\SalesTeamService;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 
 class MarketingProjectService
@@ -108,6 +111,8 @@ class MarketingProjectService
             'contractUnits',
             'city',
             'district',
+            'teams',
+            'salesProjectAssignments' => fn ($q) => $q->active()->with('leader'),
         ])->findOrFail($contractId);
 
         $project = $this->bootstrapService->ensureForCompletedContract($contract);
@@ -125,6 +130,86 @@ class MarketingProjectService
         }
 
         return $contract;
+    }
+
+    /**
+     * Responsible sales teams for a contract (from contract_team + sales_project_assignments), with leaders, members, and leader ratings (sales domain).
+     *
+     * @return array<int, array{id:int,name:string,leaders:array,members:array<int, array{id:int,name:string,role:string,rating:?int}>}>
+     */
+    public function buildResponsibleSalesTeams(Contract $contract): array
+    {
+        $salesTeamService = app(SalesTeamService::class);
+
+        $contract->loadMissing([
+            'teams',
+            'salesProjectAssignments' => fn ($q) => $q->active()->with('leader'),
+        ]);
+
+        $assignments = $contract->salesProjectAssignments;
+        $teams = $contract->teams;
+
+        if ($teams->isEmpty() && $assignments->isNotEmpty()) {
+            $teamIds = $assignments->map(fn ($a) => $a->leader?->team_id)->filter()->unique()->values();
+            if ($teamIds->isNotEmpty()) {
+                $teams = Team::whereIn('id', $teamIds)->get();
+            }
+        }
+
+        if ($teams->isEmpty()) {
+            return [];
+        }
+
+        $out = [];
+        foreach ($teams as $team) {
+            $leaders = $assignments->filter(function ($a) use ($team) {
+                return $a->leader && (int) $a->leader->team_id === (int) $team->id;
+            })->map(fn ($a) => $a->leader)->unique('id')->values();
+
+            $leaderIds = $leaders->pluck('id')->all();
+            $primaryLeader = $leaders->first();
+
+            $memberUsers = User::query()
+                ->where('team_id', $team->id)
+                ->where('type', 'sales')
+                ->where('is_active', true)
+                ->orderBy('name')
+                ->get();
+
+            $ratingsByMember = collect();
+            if ($primaryLeader) {
+                $ratingsByMember = $salesTeamService->getLeaderRatingsKeyedByMember(
+                    $primaryLeader->id,
+                    $memberUsers->pluck('id')->all()
+                );
+            }
+
+            $membersPayload = $memberUsers->map(function ($u) use ($ratingsByMember, $leaderIds) {
+                $rating = $ratingsByMember->get($u->id);
+                $isLeader = in_array($u->id, $leaderIds, true);
+
+                return [
+                    'id' => $u->id,
+                    'name' => $u->name,
+                    'role' => $isLeader ? 'leader' : 'member',
+                    'rating' => $rating?->rating,
+                ];
+            })->values()->all();
+
+            $leadersPayload = $leaders->map(fn ($l) => [
+                'id' => $l->id,
+                'name' => $l->name,
+            ])->values()->all();
+
+            $out[] = [
+                'id' => $team->id,
+                'name' => $team->name,
+                'leaders' => $leadersPayload,
+                'members' => $membersPayload,
+            ];
+        }
+
+        return $out;
     }
 
     /**

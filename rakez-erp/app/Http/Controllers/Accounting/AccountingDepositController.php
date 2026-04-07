@@ -3,8 +3,8 @@
 namespace App\Http\Controllers\Accounting;
 
 use App\Http\Controllers\Controller;
-use App\Models\Deposit;
 use App\Services\Accounting\AccountingDepositService;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
@@ -77,12 +77,22 @@ class AccountingDepositController extends Controller
                 'message' => 'تم تأكيد استلام العربون بنجاح',
                 'data' => $deposit,
             ], 200);
+        } catch (ModelNotFoundException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Deposit not found',
+            ], 404);
         } catch (Exception $e) {
-            $statusCode = str_contains($e->getMessage(), 'No query results') ? 404 : 400;
+            if (str_contains($e->getMessage(), 'المعرف المُرسل يخص حجزاً')) {
+                return response()->json([
+                    'success' => false,
+                    'message' => $e->getMessage(),
+                ], 422);
+            }
             return response()->json([
                 'success' => false,
                 'message' => $e->getMessage(),
-            ], $statusCode);
+            ], 400);
         }
     }
 
@@ -136,9 +146,12 @@ class AccountingDepositController extends Controller
     public function depositPdfData(int $id): JsonResponse
     {
         try {
-            $deposit = Deposit::with(['contract', 'contractUnit', 'confirmedBy'])->findOrFail($id);
+            $deposit = $this->depositService->findDepositForAccountingAction($id);
+            $deposit->load(['contract', 'contractUnit', 'confirmedBy']);
 
             $data = [
+                'deposit_id' => $deposit->id,
+                'reservation_id' => $deposit->sales_reservation_id,
                 'id' => $deposit->id,
                 'commission_source' => (string) ($deposit->commission_source ?? ''),
                 'payment_method' => (string) ($deposit->payment_method ?? ''),
@@ -161,9 +174,12 @@ class AccountingDepositController extends Controller
             ];
 
             return response()->json($data, 200, ['Content-Type' => 'application/json']);
-        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+        } catch (ModelNotFoundException $e) {
             return response()->json(['success' => false, 'message' => 'Deposit not found'], 404);
         } catch (Exception $e) {
+            if (str_contains($e->getMessage(), 'المعرف المُرسل يخص حجزاً')) {
+                return response()->json(['success' => false, 'message' => $e->getMessage()], 422);
+            }
             return response()->json([
                 'success' => false,
                 'message' => $e->getMessage(),
@@ -185,12 +201,22 @@ class AccountingDepositController extends Controller
                 'message' => 'تم استرداد العربون بنجاح',
                 'data' => $deposit,
             ], 200);
+        } catch (ModelNotFoundException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Deposit not found',
+            ], 404);
         } catch (Exception $e) {
-            $statusCode = str_contains($e->getMessage(), 'No query results') ? 404 : 400;
+            if (str_contains($e->getMessage(), 'المعرف المُرسل يخص حجزاً')) {
+                return response()->json([
+                    'success' => false,
+                    'message' => $e->getMessage(),
+                ], 422);
+            }
             return response()->json([
                 'success' => false,
                 'message' => $e->getMessage(),
-            ], $statusCode);
+            ], 400);
         }
     }
 

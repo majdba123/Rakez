@@ -13,20 +13,32 @@ class CreditFinancingTracker extends Model
     use HasFactory;
 
     /**
-     * Stage deadline durations in hours.
+     * Stages 1–5: fixed calendar-day duration per stage (business workflow).
      */
-    public const STAGE_DEADLINES = [
-        1 => 48,     // 48 hours
-        2 => 120,    // 5 days
-        3 => 72,     // 3 days
-        4 => 48,     // 2 days
-        5 => 120,    // 5 days
+    public const STAGE_DURATION_DAYS = [
+        1 => 2, // Contact with client
+        2 => 3, // Upload request
+        3 => 3, // Output review
+        4 => 2, // Visit reviewer
+        5 => 5, // Operations
     ];
 
+    public const STAGE_6_SUPPORTED_DAYS = 10;
+
+    public const STAGE_6_UNSUPPORTED_DAYS = 5;
+
     /**
-     * Additional days for supported banks.
+     * Calendar days for stage $stage when the tracker is in the given bank mode.
+     * Stage 6 is the pre-transfer (الإفراغ) window; duration depends on supported vs not supported bank only.
      */
-    public const SUPPORTED_BANK_EXTRA_DAYS = 5;
+    public static function durationDaysForStage(int $stage, bool $isSupportedBank): int
+    {
+        if ($stage === 6) {
+            return $isSupportedBank ? self::STAGE_6_SUPPORTED_DAYS : self::STAGE_6_UNSUPPORTED_DAYS;
+        }
+
+        return self::STAGE_DURATION_DAYS[$stage] ?? 0;
+    }
 
     protected $fillable = [
         'sales_reservation_id',
@@ -50,6 +62,9 @@ class CreditFinancingTracker extends Model
         'stage_5_status',
         'stage_5_completed_at',
         'stage_5_deadline',
+        'stage_6_status',
+        'stage_6_completed_at',
+        'stage_6_deadline',
         'is_supported_bank',
         'overall_status',
         'rejection_reason',
@@ -69,6 +84,8 @@ class CreditFinancingTracker extends Model
         'stage_4_deadline' => 'datetime',
         'stage_5_completed_at' => 'datetime',
         'stage_5_deadline' => 'datetime',
+        'stage_6_completed_at' => 'datetime',
+        'stage_6_deadline' => 'datetime',
         'completed_at' => 'datetime',
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
@@ -120,24 +137,25 @@ class CreditFinancingTracker extends Model
     public function scopeWithOverdueStages(Builder $query): Builder
     {
         return $query->where(function ($q) {
-            for ($i = 1; $i <= 5; $i++) {
+            for ($i = 1; $i <= 6; $i++) {
                 $q->orWhere("stage_{$i}_status", 'overdue');
             }
         });
     }
 
     /**
-     * Get the current active stage number (1-5).
+     * Get the current active stage number (1–6). When all stages are completed, returns 6.
      */
     public function getCurrentStage(): int
     {
-        for ($i = 1; $i <= 5; $i++) {
+        for ($i = 1; $i <= 6; $i++) {
             $status = $this->{"stage_{$i}_status"};
-            if (in_array($status, ['pending', 'in_progress', 'overdue'])) {
+            if (in_array($status, ['pending', 'in_progress', 'overdue'], true)) {
                 return $i;
             }
         }
-        return 5; // All completed
+
+        return 6;
     }
 
     /**
@@ -172,31 +190,34 @@ class CreditFinancingTracker extends Model
     }
 
     /**
-     * Check if all stages are completed.
+     * Check if all six stages are completed.
      */
     public function allStagesCompleted(): bool
     {
-        for ($i = 1; $i <= 5; $i++) {
+        for ($i = 1; $i <= 6; $i++) {
             if ($this->{"stage_{$i}_status"} !== 'completed') {
                 return false;
             }
         }
+
         return true;
     }
 
     /**
-     * Get total expected days based on bank type.
+     * Total planned duration: 25 calendar days (supported bank) or 20 (not supported).
      */
     public function getTotalExpectedDays(): int
     {
-        $baseDays = 20; // Sum of all stage deadlines in days
-        return $this->is_supported_bank 
-            ? $baseDays + self::SUPPORTED_BANK_EXTRA_DAYS 
-            : $baseDays;
+        $days = 0;
+        for ($s = 1; $s <= 6; $s++) {
+            $days += self::durationDaysForStage($s, (bool) $this->is_supported_bank);
+        }
+
+        return $days;
     }
 
     /**
-     * Get remaining days until overall deadline.
+     * Get remaining days until overall planned end (from tracker creation).
      */
     public function getRemainingDays(): ?int
     {
@@ -206,7 +227,7 @@ class CreditFinancingTracker extends Model
 
         $startDate = $this->created_at;
         $endDate = $startDate->copy()->addDays($this->getTotalExpectedDays());
-        
+
         return max(0, (int) now()->diffInDays($endDate, false));
     }
 
@@ -216,7 +237,7 @@ class CreditFinancingTracker extends Model
     public function getProgressSummary(): array
     {
         $summary = [];
-        for ($i = 1; $i <= 5; $i++) {
+        for ($i = 1; $i <= 6; $i++) {
             $summary["stage_{$i}"] = [
                 'status' => $this->{"stage_{$i}_status"},
                 'deadline' => $this->{"stage_{$i}_deadline"},
@@ -224,9 +245,7 @@ class CreditFinancingTracker extends Model
                 'is_overdue' => $this->isStageOverdue($i),
             ];
         }
+
         return $summary;
     }
 }
-
-
-

@@ -229,7 +229,7 @@ class AccountingCommissionController extends Controller
     {
         try {
             $request->validate([
-                'distributions' => 'required|array|min:1',
+                'distributions' => 'present|array',
                 'distributions.*.type' => 'required|in:' . implode(',', config('commission_distribution.types') ?: [
                     'lead_generation', 'persuasion', 'closing', 'team_leader', 'assistant_pm',
                     'project_manager', 'owner', 'sales_manager', 'projects_department', 'management', 'ceo',
@@ -244,13 +244,16 @@ class AccountingCommissionController extends Controller
 
             $commission = $this->commissionService->updateCommissionDistributions(
                 $id,
-                $request->input('distributions')
+                $request->input('distributions', [])
             );
+
+            $commission = $commission->fresh(['distributions.user']);
+            $payload = array_merge($commission->toArray(), $commission->getDistributionPoolFigures());
 
             return response()->json([
                 'success' => true,
                 'message' => 'تم تحديث توزيعات العمولة بنجاح',
-                'data' => $commission,
+                'data' => $payload,
             ], 200);
         } catch (ValidationException $e) {
             return response()->json([

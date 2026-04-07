@@ -41,7 +41,7 @@ class AccountingDepositTest extends TestCase
         $contract = Contract::factory()->create();
         $secondPartyData = SecondPartyData::factory()->create(['contract_id' => $contract->id]);
         $unit = ContractUnit::factory()->create(['contract_id' => $secondPartyData->contract_id]);
-        Deposit::factory()->create([
+        $deposit = Deposit::factory()->create([
             'status' => 'pending',
             'contract_id' => $contract->id,
             'contract_unit_id' => $unit->id,
@@ -55,7 +55,10 @@ class AccountingDepositTest extends TestCase
                 'message',
                 'data',
                 'meta',
-            ]);
+            ])
+            ->assertJsonPath('data.0.deposit_id', $deposit->id)
+            ->assertJsonPath('data.0.reservation_id', $deposit->sales_reservation_id)
+            ->assertJsonPath('data.0.row_entity', 'deposit');
     }
 
     /** @test */
@@ -144,5 +147,66 @@ class AccountingDepositTest extends TestCase
                 'data',
                 'meta',
             ]);
+    }
+
+    /** @test */
+    public function follow_up_rows_expose_reservation_id_and_nested_deposit_ids(): void
+    {
+        Sanctum::actingAs($this->accountingUser);
+
+        $contract = Contract::factory()->create();
+        $secondPartyData = SecondPartyData::factory()->create(['contract_id' => $contract->id]);
+        $unit = ContractUnit::factory()->create(['contract_id' => $secondPartyData->contract_id]);
+        $reservation = SalesReservation::factory()->create([
+            'status' => 'confirmed',
+            'contract_id' => $contract->id,
+            'contract_unit_id' => $unit->id,
+            'confirmed_at' => now(),
+        ]);
+        $deposit = Deposit::factory()->create([
+            'sales_reservation_id' => $reservation->id,
+            'contract_id' => $contract->id,
+            'contract_unit_id' => $unit->id,
+            'status' => 'received',
+        ]);
+
+        $response = $this->getJson('/api/accounting/deposits/follow-up');
+
+        $response->assertStatus(200)
+            ->assertJsonPath('data.0.reservation_id', $reservation->id)
+            ->assertJsonPath('data.0.row_entity', 'sales_reservation')
+            ->assertJsonPath('data.0.deposit_id', null)
+            ->assertJsonPath('data.0.deposits.0.deposit_id', $deposit->id);
+    }
+
+    /** @test */
+    public function refund_with_reservation_id_returns_422_with_clear_message(): void
+    {
+        Sanctum::actingAs($this->accountingUser);
+
+        $contract = Contract::factory()->create();
+        $secondPartyData = SecondPartyData::factory()->create(['contract_id' => $contract->id]);
+        $unit = ContractUnit::factory()->create(['contract_id' => $secondPartyData->contract_id]);
+        $reservationWithDeposit = SalesReservation::factory()->create([
+            'contract_id' => $contract->id,
+            'contract_unit_id' => $unit->id,
+        ]);
+        Deposit::factory()->create([
+            'sales_reservation_id' => $reservationWithDeposit->id,
+            'contract_id' => $contract->id,
+            'contract_unit_id' => $unit->id,
+            'status' => 'received',
+            'commission_source' => 'owner',
+        ]);
+        // Second reservation with no deposit row sharing this id (avoid deposit PK = reservation PK collision).
+        $reservationWithoutDeposit = SalesReservation::factory()->create([
+            'contract_id' => $contract->id,
+            'contract_unit_id' => $unit->id,
+        ]);
+
+        $response = $this->postJson("/api/accounting/deposits/{$reservationWithoutDeposit->id}/refund");
+
+        $response->assertStatus(422)
+            ->assertJsonFragment(['success' => false]);
     }
 }

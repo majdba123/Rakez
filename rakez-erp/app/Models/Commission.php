@@ -65,6 +65,36 @@ class Commission extends Model
     }
 
     /**
+     * Partial distribution support: percentages are shares of net_amount; undistributed remainder stays with the company.
+     *
+     * @return array{
+     *   total_distributed_percentage: float,
+     *   remaining_percentage: float,
+     *   distributed_amount: float,
+     *   remaining_amount: float
+     * }
+     */
+    public function getDistributionPoolFigures(): array
+    {
+        $this->loadMissing('distributions');
+        $net = (float) ($this->net_amount ?? 0);
+        $sumPct = round((float) $this->distributions->sum('percentage'), 2);
+        $sumAmt = round((float) $this->distributions->sum('amount'), 2);
+        $remPct = round(100 - $sumPct, 2);
+        if ($remPct < 0) {
+            $remPct = 0;
+        }
+        $remAmt = round($net * $remPct / 100, 2);
+
+        return [
+            'total_distributed_percentage' => $sumPct,
+            'remaining_percentage' => $remPct,
+            'distributed_amount' => $sumAmt,
+            'remaining_amount' => $remAmt,
+        ];
+    }
+
+    /**
      * Amount available for distribution equals gross commission (total_amount).
      * VAT and marketing/bank fees are borne by the client and kept on the record for reference only;
      * they are not deducted from the commission pool.

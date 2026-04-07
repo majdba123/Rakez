@@ -347,12 +347,13 @@ class CommissionService
     }
 
     /**
-     * Validate distribution percentages (must equal 100%).
+     * Validate distribution percentages: sum must not exceed 100% (remainder stays with company).
      */
     public function validateDistributionPercentages(array $distributions): bool
     {
         $total = array_sum(array_column($distributions, 'percentage'));
-        return abs($total - 100) < 0.01; // Allow for floating point precision
+
+        return $total <= 100 + 0.0001;
     }
 
     /**

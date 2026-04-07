@@ -6,11 +6,33 @@ use App\Models\Deposit;
 use App\Models\SalesReservation;
 use App\Models\UserNotification;
 use App\Models\User;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Support\Facades\DB;
 use Exception;
 
 class AccountingDepositService
 {
+    /**
+     * Resolve a deposit for confirm/refund/PDF actions. Fails with a clear message if the ID is a reservation ID.
+     */
+    public function findDepositForAccountingAction(int $id): Deposit
+    {
+        $deposit = Deposit::find($id);
+        if ($deposit !== null) {
+            return $deposit;
+        }
+
+        if (SalesReservation::whereKey($id)->exists()) {
+            throw new Exception(
+                'المعرف المُرسل يخص حجزاً (sales reservation) وليس عربوناً. ' .
+                'استخدم deposit_id من قائمة العربون المعلقة، أو من الحقل deposits[].deposit_id في المتابعة، ' .
+                'مع مسارات تأكيد الاسترداد/العربون.'
+            );
+        }
+
+        throw (new ModelNotFoundException)->setModel(Deposit::class, [$id]);
+    }
+
     /**
      * Get pending deposits needing confirmation.
      */
@@ -75,7 +97,11 @@ class AccountingDepositService
             : null;
 
         return [
+            /** @deprecated Use deposit_id — kept for backward compatibility */
             'id' => $deposit->id,
+            'deposit_id' => $deposit->id,
+            'reservation_id' => $deposit->sales_reservation_id,
+            'row_entity' => 'deposit',
             'project_name' => $contract?->project_name ?? null,
             'unit_type' => $contractUnit?->unit_type ?? null,
             'unit_price' => $unitPrice,
@@ -100,7 +126,8 @@ class AccountingDepositService
      */
     public function confirmDepositReceipt(int $depositId, int $accountingUserId): Deposit
     {
-        $deposit = Deposit::with(['salesReservation.marketingEmployee'])->findOrFail($depositId);
+        $deposit = $this->findDepositForAccountingAction($depositId);
+        $deposit->load(['salesReservation.marketingEmployee']);
 
         if ($deposit->status !== 'pending') {
             throw new Exception('Only pending deposits can be confirmed.');
@@ -188,7 +215,11 @@ class AccountingDepositService
             : null;
 
         return [
+            /** @deprecated Use reservation_id — was ambiguous (reservation vs deposit) */
             'id' => $reservation->id,
+            'reservation_id' => $reservation->id,
+            'row_entity' => 'sales_reservation',
+            'deposit_id' => null,
             'project_name' => $contract?->project_name ?? null,
             'unit_number' => $contractUnit?->unit_number ?? null,
             'unit_type' => $contractUnit?->unit_type ?? null,
@@ -199,7 +230,10 @@ class AccountingDepositService
             'contract_id' => $reservation->contract_id,
             'contract_unit_id' => $reservation->contract_unit_id,
             'deposits' => $reservation->deposits?->map(fn ($d) => [
+                'deposit_id' => $d->id,
+                /** @deprecated Use deposit_id */
                 'id' => $d->id,
+                'reservation_id' => $reservation->id,
                 'amount' => $d->amount !== null ? round((float) $d->amount, 2) : null,
                 'status' => $d->status,
             ])->values()->all() ?? [],
@@ -211,7 +245,8 @@ class AccountingDepositService
      */
     public function processRefund(int $depositId): Deposit
     {
-        $deposit = Deposit::with(['salesReservation'])->findOrFail($depositId);
+        $deposit = $this->findDepositForAccountingAction($depositId);
+        $deposit->load(['salesReservation']);
 
         // Check if refundable based on commission source
         if (!$deposit->isRefundable()) {

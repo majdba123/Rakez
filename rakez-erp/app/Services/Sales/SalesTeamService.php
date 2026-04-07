@@ -242,11 +242,15 @@ class SalesTeamService
         return $out;
     }
 
-    private function getLeaderRatingsKeyedByMember(int $leaderId, array $memberIds): Collection
+    /**
+     * Leader→member ratings (for marketing project detail and other read APIs).
+     */
+    public function getLeaderRatingsKeyedByMember(int $leaderId, array $memberIds): Collection
     {
         if (empty($memberIds)) {
             return collect([]);
         }
+
         return SalesTeamMemberRating::where('leader_id', $leaderId)
             ->whereIn('member_id', $memberIds)
             ->get()

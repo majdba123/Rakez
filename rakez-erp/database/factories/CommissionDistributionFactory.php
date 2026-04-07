@@ -21,8 +21,7 @@ class CommissionDistributionFactory extends Factory
             'user_id' => User::factory(),
             'type' => $this->faker->randomElement([
                 'lead_generation', 'persuasion', 'closing', 'team_leader',
-                'sales_manager', 'project_manager', 'assistant_pm', 'owner',
-                'projects_department', 'management', 'ceo',
+                'sales_manager', 'project_manager', 'external_marketer', 'other',
             ]),
             'external_name' => null,
             'bank_account' => 'SA' . $this->faker->numerify('####################'),

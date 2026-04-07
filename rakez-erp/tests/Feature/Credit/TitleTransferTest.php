@@ -113,6 +113,24 @@ class TitleTransferTest extends TestCase
         $response->assertStatus(400);
     }
 
+    public function test_cannot_initialize_title_transfer_while_financing_stage_6_in_progress(): void
+    {
+        $reservation = SalesReservation::factory()->create([
+            'status' => 'confirmed',
+            'purchase_mechanism' => 'supported_bank',
+            'credit_status' => 'in_progress',
+        ]);
+
+        CreditFinancingTracker::factory()
+            ->atStage6InProgress()
+            ->create(['sales_reservation_id' => $reservation->id]);
+
+        $response = $this->actingAs($this->creditUser)
+            ->postJson("/api/credit/bookings/{$reservation->id}/title-transfer");
+
+        $response->assertStatus(400);
+    }
+
     public function test_cannot_initialize_title_transfer_for_unconfirmed_reservation(): void
     {
         $reservation = SalesReservation::factory()->create([

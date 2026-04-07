@@ -22,16 +22,17 @@ class CreditFinancingTrackerFactory extends Factory
     public function definition(): array
     {
         $now = now();
-        
+
         return [
             'sales_reservation_id' => SalesReservation::factory(),
             'assigned_to' => User::factory(),
             'stage_1_status' => 'in_progress',
-            'stage_1_deadline' => $now->copy()->addHours(48),
+            'stage_1_deadline' => $now->copy()->addDays(CreditFinancingTracker::STAGE_DURATION_DAYS[1]),
             'stage_2_status' => 'pending',
             'stage_3_status' => 'pending',
             'stage_4_status' => 'pending',
             'stage_5_status' => 'pending',
+            'stage_6_status' => 'pending',
             'is_supported_bank' => false,
             'overall_status' => 'in_progress',
         ];
@@ -43,6 +44,7 @@ class CreditFinancingTrackerFactory extends Factory
     public function stage1Completed(): Factory
     {
         $now = now();
+
         return $this->state(fn (array $attributes) => [
             'stage_1_status' => 'completed',
             'bank_name' => $this->faker->company(),
@@ -50,38 +52,43 @@ class CreditFinancingTrackerFactory extends Factory
             'employment_type' => $this->faker->randomElement(['government', 'private']),
             'stage_1_completed_at' => $now,
             'stage_2_status' => 'in_progress',
-            'stage_2_deadline' => $now->copy()->addDays(5),
+            'stage_2_deadline' => $now->copy()->addDays(CreditFinancingTracker::STAGE_DURATION_DAYS[2]),
         ]);
     }
 
     /**
-     * All stages completed.
+     * All six stages completed (financing workflow finished; title transfer may follow).
      */
     public function completed(): Factory
     {
         $now = now();
+        $supported = $this->faker->boolean();
+
         return $this->state(fn (array $attributes) => [
+            'is_supported_bank' => $supported,
             'stage_1_status' => 'completed',
             'bank_name' => $this->faker->company(),
             'client_salary' => $this->faker->numberBetween(5000, 50000),
             'employment_type' => $this->faker->randomElement(['government', 'private']),
-            'stage_1_completed_at' => $now->copy()->subDays(15),
+            'stage_1_completed_at' => $now->copy()->subDays(20),
             'stage_2_status' => 'completed',
-            'stage_2_completed_at' => $now->copy()->subDays(10),
+            'stage_2_completed_at' => $now->copy()->subDays(17),
             'stage_3_status' => 'completed',
-            'stage_3_completed_at' => $now->copy()->subDays(7),
+            'stage_3_completed_at' => $now->copy()->subDays(14),
             'stage_4_status' => 'completed',
             'appraiser_name' => $this->faker->name(),
-            'stage_4_completed_at' => $now->copy()->subDays(5),
+            'stage_4_completed_at' => $now->copy()->subDays(11),
             'stage_5_status' => 'completed',
-            'stage_5_completed_at' => $now,
+            'stage_5_completed_at' => $now->copy()->subDays(5),
+            'stage_6_status' => 'completed',
+            'stage_6_completed_at' => $now,
             'overall_status' => 'completed',
             'completed_at' => $now,
         ]);
     }
 
     /**
-     * Supported bank (adds 5 extra days).
+     * Supported bank (affects stage 6 duration only in live workflow).
      */
     public function supportedBank(): Factory
     {
@@ -108,10 +115,35 @@ class CreditFinancingTrackerFactory extends Factory
     {
         return $this->state(fn (array $attributes) => [
             "stage_{$stage}_status" => 'overdue',
-            "stage_{$stage}_deadline" => now()->subHours(24),
+            "stage_{$stage}_deadline" => now()->subDay(),
+        ]);
+    }
+
+    /**
+     * Stages 1–5 completed; stage 6 active (financing not finished — title transfer not allowed yet).
+     */
+    public function atStage6InProgress(bool $supportedBank = true): Factory
+    {
+        $now = now();
+
+        return $this->state(fn (array $attributes) => [
+            'is_supported_bank' => $supportedBank,
+            'stage_1_status' => 'completed',
+            'stage_1_completed_at' => $now->copy()->subDays(12),
+            'stage_2_status' => 'completed',
+            'stage_2_completed_at' => $now->copy()->subDays(10),
+            'stage_3_status' => 'completed',
+            'stage_3_completed_at' => $now->copy()->subDays(8),
+            'stage_4_status' => 'completed',
+            'appraiser_name' => $this->faker->name(),
+            'stage_4_completed_at' => $now->copy()->subDays(6),
+            'stage_5_status' => 'completed',
+            'stage_5_completed_at' => $now->copy()->subHour(),
+            'stage_6_status' => 'in_progress',
+            'stage_6_deadline' => $now->copy()->addDays(
+                CreditFinancingTracker::durationDaysForStage(6, $supportedBank)
+            ),
+            'overall_status' => 'in_progress',
         ]);
     }
 }
-
-
-

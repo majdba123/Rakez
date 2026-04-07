@@ -132,7 +132,7 @@ class CreditBookingTest extends TestCase
                 ],
             ])
             ->assertJsonPath('data.credit_procedure_steps.0.label_ar', 'التواصل مع العميل')
-            ->assertJsonPath('data.credit_procedure_steps.1.label_ar', 'رفع الطلب للبنك')
+            ->assertJsonPath('data.credit_procedure_steps.1.label_ar', 'رفع الطلب إلى البنك')
             ->assertJsonPath('data.credit_procedure_steps.6.label_ar', 'فترة التجهيز قبل الإفراغ');
     }
 

@@ -7,6 +7,7 @@ use App\Models\CreditFinancingTracker;
 use App\Services\Credit\CreditFinancingService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 use Exception;
 
 class CreditFinancingController extends Controller
@@ -134,8 +135,9 @@ class CreditFinancingController extends Controller
      */
     public function completeStage(Request $request, int $bookingId, int $stage): JsonResponse
     {
-        $request->merge(['stage' => $stage]);
+        $request->merge(['stage' => (int) $stage]);
         $validated = $request->validate([
+            'stage' => ['required', 'integer', Rule::in([1, 2, 3, 4, 5, 6])],
             'bank_name' => 'nullable|string|max:100',
             'client_salary' => 'nullable|numeric|min:0',
             'employment_type' => 'nullable|in:government,private',

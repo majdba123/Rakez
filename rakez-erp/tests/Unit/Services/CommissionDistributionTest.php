@@ -237,9 +237,24 @@ class CommissionDistributionTest extends TestCase
     }
 
     /**
-     * Test distribution percentage validation fails when not 100%.
+     * Test distribution percentage validation fails when total exceeds 100%.
      */
-    public function test_validates_distribution_percentages_fails(): void
+    public function test_validates_distribution_percentages_fails_when_over_100(): void
+    {
+        $distributions = [
+            ['percentage' => 60],
+            ['percentage' => 41],
+        ];
+
+        $isValid = $this->commissionService->validateDistributionPercentages($distributions);
+
+        $this->assertFalse($isValid);
+    }
+
+    /**
+     * Partial distribution (remainder stays with company) is valid.
+     */
+    public function test_validates_distribution_percentages_allows_partial_below_100(): void
     {
         $distributions = [
             ['percentage' => 30],
@@ -247,9 +262,24 @@ class CommissionDistributionTest extends TestCase
             ['percentage' => 20],
         ];
 
-        $isValid = $this->commissionService->validateDistributionPercentages($distributions);
+        $this->assertTrue($this->commissionService->validateDistributionPercentages($distributions));
+    }
 
-        $this->assertFalse($isValid);
+    public function test_commission_distribution_pool_figures_match_partial_percentages(): void
+    {
+        $commission = Commission::factory()->create(['net_amount' => 10000]);
+        CommissionDistribution::factory()->create([
+            'commission_id' => $commission->id,
+            'percentage' => 35,
+            'amount' => 3500,
+            'status' => 'pending',
+        ]);
+
+        $pool = $commission->fresh(['distributions'])->getDistributionPoolFigures();
+        $this->assertEquals(35, $pool['total_distributed_percentage']);
+        $this->assertEquals(65, $pool['remaining_percentage']);
+        $this->assertEquals(3500, $pool['distributed_amount']);
+        $this->assertEquals(6500, $pool['remaining_amount']);
     }
 
     /**

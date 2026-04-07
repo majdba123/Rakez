@@ -8,6 +8,9 @@ use App\Models\User;
 use App\Models\Contract;
 use App\Models\ContractInfo;
 use App\Models\ProjectMedia;
+use App\Models\SalesProjectAssignment;
+use App\Models\SalesTeamMemberRating;
+use App\Models\Team;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
 class MarketingProjectTest extends TestCase
@@ -113,6 +116,77 @@ class MarketingProjectTest extends TestCase
             'contract_id' => $contract->id,
             'status' => 'active',
         ]);
+    }
+
+    #[Test]
+    public function project_details_include_responsible_sales_teams_leaders_members_and_ratings(): void
+    {
+        $contract = Contract::factory()->create([
+            'status' => 'completed',
+            'commission_percent' => 2.5,
+        ]);
+        ContractInfo::factory()->create([
+            'contract_id' => $contract->id,
+            'agreement_duration_days' => 100,
+            'avg_property_value' => 500000,
+        ]);
+
+        $team = Team::factory()->create();
+        $leader = User::factory()->create([
+            'type' => 'sales',
+            'team_id' => $team->id,
+            'is_active' => true,
+        ]);
+        $member = User::factory()->create([
+            'type' => 'sales',
+            'team_id' => $team->id,
+            'is_active' => true,
+        ]);
+        $contract->teams()->attach($team->id);
+
+        SalesProjectAssignment::create([
+            'leader_id' => $leader->id,
+            'contract_id' => $contract->id,
+            'assigned_by' => $leader->id,
+        ]);
+
+        SalesTeamMemberRating::create([
+            'leader_id' => $leader->id,
+            'member_id' => $member->id,
+            'rating' => 4,
+        ]);
+
+        $response = $this->actingAs($this->marketingUser, 'sanctum')
+            ->getJson("/api/marketing/projects/{$contract->id}");
+
+        $response->assertStatus(200)
+            ->assertJsonPath('data.responsible_sales_teams.0.id', $team->id)
+            ->assertJsonPath('data.responsible_sales_teams.0.name', $team->name)
+            ->assertJsonPath('data.responsible_sales_teams.0.leaders.0.id', $leader->id)
+            ->assertJsonStructure([
+                'data' => [
+                    'responsible_sales_teams' => [
+                        [
+                            'id',
+                            'name',
+                            'leaders',
+                            'members' => [
+                                [
+                                    'id',
+                                    'name',
+                                    'role',
+                                    'rating',
+                                ],
+                            ],
+                        ],
+                    ],
+                ],
+            ]);
+
+        $members = collect($response->json('data.responsible_sales_teams.0.members'));
+        $memberRow = $members->firstWhere('id', $member->id);
+        $this->assertNotNull($memberRow);
+        $this->assertSame(4, $memberRow['rating']);
     }
 
     #[Test]

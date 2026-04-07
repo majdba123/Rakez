@@ -7,6 +7,7 @@ use App\Http\Requests\Credit\StoreCreditClientContactRequest;
 use App\Http\Requests\Credit\UpdateCreditBookingRequest;
 use App\Models\SalesReservation;
 use App\Models\SalesWaitingList;
+use App\Services\Credit\CreditFinancingService;
 use App\Services\Sales\SalesReservationService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -645,14 +646,15 @@ class CreditBookingController extends Controller
         $tracker = $reservation->financingTracker;
         $titleTransfer = $reservation->titleTransfer;
 
+        $n = CreditFinancingService::STAGE_NAMES;
         $steps = [
-            ['key' => 'contact_client', 'label_ar' => 'التواصل مع العميل', 'status' => 'pending', 'date' => null],
-            ['key' => 'submit_to_bank', 'label_ar' => 'رفع الطلب للبنك', 'status' => 'pending', 'date' => null],
-            ['key' => 'valuation', 'label_ar' => 'صدور التقييم', 'status' => 'pending', 'date' => null],
-            ['key' => 'appraiser_visit', 'label_ar' => 'زيارة المقيم للمشروع', 'status' => 'pending', 'date' => null],
-            ['key' => 'bank_contracts', 'label_ar' => 'الإجراءات البنكية والعقود', 'status' => 'pending', 'date' => null],
+            ['key' => 'contact_client', 'label_ar' => $n[1], 'status' => 'pending', 'date' => null],
+            ['key' => 'submit_to_bank', 'label_ar' => $n[2], 'status' => 'pending', 'date' => null],
+            ['key' => 'valuation', 'label_ar' => $n[3], 'status' => 'pending', 'date' => null],
+            ['key' => 'appraiser_visit', 'label_ar' => $n[4], 'status' => 'pending', 'date' => null],
+            ['key' => 'bank_contracts', 'label_ar' => $n[5], 'status' => 'pending', 'date' => null],
             ['key' => 'contract_execution', 'label_ar' => 'تنفيذ العقود', 'status' => 'pending', 'date' => null],
-            ['key' => 'pre_evacuation', 'label_ar' => 'فترة التجهيز قبل الإفراغ', 'status' => 'pending', 'date' => null],
+            ['key' => 'pre_evacuation', 'label_ar' => $n[6], 'status' => 'pending', 'date' => null],
         ];
 
         if ($tracker) {

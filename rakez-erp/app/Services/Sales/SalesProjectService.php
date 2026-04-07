@@ -15,6 +15,11 @@ use Illuminate\Validation\ValidationException;
 
 class SalesProjectService
 {
+    protected function isSalesOrLeader(User $user): bool
+    {
+        return $user->hasAnyRole(['sales', 'sales_leader']) || $user->type === 'sales';
+    }
+
     /**
      * Count units for a contract using the eager-loaded relation when present (avoids N+1).
      */
@@ -412,7 +417,7 @@ class SalesProjectService
             return false;
         }
         // Sales leaders + sales staff can access completed contracts.
-        if ($contract->status === ContractWorkflowStatus::Completed->value && $user->type === 'sales') {
+        if ($contract->status === ContractWorkflowStatus::Completed->value && $this->isSalesOrLeader($user)) {
             return true;
         }
         return false;

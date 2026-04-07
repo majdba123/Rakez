@@ -13,14 +13,15 @@ use Exception;
 class CreditFinancingService
 {
     /**
-     * Stage names for reference.
+     * Stage names (6-stage sold-unit credit workflow; matches business order).
      */
     public const STAGE_NAMES = [
         1 => 'التواصل مع العميل',
-        2 => 'رفع الطلب للبنك',
+        2 => 'رفع الطلب إلى البنك',
         3 => 'صدور التقييم',
-        4 => 'زيارة المقيم',
+        4 => 'زيارة المقيم للمشروع',
         5 => 'الإجراءات البنكية والعقود',
+        6 => 'فترة التجهيز قبل الإفراغ',
     ];
 
     /**
@@ -55,16 +56,22 @@ class CreditFinancingService
         DB::beginTransaction();
         try {
             $now = now();
-            
-            // Calculate stage 1 deadline (48 hours)
-            $stage1Deadline = $now->copy()->addHours(CreditFinancingTracker::STAGE_DEADLINES[1]);
+
+            $isSupported = $reservation->isSupportedBank();
+            $stage1Days = CreditFinancingTracker::durationDaysForStage(1, $isSupported);
+            $stage1Deadline = $now->copy()->addDays($stage1Days);
 
             $tracker = CreditFinancingTracker::create([
                 'sales_reservation_id' => $reservationId,
                 'assigned_to' => $assignedTo,
                 'stage_1_status' => 'in_progress',
                 'stage_1_deadline' => $stage1Deadline,
-                'is_supported_bank' => $reservation->isSupportedBank(),
+                'stage_2_status' => 'pending',
+                'stage_3_status' => 'pending',
+                'stage_4_status' => 'pending',
+                'stage_5_status' => 'pending',
+                'stage_6_status' => 'pending',
+                'is_supported_bank' => $isSupported,
                 'overall_status' => 'in_progress',
             ]);
 
@@ -86,7 +93,7 @@ class CreditFinancingService
      */
     public function completeStage(int $trackerId, int $stage, array $data, User $user): CreditFinancingTracker
     {
-        if ($stage < 1 || $stage > 5) {
+        if ($stage < 1 || $stage > 6) {
             throw new Exception('رقم المرحلة غير صالح');
         }
 
@@ -122,30 +129,24 @@ class CreditFinancingService
                 $updateData['appraiser_name'] = $data['appraiser_name'] ?? null;
             }
 
-            // Set next stage deadline if not the last stage
-            if ($stage < 5) {
+            // Activate next stage with deadline = now + duration for that stage (calendar days)
+            if ($stage < 6) {
                 $nextStage = $stage + 1;
-                $nextDeadlineHours = CreditFinancingTracker::STAGE_DEADLINES[$nextStage];
-                
-                // Add extra time for supported banks on stage 5
-                if ($nextStage === 5 && $tracker->is_supported_bank) {
-                    $nextDeadlineHours += CreditFinancingTracker::SUPPORTED_BANK_EXTRA_DAYS * 24;
-                }
+                $nextDays = CreditFinancingTracker::durationDaysForStage($nextStage, (bool) $tracker->is_supported_bank);
 
                 $updateData["stage_{$nextStage}_status"] = 'in_progress';
-                $updateData["stage_{$nextStage}_deadline"] = $now->copy()->addHours($nextDeadlineHours);
+                $updateData["stage_{$nextStage}_deadline"] = $now->copy()->addDays($nextDays);
             }
 
-            // If completing stage 5, mark overall as completed
-            if ($stage === 5) {
+            // Completing stage 6 ends the financing workflow; reservation may proceed to title transfer.
+            if ($stage === 6) {
                 $updateData['overall_status'] = 'completed';
                 $updateData['completed_at'] = $now;
             }
 
             $tracker->update($updateData);
 
-            // If completed, update reservation credit status
-            if ($stage === 5) {
+            if ($stage === 6) {
                 $tracker->reservation->update(['credit_status' => 'title_transfer']);
                 $this->notifyStageCompletion($tracker, 'تم إكمال جميع إجراءات التمويل');
             }
@@ -205,7 +206,7 @@ class CreditFinancingService
         $trackers = CreditFinancingTracker::inProgress()->get();
 
         foreach ($trackers as $tracker) {
-            for ($i = 1; $i <= 5; $i++) {
+            for ($i = 1; $i <= 6; $i++) {
                 $status = $tracker->{"stage_{$i}_status"};
                 $deadline = $tracker->{"stage_{$i}_deadline"};
 
