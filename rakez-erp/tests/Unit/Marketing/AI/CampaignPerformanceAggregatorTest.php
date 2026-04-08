@@ -173,7 +173,7 @@ class CampaignPerformanceAggregatorTest extends TestCase
 
         $this->assertCount(1, $result);
         $day = $result->first();
-        $this->assertSame('2026-01-01', $day['date']);
+        $this->assertSame('2026-01-01', \Illuminate\Support\Carbon::parse($day['date'])->toDateString());
         $this->assertSame(40.0, $day['spend']);
         $this->assertSame(75, $day['clicks']);
         $this->assertSame(8, $day['conversions']);
@@ -225,8 +225,8 @@ class CampaignPerformanceAggregatorTest extends TestCase
         $this->assertNotNull($meta['current']);
         $this->assertNotNull($meta['previous']);
         $this->assertNotNull($meta['changes']);
-        $this->assertSame(100.0, $meta['current']->totalSpend);
-        $this->assertSame(50.0, $meta['previous']->totalSpend);
+        $this->assertSame(100.0, $meta['current']['total_spend']);
+        $this->assertSame(50.0, $meta['previous']['total_spend']);
         $this->assertSame(100.0, $meta['changes']['spend_change_pct']);
     }
 

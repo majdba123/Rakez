@@ -46,8 +46,9 @@ abstract class BasePermissionTestCase extends TestCase
             Permission::firstOrCreate(['name' => $name, 'guard_name' => 'web']);
         }
 
-        // Create roles with their permissions
+        // Create roles with their permissions (mirror RolesAndPermissionsSeeder: admin gets every defined permission)
         $roleMap = config('ai_capabilities.bootstrap_role_map', []);
+        $roleMap['admin'] = array_keys($definitions);
         foreach ($roleMap as $roleName => $permissions) {
             $role = Role::firstOrCreate(['name' => $roleName, 'guard_name' => 'web']);
             $role->syncPermissions($permissions);

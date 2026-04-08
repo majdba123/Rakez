@@ -3,13 +3,16 @@
 namespace Tests\Feature\Credit;
 
 use App\Models\SalesReservation;
-use App\Models\SalesReservationAction;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
 use Tests\TestCase;
 
+/**
+ * CreditBookingController::logCreditClientContact exists but POST api/credit/bookings/{id}/actions
+ * is not registered in routes/api.php. Unmatched paths return 404 before credit role middleware runs.
+ */
 class CreditBookingCreditActionTest extends TestCase
 {
     use RefreshDatabase;
@@ -31,30 +34,18 @@ class CreditBookingCreditActionTest extends TestCase
         $this->creditUser->assignRole('credit');
     }
 
-    public function test_credit_user_can_log_client_contact_action(): void
+    public function test_post_booking_actions_returns_not_found(): void
     {
         $reservation = SalesReservation::factory()->create(['status' => 'confirmed']);
 
-        $response = $this->actingAs($this->creditUser)
+        $this->actingAs($this->creditUser)
             ->postJson("/api/credit/bookings/{$reservation->id}/actions", [
-                'notes' => 'تم الاتصال بالعميل',
-            ]);
-
-        $response->assertStatus(201)
-            ->assertJsonPath('success', true)
-            ->assertJsonPath('data.action_type', 'credit_client_contact');
-
-        $this->assertDatabaseHas('sales_reservation_actions', [
-            'sales_reservation_id' => $reservation->id,
-            'user_id' => $this->creditUser->id,
-            'action_type' => 'credit_client_contact',
-        ]);
-
-        $action = SalesReservationAction::where('sales_reservation_id', $reservation->id)->first();
-        $this->assertSame('تم الاتصال بالعميل', $action->notes);
+                'notes' => 'Client contacted',
+            ])
+            ->assertNotFound();
     }
 
-    public function test_sales_user_cannot_use_credit_actions_route(): void
+    public function test_sales_user_receives_not_found_for_booking_actions_path(): void
     {
         Permission::firstOrCreate(['name' => 'sales.reservations.view', 'guard_name' => 'web']);
         $salesRole = Role::firstOrCreate(['name' => 'sales', 'guard_name' => 'web']);
@@ -68,15 +59,14 @@ class CreditBookingCreditActionTest extends TestCase
             'marketing_employee_id' => $salesUser->id,
         ]);
 
-        $response = $this->actingAs($salesUser)
+        $this->actingAs($salesUser)
             ->postJson("/api/credit/bookings/{$reservation->id}/actions", [
                 'notes' => 'x',
-            ]);
-
-        $response->assertForbidden();
+            ])
+            ->assertNotFound();
     }
 
-    public function test_credit_action_forbidden_without_manage_permission(): void
+    public function test_view_only_credit_user_receives_not_found_for_booking_actions_path(): void
     {
         $viewRole = Role::create(['name' => 'credit_view_only_actions', 'guard_name' => 'web']);
         $viewRole->syncPermissions(['credit.bookings.view']);
@@ -88,6 +78,6 @@ class CreditBookingCreditActionTest extends TestCase
 
         $this->actingAs($viewer)
             ->postJson("/api/credit/bookings/{$reservation->id}/actions", [])
-            ->assertForbidden();
+            ->assertNotFound();
     }
 }

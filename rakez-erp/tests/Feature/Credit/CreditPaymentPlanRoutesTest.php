@@ -13,11 +13,17 @@ use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
 use Tests\TestCase;
 
+/**
+ * Payment plan HTTP API is registered under api/sales (see routes/api.php), not under api/credit.
+ * Route middleware uses sales.payment_plan.manage; controller and form requests also check sales.payment-plan.manage.
+ */
 class CreditPaymentPlanRoutesTest extends TestCase
 {
     use RefreshDatabase;
 
     protected User $creditUser;
+
+    protected User $salesLeader;
 
     protected SalesReservation $reservation;
 
@@ -25,15 +31,25 @@ class CreditPaymentPlanRoutesTest extends TestCase
     {
         parent::setUp();
 
-        foreach (['credit.bookings.view', 'credit.payment_plan.manage', 'sales.payment-plan.manage'] as $p) {
+        foreach ([
+            'credit.bookings.view',
+            'sales.payment_plan.manage',
+            'sales.payment-plan.manage',
+        ] as $p) {
             Permission::firstOrCreate(['name' => $p, 'guard_name' => 'web']);
         }
 
         $creditRole = Role::firstOrCreate(['name' => 'credit', 'guard_name' => 'web']);
-        $creditRole->syncPermissions(['credit.bookings.view', 'credit.payment_plan.manage']);
+        $creditRole->syncPermissions(['credit.bookings.view']);
 
         $this->creditUser = User::factory()->create(['type' => 'credit']);
         $this->creditUser->assignRole('credit');
+
+        $salesLeaderRole = Role::firstOrCreate(['name' => 'sales_leader', 'guard_name' => 'web']);
+        $salesLeaderRole->syncPermissions(['sales.payment_plan.manage', 'sales.payment-plan.manage']);
+
+        $this->salesLeader = User::factory()->create(['type' => 'sales', 'is_manager' => true]);
+        $this->salesLeader->assignRole('sales_leader');
 
         $admin = User::factory()->create(['type' => 'admin']);
         $offPlan = Contract::factory()->create([
@@ -63,43 +79,54 @@ class CreditPaymentPlanRoutesTest extends TestCase
         ]);
     }
 
-    public function test_credit_user_can_get_payment_plan_via_credit_route(): void
+    public function test_credit_prefixed_payment_plan_routes_are_not_registered(): void
     {
-        $response = $this->actingAs($this->creditUser)
-            ->getJson("/api/credit/bookings/{$this->reservation->id}/payment-plan");
+        $this->actingAs($this->salesLeader)
+            ->getJson("/api/credit/bookings/{$this->reservation->id}/payment-plan")
+            ->assertNotFound();
 
-        $response->assertOk()
-            ->assertJsonPath('success', true);
-    }
-
-    public function test_credit_user_can_create_payment_plan_via_credit_route(): void
-    {
-        $response = $this->actingAs($this->creditUser)
+        $this->actingAs($this->salesLeader)
             ->postJson("/api/credit/bookings/{$this->reservation->id}/payment-plan", [
                 'installments' => [
-                    ['due_date' => now()->addMonth()->toDateString(), 'amount' => 100000, 'description' => 'دفعة 1'],
-                    ['due_date' => now()->addMonths(2)->toDateString(), 'amount' => 100000, 'description' => 'دفعة 2'],
+                    ['due_date' => now()->addMonth()->toDateString(), 'amount' => 100000, 'description' => 'Inst 1'],
                 ],
-            ]);
+            ])
+            ->assertNotFound();
+    }
 
-        $response->assertStatus(201)->assertJsonPath('success', true);
+    public function test_sales_leader_can_get_and_create_payment_plan_via_sales_routes(): void
+    {
+        $this->actingAs($this->salesLeader)
+            ->getJson("/api/sales/reservations/{$this->reservation->id}/payment-plan")
+            ->assertOk()
+            ->assertJsonPath('success', true);
+
+        $this->actingAs($this->salesLeader)
+            ->postJson("/api/sales/reservations/{$this->reservation->id}/payment-plan", [
+                'installments' => [
+                    ['due_date' => now()->addMonth()->toDateString(), 'amount' => 100000, 'description' => 'Inst 1'],
+                    ['due_date' => now()->addMonths(2)->toDateString(), 'amount' => 100000, 'description' => 'Inst 2'],
+                ],
+            ])
+            ->assertStatus(201)
+            ->assertJsonPath('success', true);
+
         $this->assertSame(2, ReservationPaymentInstallment::where('sales_reservation_id', $this->reservation->id)->count());
     }
 
-    public function test_credit_user_gets_403_on_sales_payment_plan_route(): void
-    {
-        $response = $this->actingAs($this->creditUser)
-            ->getJson("/api/sales/reservations/{$this->reservation->id}/payment-plan");
-
-        $response->assertForbidden();
-    }
-
-    public function test_credit_user_can_update_and_delete_installment_via_credit_routes(): void
+    public function test_credit_user_is_forbidden_on_sales_payment_plan_route(): void
     {
         $this->actingAs($this->creditUser)
-            ->postJson("/api/credit/bookings/{$this->reservation->id}/payment-plan", [
+            ->getJson("/api/sales/reservations/{$this->reservation->id}/payment-plan")
+            ->assertForbidden();
+    }
+
+    public function test_sales_leader_can_update_and_delete_installment_via_sales_routes(): void
+    {
+        $this->actingAs($this->salesLeader)
+            ->postJson("/api/sales/reservations/{$this->reservation->id}/payment-plan", [
                 'installments' => [
-                    ['due_date' => now()->addMonth()->toDateString(), 'amount' => 50000, 'description' => 'دفعة'],
+                    ['due_date' => now()->addMonth()->toDateString(), 'amount' => 50000, 'description' => 'Inst'],
                 ],
             ])
             ->assertStatus(201);
@@ -107,8 +134,8 @@ class CreditPaymentPlanRoutesTest extends TestCase
         $installment = ReservationPaymentInstallment::where('sales_reservation_id', $this->reservation->id)->first();
         $this->assertNotNull($installment);
 
-        $this->actingAs($this->creditUser)
-            ->putJson("/api/credit/payment-installments/{$installment->id}", [
+        $this->actingAs($this->salesLeader)
+            ->putJson("/api/sales/payment-installments/{$installment->id}", [
                 'amount' => 60000,
             ])
             ->assertOk()
@@ -116,8 +143,8 @@ class CreditPaymentPlanRoutesTest extends TestCase
 
         $this->assertEqualsWithDelta(60000.0, (float) $installment->fresh()->amount, 0.01);
 
-        $this->actingAs($this->creditUser)
-            ->deleteJson("/api/credit/payment-installments/{$installment->id}")
+        $this->actingAs($this->salesLeader)
+            ->deleteJson("/api/sales/payment-installments/{$installment->id}")
             ->assertOk()
             ->assertJsonPath('success', true);
 

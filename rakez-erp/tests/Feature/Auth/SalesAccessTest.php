@@ -26,6 +26,7 @@ class SalesAccessTest extends BasePermissionTestCase
         
         // Create test data
         $this->contract = $this->createContractWithUnits(5);
+        $this->contract->update(['status' => 'completed']);
         $this->unit = $this->contract->contractUnits()->first();
     }
 

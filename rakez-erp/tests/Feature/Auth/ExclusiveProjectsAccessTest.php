@@ -486,11 +486,11 @@ class ExclusiveProjectsAccessTest extends BasePermissionTestCase
             'status' => 'pending',
         ]);
         
-        // Sales2 can view it (role-based access)
+        // Show is scoped to the requester (and elevated roles); peer sales users do not automatically see others' requests.
         $response = $this->actingAs($sales2, 'sanctum')
             ->getJson("/api/exclusive-projects/{$project->id}");
         
-        $this->assertNotEquals(403, $response->status());
+        $response->assertStatus(403);
     }
 
     #[Test]

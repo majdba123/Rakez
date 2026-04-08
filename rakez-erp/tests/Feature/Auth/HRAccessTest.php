@@ -10,7 +10,7 @@ class HRAccessTest extends BasePermissionTestCase
     #[Test]
     public function list_roles_requires_authentication()
     {
-        $this->assertRouteRequiresAuth('GET', '/api/hr/users/roles');
+        $this->assertRouteRequiresAuth('GET', '/api/admin/employees/roles');
     }
 
     #[Test]
@@ -19,7 +19,7 @@ class HRAccessTest extends BasePermissionTestCase
         $admin = $this->createAdmin();
 
         $response = $this->actingAs($admin, 'sanctum')
-            ->getJson('/api/hr/users/roles');
+            ->getJson('/api/admin/employees/roles');
 
         $this->assertNotEquals(403, $response->status());
     }
@@ -36,7 +36,7 @@ class HRAccessTest extends BasePermissionTestCase
 
         foreach ($users as $user) {
             $response = $this->actingAs($user, 'sanctum')
-                ->getJson('/api/hr/users/roles');
+                ->getJson('/api/admin/employees/roles');
 
             $response->assertStatus(403);
         }
@@ -100,12 +100,15 @@ class HRAccessTest extends BasePermissionTestCase
     #[Test]
     public function list_employees_forbidden_for_non_admin_users()
     {
-        $marketing = $this->createMarketingStaff();
-
-        $response = $this->actingAs($marketing, 'sanctum')
-            ->getJson('/api/hr/users');
-
-        $response->assertStatus(403);
+        foreach ([
+            $this->createSalesStaff(),
+            $this->createProjectManagementStaff(),
+            $this->createEditor(),
+        ] as $user) {
+            $this->actingAs($user, 'sanctum')
+                ->getJson('/api/hr/users')
+                ->assertStatus(403);
+        }
     }
 
     #[Test]
@@ -192,7 +195,7 @@ class HRAccessTest extends BasePermissionTestCase
         $employee->delete();
 
         $response = $this->actingAs($admin, 'sanctum')
-            ->patchJson("/api/hr/users/{$employee->id}/restore");
+            ->patchJson("/api/admin/employees/restore/{$employee->id}");
 
         $this->assertNotEquals(403, $response->status());
     }
@@ -205,7 +208,7 @@ class HRAccessTest extends BasePermissionTestCase
         $employee->delete();
 
         $response = $this->actingAs($sales, 'sanctum')
-            ->patchJson("/api/hr/users/{$employee->id}/restore");
+            ->patchJson("/api/admin/employees/restore/{$employee->id}");
 
         $response->assertStatus(403);
     }
@@ -318,7 +321,7 @@ class HRAccessTest extends BasePermissionTestCase
         $routes = [
             ['GET', '/api/hr/users'],
             ['POST', '/api/hr/users'],
-            ['GET', '/api/hr/users/roles'],
+            ['GET', '/api/admin/employees/roles'],
         ];
 
         foreach ($routes as [$method, $uri]) {
@@ -334,17 +337,15 @@ class HRAccessTest extends BasePermissionTestCase
     {
         $marketing = $this->createMarketingStaff();
 
-        $routes = [
-            ['GET', '/api/hr/users'],
-            ['POST', '/api/hr/users'],
-        ];
-
-        foreach ($routes as [$method, $uri]) {
-            $response = $this->actingAs($marketing, 'sanctum')
-                ->json($method, $uri);
-
-            $response->assertStatus(403);
-        }
+        // Marketing may GET /api/hr/users when they have hr.users.view (HrMiddleware); creating users still requires HR role.
+        $this->actingAs($marketing, 'sanctum')
+            ->postJson('/api/hr/users', [
+                'name' => 'X',
+                'email' => 'x' . time() . '@example.com',
+                'password' => 'password123',
+                'type' => 'sales',
+            ])
+            ->assertStatus(403);
     }
 
     #[Test]
@@ -392,9 +393,8 @@ class HRAccessTest extends BasePermissionTestCase
     public function only_admin_can_manage_employees()
     {
         $admin = $this->createAdmin();
-        $nonHrUsers = [
+        $blockedFromHrUserIndex = [
             $this->createSalesStaff(),
-            $this->createMarketingStaff(),
             $this->createProjectManagementStaff(),
             $this->createEditor(),
             $this->createDeveloper(),
@@ -404,11 +404,10 @@ class HRAccessTest extends BasePermissionTestCase
             ->getJson('/api/hr/users');
         $this->assertNotEquals(403, $response->status());
 
-        foreach ($nonHrUsers as $user) {
-            $response = $this->actingAs($user, 'sanctum')
-                ->getJson('/api/hr/users');
-
-            $response->assertStatus(403);
+        foreach ($blockedFromHrUserIndex as $user) {
+            $this->actingAs($user, 'sanctum')
+                ->getJson('/api/hr/users')
+                ->assertStatus(403);
         }
     }
 

@@ -431,6 +431,7 @@ return [
         'accounting' => [
             'contracts.view',
             'contracts.view_all',
+            'second_party.view',
             'accounting.dashboard.view',
             'accounting.claim_files.view',
             'accounting.claim_files.manage',
@@ -476,6 +477,7 @@ return [
         'accountant' => [
             'contracts.view',
             'contracts.view_all',
+            'second_party.view',
             'accounting.dashboard.view',
             'accounting.claim_files.view',
             'accounting.claim_files.manage',

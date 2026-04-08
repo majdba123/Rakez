@@ -6,7 +6,6 @@ use Tests\TestCase;
 use PHPUnit\Framework\Attributes\Test;
 use App\Services\Marketing\DeveloperMarketingPlanService;
 use App\Services\Marketing\EmployeeMarketingPlanService;
-use App\Services\Marketing\MarketingProjectService;
 use App\Services\Marketing\ExpectedSalesService;
 use App\Models\ContractInfo;
 use Carbon\Carbon;
@@ -15,7 +14,6 @@ class BudgetCalculationTest extends TestCase
 {
     private DeveloperMarketingPlanService $developerService;
     private EmployeeMarketingPlanService $employeeService;
-    private MarketingProjectService $projectService;
     private ExpectedSalesService $salesService;
 
     protected function setUp(): void
@@ -23,7 +21,6 @@ class BudgetCalculationTest extends TestCase
         parent::setUp();
         $this->developerService = new DeveloperMarketingPlanService();
         $this->employeeService = new EmployeeMarketingPlanService();
-        $this->projectService = new MarketingProjectService();
         $this->salesService = new ExpectedSalesService();
     }
 

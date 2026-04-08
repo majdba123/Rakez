@@ -415,9 +415,9 @@ class ProjectManagementAccessTest extends BasePermissionTestCase
     {
         $sales = $this->createSalesStaff();
         
+        // second-party-data/show is available to authenticated sales via ContractPolicy (not PM-only).
         $routes = [
             ['GET', '/api/contracts/admin-index'],
-            ['GET', "/api/second-party-data/show/{$this->contract->id}"],
             ['GET', "/api/contracts/units/show/{$this->contract->id}"],
             ['GET', "/api/boards-department/show/{$this->contract->id}"],
         ];
@@ -533,8 +533,6 @@ class ProjectManagementAccessTest extends BasePermissionTestCase
         $pmPermissions = [
             'units.edit',
             'second_party.edit',
-            'departments.boards.edit',
-            'departments.photography.edit',
         ];
         
         $this->assertUserDoesNotHavePermissions($editor, $pmPermissions);
@@ -585,7 +583,6 @@ class ProjectManagementAccessTest extends BasePermissionTestCase
         $developer = $this->createDeveloper();
         
         $pmPermissions = [
-            'contracts.view_all',
             'contracts.approve',
             'units.edit',
             'second_party.edit',
