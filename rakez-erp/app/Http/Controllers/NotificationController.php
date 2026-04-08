@@ -159,23 +159,43 @@ class NotificationController extends Controller
      */
     public function userMarkAllAsRead(Request $request): JsonResponse
     {
-        UserNotification::where('user_id', $request->user()->id)
-            ->where('status', 'pending')
+        $userId = $request->user()->id;
+
+        $updated = UserNotification::where('user_id', $userId)
+            ->where('status', '!=', 'read')
             ->update(['status' => 'read']);
 
-        return response()->json(['message' => 'All notifications marked as read']);
+        return response()->json([
+            'success' => true,
+            'message' => 'تم تعليم جميع الإشعارات كمقروءة',
+            'updated_count' => $updated,
+        ]);
     }
 
     /**
      * Mark specific notification as read
      */
-    public function userMarkAsRead(Request $request, $id): JsonResponse
+    public function userMarkAsRead(Request $request, int $id): JsonResponse
     {
         $notification = UserNotification::where('user_id', $request->user()->id)
-            ->findOrFail($id);
+            ->whereKey($id)
+            ->first();
 
-        $notification->update(['status' => 'read']);
+        if (!$notification) {
+            return response()->json([
+                'success' => false,
+                'message' => 'الإشعار غير موجود أو لا يخصك',
+            ], 404);
+        }
 
-        return response()->json(['message' => 'Notification marked as read']);
+        if ($notification->status !== 'read') {
+            $notification->update(['status' => 'read']);
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => 'تم تعليم الإشعار كمقروء',
+            'data' => new UserNotificationResource($notification->fresh()),
+        ]);
     }
 }
