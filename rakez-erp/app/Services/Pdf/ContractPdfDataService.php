@@ -104,4 +104,47 @@ class ContractPdfDataService
         }
         return '';
     }
+
+    /**
+     * View data for server-generated contract PDF (عرض العقد — عربي).
+     */
+    public function buildShowPdfPayload(Contract $contract): array
+    {
+        $contract->loadMissing([
+            'user',
+            'info',
+            'secondPartyData',
+            'contractUnits',
+            'city',
+            'district',
+        ]);
+
+        $commissionFrom = $contract->commission_from ?? 'owner';
+        $commissionFromAr = self::COMMISSION_FROM_LABELS[$commissionFrom] ?? (string) $commissionFrom;
+
+        return [
+            'contract' => $contract,
+            'generated_at' => now()->format('Y-m-d H:i'),
+            'status_label_ar' => match ((string) ($contract->status ?? '')) {
+                'pending' => 'قيد الانتظار',
+                'approved' => 'معتمد',
+                'rejected' => 'مرفوض',
+                'completed' => 'مكتمل',
+                default => $contract->status ? (string) $contract->status : '—',
+            },
+            'side_label_ar' => match ((string) ($contract->side ?? '')) {
+                'N' => 'شمال',
+                'S' => 'جنوب',
+                'E' => 'شرق',
+                'W' => 'غرب',
+                default => $contract->side ? (string) $contract->side : '—',
+            },
+            'contract_type_ar' => match ((string) ($contract->contract_type ?? '')) {
+                'sale' => 'بيع',
+                'rent' => 'إيجار',
+                default => $contract->contract_type ? (string) $contract->contract_type : '—',
+            },
+            'commission_from_ar' => $commissionFromAr,
+        ];
+    }
 }

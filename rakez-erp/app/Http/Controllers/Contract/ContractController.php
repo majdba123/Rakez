@@ -16,9 +16,12 @@ use App\Services\Contract\ContractService;
 use App\Services\Contract\InventoryAgencyOverviewService;
 use App\Services\Contract\InventoryDashboardService;
 use App\Services\Pdf\ContractPdfDataService;
+use App\Services\Pdf\PdfFactory;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Auth;
+use Mpdf\MpdfException;
 use Exception;
 
 class ContractController extends Controller
@@ -163,6 +166,42 @@ class ContractController extends Controller
                 'success' => false,
                 'message' => $e->getMessage(),
             ], $statusCode);
+        }
+    }
+
+    /**
+     * Download contract details as PDF (عربي — mPDF RTL).
+     * GET /api/contracts/show/{id}/pdf
+     */
+    public function showPdf(int $id): Response|JsonResponse
+    {
+        try {
+            $contract = $this->contractService->getContractById($id, null);
+            $contract->loadMissing('secondPartyData');
+            $this->authorize('view', $contract);
+
+            $data = $this->pdfDataService->buildShowPdfPayload($contract);
+            $filename = sprintf('contract_%d_%s.pdf', $contract->id, now()->format('Y-m-d'));
+
+            return PdfFactory::download('pdfs.contract_show', $data, $filename);
+        } catch (\Illuminate\Auth\Access\AuthorizationException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage(),
+            ], 403);
+        } catch (MpdfException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'تعذر إنشاء ملف PDF: ' . $e->getMessage(),
+            ], 500);
+        } catch (Exception $e) {
+            $message = $e->getMessage();
+            $notFound = str_contains($message, 'not found') || str_contains($message, 'No query results');
+
+            return response()->json([
+                'success' => false,
+                'message' => $message,
+            ], $notFound ? 404 : 500);
         }
     }
 
