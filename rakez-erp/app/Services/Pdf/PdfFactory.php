@@ -152,32 +152,49 @@ class PdfFactory
     }
 
     /**
-     * Return a download response for a Blade view.
+     * Return a PDF response for a Blade view.
+     *
+     * @param  ?bool  $inline  Force inline (browser tab / embed). When null, uses request boolean query ?inline=1 (for SPA preview).
      */
-    public static function download(string $view, array $data, string $filename, array $options = []): Response
+    public static function download(string $view, array $data, string $filename, array $options = [], ?bool $inline = null): Response
     {
-        $content = self::output($view, $data, $options);
-        $safeFilename = str_replace(["\r", "\n", '"', '\\'], '', $filename);
-
-        return new Response($content, 200, [
-            'Content-Type'        => 'application/pdf',
-            'Content-Disposition' => 'attachment; filename="' . $safeFilename . '"',
-            'Content-Length'      => strlen($content),
-        ]);
+        return self::pdfResponse(self::output($view, $data, $options), $filename, $inline);
     }
 
     /**
-     * Return an inline (stream) response for a Blade view.
+     * Return an inline PDF response (same as download with $inline = true).
      */
     public static function stream(string $view, array $data, string $filename, array $options = []): Response
     {
-        $content = self::output($view, $data, $options);
+        return self::pdfResponse(self::output($view, $data, $options), $filename, true);
+    }
+
+    /**
+     * Wrap raw PDF bytes as an HTTP response suitable for browsers and Postman.
+     *
+     * Headers avoid cache/proxy transforms that corrupt binary PDFs; optional inline helps Chrome's built-in viewer.
+     */
+    public static function pdfResponse(string $content, string $filename, ?bool $inline = null): Response
+    {
+        if ($inline === null) {
+            $inline = request()->boolean('inline');
+        }
+
+        $disposition = $inline ? 'inline' : 'attachment';
         $safeFilename = str_replace(["\r", "\n", '"', '\\'], '', $filename);
+        if ($safeFilename === '') {
+            $safeFilename = 'document.pdf';
+        }
+
+        $length = strlen($content);
 
         return new Response($content, 200, [
-            'Content-Type'        => 'application/pdf',
-            'Content-Disposition' => 'inline; filename="' . $safeFilename . '"',
-            'Content-Length'      => strlen($content),
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => sprintf('%s; filename="%s"', $disposition, $safeFilename),
+            'Content-Length' => (string) $length,
+            'Cache-Control' => 'private, no-transform',
+            'X-Content-Type-Options' => 'nosniff',
+            'Accept-Ranges' => 'bytes',
         ]);
     }
 }

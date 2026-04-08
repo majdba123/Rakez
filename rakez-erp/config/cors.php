@@ -49,7 +49,7 @@ return [
 
     'allowed_headers' => ['*'],
 
-    'exposed_headers' => [],
+    'exposed_headers' => ['Content-Disposition', 'Content-Length', 'Content-Type'],
 
     'max_age' => 0,
 
