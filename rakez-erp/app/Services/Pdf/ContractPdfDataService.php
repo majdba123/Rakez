@@ -147,4 +147,24 @@ class ContractPdfDataService
             'commission_from_ar' => $commissionFromAr,
         ];
     }
+
+    /**
+     * View data for PDF: contract_infos row only (معلومات العقد فقط).
+     *
+     * @throws \RuntimeException when contract has no info record
+     */
+    public function buildContractInfoOnlyPdfPayload(Contract $contract): array
+    {
+        $contract->loadMissing(['info', 'city', 'district']);
+
+        if (!$contract->info) {
+            throw new \RuntimeException('لا توجد بيانات معلومات العقد');
+        }
+
+        return [
+            'contract' => $contract,
+            'info' => $contract->info,
+            'generated_at' => now()->format('Y-m-d H:i'),
+        ];
+    }
 }
