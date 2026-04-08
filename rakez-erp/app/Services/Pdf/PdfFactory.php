@@ -152,32 +152,54 @@ class PdfFactory
     }
 
     /**
-     * Return a download response for a Blade view.
+     * Return a PDF response for a Blade view (Content-Disposition: attachment by default).
+     *
+     * @param  ?bool  $inline  True = open in browser tab; null/false = download file.
      */
-    public static function download(string $view, array $data, string $filename, array $options = []): Response
+    public static function download(string $view, array $data, string $filename, array $options = [], ?bool $inline = null): Response
     {
-        $content = self::output($view, $data, $options);
-        $safeFilename = str_replace(["\r", "\n", '"', '\\'], '', $filename);
-
-        return new Response($content, 200, [
-            'Content-Type'        => 'application/pdf',
-            'Content-Disposition' => 'attachment; filename="' . $safeFilename . '"',
-            'Content-Length'      => strlen($content),
-        ]);
+        return self::pdfResponse(self::output($view, $data, $options), $filename, $inline);
     }
 
     /**
-     * Return an inline (stream) response for a Blade view.
+     * Return an inline PDF response (same as download with $inline = true).
      */
     public static function stream(string $view, array $data, string $filename, array $options = []): Response
     {
-        $content = self::output($view, $data, $options);
+        return self::pdfResponse(self::output($view, $data, $options), $filename, true);
+    }
+
+    /**
+     * Wrap raw PDF bytes as an HTTP response suitable for browsers and Postman.
+     *
+     * Only $inline === true uses inline disposition so normal API PDFs trigger a download.
+     * For preview-in-tab, use {@see stream()} or pass true as the last argument to {@see download()}.
+     */
+    public static function pdfResponse(string $content, string $filename, ?bool $inline = null): Response
+    {
+        $disposition = $inline === true ? 'inline' : 'attachment';
         $safeFilename = str_replace(["\r", "\n", '"', '\\'], '', $filename);
+        if ($safeFilename === '') {
+            $safeFilename = 'document.pdf';
+        }
+
+        $asciiFallback = preg_replace('/[^\x20-\x7E]/', '_', $safeFilename) ?: 'document.pdf';
+        $utf8Star = "filename*=UTF-8''" . rawurlencode($safeFilename);
+
+        $length = strlen($content);
 
         return new Response($content, 200, [
-            'Content-Type'        => 'application/pdf',
-            'Content-Disposition' => 'inline; filename="' . $safeFilename . '"',
-            'Content-Length'      => strlen($content),
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => sprintf(
+                '%s; filename="%s"; %s',
+                $disposition,
+                addcslashes($asciiFallback, '"\\'),
+                $utf8Star
+            ),
+            'Content-Length' => (string) $length,
+            'Cache-Control' => 'private, no-transform',
+            'X-Content-Type-Options' => 'nosniff',
+            'Accept-Ranges' => 'bytes',
         ]);
     }
 }

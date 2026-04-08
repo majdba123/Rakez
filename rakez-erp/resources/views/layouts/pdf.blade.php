@@ -6,202 +6,298 @@
     <title>@yield('title')</title>
     <style>
         @page {
-            margin: 30px 40px 80px 40px;
+            margin: 22mm 14mm 36mm 14mm;
         }
 
         * { box-sizing: border-box; }
 
         body {
-            font-family: 'dejavusans', sans-serif;
+            font-family: 'dejavusans', 'dejavu sans', sans-serif;
             direction: rtl;
             text-align: right;
-            font-size: 11px;
-            color: #222;
+            font-size: 10.5pt;
+            color: #334155;
             margin: 0;
             padding: 0;
-            line-height: 1.6;
+            line-height: 1.55;
         }
 
-        /* ===== Document titles ===== */
+        /* ----- Letterhead ----- */
+        .pdf-letterhead {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 0 0 20px 0;
+        }
+        .pdf-letterhead-bar {
+            background-color: #1B2A4A;
+            height: 5px;
+            padding: 0;
+            font-size: 1px;
+            line-height: 1px;
+        }
+        .pdf-letterhead-body {
+            background-color: #f1f5f9;
+            border: 1px solid #cbd5e1;
+            border-top: none;
+            padding: 16px 20px;
+            text-align: center;
+        }
+
+        /* ----- Document titles ----- */
+        .doc-title-wrap {
+            margin: 0 0 18px 0;
+            padding: 0 0 14px 0;
+            border-bottom: 1px solid #cbd5e1;
+        }
         .doc-title {
             text-align: center;
-            font-size: 18px;
+            font-size: 16pt;
             font-weight: bold;
             color: #1B2A4A;
-            margin: 10px 0 5px 0;
+            margin: 0 0 6px 0;
+            letter-spacing: 0.02em;
         }
         .doc-title-en {
             text-align: center;
-            font-size: 12px;
-            color: #888;
-            margin: 0 0 5px 0;
+            font-size: 9.5pt;
+            color: #64748b;
+            margin: 0 0 10px 0;
+            font-weight: normal;
         }
         .doc-subtitle {
             text-align: center;
-            font-size: 10px;
-            color: #666;
-            margin: 0 0 15px 0;
+            font-size: 9pt;
+            color: #64748b;
+            margin: 0;
+            padding: 8px 12px;
+            background-color: #f8fafc;
+            border: 1px solid #e2e8f0;
         }
 
-        /* ===== Section title ===== */
+        /* ----- Section ----- */
         .section-title {
-            font-size: 13px;
+            font-size: 11pt;
             font-weight: bold;
-            color: #1B2A4A;
-            margin: 20px 0 8px 0;
-            padding-bottom: 5px;
-            border-bottom: 2px solid #1B2A4A;
+            color: #fff;
+            background-color: #1B2A4A;
+            margin: 22px 0 0 0;
+            margin-bottom: 0;
+            padding: 8px 12px;
+            border: 1px solid #142038;
+        }
+        .section-title.first {
+            margin-top: 6px;
         }
 
-        /* ===== Info table (label / value rows) ===== */
+        /* ----- Key / value tables ----- */
         .info-table {
             width: 100%;
             border-collapse: collapse;
-            margin: 5px 0;
+            margin: 0 0 16px 0;
+            border: 1px solid #cbd5e1;
+            border-top: none;
         }
         .info-table td {
-            padding: 7px 10px;
-            border: 1px solid #ddd;
-            font-size: 10px;
+            padding: 9px 12px;
+            border-bottom: 1px solid #e2e8f0;
+            font-size: 9.5pt;
+            vertical-align: top;
+        }
+        .info-table tr:last-child td {
+            border-bottom: none;
         }
         .info-table td:first-child {
-            width: 40%;
-            background-color: #f5f7fa;
+            width: 36%;
+            background-color: #f1f5f9;
             font-weight: bold;
-            color: #333;
+            color: #1e293b;
+            border-left: 1px solid #e2e8f0;
+        }
+        .info-table td:last-child {
+            background-color: #ffffff;
+            color: #334155;
         }
 
-        /* ===== Data table (multi-column with headers) ===== */
+        /* ----- Grid data tables ----- */
         .data-table {
             width: 100%;
             border-collapse: collapse;
-            margin: 10px 0;
+            margin: 12px 0;
+            border: 1px solid #cbd5e1;
         }
         .data-table th {
             background-color: #1B2A4A;
-            color: #fff;
-            padding: 8px 6px;
-            border: 1px solid #152238;
-            font-size: 10px;
+            color: #ffffff;
+            padding: 9px 8px;
+            border: 1px solid #142038;
+            font-size: 9pt;
             text-align: center;
             font-weight: bold;
         }
         .data-table td {
-            padding: 8px 6px;
-            border: 1px solid #ddd;
+            padding: 8px 8px;
+            border: 1px solid #e2e8f0;
             text-align: center;
-            font-size: 10px;
+            font-size: 9pt;
+            background-color: #ffffff;
         }
-        .data-table tr:nth-child(even) {
-            background-color: #f9fafb;
+        .data-table tr:nth-child(even) td {
+            background-color: #f8fafc;
         }
 
-        /* ===== Summary box ===== */
+        /* ----- Summary ----- */
         .summary-box {
-            margin: 15px 0;
-            padding: 12px;
-            background-color: #f5f7fa;
-            border: 1px solid #ddd;
+            margin: 14px 0;
+            padding: 14px 16px;
+            background-color: #f8fafc;
+            border: 1px solid #cbd5e1;
         }
         .summary-box p {
-            margin: 4px 0;
-            font-size: 10px;
+            margin: 5px 0;
+            font-size: 9.5pt;
         }
 
-        /* ===== Empty message ===== */
         .empty-msg {
-            color: #777;
+            color: #94a3b8;
             font-style: italic;
-            padding: 10px;
-            font-size: 10px;
+            padding: 12px;
+            font-size: 9.5pt;
         }
 
-        /* ===== Status badges ===== */
+        /* ----- Status ----- */
         .status-badge {
             display: inline-block;
-            padding: 3px 12px;
-            border-radius: 3px;
-            font-size: 9px;
+            padding: 4px 12px;
+            font-size: 8.5pt;
             font-weight: bold;
         }
-        .status-pending    { background-color: #FFC107; color: #000; }
-        .status-approved   { background-color: #4CAF50; color: #fff; }
-        .status-paid       { background-color: #2196F3; color: #fff; }
-        .status-rejected   { background-color: #F44336; color: #fff; }
-        .status-received   { background-color: #4CAF50; color: #fff; }
-        .status-confirmed  { background-color: #2196F3; color: #fff; }
-        .status-refunded   { background-color: #F44336; color: #fff; }
-        .status-draft      { background-color: #FFC107; color: #000; }
-        .status-active     { background-color: #4CAF50; color: #fff; }
-        .status-expired    { background-color: #9E9E9E; color: #fff; }
-        .status-terminated { background-color: #F44336; color: #fff; }
+        .status-pending { background-color: #fde68a; color: #78350f; }
+        .status-approved { background-color: #bbf7d0; color: #14532d; }
+        .status-paid { background-color: #bfdbfe; color: #1e3a5f; }
+        .status-rejected { background-color: #fecaca; color: #7f1d1d; }
+        .status-received { background-color: #bbf7d0; color: #14532d; }
+        .status-confirmed { background-color: #bfdbfe; color: #1e3a5f; }
+        .status-refunded { background-color: #fecaca; color: #7f1d1d; }
+        .status-draft { background-color: #fde68a; color: #78350f; }
+        .status-active { background-color: #bbf7d0; color: #14532d; }
+        .status-expired { background-color: #e2e8f0; color: #475569; }
+        .status-terminated { background-color: #fecaca; color: #7f1d1d; }
 
-        /* ===== Footer (fixed on every page) ===== */
-        .footer-area {
-            position: fixed;
-            bottom: 0;
-            left: 0;
-            right: 0;
+        /* ----- Footer (htmlpagefooter) ----- */
+        .footer-wrap {
             border-top: 2px solid #1B2A4A;
-            padding: 8px 30px;
-            font-size: 7px;
-            color: #666;
+            padding-top: 8px;
+            margin-top: 6px;
+            background-color: #f8fafc;
         }
         .footer-tbl {
             width: 100%;
             border-collapse: collapse;
         }
         .footer-tbl td {
-            padding: 2px 5px;
+            padding: 4px 8px;
             vertical-align: top;
-            font-size: 7px;
-            color: #666;
+            font-size: 8pt;
+            color: #475569;
             border: none;
+            line-height: 1.45;
+        }
+        .footer-tbl strong {
+            color: #1B2A4A;
         }
 
-        /* ===== Auto-generated message ===== */
         .auto-msg {
             text-align: center;
-            font-size: 9px;
-            color: #999;
-            margin-top: 25px;
+            font-size: 8.5pt;
+            color: #94a3b8;
+            margin-top: 28px;
+            padding-top: 12px;
+            border-top: 1px dashed #cbd5e1;
         }
 
-        /* ===== LTR helper for English/numbers ===== */
         .ltr {
             direction: ltr;
             text-align: left;
+        }
+
+        .pdf-logo-wordmark {
+            display: inline-block;
+            text-align: center;
+            padding: 4px 8px 0 8px;
+        }
+        .pdf-logo-wordmark-ar {
+            font-size: 17pt;
+            font-weight: bold;
+            color: #1B2A4A;
+            margin: 0 0 2px 0;
+        }
+        .pdf-logo-wordmark-en {
+            font-size: 10pt;
+            color: #64748b;
+            letter-spacing: 0.18em;
+            text-transform: uppercase;
+            margin: 0;
+        }
+        .pdf-logo-wordmark-line {
+            height: 3px;
+            width: 120px;
+            background-color: #c4a035;
+            margin: 10px auto 0 auto;
         }
 
         @yield('extra-styles')
     </style>
 </head>
 <body>
-    {{-- Footer (fixed on every page) --}}
-    <div class="footer-area">
-        <table class="footer-tbl">
-            <tr>
-                <td style="text-align: right; width: 30%;"><strong>شركة راكز العقارية</strong><br>RAKEZ REAL ESTATE CO.</td>
-                <td style="text-align: center; width: 40%;">C.R. 1010691801<br>المملكة العربية السعودية - الرياض 3130 شارع أنس بن مالك، حي الملقا</td>
-                <td style="text-align: left; width: 30%;">920015711<br>www.rakez.sa</td>
-            </tr>
-        </table>
-    </div>
+    <htmlpagefooter name="rakez_pdf_footer">
+        <div class="footer-wrap">
+            <table class="footer-tbl">
+                <tr>
+                    <td style="text-align: right; width: 32%;"><strong>شركة راكز العقارية</strong><br/>RAKEZ REAL ESTATE CO.</td>
+                    <td style="text-align: center; width: 36%;">سجل تجاري: 1010691801<br/>المملكة العربية السعودية — الرياض، شارع أنس بن مالك، حي الملقا</td>
+                    <td style="text-align: left; width: 32%; direction: ltr;">920015711<br/>www.rakez.sa</td>
+                </tr>
+            </table>
+        </div>
+    </htmlpagefooter>
+    <sethtmlpagefooter name="rakez_pdf_footer" value="on" />
 
-    {{-- Logo: only PNG/JPEG (mPDF); avoid missing or unsupported formats --}}
-    <table style="width: 100%; margin-bottom: 15px;" cellpadding="0" cellspacing="0">
+    @php
+        $rakezLogoSrcForMpdf = null;
+        foreach (['images/rakez-logo.png', 'images/rakez-logo.jpg', 'images/logo.png', 'images/logo.jpg'] as $rel) {
+            $full = public_path($rel);
+            if (! is_string($full) || ! is_readable($full)) {
+                continue;
+            }
+            $resolved = realpath($full);
+            if ($resolved === false) {
+                continue;
+            }
+            $normalized = str_replace('\\', '/', $resolved);
+            if ($normalized === '') {
+                continue;
+            }
+            $rakezLogoSrcForMpdf = strncmp($normalized, '/', 1) === 0
+                ? 'file://' . $normalized
+                : 'file:///' . $normalized;
+            break;
+        }
+    @endphp
+
+    <table class="pdf-letterhead" cellpadding="0" cellspacing="0">
         <tr>
-            <td style="text-align: center; padding: 10px 0 15px 0; border: none;">
-                @php
-                    $logoPng = public_path('images/rakez-logo.png');
-                    $logoJpg = public_path('images/rakez-logo.jpg');
-                    $logoPath = file_exists($logoPng) ? $logoPng : (file_exists($logoJpg) ? $logoJpg : null);
-                @endphp
-                @if($logoPath)
-                    <img src="{{ $logoPath }}" alt="راكز" style="height: 90px;">
+            <td class="pdf-letterhead-bar">&nbsp;</td>
+        </tr>
+        <tr>
+            <td class="pdf-letterhead-body">
+                @if($rakezLogoSrcForMpdf)
+                    <img src="{{ $rakezLogoSrcForMpdf }}" alt="راكز" style="max-height: 64px; width: auto; vertical-align: middle;">
                 @else
-                    <div style="font-size: 22px; font-weight: bold; color: #1B2A4A; padding: 15px 0 5px 0;">شركة راكز العقارية</div>
-                    <div style="font-size: 13px; color: #888; letter-spacing: 2px;">RAKEZ REAL ESTATE CO.</div>
+                    <div class="pdf-logo-wordmark">
+                        <div class="pdf-logo-wordmark-ar">شركة راكز العقارية</div>
+                        <div class="pdf-logo-wordmark-en">Rakez Real Estate</div>
+                        <div class="pdf-logo-wordmark-line"></div>
+                    </div>
                 @endif
             </td>
         </tr>

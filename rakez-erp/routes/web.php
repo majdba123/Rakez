@@ -1,5 +1,6 @@
 <?php
 
+use App\Services\Pdf\PdfFactory;
 use Illuminate\Support\Facades\Route;
 use App\Events\UserNotificationEvent;
 use App\Events\PublicNotificationEvent;
@@ -70,3 +71,36 @@ Route::get('/chat/test', function () {
 
     return view('chat.test');
 })->middleware('auth');
+
+// ==========================================
+// LOCAL: PDF / Blade preview (dummy data)
+// ==========================================
+
+if (app()->environment('local')) {
+    $devPdfSampleData = static function (): array {
+        return [
+            'contract_id' => '999',
+            'rows' => [
+                ['label' => 'اسم المشروع', 'value' => 'مشروع تجريبي للمعاينة'],
+                ['label' => 'الحي', 'value' => 'حي الاختبار'],
+                ['label' => 'نوع العقد', 'value' => 'بيع'],
+                ['label' => 'الجهة', 'value' => 'شمال'],
+                ['label' => 'نص عربي طويل', 'value' => 'هذا سطر لاختبار التفاف النص والاتجاه من اليمين إلى اليسار في مخرجات mPDF.'],
+                ['label' => 'رقم / LTR', 'value' => 'CR-1234567'],
+            ],
+            'generated_at' => now()->format('Y-m-d H:i'),
+        ];
+    };
+
+    Route::get('/dev/pdf/preview-html', function () use ($devPdfSampleData) {
+        return view('pdfs.dev_sample', $devPdfSampleData());
+    });
+
+    Route::get('/dev/pdf/preview-pdf', function () use ($devPdfSampleData) {
+        return PdfFactory::download(
+            'pdfs.dev_sample',
+            $devPdfSampleData(),
+            'dev_sample.pdf'
+        );
+    });
+}

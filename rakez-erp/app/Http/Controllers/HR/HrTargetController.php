@@ -195,14 +195,10 @@ class HrTargetController extends Controller
         }
     }
 
-    public function reservationStatistics(Request $request): JsonResponse
+    public function reservationStatistics(Request $request, int $marketerId): JsonResponse
     {
         try {
-            $query = SalesReservation::query();
-
-            if ($request->filled('marketer_id')) {
-                $query->where('marketing_employee_id', (int) $request->input('marketer_id'));
-            }
+            $query = SalesReservation::query()->where('marketing_employee_id', $marketerId);
 
             if ($request->filled('contract_id')) {
                 $query->where('contract_id', (int) $request->input('contract_id'));
@@ -289,7 +285,7 @@ class HrTargetController extends Controller
 
             $overallUnitStatus = SalesReservation::query()
                 ->join('contract_units', 'sales_reservations.contract_unit_id', '=', 'contract_units.id')
-                ->when($request->filled('marketer_id'), fn ($q) => $q->where('sales_reservations.marketing_employee_id', (int) $request->input('marketer_id')))
+                ->where('sales_reservations.marketing_employee_id', $marketerId)
                 ->when($request->filled('contract_id'), fn ($q) => $q->where('sales_reservations.contract_id', (int) $request->input('contract_id')))
                 ->when($request->filled('from'), fn ($q) => $q->whereDate('sales_reservations.created_at', '>=', $request->input('from')))
                 ->when($request->filled('to'), fn ($q) => $q->whereDate('sales_reservations.created_at', '<=', $request->input('to')))
