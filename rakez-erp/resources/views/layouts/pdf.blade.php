@@ -6,7 +6,7 @@
     <title>@yield('title')</title>
     <style>
         @page {
-            margin: 30px 40px 80px 40px;
+            margin: 28px 40px 42mm 40px;
         }
 
         * { box-sizing: border-box; }
@@ -124,29 +124,19 @@
             font-size: 9px;
             font-weight: bold;
         }
-        .status-pending    { background-color: #FFC107; color: #000; }
-        .status-approved   { background-color: #4CAF50; color: #fff; }
-        .status-paid       { background-color: #2196F3; color: #fff; }
-        .status-rejected   { background-color: #F44336; color: #fff; }
-        .status-received   { background-color: #4CAF50; color: #fff; }
-        .status-confirmed  { background-color: #2196F3; color: #fff; }
-        .status-refunded   { background-color: #F44336; color: #fff; }
-        .status-draft      { background-color: #FFC107; color: #000; }
-        .status-active     { background-color: #4CAF50; color: #fff; }
-        .status-expired    { background-color: #9E9E9E; color: #fff; }
+        .status-pending { background-color: #FFC107; color: #000; }
+        .status-approved { background-color: #4CAF50; color: #fff; }
+        .status-paid { background-color: #2196F3; color: #fff; }
+        .status-rejected { background-color: #F44336; color: #fff; }
+        .status-received { background-color: #4CAF50; color: #fff; }
+        .status-confirmed { background-color: #2196F3; color: #fff; }
+        .status-refunded { background-color: #F44336; color: #fff; }
+        .status-draft { background-color: #FFC107; color: #000; }
+        .status-active { background-color: #4CAF50; color: #fff; }
+        .status-expired { background-color: #9E9E9E; color: #fff; }
         .status-terminated { background-color: #F44336; color: #fff; }
 
-        /* ===== Footer (fixed on every page) ===== */
-        .footer-area {
-            position: fixed;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            border-top: 2px solid #1B2A4A;
-            padding: 8px 30px;
-            font-size: 7px;
-            color: #666;
-        }
+        /* Footer block: styling used inside <htmlpagefooter> (mPDF) */
         .footer-tbl {
             width: 100%;
             border-collapse: collapse;
@@ -173,35 +163,79 @@
             text-align: left;
         }
 
+        /* ===== Logo header (text fallback) ===== */
+        .pdf-logo-wordmark {
+            display: inline-block;
+            text-align: center;
+            padding: 10px 24px 14px 24px;
+            border: 2px solid #1B2A4A;
+            border-radius: 4px;
+            background: #fafbfd;
+        }
+        .pdf-logo-wordmark-ar {
+            font-size: 20px;
+            font-weight: bold;
+            color: #1B2A4A;
+            margin: 0 0 4px 0;
+        }
+        .pdf-logo-wordmark-en {
+            font-size: 11px;
+            color: #666;
+            letter-spacing: 2px;
+            margin: 0;
+        }
+
         @yield('extra-styles')
     </style>
 </head>
 <body>
-    {{-- Footer (fixed on every page) --}}
-    <div class="footer-area">
-        <table class="footer-tbl">
-            <tr>
-                <td style="text-align: right; width: 30%;"><strong>شركة راكز العقارية</strong><br>RAKEZ REAL ESTATE CO.</td>
-                <td style="text-align: center; width: 40%;">C.R. 1010691801<br>المملكة العربية السعودية - الرياض 3130 شارع أنس بن مالك، حي الملقا</td>
-                <td style="text-align: left; width: 30%;">920015711<br>www.rakez.sa</td>
-            </tr>
-        </table>
-    </div>
+    {{-- mPDF: repeat footer on every page (CSS position:fixed is unreliable) --}}
+    <htmlpagefooter name="rakez_pdf_footer">
+        <div style="border-top: 2px solid #1B2A4A; padding-top: 6px; margin-top: 4px;">
+            <table class="footer-tbl">
+                <tr>
+                    <td style="text-align: right; width: 30%;"><strong>شركة راكز العقارية</strong><br/>RAKEZ REAL ESTATE CO.</td>
+                    <td style="text-align: center; width: 40%;">C.R. 1010691801<br/>المملكة العربية السعودية - الرياض 3130 شارع أنس بن مالك، حي الملقا</td>
+                    <td style="text-align: left; width: 30%;">920015711<br/>www.rakez.sa</td>
+                </tr>
+            </table>
+        </div>
+    </htmlpagefooter>
+    <sethtmlpagefooter name="rakez_pdf_footer" value="on" />
 
-    {{-- Logo: only PNG/JPEG (mPDF); avoid missing or unsupported formats --}}
-    <table style="width: 100%; margin-bottom: 15px;" cellpadding="0" cellspacing="0">
+    @php
+        // mPDF reads local images via file:// URLs; normalize slashes (required on Windows).
+        $rakezLogoSrcForMpdf = null;
+        foreach (['images/rakez-logo.png', 'images/rakez-logo.jpg', 'images/logo.png', 'images/logo.jpg'] as $rel) {
+            $full = public_path($rel);
+            if (! is_string($full) || ! is_readable($full)) {
+                continue;
+            }
+            $resolved = realpath($full);
+            if ($resolved === false) {
+                continue;
+            }
+            $normalized = str_replace('\\', '/', $resolved);
+            if ($normalized === '') {
+                continue;
+            }
+            $rakezLogoSrcForMpdf = strncmp($normalized, '/', 1) === 0
+                ? 'file://' . $normalized
+                : 'file:///' . $normalized;
+            break;
+        }
+    @endphp
+
+    <table style="width: 100%; margin-bottom: 12px;" cellpadding="0" cellspacing="0">
         <tr>
-            <td style="text-align: center; padding: 10px 0 15px 0; border: none;">
-                @php
-                    $logoPng = public_path('images/rakez-logo.png');
-                    $logoJpg = public_path('images/rakez-logo.jpg');
-                    $logoPath = file_exists($logoPng) ? $logoPng : (file_exists($logoJpg) ? $logoJpg : null);
-                @endphp
-                @if($logoPath)
-                    <img src="{{ $logoPath }}" alt="راكز" style="height: 90px;">
+            <td style="text-align: center; padding: 6px 0 12px 0; border: none;">
+                @if($rakezLogoSrcForMpdf)
+                    <img src="{{ $rakezLogoSrcForMpdf }}" alt="راكز" style="max-height: 72px; width: auto;">
                 @else
-                    <div style="font-size: 22px; font-weight: bold; color: #1B2A4A; padding: 15px 0 5px 0;">شركة راكز العقارية</div>
-                    <div style="font-size: 13px; color: #888; letter-spacing: 2px;">RAKEZ REAL ESTATE CO.</div>
+                    <div class="pdf-logo-wordmark">
+                        <div class="pdf-logo-wordmark-ar">شركة راكز العقارية</div>
+                        <div class="pdf-logo-wordmark-en">RAKEZ REAL ESTATE CO.</div>
+                    </div>
                 @endif
             </td>
         </tr>
