@@ -152,9 +152,9 @@ class PdfFactory
     }
 
     /**
-     * Return a PDF response for a Blade view.
+     * Return a PDF response for a Blade view (Content-Disposition: attachment by default).
      *
-     * @param  ?bool  $inline  Force inline (browser tab / embed). When null, uses request boolean query ?inline=1 (for SPA preview).
+     * @param  ?bool  $inline  True = open in browser tab; null/false = download file.
      */
     public static function download(string $view, array $data, string $filename, array $options = [], ?bool $inline = null): Response
     {
@@ -172,25 +172,30 @@ class PdfFactory
     /**
      * Wrap raw PDF bytes as an HTTP response suitable for browsers and Postman.
      *
-     * Headers avoid cache/proxy transforms that corrupt binary PDFs; optional inline helps Chrome's built-in viewer.
+     * Only $inline === true uses inline disposition so normal API PDFs trigger a download.
+     * For preview-in-tab, use {@see stream()} or pass true as the last argument to {@see download()}.
      */
     public static function pdfResponse(string $content, string $filename, ?bool $inline = null): Response
     {
-        if ($inline === null) {
-            $inline = request()->boolean('inline');
-        }
-
-        $disposition = $inline ? 'inline' : 'attachment';
+        $disposition = $inline === true ? 'inline' : 'attachment';
         $safeFilename = str_replace(["\r", "\n", '"', '\\'], '', $filename);
         if ($safeFilename === '') {
             $safeFilename = 'document.pdf';
         }
 
+        $asciiFallback = preg_replace('/[^\x20-\x7E]/', '_', $safeFilename) ?: 'document.pdf';
+        $utf8Star = "filename*=UTF-8''" . rawurlencode($safeFilename);
+
         $length = strlen($content);
 
         return new Response($content, 200, [
             'Content-Type' => 'application/pdf',
-            'Content-Disposition' => sprintf('%s; filename="%s"', $disposition, $safeFilename),
+            'Content-Disposition' => sprintf(
+                '%s; filename="%s"; %s',
+                $disposition,
+                addcslashes($asciiFallback, '"\\'),
+                $utf8Star
+            ),
             'Content-Length' => (string) $length,
             'Cache-Control' => 'private, no-transform',
             'X-Content-Type-Options' => 'nosniff',
