@@ -213,6 +213,65 @@ class ContractPdfDataService
         return $payload;
     }
 
+    /**
+     * View data for PDF: same fields as {@see getFillData} (عقد حصري — ملء قالب) in labeled rows.
+     *
+     * @return array{contract_id: string, rows: list<array{label: string, value: string}>, generated_at: string}
+     */
+    public function buildFillDataPdfPayload(Contract $contract): array
+    {
+        $contract->loadMissing(['info', 'contractUnits', 'city', 'district', 'secondPartyData']);
+        $f = $this->getFillData($contract);
+
+        $sideLabel = match ((string) ($f['side'] ?? '')) {
+            'N' => 'شمال',
+            'S' => 'جنوب',
+            'E' => 'شرق',
+            'W' => 'غرب',
+            default => trim((string) ($f['side'] ?? '')) === '' ? '—' : (string) $f['side'],
+        };
+
+        $typeLabel = match ((string) ($f['contract_type'] ?? '')) {
+            'sale' => 'بيع',
+            'rent' => 'إيجار',
+            default => trim((string) ($f['contract_type'] ?? '')) === '' ? '—' : (string) $f['contract_type'],
+        };
+
+        $rows = [
+            ['label' => 'اسم المشروع', 'value' => $this->pdfStr($f['project_name'] ?? null)],
+            ['label' => 'الحي', 'value' => $this->pdfStr($f['district'] ?? null)],
+            ['label' => 'نوع العقد', 'value' => $typeLabel],
+            ['label' => 'الجهة', 'value' => $sideLabel],
+            ['label' => 'أنواع الوحدات', 'value' => $this->pdfStr($f['unit_type'] ?? null)],
+            ['label' => 'عدد الوحدات', 'value' => $this->pdfStr($f['units_count'] ?? null)],
+            ['label' => 'مدينة العقد', 'value' => $this->pdfStr($f['contract_city'] ?? null)],
+            ['label' => 'اليوم', 'value' => $this->pdfStr($f['contract_day'] ?? null)],
+            ['label' => 'التاريخ الميلادي', 'value' => $this->pdfStr($f['gregorian_date'] ?? null)],
+            ['label' => 'التاريخ الهجري', 'value' => $this->pdfStr($f['hijri_date'] ?? null)],
+            ['label' => 'اسم الطرف الثاني', 'value' => $this->pdfStr($f['second_party_name'] ?? null)],
+            ['label' => 'السجل التجاري (الطرف الثاني)', 'value' => $this->pdfStr($f['second_party_cr_number'] ?? null)],
+            ['label' => 'رقم الهوية', 'value' => $this->pdfStr($f['second_party_id'] ?? null)],
+            ['label' => 'العنوان', 'value' => $this->pdfStr($f['second_party_address'] ?? null)],
+            ['label' => 'المفوّض بالتوقيع', 'value' => $this->pdfStr($f['second_party_signatory'] ?? null)],
+            ['label' => 'صفة المفوّض', 'value' => $this->pdfStr($f['second_party_role'] ?? null)],
+            ['label' => 'جوال الطرف الثاني', 'value' => $this->pdfStr($f['second_party_phone'] ?? null)],
+            ['label' => 'مدة الاتفاق (أشهر)', 'value' => $this->pdfStr($f['agreement_duration_months'] ?? null)],
+        ];
+
+        if (isset($f['agreement_duration_days'])) {
+            $rows[] = ['label' => 'مدة الاتفاق (يوم)', 'value' => $this->pdfStr($f['agreement_duration_days'])];
+        }
+
+        $rows[] = ['label' => 'العمولة على حساب', 'value' => $this->pdfStr($f['commission_from'] ?? null)];
+        $rows[] = ['label' => 'نسبة العمولة %', 'value' => $this->pdfStr($f['commission_percent'] ?? null)];
+
+        return [
+            'contract_id' => $this->pdfStr($contract->id),
+            'rows' => $rows,
+            'generated_at' => now()->format('Y-m-d H:i'),
+        ];
+    }
+
     private function resolveUnitsCount(Contract $contract, $info): int
     {
         if ($info && isset($info->units_count) && $info->units_count !== null) {

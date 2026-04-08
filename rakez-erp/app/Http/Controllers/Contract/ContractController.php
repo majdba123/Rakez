@@ -226,6 +226,42 @@ class ContractController extends Controller
     }
 
     /**
+     * PDF for contract fill-data (عقد حصري — ملء قالب). Same underlying data as {@see fillData}.
+     * GET /api/contracts/{id}/fill-data/pdf
+     */
+    public function fillDataPdf(int $id): Response|JsonResponse
+    {
+        try {
+            $contract = $this->contractService->getContractById($id, null);
+            $this->authorize('view', $contract);
+
+            $data = $this->pdfDataService->buildFillDataPdfPayload($contract);
+            $filename = sprintf('contract_fill_%d_%s.pdf', $contract->id, now()->format('Y-m-d'));
+
+            return PdfFactory::download('pdfs.contract_fill_data', $data, $filename);
+        } catch (\Illuminate\Auth\Access\AuthorizationException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage(),
+            ], 403);
+        } catch (MpdfException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'تعذر إنشاء ملف PDF: ' . $e->getMessage(),
+            ], 500);
+        } catch (Exception $e) {
+            $message = $e->getMessage();
+            $notFound = str_contains($message, 'not found') || str_contains($message, 'No query results')
+                || str_contains($message, 'Contract not found');
+
+            return response()->json([
+                'success' => false,
+                'message' => $message,
+            ], $notFound ? 404 : 500);
+        }
+    }
+
+    /**
      * Contract summary for PDF (ملخص عقد — إدارة مشاريع).
      * GET /api/contracts/{id}/summary-pdf-data — returns JSON only; frontend uses generateContractSummaryPdf(contract).
      */
