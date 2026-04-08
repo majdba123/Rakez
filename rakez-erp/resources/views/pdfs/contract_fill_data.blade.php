@@ -1,4 +1,4 @@
-@extends('layouts.pdf')
+@extends('layouts.pdf_contract')
 
 @php
     /** @var string $contract_id */
