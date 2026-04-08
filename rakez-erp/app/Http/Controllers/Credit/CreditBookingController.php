@@ -454,7 +454,7 @@ class CreditBookingController extends Controller
                     'financing' => $this->financingForUserOrNull($reservation),
                     'title_transfer' => $reservation->titleTransfer,
                     'claim_file' => $reservation->claimFile,
-                    // متابعة إجراءات الائتمان – 7 steps (التواصل مع العميل، رفع الطلب، صدور التقييم، زيارة المقيم، الإجراءات البنكية، تنفيذ العقود، فترة التجهيز)
+                    // متابعة الائتمان: تمويل بنكي = 7 خطوات واجهة؛ كاش = مرحلتان فعليتان في المتتبع (1 و6) والباقي skipped في الواجهة
                     'credit_procedure_steps' => $this->buildCreditProcedureSteps($reservation),
                     'payment_installments' => $reservation->paymentInstallments,
                     // Flags

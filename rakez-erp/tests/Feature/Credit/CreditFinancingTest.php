@@ -481,5 +481,94 @@ class CreditFinancingTest extends TestCase
             ->assertJsonPath('data.financing.stage_1_status', 'completed')
             ->assertJsonPath('data.financing.stage_2_status', 'in_progress');
     }
+
+    public function test_cash_cannot_complete_middle_stages_via_patch(): void
+    {
+        $reservation = SalesReservation::factory()->create([
+            'status' => 'confirmed',
+            'purchase_mechanism' => 'cash',
+        ]);
+
+        CreditFinancingTracker::factory()->cashPurchaseInProgress()->create([
+            'sales_reservation_id' => $reservation->id,
+        ]);
+
+        $response = $this->actingAs($this->creditUser)
+            ->patchJson("/api/credit/bookings/{$reservation->id}/financing/stage/3", []);
+
+        $response->assertStatus(400);
+        $this->assertStringContainsString('مسار الشراء النقدي', $response->json('message'));
+    }
+
+    public function test_cash_two_stage_flow_reaches_title_transfer_credit_status(): void
+    {
+        $reservation = SalesReservation::factory()->create([
+            'status' => 'confirmed',
+            'purchase_mechanism' => 'cash',
+            'credit_status' => 'pending',
+        ]);
+
+        $this->actingAs($this->creditUser)
+            ->postJson("/api/credit/bookings/{$reservation->id}/financing");
+
+        $this->actingAs($this->creditUser)
+            ->patchJson("/api/credit/bookings/{$reservation->id}/financing/stage/1", [
+                'client_salary' => 10000,
+            ]);
+
+        $this->actingAs($this->creditUser)
+            ->patchJson("/api/credit/bookings/{$reservation->id}/financing/stage/6", []);
+
+        $this->assertDatabaseHas('sales_reservations', [
+            'id' => $reservation->id,
+            'credit_status' => 'title_transfer',
+        ]);
+
+        $tracker = CreditFinancingTracker::where('sales_reservation_id', $reservation->id)->first();
+        $this->assertTrue($tracker->is_cash_workflow);
+        $this->assertSame('completed', $tracker->overall_status);
+    }
+
+    public function test_cash_reject_returns_cash_specific_message(): void
+    {
+        $reservation = SalesReservation::factory()->create([
+            'status' => 'confirmed',
+            'purchase_mechanism' => 'cash',
+            'credit_status' => 'in_progress',
+        ]);
+
+        CreditFinancingTracker::factory()->cashPurchaseInProgress()->create([
+            'sales_reservation_id' => $reservation->id,
+        ]);
+
+        $response = $this->actingAs($this->creditUser)
+            ->postJson("/api/credit/bookings/{$reservation->id}/financing/reject", [
+                'reason' => 'سبب',
+            ]);
+
+        $response->assertStatus(200)
+            ->assertJsonPath('message', 'تم رفض متابعة الحجز النقدي');
+    }
+
+    public function test_bank_reject_still_returns_financing_message(): void
+    {
+        $reservation = SalesReservation::factory()->create([
+            'status' => 'confirmed',
+            'purchase_mechanism' => 'supported_bank',
+            'credit_status' => 'in_progress',
+        ]);
+
+        CreditFinancingTracker::factory()->create([
+            'sales_reservation_id' => $reservation->id,
+        ]);
+
+        $response = $this->actingAs($this->creditUser)
+            ->postJson("/api/credit/bookings/{$reservation->id}/financing/reject", [
+                'reason' => 'رفض بنك',
+            ]);
+
+        $response->assertStatus(200)
+            ->assertJsonPath('message', 'تم رفض طلب التمويل');
+    }
 }
 
