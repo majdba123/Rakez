@@ -4,6 +4,7 @@ namespace App\Services\Pdf;
 
 use App\Models\Contract;
 use App\Models\ContractInfo;
+use App\Models\SecondPartyData;
 use Carbon\Carbon;
 
 /**
@@ -381,6 +382,49 @@ class ContractPdfDataService
         return [
             'info' => $fresh,
             'info_display' => $this->formatContractInfoForPdf($fresh),
+            'generated_at' => now()->format('Y-m-d H:i'),
+        ];
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    public function formatSecondPartyDataForPdf(SecondPartyData $spd): array
+    {
+        $a = $spd->getAttributes();
+
+        return [
+            'record_id' => $this->pdfStr($a['id'] ?? $spd->getKey()),
+            'contract_id' => $this->pdfStr($a['contract_id'] ?? $spd->contract_id),
+            'real_estate_papers_url' => $this->pdfStr($a['real_estate_papers_url'] ?? $spd->real_estate_papers_url),
+            'plans_equipment_docs_url' => $this->pdfStr($a['plans_equipment_docs_url'] ?? $spd->plans_equipment_docs_url),
+            'project_logo_url' => $this->pdfStr($a['project_logo_url'] ?? $spd->project_logo_url),
+            'prices_units_url' => $this->pdfStr($a['prices_units_url'] ?? $spd->prices_units_url),
+            'marketing_license_url' => $this->pdfStr($a['marketing_license_url'] ?? $spd->marketing_license_url),
+            'advertiser_section_url' => $this->pdfStr($a['advertiser_section_url'] ?? $spd->advertiser_section_url),
+            'processed_by' => $this->pdfStr($a['processed_by'] ?? $spd->processed_by),
+            'processed_by_name' => $this->pdfStr($spd->processedByUser?->name),
+            'processed_at' => $this->pdfDate($a['processed_at'] ?? $spd->processed_at ?? null),
+        ];
+    }
+
+    /**
+     * View data for PDF: {@see SecondPartyData} row only.
+     *
+     * @throws \RuntimeException when record missing
+     */
+    public function buildSecondPartyDataOnlyPdfPayload(SecondPartyData $spd): array
+    {
+        $fresh = $spd->fresh();
+        if (!$fresh) {
+            throw new \RuntimeException('لا توجد بيانات الطرف الثاني');
+        }
+
+        $fresh->loadMissing('processedByUser');
+
+        return [
+            'spd' => $fresh,
+            'display' => $this->formatSecondPartyDataForPdf($fresh),
             'generated_at' => now()->format('Y-m-d H:i'),
         ];
     }

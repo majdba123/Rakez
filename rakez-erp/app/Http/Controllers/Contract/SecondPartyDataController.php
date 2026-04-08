@@ -11,17 +11,71 @@ use App\Jobs\ProcessSecondPartyDataCsv;
 use App\Models\Contract;
 use App\Models\CsvImport;
 use App\Services\Contract\SecondPartyDataService;
+use App\Services\Pdf\ContractPdfDataService;
+use App\Services\Pdf\PdfFactory;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Auth;
+use Mpdf\MpdfException;
 use Exception;
 
 class SecondPartyDataController extends Controller
 {
     protected SecondPartyDataService $secondPartyDataService;
 
-    public function __construct(SecondPartyDataService $secondPartyDataService)
-    {
+    public function __construct(
+        SecondPartyDataService $secondPartyDataService,
+        protected ContractPdfDataService $contractPdfDataService
+    ) {
         $this->secondPartyDataService = $secondPartyDataService;
+    }
+
+    /**
+     * PDF: second_party_data row only (عربي — mPDF).
+     * GET /api/second-party-data/{contractId}/pdf
+     */
+    public function downloadPdf(int $contractId): Response|JsonResponse
+    {
+        try {
+            $contract = Contract::findOrFail($contractId);
+            $this->authorize('view', $contract);
+
+            $secondPartyData = $this->secondPartyDataService->getByContractId($contractId);
+            if (!$secondPartyData) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'بيانات الطرف الثاني غير موجودة لهذا العقد',
+                ], 404);
+            }
+
+            $data = $this->contractPdfDataService->buildSecondPartyDataOnlyPdfPayload($secondPartyData);
+            $filename = sprintf('second_party_data_%d_%s.pdf', $secondPartyData->id, now()->format('Y-m-d'));
+
+            return PdfFactory::download('pdfs.second_party_data_only', $data, $filename);
+        } catch (\Illuminate\Auth\Access\AuthorizationException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage(),
+            ], 403);
+        } catch (MpdfException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'تعذر إنشاء ملف PDF: ' . $e->getMessage(),
+            ], 500);
+        } catch (\RuntimeException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage(),
+            ], 404);
+        } catch (Exception $e) {
+            $message = $e->getMessage();
+            $notFound = str_contains($message, 'No query results') || str_contains($message, 'not found');
+
+            return response()->json([
+                'success' => false,
+                'message' => $message,
+            ], $notFound ? 404 : 500);
+        }
     }
 
 
