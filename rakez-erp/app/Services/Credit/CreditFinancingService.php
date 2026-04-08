@@ -126,6 +126,13 @@ class CreditFinancingService
             throw new Exception('لا يمكن الانتقال للمرحلة التالية حالياً');
         }
 
+        // Cash workflow: only stages 1 (contact) and 6 (pre-transfer window) are real; 2–5 are skipped in DB.
+        if ($tracker->is_cash_workflow && $stage >= 2 && $stage <= 5) {
+            throw new Exception(
+                'مسار الشراء النقدي يقتصر على مرحلتين: التواصل مع العميل ثم فترة التجهيز قبل الإفراغ (7 أيام تقويمية إجمالاً). لا توجد مراحل بنكية.'
+            );
+        }
+
         // Ensure previous stages are completed
         for ($i = 1; $i < $stage; $i++) {
             if ($tracker->{"stage_{$i}_status"} !== 'completed') {

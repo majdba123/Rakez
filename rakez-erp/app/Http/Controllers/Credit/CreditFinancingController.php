@@ -40,9 +40,13 @@ class CreditFinancingController extends Controller
         try {
             $tracker = $this->financingService->initializeTracker($id, $request->user()->id);
 
+            $message = $tracker->is_cash_workflow
+                ? 'تم تهيئة متابعة الشراء النقدي بنجاح (مرحلتان خلال 7 أيام تقويمية)'
+                : 'تم تهيئة إجراءات المتابعة الائتمانية بنجاح';
+
             return response()->json([
                 'success' => true,
-                'message' => 'تم تهيئة إجراءات المتابعة الائتمانية بنجاح',
+                'message' => $message,
                 'data' => $this->financingForUser($tracker),
             ], 201);
         } catch (Exception $e) {
@@ -71,9 +75,21 @@ class CreditFinancingController extends Controller
         try {
             $result = $this->financingService->advanceOrInitialize($id, $validated, $request->user());
 
-            $message = $result['action'] === 'initialized'
-                ? 'تم تهيئة إجراءات المتابعة الائتمانية بنجاح'
-                : "تم إكمال المرحلة {$result['stage']} بنجاح";
+            $fin = $result['financing'];
+            if ($result['action'] === 'initialized') {
+                $message = $fin->is_cash_workflow
+                    ? 'تم تهيئة متابعة الشراء النقدي بنجاح (مرحلتان خلال 7 أيام تقويمية)'
+                    : 'تم تهيئة إجراءات المتابعة الائتمانية بنجاح';
+            } elseif ($fin->is_cash_workflow) {
+                $completed = (int) $result['stage'];
+                $message = $completed === 1
+                    ? 'تم إكمال مرحلة التواصل مع العميل؛ بدأت مرحلة التجهيز قبل الإفراغ'
+                    : ($completed === 6
+                        ? 'تم إكمال متابعة الشراء النقدي؛ يمكن متابعة نقل الملكية'
+                        : "تم إكمال المرحلة {$completed} بنجاح");
+            } else {
+                $message = "تم إكمال المرحلة {$result['stage']} بنجاح";
+            }
 
             $data = $result;
             $data['financing'] = $this->financingForUser($result['financing']);
@@ -148,9 +164,19 @@ class CreditFinancingController extends Controller
             $tracker = $this->financingService->getTrackerByReservationId($bookingId);
             $tracker = $this->financingService->completeStage($tracker->id, $stage, $validated, $request->user());
 
+            if ($tracker->is_cash_workflow) {
+                $message = $stage === 1
+                    ? 'تم إكمال مرحلة التواصل مع العميل؛ بدأت مرحلة التجهيز قبل الإفراغ'
+                    : ($stage === 6
+                        ? 'تم إكمال متابعة الشراء النقدي؛ يمكن متابعة نقل الملكية'
+                        : "تم إكمال المرحلة {$stage} بنجاح");
+            } else {
+                $message = "تم إكمال المرحلة {$stage} بنجاح";
+            }
+
             return response()->json([
                 'success' => true,
-                'message' => "تم إكمال المرحلة {$stage} بنجاح",
+                'message' => $message,
                 'data' => $this->financingForUser($tracker),
             ], 200);
         } catch (Exception $e) {
@@ -176,9 +202,13 @@ class CreditFinancingController extends Controller
             $tracker = $this->financingService->getTrackerByReservationId($bookingId);
             $tracker = $this->financingService->rejectFinancing($tracker->id, $validated['reason'], $request->user());
 
+            $message = $tracker->is_cash_workflow
+                ? 'تم رفض متابعة الحجز النقدي'
+                : 'تم رفض طلب التمويل';
+
             return response()->json([
                 'success' => true,
-                'message' => 'تم رفض طلب التمويل',
+                'message' => $message,
                 'data' => $this->financingForUser($tracker),
             ], 200);
         } catch (Exception $e) {
