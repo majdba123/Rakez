@@ -8,15 +8,17 @@
 @section('title', 'معلومات العقد — سجل ' . ($info_display['info_record_id'] ?? ''))
 
 @section('content')
-    <p class="doc-title">معلومات العقد</p>
-    <p class="doc-title-en" style="direction: ltr;">ContractInfo record</p>
-    <p class="doc-subtitle">
-        معرف السجل (contract_infos): <span class="ltr">{{ $info_display['info_record_id'] }}</span>
-        — مرجع العقد في النظام (contract_id): <span class="ltr">{{ $info_display['contract_id'] }}</span>
-        — تم إنشاء المستند: {{ $generated_at }}
-    </p>
+    <div class="doc-title-wrap">
+        <p class="doc-title">معلومات العقد</p>
+        <p class="doc-title-en" style="direction: ltr;">ContractInfo record</p>
+        <p class="doc-subtitle">
+            معرف السجل (contract_infos): <span class="ltr">{{ $info_display['info_record_id'] }}</span>
+            — مرجع العقد في النظام (contract_id): <span class="ltr">{{ $info_display['contract_id'] }}</span>
+            — تم إنشاء المستند: {{ $generated_at }}
+        </p>
+    </div>
 
-    <p class="section-title">البيانات الرسمية</p>
+    <p class="section-title first">البيانات الرسمية</p>
     <table class="info-table">
         <tr>
             <td>رقم العقد</td>

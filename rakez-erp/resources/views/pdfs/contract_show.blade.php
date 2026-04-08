@@ -14,15 +14,17 @@
 @section('title', 'بيانات العقد رقم ' . ($contract->id ?? ''))
 
 @section('content')
-    <p class="doc-title">بيانات العقد</p>
-    <p class="doc-title-en" style="direction: ltr;">Contract details</p>
-    <p class="doc-subtitle">تم الإنشاء: {{ $generated_at }} — رقم العقد: <span class="ltr">{{ $contract->id }}</span>
-        @if(($contract_main['code'] ?? '—') !== '—')
-            — الكود: <span class="ltr">{{ $contract_main['code'] }}</span>
-        @endif
-    </p>
+    <div class="doc-title-wrap">
+        <p class="doc-title">بيانات العقد</p>
+        <p class="doc-title-en" style="direction: ltr;">Contract details</p>
+        <p class="doc-subtitle">تم الإنشاء: {{ $generated_at }} — رقم العقد: <span class="ltr">{{ $contract->id }}</span>
+            @if(($contract_main['code'] ?? '—') !== '—')
+                — الكود: <span class="ltr">{{ $contract_main['code'] }}</span>
+            @endif
+        </p>
+    </div>
 
-    <p class="section-title">المشروع والمطور</p>
+    <p class="section-title first">المشروع والمطور</p>
     <table class="info-table">
         <tr>
             <td>اسم المشروع</td>

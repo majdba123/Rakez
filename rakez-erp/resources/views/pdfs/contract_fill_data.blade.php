@@ -9,14 +9,16 @@
 @section('title', 'بيانات ملء العقد — عقد ' . $contract_id)
 
 @section('content')
-    <p class="doc-title">بيانات ملء قالب العقد الحصري</p>
-    <p class="doc-title-en" style="direction: ltr;">Exclusive contract — fill template fields</p>
-    <p class="doc-subtitle">
-        مرجع العقد (contract_id): <span class="ltr">{{ $contract_id }}</span>
-        — تم إنشاء المستند: {{ $generated_at }}
-    </p>
+    <div class="doc-title-wrap">
+        <p class="doc-title">بيانات ملء قالب العقد الحصري</p>
+        <p class="doc-title-en" style="direction: ltr;">Exclusive contract — fill template fields</p>
+        <p class="doc-subtitle">
+            مرجع العقد (contract_id): <span class="ltr">{{ $contract_id }}</span>
+            — تم إنشاء المستند: {{ $generated_at }}
+        </p>
+    </div>
 
-    <p class="section-title">الحقول</p>
+    <p class="section-title first">الحقول</p>
     <table class="info-table">
         @foreach ($rows as $row)
             <tr>

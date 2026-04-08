@@ -8,15 +8,17 @@
 @section('title', 'بيانات الطرف الثاني — سجل ' . ($display['record_id'] ?? ''))
 
 @section('content')
-    <p class="doc-title">بيانات الطرف الثاني (SecondPartyData)</p>
-    <p class="doc-title-en" style="direction: ltr;">Second party attachments & references</p>
-    <p class="doc-subtitle">
-        معرف السجل: <span class="ltr">{{ $display['record_id'] }}</span>
-        — مرجع العقد (contract_id): <span class="ltr">{{ $display['contract_id'] }}</span>
-        — تم إنشاء المستند: {{ $generated_at }}
-    </p>
+    <div class="doc-title-wrap">
+        <p class="doc-title">بيانات الطرف الثاني (SecondPartyData)</p>
+        <p class="doc-title-en" style="direction: ltr;">Second party attachments & references</p>
+        <p class="doc-subtitle">
+            معرف السجل: <span class="ltr">{{ $display['record_id'] }}</span>
+            — مرجع العقد (contract_id): <span class="ltr">{{ $display['contract_id'] }}</span>
+            — تم إنشاء المستند: {{ $generated_at }}
+        </p>
+    </div>
 
-    <p class="section-title">الروابط والمرفقات</p>
+    <p class="section-title first">الروابط والمرفقات</p>
     <table class="info-table">
         <tr>
             <td>أوراق العقار</td>
