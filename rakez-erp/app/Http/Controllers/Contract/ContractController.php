@@ -217,7 +217,7 @@ class ContractController extends Controller
             return response()->json($data, 200, ['Content-Type' => 'application/json']);
         } catch (\Illuminate\Auth\Access\AuthorizationException $e) {
             return response()->json(['success' => false, 'message' => $e->getMessage()], 403);
-        } catch (Exception $e) {
+        } catch (\Throwable $e) {
             return response()->json([
                 'success' => false,
                 'message' => $e->getMessage(),
@@ -249,7 +249,7 @@ class ContractController extends Controller
                 'success' => false,
                 'message' => 'تعذر إنشاء ملف PDF: ' . $e->getMessage(),
             ], 500);
-        } catch (Exception $e) {
+        } catch (\Throwable $e) {
             $message = $e->getMessage();
             $notFound = str_contains($message, 'not found') || str_contains($message, 'No query results')
                 || str_contains($message, 'Contract not found');
