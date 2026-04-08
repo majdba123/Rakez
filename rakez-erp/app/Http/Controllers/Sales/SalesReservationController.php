@@ -12,16 +12,20 @@ use App\Http\Resources\Sales\SalesReservationDetailResource;
 use App\Http\Resources\Sales\SalesReservationResource;
 use App\Models\ContractUnit;
 use App\Models\SalesReservation;
+use App\Services\Pdf\PdfFactory;
+use App\Services\Sales\ReservationVoucherService;
 use App\Services\Sales\SalesReservationService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
+use Mpdf\MpdfException;
 use Symfony\Component\HttpFoundation\Response;
 
 class SalesReservationController extends Controller
 {
     public function __construct(
-        private SalesReservationService $reservationService
+        private SalesReservationService $reservationService,
+        private ReservationVoucherService $voucherService,
     ) {}
 
     /**
@@ -216,10 +220,10 @@ class SalesReservationController extends Controller
     }
 
     /**
-     * Reservation voucher data for PDF (سند حجز). JSON only; frontend uses generateReservationVoucherPdf(...).
+     * Reservation voucher as PDF (سند حجز) — same template as stored voucher; live DB + snapshot fallback.
      * GET /api/sales/reservations/{id}/voucher-data
      */
-    public function voucherData(int $id): JsonResponse
+    public function voucherData(int $id): Response|JsonResponse
     {
         try {
             $reservation = SalesReservation::with([
@@ -237,47 +241,24 @@ class SalesReservationController extends Controller
                 ], 403);
             }
 
-            $contract = $reservation->contract;
-            $unit = $reservation->contractUnit;
-            $employee = $reservation->marketingEmployee;
+            if (!$reservation->contract_date) {
+                $reservation->setAttribute(
+                    'contract_date',
+                    $reservation->created_at?->copy()->startOfDay() ?? now()->startOfDay()
+                );
+            }
 
-            $data = [
-                'reservation' => [
-                    'id' => $reservation->id,
-                    'reservation_type' => $reservation->reservation_type ?? 'confirmed_reservation',
-                    'payment_method' => $reservation->payment_method ?? '',
-                    'purchase_mechanism' => $reservation->purchase_mechanism ?? '',
-                    'down_payment_status' => $reservation->down_payment_status ?? '',
-                    'down_payment_amount' => $reservation->down_payment_amount ? (float) $reservation->down_payment_amount : 0,
-                    'contract_date' => $reservation->contract_date?->format('Y-m-d') ?? '',
-                    'client_name' => (string) ($reservation->client_name ?? ''),
-                    'client_mobile' => (string) ($reservation->client_mobile ?? ''),
-                    'client_nationality' => (string) ($reservation->client_nationality ?? ''),
-                    'client_iban' => (string) ($reservation->client_iban ?? ''),
-                    'negotiation_notes' => (string) ($reservation->negotiation_notes ?? ''),
-                ],
-                'project' => [
-                    'name' => (string) ($contract?->project_name ?? ''),
-                    'city' => (string) ($contract?->city?->name ?? ''),
-                    'district' => (string) ($contract?->district?->name ?? ''),
-                    'developer_name' => (string) ($contract?->developer_name ?? ''),
-                ],
-                'unit' => [
-                    'number' => (string) ($unit?->unit_number ?? ''),
-                    'type' => (string) ($unit?->unit_type ?? ''),
-                    'area' => $unit ? (string) $unit->area : '',
-                    'floor' => $unit && $unit->floor !== null ? (string) $unit->floor : '',
-                    'price' => $unit && $unit->price !== null ? (float) $unit->price : 0,
-                ],
-                'employee' => [
-                    'name' => (string) ($employee?->name ?? ''),
-                    'team' => (string) ($employee?->team?->name ?? ''),
-                ],
-            ];
+            $payload = $this->voucherService->payloadForVoucherBlade($reservation);
+            $filename = "reservation_{$reservation->id}_voucher.pdf";
 
-            return response()->json($data, 200, ['Content-Type' => 'application/json']);
+            return PdfFactory::download('reservations.voucher', $payload, $filename);
         } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
             return response()->json(['success' => false, 'message' => 'Reservation not found'], 404);
+        } catch (MpdfException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to generate PDF: ' . $e->getMessage(),
+            ], 500);
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
