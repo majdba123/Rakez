@@ -1,4 +1,4 @@
-@extends('layouts.pdf_contract')
+@extends('layouts.pdf_sand_qabd')
 
 @php
     /** @var \App\Models\SecondPartyData $spd */
@@ -8,37 +8,47 @@
 @section('title', 'بيانات الطرف الثاني — سجل ' . ($display['record_id'] ?? ''))
 
 @section('content')
-    <div class="doc-title-wrap">
-        <p class="doc-title">بيانات الطرف الثاني (SecondPartyData)</p>
-        <p class="doc-title-en" style="direction: ltr;">Second party attachments & references</p>
-        <p class="doc-subtitle">
-            معرف السجل: <span class="ltr">{{ $display['record_id'] }}</span>
-            — مرجع العقد (contract_id): <span class="ltr">{{ $display['contract_id'] }}</span>
-            — تم إنشاء المستند: {{ $generated_at }}
-        </p>
-    </div>
+    <p class="sand-title">بيانات الطرف الثاني والمرفقات</p>
+    <p class="sand-title-en" dir="ltr">Second party data &amp; attachment references</p>
+    <p class="sand-subtitle">
+        معرف السجل: <span class="ltr">{{ $display['record_id'] }}</span>
+        — مرجع العقد (contract_id): <span class="ltr">{{ $display['contract_id'] }}</span>
+        — تم إنشاء المستند: {{ $generated_at }}
+    </p>
 
-    <p class="section-title first">الروابط والمرفقات</p>
-    <table class="info-table">
+    <table class="sand-meta-line" cellpadding="0" cellspacing="0">
+        <tr>
+            <td style="width: 55%;">
+                <strong>سند بيانات /</strong>
+                مرفقات وروابط الطرف الثاني
+            </td>
+            <td style="width: 45%; text-align: left; direction: ltr;">
+                <strong>Record</strong> <span class="ltr">{{ $display['record_id'] }}</span>
+            </td>
+        </tr>
+    </table>
+
+    <p class="sand-section first">الروابط والمرفقات</p>
+    <table class="sand-kv" cellpadding="0" cellspacing="0">
         <tr>
             <td>أوراق العقار</td>
-            <td class="ltr" style="word-break: break-all;">{{ $display['real_estate_papers_url'] }}</td>
+            <td class="ltr">{{ $display['real_estate_papers_url'] }}</td>
         </tr>
         <tr>
             <td>مستندات المخططات والتجهيزات</td>
-            <td class="ltr" style="word-break: break-all;">{{ $display['plans_equipment_docs_url'] }}</td>
+            <td class="ltr">{{ $display['plans_equipment_docs_url'] }}</td>
         </tr>
         <tr>
             <td>شعار المشروع</td>
-            <td class="ltr" style="word-break: break-all;">{{ $display['project_logo_url'] }}</td>
+            <td class="ltr">{{ $display['project_logo_url'] }}</td>
         </tr>
         <tr>
             <td>الأسعار والوحدات</td>
-            <td class="ltr" style="word-break: break-all;">{{ $display['prices_units_url'] }}</td>
+            <td class="ltr">{{ $display['prices_units_url'] }}</td>
         </tr>
         <tr>
             <td>رخصة التسويق</td>
-            <td class="ltr" style="word-break: break-all;">{{ $display['marketing_license_url'] }}</td>
+            <td class="ltr">{{ $display['marketing_license_url'] }}</td>
         </tr>
         <tr>
             <td>رقم قسم المعلن / المعلن</td>
@@ -46,9 +56,8 @@
         </tr>
     </table>
 
-    <p class="section-title">المعالجة</p>
-    <table class="info-table">
-
+    <p class="sand-section">المعالجة</p>
+    <table class="sand-kv" cellpadding="0" cellspacing="0">
         <tr>
             <td>اسم المعالج</td>
             <td>{{ $display['processed_by_name'] }}</td>
@@ -59,5 +68,5 @@
         </tr>
     </table>
 
-    <p class="auto-msg">وثيقة من جدول بيانات الطرف الثاني فقط — نظام راكز</p>
+    <p class="sand-auto-msg">وثيقة من جدول بيانات الطرف الثاني (SecondPartyData) — نظام راكز العقارية</p>
 @endsection

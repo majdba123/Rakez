@@ -1,4 +1,4 @@
-@extends('layouts.pdf_contract')
+@extends('layouts.pdf_sand_qabd')
 
 @php
     /** @var \App\Models\ContractInfo $info */
@@ -8,26 +8,36 @@
 @section('title', 'معلومات العقد — سجل ' . ($info_display['info_record_id'] ?? ''))
 
 @section('content')
-    <div class="doc-title-wrap">
-        <p class="doc-title">معلومات العقد</p>
-        <p class="doc-title-en" style="direction: ltr;">ContractInfo record</p>
-        <p class="doc-subtitle">
-            معرف السجل (contract_infos): <span class="ltr">{{ $info_display['info_record_id'] }}</span>
-            — مرجع العقد في النظام (contract_id): <span class="ltr">{{ $info_display['contract_id'] }}</span>
-            — تم إنشاء المستند: {{ $generated_at }}
-        </p>
-    </div>
+    <p class="sand-title">معلومات العقد</p>
+    <p class="sand-title-en" dir="ltr">Contract information record</p>
+    <p class="sand-subtitle">
+        معرف السجل (contract_infos): <span class="ltr">{{ $info_display['info_record_id'] }}</span>
+        — مرجع العقد (contract_id): <span class="ltr">{{ $info_display['contract_id'] }}</span>
+        — تم إنشاء المستند: {{ $generated_at }}
+    </p>
 
-    <p class="section-title first">البيانات الرسمية</p>
-    <table class="info-table">
+    <table class="sand-meta-line" cellpadding="0" cellspacing="0">
+        <tr>
+            <td style="width: 55%;">
+                <strong>مرجع الوثيقة /</strong>
+                عقد إحالة تسويق — بيانات مسجلة
+            </td>
+            <td style="width: 45%; text-align: left; direction: ltr;">
+                <strong>Contract #</strong> <span class="ltr">{{ $info_display['contract_id'] }}</span>
+            </td>
+        </tr>
+    </table>
+
+    <p class="sand-section first">البيانات الرسمية</p>
+    <table class="sand-kv" cellpadding="0" cellspacing="0">
         <tr>
             <td>رقم العقد</td>
             <td class="ltr">{{ $info_display['contract_number'] }}</td>
         </tr>
     </table>
 
-    <p class="section-title">الطرف الأول (الشركة)</p>
-    <table class="info-table">
+    <p class="sand-section">الطرف الأول (الشركة)</p>
+    <table class="sand-kv" cellpadding="0" cellspacing="0">
         <tr><td>الاسم</td><td>{{ $info_display['first_party_name'] }}</td></tr>
         <tr><td>السجل التجاري</td><td class="ltr">{{ $info_display['first_party_cr_number'] }}</td></tr>
         <tr><td>المفوّض بالتوقيع</td><td>{{ $info_display['first_party_signatory'] }}</td></tr>
@@ -35,8 +45,8 @@
         <tr><td>البريد الإلكتروني</td><td class="ltr">{{ $info_display['first_party_email'] }}</td></tr>
     </table>
 
-    <p class="section-title">الطرف الثاني</p>
-    <table class="info-table">
+    <p class="sand-section">الطرف الثاني</p>
+    <table class="sand-kv" cellpadding="0" cellspacing="0">
         <tr><td>الاسم</td><td>{{ $info_display['second_party_name'] }}</td></tr>
         <tr><td>العنوان</td><td>{{ $info_display['second_party_address'] }}</td></tr>
         <tr><td>السجل التجاري</td><td class="ltr">{{ $info_display['second_party_cr_number'] }}</td></tr>
@@ -47,16 +57,16 @@
         <tr><td>البريد الإلكتروني</td><td class="ltr">{{ $info_display['second_party_email'] }}</td></tr>
     </table>
 
-    <p class="section-title">التواريخ والموقع</p>
-    <table class="info-table">
+    <p class="sand-section">التواريخ والموقع</p>
+    <table class="sand-kv" cellpadding="0" cellspacing="0">
         <tr><td>التاريخ الميلادي</td><td>{{ $info_display['gregorian_date'] }}</td></tr>
         <tr><td>التاريخ الهجري</td><td>{{ $info_display['hijri_date'] }}</td></tr>
         <tr><td>مدينة العقد</td><td>{{ $info_display['contract_city'] }}</td></tr>
-        <tr><td>رابط الموقع</td><td class="ltr" style="word-break: break-all;">{{ $info_display['location_url'] }}</td></tr>
+        <tr><td>رابط الموقع</td><td class="ltr">{{ $info_display['location_url'] }}</td></tr>
     </table>
 
-    <p class="section-title">مدة الاتفاق والوكالة</p>
-    <table class="info-table">
+    <p class="sand-section">مدة الاتفاق والوكالة</p>
+    <table class="sand-kv" cellpadding="0" cellspacing="0">
         <tr><td>مدة الاتفاق (أيام)</td><td class="ltr">{{ $info_display['agreement_duration_days'] }}</td></tr>
         <tr><td>مدة الاتفاق (أشهر)</td><td class="ltr">{{ $info_display['agreement_duration_months'] }}</td></tr>
         <tr><td>رقم الوكالة</td><td class="ltr">{{ $info_display['agency_number'] }}</td></tr>
@@ -65,5 +75,5 @@
         <tr><td>تاريخ الإفراج</td><td>{{ $info_display['release_date'] }}</td></tr>
     </table>
 
-    <p class="auto-msg">وثيقة من جدول معلومات العقد (ContractInfo) فقط — نظام راكز</p>
+    <p class="sand-auto-msg">وثيقة من جدول معلومات العقد (ContractInfo) — نظام راكز العقارية</p>
 @endsection
