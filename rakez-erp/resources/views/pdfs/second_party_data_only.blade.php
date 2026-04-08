@@ -46,10 +46,7 @@
 
     <p class="section-title">المعالجة</p>
     <table class="info-table">
-        <tr>
-            <td>معرف المعالج (processed_by)</td>
-            <td class="ltr">{{ $display['processed_by'] }}</td>
-        </tr>
+
         <tr>
             <td>اسم المعالج</td>
             <td>{{ $display['processed_by_name'] }}</td>

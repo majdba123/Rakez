@@ -402,7 +402,6 @@ class ContractPdfDataService
             'prices_units_url' => $this->pdfStr($a['prices_units_url'] ?? $spd->prices_units_url),
             'marketing_license_url' => $this->pdfStr($a['marketing_license_url'] ?? $spd->marketing_license_url),
             'advertiser_section_url' => $this->pdfStr($a['advertiser_section_url'] ?? $spd->advertiser_section_url),
-            'processed_by' => $this->pdfStr($a['processed_by'] ?? $spd->processed_by),
             'processed_by_name' => $this->pdfStr($spd->processedByUser?->name),
             'processed_at' => $this->pdfDate($a['processed_at'] ?? $spd->processed_at ?? null),
         ];
