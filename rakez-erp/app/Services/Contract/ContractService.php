@@ -2,20 +2,29 @@
 
 namespace App\Services\Contract;
 
+use App\Enums\ContractWorkflowStatus;
 use App\Models\Contract;
 use App\Models\ContractInfo;
 use App\Models\MarketingProject;
+use App\Models\SalesProjectAssignment;
 use App\Models\Team;
+use App\Services\Sales\SalesProjectService;
+use App\Services\Sales\SalesTeamService;
 use App\Support\ContractCodeGenerator;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Pagination\Paginator;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 use Exception;
 
 class ContractService
 {
+    public function __construct(
+        private SalesTeamService $salesTeamService,
+        private SalesProjectService $salesProjectService,
+    ) {}
 
     public function getContracts(array $filters = [], int $perPage = 15): LengthAwarePaginator
     {
@@ -381,6 +390,54 @@ class ContractService
             // Ensure teams exist
             $existingTeamIds = Team::whereIn('id', $teamIds)->pluck('id')->toArray();
             $contract->teams()->syncWithoutDetaching($existingTeamIds);
+
+            $assignerId = Auth::id() ?? $contract->user_id;
+            if ($assignerId && $contract->status === ContractWorkflowStatus::Completed->value) {
+                foreach ($existingTeamIds as $teamId) {
+                    $team = Team::find($teamId);
+                    if (!$team) {
+                        continue;
+                    }
+                    $primaryLeader = $this->salesTeamService->getDefaultSalesLeadersForTeam($team)->first();
+                    if (!$primaryLeader) {
+                        continue;
+                    }
+                    $already = SalesProjectAssignment::query()
+                        ->where('contract_id', $contract->id)
+                        ->where('leader_id', $primaryLeader->id)
+                        ->active()
+                        ->exists();
+                    if ($already) {
+                        continue;
+                    }
+                    try {
+                        $this->salesProjectService->assignProjectToLeader(
+                            $primaryLeader->id,
+                            $contract->id,
+                            (int) $assignerId
+                        );
+                    } catch (ValidationException) {
+                        continue;
+                    } catch (\Throwable) {
+                        continue;
+                    }
+                }
+            }
+
+            if (count($existingTeamIds) === 1) {
+                $marketingProject = MarketingProject::query()
+                    ->where('contract_id', $contract->id)
+                    ->first();
+                if ($marketingProject && $marketingProject->assigned_team_leader === null) {
+                    $team = Team::find($existingTeamIds[0]);
+                    if ($team) {
+                        $leader = $this->salesTeamService->getDefaultSalesLeadersForTeam($team)->first();
+                        if ($leader) {
+                            $marketingProject->update(['assigned_team_leader' => $leader->id]);
+                        }
+                    }
+                }
+            }
 
             DB::commit();
             return $contract->load('teams');

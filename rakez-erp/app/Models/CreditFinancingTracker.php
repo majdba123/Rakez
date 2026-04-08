@@ -28,11 +28,32 @@ class CreditFinancingTracker extends Model
     public const STAGE_6_UNSUPPORTED_DAYS = 5;
 
     /**
+     * Cash purchase: only stages 1 + 6 apply; total planned calendar span is exactly 7 days.
+     */
+    public const CASH_TOTAL_CALENDAR_DAYS = 7;
+
+    public const CASH_STAGE_1_DAYS = 2;
+
+    public const CASH_STAGE_6_DAYS = 5;
+
+    /**
      * Calendar days for stage $stage when the tracker is in the given bank mode.
      * Stage 6 is the pre-transfer (الإفراغ) window; duration depends on supported vs not supported bank only.
+     * Cash workflow uses only stages 1 and 6 (2 + 5 = 7 days total).
      */
-    public static function durationDaysForStage(int $stage, bool $isSupportedBank): int
+    public static function durationDaysForStage(int $stage, bool $isSupportedBank, bool $isCashWorkflow = false): int
     {
+        if ($isCashWorkflow) {
+            if ($stage === 1) {
+                return self::CASH_STAGE_1_DAYS;
+            }
+            if ($stage === 6) {
+                return self::CASH_STAGE_6_DAYS;
+            }
+
+            return 0;
+        }
+
         if ($stage === 6) {
             return $isSupportedBank ? self::STAGE_6_SUPPORTED_DAYS : self::STAGE_6_UNSUPPORTED_DAYS;
         }
@@ -66,6 +87,7 @@ class CreditFinancingTracker extends Model
         'stage_6_completed_at',
         'stage_6_deadline',
         'is_supported_bank',
+        'is_cash_workflow',
         'overall_status',
         'rejection_reason',
         'completed_at',
@@ -74,6 +96,7 @@ class CreditFinancingTracker extends Model
     protected $casts = [
         'client_salary' => 'decimal:2',
         'is_supported_bank' => 'boolean',
+        'is_cash_workflow' => 'boolean',
         'stage_1_completed_at' => 'datetime',
         'stage_1_deadline' => 'datetime',
         'stage_2_completed_at' => 'datetime',
@@ -204,13 +227,17 @@ class CreditFinancingTracker extends Model
     }
 
     /**
-     * Total planned duration: 25 calendar days (supported bank) or 20 (not supported).
+     * Total planned duration: 7 days (cash workflow), 25 calendar days (supported bank), or 20 (not supported).
      */
     public function getTotalExpectedDays(): int
     {
+        if ($this->is_cash_workflow) {
+            return self::CASH_TOTAL_CALENDAR_DAYS;
+        }
+
         $days = 0;
         for ($s = 1; $s <= 6; $s++) {
-            $days += self::durationDaysForStage($s, (bool) $this->is_supported_bank);
+            $days += self::durationDaysForStage($s, (bool) $this->is_supported_bank, false);
         }
 
         return $days;

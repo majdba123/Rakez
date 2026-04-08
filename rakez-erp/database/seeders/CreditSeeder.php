@@ -271,7 +271,7 @@ class CreditSeeder extends Seeder
             if ($i < $currentStage) {
                 $out["stage_{$i}_deadline"] = $now->copy()->subDay();
             } elseif ($i === $currentStage) {
-                $days = CreditFinancingTracker::durationDaysForStage($i, $isSupportedBank);
+                $days = CreditFinancingTracker::durationDaysForStage($i, $isSupportedBank, false);
                 $out["stage_{$i}_deadline"] = $now->copy()->addDays($days);
             } else {
                 $out["stage_{$i}_deadline"] = null;

@@ -26,11 +26,14 @@ class TitleTransferService
             throw new Exception('يمكن بدء نقل الملكية فقط للحجوزات المؤكدة');
         }
 
-        // For bank financing, financing tracker must be completed
-        if ($reservation->isBankFinancing()) {
+        // Bank financing and cash credit workflow require a completed financing tracker before title transfer
+        if ($reservation->isBankFinancing() || $reservation->isCashPurchase()) {
             $tracker = $reservation->financingTracker;
             if (!$tracker || $tracker->overall_status !== 'completed') {
-                throw new Exception('يجب إكمال إجراءات التمويل البنكي أولاً');
+                $msg = $reservation->isCashPurchase()
+                    ? 'يجب إكمال إجراءات متابعة الشراء النقدي أولاً'
+                    : 'يجب إكمال إجراءات التمويل البنكي أولاً';
+                throw new Exception($msg);
             }
         }
 

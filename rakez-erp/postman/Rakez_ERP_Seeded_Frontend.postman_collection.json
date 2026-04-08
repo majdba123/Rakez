@@ -3,7 +3,7 @@
         "name": "Rakez ERP Seeded Frontend Collection",
         "_postman_id": "1b4ced1a-7b5e-434f-a6be-671457cf5f71",
         "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
-        "description": "Generated from routes and seeded records. Variables use real seeded IDs where available."
+        "description": "Generated from `postman/generate_seeded_collection.php` + Laravel routes + seeded DB IDs (when the script runs successfully).\n\n**Changelog 2026-04-07 (frontend-facing APIs)**\n- **Accounting deposits:** Pending rows expose `deposit_id` + `reservation_id` + `row_entity`. Follow-up rows are reservations: use `reservation_id` and nested `deposits[].deposit_id` for actions. Confirm/refund/PDF `{id}` must be a **real deposit id**; sending a reservation-only id returns **422** with an Arabic message.\n- **Commissions:** `PUT .../commissions/{id}/distributions` allows total percentage **≤ 100%** (remainder stays with company). `distributions: []` clears pending lines. Responses include `total_distributed_percentage`, `remaining_percentage`, `distributed_amount`, `remaining_amount`.\n- **Marketing:** `GET .../marketing/projects/{contractId}` merges `responsible_sales_teams` (sales leaders, members, optional ratings).\n\nSee also: `docs/FRONTEND_CHANGELOG_2026-04-07.md`."
     },
     "variable": [
         {
@@ -168,12 +168,12 @@
         },
         {
             "key": "base_contract_id",
-            "value": "5",
+            "value": "1",
             "type": "string"
         },
         {
             "key": "ready_contract_id",
-            "value": "5",
+            "value": "1",
             "type": "string"
         },
         {
@@ -183,37 +183,37 @@
         },
         {
             "key": "pending_contract_id",
-            "value": "11",
+            "value": "4",
             "type": "string"
         },
         {
             "key": "off_plan_contract_id",
-            "value": "5",
+            "value": "20",
             "type": "string"
         },
         {
             "key": "developer_number",
-            "value": "+966112345002",
+            "value": "DEV-001",
             "type": "string"
         },
         {
             "key": "available_unit_id",
-            "value": "32",
+            "value": "1",
             "type": "string"
         },
         {
             "key": "reserved_unit_id",
-            "value": "31",
+            "value": "19",
             "type": "string"
         },
         {
             "key": "sold_unit_id",
-            "value": "34",
+            "value": "18",
             "type": "string"
         },
         {
             "key": "confirmed_reservation_id",
-            "value": "6",
+            "value": "7",
             "type": "string"
         },
         {
@@ -318,7 +318,7 @@
         },
         {
             "key": "public_notification_id",
-            "value": "353",
+            "value": "386",
             "type": "string"
         },
         {
@@ -348,7 +348,7 @@
         },
         {
             "key": "financing_booking_id",
-            "value": "127",
+            "value": "264",
             "type": "string"
         },
         {
@@ -388,22 +388,22 @@
         },
         {
             "key": "today",
-            "value": "2026-03-10",
+            "value": "2026-04-07",
             "type": "string"
         },
         {
             "key": "future_date",
-            "value": "2026-03-17",
+            "value": "2026-04-14",
             "type": "string"
         },
         {
             "key": "future_datetime",
-            "value": "2026-03-12 20:47:57",
+            "value": "2026-04-09 20:16:21",
             "type": "string"
         },
         {
             "key": "current_month",
-            "value": "3",
+            "value": "4",
             "type": "string"
         },
         {
@@ -1063,6 +1063,386 @@
                     "response": []
                 },
                 {
+                    "name": "GET manager/employees",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/manager/employees",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "manager",
+                                "employees"
+                            ]
+                        },
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{auth_token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "body": null
+                    },
+                    "response": []
+                },
+                {
+                    "name": "GET manager/employees/{id}",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/manager/employees/{id}",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "manager",
+                                "employees",
+                                "{id}"
+                            ]
+                        },
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{auth_token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "body": null
+                    },
+                    "response": []
+                },
+                {
+                    "name": "GET manager/employees/{employeeId}/reviews",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/manager/employees/{employeeId}/reviews",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "manager",
+                                "employees",
+                                "{employeeId}",
+                                "reviews"
+                            ]
+                        },
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{auth_token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "body": null
+                    },
+                    "response": []
+                },
+                {
+                    "name": "POST manager/employees/{id}/reviews",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/manager/employees/{id}/reviews",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "manager",
+                                "employees",
+                                "{id}",
+                                "reviews"
+                            ]
+                        },
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{auth_token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "body": {
+                            "mode": "raw",
+                            "raw": "[]",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "GET manager/employees/{employeeId}/reviews/{reviewId}",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/manager/employees/{employeeId}/reviews/{reviewId}",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "manager",
+                                "employees",
+                                "{employeeId}",
+                                "reviews",
+                                "{reviewId}"
+                            ]
+                        },
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{auth_token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "body": null
+                    },
+                    "response": []
+                },
+                {
+                    "name": "PUT manager/employees/{employeeId}/reviews/{reviewId}",
+                    "request": {
+                        "method": "PUT",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/manager/employees/{employeeId}/reviews/{reviewId}",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "manager",
+                                "employees",
+                                "{employeeId}",
+                                "reviews",
+                                "{reviewId}"
+                            ]
+                        },
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{auth_token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "body": {
+                            "mode": "raw",
+                            "raw": "[]",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "DELETE manager/employees/{employeeId}/reviews/{reviewId}",
+                    "request": {
+                        "method": "DELETE",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/manager/employees/{employeeId}/reviews/{reviewId}",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "manager",
+                                "employees",
+                                "{employeeId}",
+                                "reviews",
+                                "{reviewId}"
+                            ]
+                        },
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{auth_token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "body": null
+                    },
+                    "response": []
+                },
+                {
+                    "name": "GET manager/tasks/statistics",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/manager/tasks/statistics",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "manager",
+                                "tasks",
+                                "statistics"
+                            ]
+                        },
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{auth_token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "body": null
+                    },
+                    "response": []
+                },
+                {
+                    "name": "GET manager/tasks",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/manager/tasks",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "manager",
+                                "tasks"
+                            ]
+                        },
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{auth_token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "body": null
+                    },
+                    "response": []
+                },
+                {
+                    "name": "GET manager/tasks/{id}",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/manager/tasks/{id}",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "manager",
+                                "tasks",
+                                "{id}"
+                            ]
+                        },
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{auth_token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "body": null
+                    },
+                    "response": []
+                },
+                {
                     "name": "GET developers",
                     "request": {
                         "method": "GET",
@@ -1295,6 +1675,140 @@
                     "response": []
                 },
                 {
+                    "name": "GET cities",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/cities",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "cities"
+                            ]
+                        },
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{auth_token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "body": null
+                    },
+                    "response": []
+                },
+                {
+                    "name": "GET cities/{id}",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/cities/{id}",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "cities",
+                                "{id}"
+                            ]
+                        },
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{auth_token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "body": null
+                    },
+                    "response": []
+                },
+                {
+                    "name": "GET districts",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/districts",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "districts"
+                            ]
+                        },
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{auth_token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "body": null
+                    },
+                    "response": []
+                },
+                {
+                    "name": "GET districts/{id}",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/districts/{id}",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "districts",
+                                "{id}"
+                            ]
+                        },
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{auth_token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "body": null
+                    },
+                    "response": []
+                },
+                {
                     "name": "GET notifications",
                     "request": {
                         "method": "GET",
@@ -1396,6 +1910,182 @@
                                 "notifications",
                                 "{{private_notification_id}}",
                                 "read"
+                            ]
+                        },
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{auth_token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "body": {
+                            "mode": "raw",
+                            "raw": "[]",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "GET montage-department/show/{contractId}",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/montage-department/show/{{ready_contract_id}}",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "montage-department",
+                                "show",
+                                "{{ready_contract_id}}"
+                            ]
+                        },
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{auth_token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "body": null
+                    },
+                    "response": []
+                },
+                {
+                    "name": "POST montage-department/store/{contractId}",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/montage-department/store/{{ready_contract_id}}",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "montage-department",
+                                "store",
+                                "{{ready_contract_id}}"
+                            ]
+                        },
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{auth_token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "body": {
+                            "mode": "raw",
+                            "raw": "[]",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "PUT montage-department/update/{contractId}",
+                    "request": {
+                        "method": "PUT",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/montage-department/update/{{ready_contract_id}}",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "montage-department",
+                                "update",
+                                "{{ready_contract_id}}"
+                            ]
+                        },
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{auth_token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "body": {
+                            "mode": "raw",
+                            "raw": "[]",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "PATCH montage-department/approve/{contractId}",
+                    "request": {
+                        "method": "PATCH",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/montage-department/approve/{{ready_contract_id}}",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "montage-department",
+                                "approve",
+                                "{{ready_contract_id}}"
                             ]
                         },
                         "auth": {
@@ -2165,13 +2855,94 @@
                         },
                         "body": {
                             "mode": "raw",
-                            "raw": "{\n    \"developer_name\": \"شركة التطوير التجريبية\",\n    \"developer_number\": \"+966500000999\",\n    \"city\": \"الرياض\",\n    \"district\": \"حي النرجس\",\n    \"project_name\": \"مشروع واجهة الفرونت\",\n    \"developer_requiment\": \"رفع صور ومخططات وتسليم خلال 30 يوم\",\n    \"notes\": \"مثال جاهز\",\n    \"units\": [\n        {\n            \"type\": \"شقة\",\n            \"count\": 2,\n            \"price\": 650000\n        }\n    ]\n}",
+                            "raw": "{\n    \"developer_name\": \"شركة التطوير التجريبية\",\n    \"developer_number\": \"+966500000999\",\n    \"city_id\": 1,\n    \"district_id\": 1,\n    \"project_name\": \"مشروع واجهة الفرونت\",\n    \"developer_requiment\": \"رفع صور ومخططات وتسليم خلال 30 يوم\",\n    \"notes\": \"مثال جاهز\",\n    \"units\": [\n        {\n            \"type\": \"شقة\",\n            \"count\": 2,\n            \"price\": 650000\n        }\n    ]\n}",
                             "options": {
                                 "raw": {
                                     "language": "json"
                                 }
                             }
                         }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "POST contracts/import_csv",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/contracts/import_csv",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "contracts",
+                                "import_csv"
+                            ]
+                        },
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{auth_token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "body": {
+                            "mode": "raw",
+                            "raw": "[]",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "GET contracts/import_status/{id}",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/contracts/import_status/{id}",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "contracts",
+                                "import_status",
+                                "{id}"
+                            ]
+                        },
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{auth_token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "body": null
                     },
                     "response": []
                 },
@@ -2194,6 +2965,76 @@
                                 "contracts",
                                 "show",
                                 "{{base_contract_id}}"
+                            ]
+                        },
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{auth_token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "body": null
+                    },
+                    "response": []
+                },
+                {
+                    "name": "GET contracts/{id}/fill-data",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/contracts/{{pending_contract_id}}/fill-data",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "contracts",
+                                "{{pending_contract_id}}",
+                                "fill-data"
+                            ]
+                        },
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{auth_token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "body": null
+                    },
+                    "response": []
+                },
+                {
+                    "name": "GET contracts/{id}/summary-pdf-data",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/contracts/{{pending_contract_id}}/summary-pdf-data",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "contracts",
+                                "{{pending_contract_id}}",
+                                "summary-pdf-data"
                             ]
                         },
                         "auth": {
@@ -2247,7 +3088,7 @@
                         },
                         "body": {
                             "mode": "raw",
-                            "raw": "{\n    \"city\": \"جدة\",\n    \"district\": \"حي الزهراء\",\n    \"notes\": \"تحديث من بوستمان\"\n}",
+                            "raw": "{\n    \"city_id\": 1,\n    \"district_id\": 1,\n    \"notes\": \"تحديث من بوستمان\"\n}",
                             "options": {
                                 "raw": {
                                     "language": "json"
@@ -2330,6 +3171,136 @@
                         "body": {
                             "mode": "raw",
                             "raw": "{\n    \"gregorian_date\": \"{{today}}\",\n    \"contract_city\": \"الرياض\",\n    \"second_party_name\": \"شركة الطرف الثاني\",\n    \"second_party_email\": \"secondparty@example.com\"\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "POST contracts/import_info_csv/{contractId}",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/contracts/import_info_csv/{{ready_contract_id}}",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "contracts",
+                                "import_info_csv",
+                                "{{ready_contract_id}}"
+                            ]
+                        },
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{auth_token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "body": {
+                            "mode": "raw",
+                            "raw": "[]",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "GET contracts/import_info_status/{id}",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/contracts/import_info_status/{id}",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "contracts",
+                                "import_info_status",
+                                "{id}"
+                            ]
+                        },
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{auth_token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "body": null
+                    },
+                    "response": []
+                },
+                {
+                    "name": "PUT contracts/update/info/{id}",
+                    "request": {
+                        "method": "PUT",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/contracts/update/info/{id}",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "contracts",
+                                "update",
+                                "info",
+                                "{id}"
+                            ]
+                        },
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{auth_token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "body": {
+                            "mode": "raw",
+                            "raw": "[]",
                             "options": {
                                 "raw": {
                                     "language": "json"
@@ -2534,6 +3505,88 @@
                                 }
                             }
                         }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "POST second-party-data/import_csv/{contractId}",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/second-party-data/import_csv/{{ready_contract_id}}",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "second-party-data",
+                                "import_csv",
+                                "{{ready_contract_id}}"
+                            ]
+                        },
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{auth_token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "body": {
+                            "mode": "raw",
+                            "raw": "[]",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "GET second-party-data/import_status/{id}",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/second-party-data/import_status/{id}",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "second-party-data",
+                                "import_status",
+                                "{id}"
+                            ]
+                        },
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{auth_token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "body": null
                     },
                     "response": []
                 },
@@ -3255,6 +4308,89 @@
                     "response": []
                 },
                 {
+                    "name": "POST project_management/teams/import_csv",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/project_management/teams/import_csv",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "project_management",
+                                "teams",
+                                "import_csv"
+                            ]
+                        },
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{auth_token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "body": {
+                            "mode": "raw",
+                            "raw": "[]",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "GET project_management/teams/import_status/{id}",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/project_management/teams/import_status/{id}",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "project_management",
+                                "teams",
+                                "import_status",
+                                "{id}"
+                            ]
+                        },
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{auth_token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "body": null
+                    },
+                    "response": []
+                },
+                {
                     "name": "PUT project_management/teams/update/{id}",
                     "request": {
                         "method": "PUT",
@@ -3358,6 +4494,162 @@
                                 "teams",
                                 "show",
                                 "{{team_id}}"
+                            ]
+                        },
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{auth_token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "body": null
+                    },
+                    "response": []
+                },
+                {
+                    "name": "GET project_management/teams/sales-without-team",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/project_management/teams/sales-without-team",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "project_management",
+                                "teams",
+                                "sales-without-team"
+                            ]
+                        },
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{auth_token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "body": null
+                    },
+                    "response": []
+                },
+                {
+                    "name": "GET project_management/teams/members/{teamId}",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/project_management/teams/members/{teamId}",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "project_management",
+                                "teams",
+                                "members",
+                                "{teamId}"
+                            ]
+                        },
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{auth_token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "body": null
+                    },
+                    "response": []
+                },
+                {
+                    "name": "POST project_management/teams/members/{teamId}",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/project_management/teams/members/{teamId}",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "project_management",
+                                "teams",
+                                "members",
+                                "{teamId}"
+                            ]
+                        },
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{auth_token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "body": {
+                            "mode": "raw",
+                            "raw": "[]",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "DELETE project_management/teams/members/{teamId}/{userId}",
+                    "request": {
+                        "method": "DELETE",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/project_management/teams/members/{teamId}/{{employee_id}}",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "project_management",
+                                "teams",
+                                "members",
+                                "{teamId}",
+                                "{{employee_id}}"
                             ]
                         },
                         "auth": {
@@ -3578,6 +4870,373 @@
                         "body": null
                     },
                     "response": []
+                },
+                {
+                    "name": "GET project_management/units/{unitId}/reservation-context",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/project_management/units/{{available_unit_id}}/reservation-context",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "project_management",
+                                "units",
+                                "{{available_unit_id}}",
+                                "reservation-context"
+                            ]
+                        },
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{auth_token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "body": null
+                    },
+                    "response": []
+                },
+                {
+                    "name": "POST project_management/reservations",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/project_management/reservations",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "project_management",
+                                "reservations"
+                            ]
+                        },
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{auth_token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "body": {
+                            "mode": "raw",
+                            "raw": "[]",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "GET project_management/reservations",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/project_management/reservations",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "project_management",
+                                "reservations"
+                            ]
+                        },
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{auth_token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "body": null
+                    },
+                    "response": []
+                },
+                {
+                    "name": "GET project_management/reservations/{id}",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/project_management/reservations/{id}",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "project_management",
+                                "reservations",
+                                "{id}"
+                            ]
+                        },
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{auth_token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "body": null
+                    },
+                    "response": []
+                },
+                {
+                    "name": "POST project_management/reservations/{id}/confirm",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/project_management/reservations/{id}/confirm",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "project_management",
+                                "reservations",
+                                "{id}",
+                                "confirm"
+                            ]
+                        },
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{auth_token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "body": {
+                            "mode": "raw",
+                            "raw": "[]",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "POST project_management/reservations/{id}/cancel",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/project_management/reservations/{id}/cancel",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "project_management",
+                                "reservations",
+                                "{id}",
+                                "cancel"
+                            ]
+                        },
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{auth_token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "body": {
+                            "mode": "raw",
+                            "raw": "[]",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "POST project_management/reservations/{id}/actions",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/project_management/reservations/{id}/actions",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "project_management",
+                                "reservations",
+                                "{id}",
+                                "actions"
+                            ]
+                        },
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{auth_token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "body": {
+                            "mode": "raw",
+                            "raw": "[]",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "GET project_management/reservations/{id}/voucher",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/project_management/reservations/{id}/voucher",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "project_management",
+                                "reservations",
+                                "{id}",
+                                "voucher"
+                            ]
+                        },
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{auth_token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "body": null
+                    },
+                    "response": []
+                },
+                {
+                    "name": "GET project_management/reservations/{id}/voucher-data",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/project_management/reservations/{id}/voucher-data",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "project_management",
+                                "reservations",
+                                "{id}",
+                                "voucher-data"
+                            ]
+                        },
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{auth_token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "body": null
+                    },
+                    "response": []
                 }
             ]
         },
@@ -3639,6 +5298,40 @@
                                 "contracts",
                                 "show",
                                 "{{base_contract_id}}"
+                            ]
+                        },
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{auth_token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "body": null
+                    },
+                    "response": []
+                },
+                {
+                    "name": "GET editor/teams",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/editor/teams",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "editor",
+                                "teams"
                             ]
                         },
                         "auth": {
@@ -3920,6 +5613,54 @@
                         "body": {
                             "mode": "raw",
                             "raw": "{\n    \"image_url\": \"https://example.com/montage-2.jpg\",\n    \"video_url\": \"https://example.com/montage-2.mp4\"\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "PATCH editor/montage-department/approve/{contractId}",
+                    "request": {
+                        "method": "PATCH",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/editor/montage-department/approve/{{ready_contract_id}}",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "editor",
+                                "montage-department",
+                                "approve",
+                                "{{ready_contract_id}}"
+                            ]
+                        },
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{auth_token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "body": {
+                            "mode": "raw",
+                            "raw": "[]",
                             "options": {
                                 "raw": {
                                     "language": "json"
@@ -4422,6 +6163,42 @@
                     "response": []
                 },
                 {
+                    "name": "GET sales/units/{unitId}/pdf-data",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/sales/units/{{available_unit_id}}/pdf-data",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "sales",
+                                "units",
+                                "{{available_unit_id}}",
+                                "pdf-data"
+                            ]
+                        },
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{auth_token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "body": null
+                    },
+                    "response": []
+                },
+                {
                     "name": "GET sales/units/search",
                     "request": {
                         "method": "GET",
@@ -4823,6 +6600,42 @@
                     "response": []
                 },
                 {
+                    "name": "GET sales/reservations/{id}/voucher-data",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/sales/reservations/{{confirmed_reservation_id}}/voucher-data",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "sales",
+                                "reservations",
+                                "{{confirmed_reservation_id}}",
+                                "voucher-data"
+                            ]
+                        },
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{auth_token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "body": null
+                    },
+                    "response": []
+                },
+                {
                     "name": "GET sales/targets/my",
                     "request": {
                         "method": "GET",
@@ -4958,6 +6771,41 @@
                             "path": [
                                 "sales",
                                 "attendance",
+                                "my"
+                            ]
+                        },
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{auth_token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "body": null
+                    },
+                    "response": []
+                },
+                {
+                    "name": "GET sales/assignments/my",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/sales/assignments/my",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "sales",
+                                "assignments",
                                 "my"
                             ]
                         },
@@ -6509,6 +8357,89 @@
                     "response": []
                 },
                 {
+                    "name": "POST admin/employees/import_employees_csv",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/admin/employees/import_employees_csv",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "admin",
+                                "employees",
+                                "import_employees_csv"
+                            ]
+                        },
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{auth_token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "body": {
+                            "mode": "raw",
+                            "raw": "[]",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "GET admin/employees/import_status/{id}",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/admin/employees/import_status/{id}",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "admin",
+                                "employees",
+                                "import_status",
+                                "{id}"
+                            ]
+                        },
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{auth_token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "body": null
+                    },
+                    "response": []
+                },
+                {
                     "name": "GET admin/employees/list_employees",
                     "request": {
                         "method": "GET",
@@ -7030,13 +8961,667 @@
                         },
                         "body": {
                             "mode": "raw",
-                            "raw": "{\n    \"leader_id\": \"{{employee_id}}\",\n    \"contract_id\": \"{{ready_contract_id}}\",\n    \"start_date\": \"{{today}}\",\n    \"end_date\": \"{{future_date}}\"\n}",
+                            "raw": "{\n    \"team_code\": \"{{team_code}}\",\n    \"contract_id\": \"{{ready_contract_id}}\",\n    \"start_date\": \"{{today}}\",\n    \"end_date\": \"{{future_date}}\"\n}",
                             "options": {
                                 "raw": {
                                     "language": "json"
                                 }
                             }
                         }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "GET admin/cities",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/admin/cities",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "admin",
+                                "cities"
+                            ]
+                        },
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{auth_token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "body": null
+                    },
+                    "response": []
+                },
+                {
+                    "name": "POST admin/cities",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/admin/cities",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "admin",
+                                "cities"
+                            ]
+                        },
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{auth_token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "body": {
+                            "mode": "raw",
+                            "raw": "[]",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "POST admin/cities/import_csv",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/admin/cities/import_csv",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "admin",
+                                "cities",
+                                "import_csv"
+                            ]
+                        },
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{auth_token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "body": {
+                            "mode": "raw",
+                            "raw": "[]",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "GET admin/cities/import_status/{id}",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/admin/cities/import_status/{id}",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "admin",
+                                "cities",
+                                "import_status",
+                                "{id}"
+                            ]
+                        },
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{auth_token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "body": null
+                    },
+                    "response": []
+                },
+                {
+                    "name": "GET admin/cities/{id}",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/admin/cities/{id}",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "admin",
+                                "cities",
+                                "{id}"
+                            ]
+                        },
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{auth_token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "body": null
+                    },
+                    "response": []
+                },
+                {
+                    "name": "PUT admin/cities/{id}",
+                    "request": {
+                        "method": "PUT",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/admin/cities/{id}",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "admin",
+                                "cities",
+                                "{id}"
+                            ]
+                        },
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{auth_token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "body": {
+                            "mode": "raw",
+                            "raw": "[]",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "PATCH admin/cities/{id}",
+                    "request": {
+                        "method": "PATCH",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/admin/cities/{id}",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "admin",
+                                "cities",
+                                "{id}"
+                            ]
+                        },
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{auth_token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "body": {
+                            "mode": "raw",
+                            "raw": "[]",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "DELETE admin/cities/{id}",
+                    "request": {
+                        "method": "DELETE",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/admin/cities/{id}",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "admin",
+                                "cities",
+                                "{id}"
+                            ]
+                        },
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{auth_token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "body": null
+                    },
+                    "response": []
+                },
+                {
+                    "name": "GET admin/districts",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/admin/districts",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "admin",
+                                "districts"
+                            ]
+                        },
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{auth_token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "body": null
+                    },
+                    "response": []
+                },
+                {
+                    "name": "POST admin/districts",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/admin/districts",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "admin",
+                                "districts"
+                            ]
+                        },
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{auth_token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "body": {
+                            "mode": "raw",
+                            "raw": "[]",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "POST admin/districts/import_csv",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/admin/districts/import_csv",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "admin",
+                                "districts",
+                                "import_csv"
+                            ]
+                        },
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{auth_token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "body": {
+                            "mode": "raw",
+                            "raw": "[]",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "GET admin/districts/import_status/{id}",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/admin/districts/import_status/{id}",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "admin",
+                                "districts",
+                                "import_status",
+                                "{id}"
+                            ]
+                        },
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{auth_token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "body": null
+                    },
+                    "response": []
+                },
+                {
+                    "name": "GET admin/districts/{id}",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/admin/districts/{id}",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "admin",
+                                "districts",
+                                "{id}"
+                            ]
+                        },
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{auth_token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "body": null
+                    },
+                    "response": []
+                },
+                {
+                    "name": "PUT admin/districts/{id}",
+                    "request": {
+                        "method": "PUT",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/admin/districts/{id}",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "admin",
+                                "districts",
+                                "{id}"
+                            ]
+                        },
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{auth_token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "body": {
+                            "mode": "raw",
+                            "raw": "[]",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "PATCH admin/districts/{id}",
+                    "request": {
+                        "method": "PATCH",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/admin/districts/{id}",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "admin",
+                                "districts",
+                                "{id}"
+                            ]
+                        },
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{auth_token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "body": {
+                            "mode": "raw",
+                            "raw": "[]",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "DELETE admin/districts/{id}",
+                    "request": {
+                        "method": "DELETE",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/admin/districts/{id}",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "admin",
+                                "districts",
+                                "{id}"
+                            ]
+                        },
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{auth_token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "body": null
                     },
                     "response": []
                 }
@@ -7524,6 +10109,90 @@
                     "response": []
                 },
                 {
+                    "name": "GET marketing/reports/developer-plan/{contractId}/pdf-data",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/marketing/reports/developer-plan/{{ready_contract_id}}/pdf-data",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "marketing",
+                                "reports",
+                                "developer-plan",
+                                "{{ready_contract_id}}",
+                                "pdf-data"
+                            ]
+                        },
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{auth_token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "body": null
+                    },
+                    "response": []
+                },
+                {
+                    "name": "POST marketing/developer-plans/calculate-budget",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/marketing/developer-plans/calculate-budget",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "marketing",
+                                "developer-plans",
+                                "calculate-budget"
+                            ]
+                        },
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{auth_token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "body": {
+                            "mode": "raw",
+                            "raw": "[]",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    },
+                    "response": []
+                },
+                {
                     "name": "POST marketing/developer-plans",
                     "request": {
                         "method": "POST",
@@ -7657,6 +10326,41 @@
                                 "employee-plans",
                                 "project",
                                 "{{marketing_project_id}}"
+                            ]
+                        },
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{auth_token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "body": null
+                    },
+                    "response": []
+                },
+                {
+                    "name": "GET marketing/employee-plans/pdf-data",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/marketing/employee-plans/pdf-data",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "marketing",
+                                "employee-plans",
+                                "pdf-data"
                             ]
                         },
                         "auth": {
@@ -8909,6 +11613,42 @@
                     "response": []
                 },
                 {
+                    "name": "GET hr/contracts/{id}/pdf-data",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/hr/contracts/{{pending_contract_id}}/pdf-data",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "hr",
+                                "contracts",
+                                "{{pending_contract_id}}",
+                                "pdf-data"
+                            ]
+                        },
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{auth_token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "body": null
+                    },
+                    "response": []
+                },
+                {
                     "name": "GET hr/users",
                     "request": {
                         "method": "GET",
@@ -9904,6 +12644,112 @@
                     "response": []
                 },
                 {
+                    "name": "GET hr/targets/statistics/{marketerId}",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/hr/targets/statistics/{marketerId}",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "hr",
+                                "targets",
+                                "statistics",
+                                "{marketerId}"
+                            ]
+                        },
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{auth_token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "body": null
+                    },
+                    "response": []
+                },
+                {
+                    "name": "GET hr/targets/marketers",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/hr/targets/marketers",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "hr",
+                                "targets",
+                                "marketers"
+                            ]
+                        },
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{auth_token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "body": null
+                    },
+                    "response": []
+                },
+                {
+                    "name": "GET hr/targets/reservation-statistics",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/hr/targets/reservation-statistics",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "hr",
+                                "targets",
+                                "reservation-statistics"
+                            ]
+                        },
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{auth_token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "body": null
+                    },
+                    "response": []
+                },
+                {
                     "name": "GET hr/dashboard",
                     "request": {
                         "method": "GET",
@@ -10661,6 +13507,42 @@
                     "response": []
                 },
                 {
+                    "name": "GET accounting/commissions/{id}/pdf-data",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/accounting/commissions/{{commission_id}}/pdf-data",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "accounting",
+                                "commissions",
+                                "{{commission_id}}",
+                                "pdf-data"
+                            ]
+                        },
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{auth_token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "body": null
+                    },
+                    "response": []
+                },
+                {
                     "name": "GET accounting/commissions/released",
                     "request": {
                         "method": "GET",
@@ -10781,7 +13663,7 @@
                         },
                         "body": {
                             "mode": "raw",
-                            "raw": "{\n    \"distributions\": [\n        {\n            \"user_id\": \"{{employee_id}}\",\n            \"type\": \"closing\",\n            \"percentage\": 50\n        },\n        {\n            \"user_id\": \"{{admin_user_id}}\",\n            \"type\": \"team_leader\",\n            \"percentage\": 50\n        }\n    ]\n}",
+                            "raw": "{\n    \"distributions\": [\n        {\n            \"user_id\": \"{{employee_id}}\",\n            \"type\": \"closing\",\n            \"percentage\": 35\n        },\n        {\n            \"user_id\": \"{{admin_user_id}}\",\n            \"type\": \"team_leader\",\n            \"percentage\": 25\n        }\n    ]\n}",
                             "options": {
                                 "raw": {
                                     "language": "json"
@@ -10996,6 +13878,42 @@
                                 "accounting",
                                 "deposits",
                                 "pending"
+                            ]
+                        },
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{auth_token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "body": null
+                    },
+                    "response": []
+                },
+                {
+                    "name": "GET accounting/deposits/{id}/pdf-data",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/accounting/deposits/{{deposit_id}}/pdf-data",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "accounting",
+                                "deposits",
+                                "{{deposit_id}}",
+                                "pdf-data"
                             ]
                         },
                         "auth": {
@@ -12133,6 +15051,267 @@
                                 }
                             }
                         }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "PATCH credit/bookings/{id}",
+                    "request": {
+                        "method": "PATCH",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/credit/bookings/{{bank_confirmed_reservation_id}}",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "credit",
+                                "bookings",
+                                "{{bank_confirmed_reservation_id}}"
+                            ]
+                        },
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{auth_token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "body": {
+                            "mode": "raw",
+                            "raw": "[]",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "POST credit/bookings/{id}/actions",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/credit/bookings/{{bank_confirmed_reservation_id}}/actions",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "credit",
+                                "bookings",
+                                "{{bank_confirmed_reservation_id}}",
+                                "actions"
+                            ]
+                        },
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{auth_token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "body": {
+                            "mode": "raw",
+                            "raw": "[]",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "GET credit/bookings/{id}/payment-plan",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/credit/bookings/{{bank_confirmed_reservation_id}}/payment-plan",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "credit",
+                                "bookings",
+                                "{{bank_confirmed_reservation_id}}",
+                                "payment-plan"
+                            ]
+                        },
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{auth_token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "body": null
+                    },
+                    "response": []
+                },
+                {
+                    "name": "POST credit/bookings/{id}/payment-plan",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/credit/bookings/{{bank_confirmed_reservation_id}}/payment-plan",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "credit",
+                                "bookings",
+                                "{{bank_confirmed_reservation_id}}",
+                                "payment-plan"
+                            ]
+                        },
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{auth_token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "body": {
+                            "mode": "raw",
+                            "raw": "[]",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "PUT credit/payment-installments/{id}",
+                    "request": {
+                        "method": "PUT",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/credit/payment-installments/{id}",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "credit",
+                                "payment-installments",
+                                "{id}"
+                            ]
+                        },
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{auth_token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "body": {
+                            "mode": "raw",
+                            "raw": "[]",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "DELETE credit/payment-installments/{id}",
+                    "request": {
+                        "method": "DELETE",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/credit/payment-installments/{id}",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "credit",
+                                "payment-installments",
+                                "{id}"
+                            ]
+                        },
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{auth_token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "body": null
                     },
                     "response": []
                 },
@@ -13289,6 +16468,439 @@
                     "response": []
                 },
                 {
+                    "name": "POST ai/tools/chat",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/ai/tools/chat",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "ai",
+                                "tools",
+                                "chat"
+                            ]
+                        },
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{auth_token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "body": {
+                            "mode": "raw",
+                            "raw": "[]",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "POST ai/tools/stream",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/ai/tools/stream",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "ai",
+                                "tools",
+                                "stream"
+                            ]
+                        },
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{auth_token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "body": {
+                            "mode": "raw",
+                            "raw": "[]",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "POST ai/v2/chat",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/ai/v2/chat",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "ai",
+                                "v2",
+                                "chat"
+                            ]
+                        },
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{auth_token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "body": {
+                            "mode": "raw",
+                            "raw": "[]",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "POST ai/v2/stream",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/ai/v2/stream",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "ai",
+                                "v2",
+                                "stream"
+                            ]
+                        },
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{auth_token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "body": {
+                            "mode": "raw",
+                            "raw": "[]",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "POST ai/documents",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/ai/documents",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "ai",
+                                "documents"
+                            ]
+                        },
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{auth_token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "body": {
+                            "mode": "raw",
+                            "raw": "[]",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "GET ai/documents",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/ai/documents",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "ai",
+                                "documents"
+                            ]
+                        },
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{auth_token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "body": null
+                    },
+                    "response": []
+                },
+                {
+                    "name": "GET ai/documents/{id}",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/ai/documents/{id}",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "ai",
+                                "documents",
+                                "{id}"
+                            ]
+                        },
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{auth_token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "body": null
+                    },
+                    "response": []
+                },
+                {
+                    "name": "DELETE ai/documents/{id}",
+                    "request": {
+                        "method": "DELETE",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/ai/documents/{id}",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "ai",
+                                "documents",
+                                "{id}"
+                            ]
+                        },
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{auth_token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "body": null
+                    },
+                    "response": []
+                },
+                {
+                    "name": "POST ai/documents/{id}/reindex",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/ai/documents/{id}/reindex",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "ai",
+                                "documents",
+                                "{id}",
+                                "reindex"
+                            ]
+                        },
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{auth_token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "body": {
+                            "mode": "raw",
+                            "raw": "[]",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "POST ai/documents/search",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/ai/documents/search",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "ai",
+                                "documents",
+                                "search"
+                            ]
+                        },
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{auth_token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "body": {
+                            "mode": "raw",
+                            "raw": "[]",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    },
+                    "response": []
+                },
+                {
                     "name": "GET ai/calls",
                     "request": {
                         "method": "GET",
@@ -14236,6 +17848,122 @@
                             ]
                         },
                         "body": null
+                    },
+                    "response": []
+                },
+                {
+                    "name": "GET ads/leads",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/ads/leads",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "ads",
+                                "leads"
+                            ]
+                        },
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{auth_token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "body": null
+                    },
+                    "response": []
+                },
+                {
+                    "name": "GET ads/leads/export",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/ads/leads/export",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "ads",
+                                "leads",
+                                "export"
+                            ]
+                        },
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{auth_token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "body": null
+                    },
+                    "response": []
+                },
+                {
+                    "name": "POST ads/leads/export-snap",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/ads/leads/export-snap",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "ads",
+                                "leads",
+                                "export-snap"
+                            ]
+                        },
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{auth_token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "body": {
+                            "mode": "raw",
+                            "raw": "[]",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
                     },
                     "response": []
                 },

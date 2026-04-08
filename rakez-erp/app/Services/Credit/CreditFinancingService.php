@@ -39,41 +39,64 @@ class CreditFinancingService
     {
         $reservation = SalesReservation::findOrFail($reservationId);
 
-        // Validate reservation is confirmed and uses bank financing
+        // Validate reservation is confirmed and eligible (bank financing or cash credit workflow)
         if ($reservation->status !== 'confirmed') {
-            throw new Exception('يمكن بدء إجراءات التمويل فقط للحجوزات المؤكدة');
+            throw new Exception('يمكن بدء إجراءات المتابعة الائتمانية فقط للحجوزات المؤكدة');
         }
 
-        if (!$reservation->isBankFinancing()) {
-            throw new Exception('إجراءات التمويل متاحة فقط للشراء بالتمويل البنكي');
+        if (!$reservation->eligibleForCreditFinancingWorkflow()) {
+            throw new Exception('إجراءات المتابعة الائتمانية متاحة فقط للشراء بالتمويل البنكي أو نقداً (كاش)');
         }
 
         // Check if tracker already exists
         if ($reservation->hasFinancingTracker()) {
-            throw new Exception('تم تهيئة إجراءات التمويل مسبقاً لهذا الحجز');
+            throw new Exception('تم تهيئة إجراءات المتابعة الائتمانية مسبقاً لهذا الحجز');
         }
 
         DB::beginTransaction();
         try {
             $now = now();
 
+            $isCash = $reservation->isCashPurchase();
             $isSupported = $reservation->isSupportedBank();
-            $stage1Days = CreditFinancingTracker::durationDaysForStage(1, $isSupported);
+            $stage1Days = CreditFinancingTracker::durationDaysForStage(1, $isSupported, $isCash);
             $stage1Deadline = $now->copy()->addDays($stage1Days);
 
-            $tracker = CreditFinancingTracker::create([
-                'sales_reservation_id' => $reservationId,
-                'assigned_to' => $assignedTo,
-                'stage_1_status' => 'in_progress',
-                'stage_1_deadline' => $stage1Deadline,
-                'stage_2_status' => 'pending',
-                'stage_3_status' => 'pending',
-                'stage_4_status' => 'pending',
-                'stage_5_status' => 'pending',
-                'stage_6_status' => 'pending',
-                'is_supported_bank' => $isSupported,
-                'overall_status' => 'in_progress',
-            ]);
+            if ($isCash) {
+                $tracker = CreditFinancingTracker::create([
+                    'sales_reservation_id' => $reservationId,
+                    'assigned_to' => $assignedTo,
+                    'stage_1_status' => 'in_progress',
+                    'stage_1_deadline' => $stage1Deadline,
+                    'stage_2_status' => 'completed',
+                    'stage_2_completed_at' => $now,
+                    'stage_3_status' => 'completed',
+                    'stage_3_completed_at' => $now,
+                    'stage_4_status' => 'completed',
+                    'stage_4_completed_at' => $now,
+                    'stage_5_status' => 'completed',
+                    'stage_5_completed_at' => $now,
+                    'stage_6_status' => 'pending',
+                    'is_supported_bank' => false,
+                    'is_cash_workflow' => true,
+                    'overall_status' => 'in_progress',
+                ]);
+            } else {
+                $tracker = CreditFinancingTracker::create([
+                    'sales_reservation_id' => $reservationId,
+                    'assigned_to' => $assignedTo,
+                    'stage_1_status' => 'in_progress',
+                    'stage_1_deadline' => $stage1Deadline,
+                    'stage_2_status' => 'pending',
+                    'stage_3_status' => 'pending',
+                    'stage_4_status' => 'pending',
+                    'stage_5_status' => 'pending',
+                    'stage_6_status' => 'pending',
+                    'is_supported_bank' => $isSupported,
+                    'is_cash_workflow' => false,
+                    'overall_status' => 'in_progress',
+                ]);
+            }
 
             // Update reservation credit status
             $reservation->update(['credit_status' => 'in_progress']);
@@ -131,8 +154,13 @@ class CreditFinancingService
 
             // Activate next stage with deadline = now + duration for that stage (calendar days)
             if ($stage < 6) {
-                $nextStage = $stage + 1;
-                $nextDays = CreditFinancingTracker::durationDaysForStage($nextStage, (bool) $tracker->is_supported_bank);
+                $isCash = (bool) $tracker->is_cash_workflow;
+                $nextStage = ($isCash && $stage === 1) ? 6 : $stage + 1;
+                $nextDays = CreditFinancingTracker::durationDaysForStage(
+                    $nextStage,
+                    (bool) $tracker->is_supported_bank,
+                    $isCash
+                );
 
                 $updateData["stage_{$nextStage}_status"] = 'in_progress';
                 $updateData["stage_{$nextStage}_deadline"] = $now->copy()->addDays($nextDays);
@@ -148,7 +176,10 @@ class CreditFinancingService
 
             if ($stage === 6) {
                 $tracker->reservation->update(['credit_status' => 'title_transfer']);
-                $this->notifyStageCompletion($tracker, 'تم إكمال جميع إجراءات التمويل');
+                $doneMessage = $tracker->is_cash_workflow
+                    ? 'تم إكمال جميع إجراءات متابعة الشراء النقدي'
+                    : 'تم إكمال جميع إجراءات التمويل البنكي';
+                $this->notifyStageCompletion($tracker, $doneMessage);
             }
 
             DB::commit();
@@ -169,7 +200,7 @@ class CreditFinancingService
         $tracker = CreditFinancingTracker::findOrFail($trackerId);
 
         if ($tracker->overall_status !== 'in_progress') {
-            throw new Exception('لا يمكن رفض طلب التمويل في الحالة الحالية');
+            throw new Exception('لا يمكن الرفض في الحالة الحالية');
         }
 
         DB::beginTransaction();
@@ -297,9 +328,12 @@ class CreditFinancingService
         // Notify marketer
         $reservation = $tracker->reservation;
         if ($reservation->marketing_employee_id) {
+            $rejectMsg = $reservation->isCashPurchase()
+                ? ('تم رفض متابعة الحجز النقدي رقم ' . $reservation->id)
+                : ('تم رفض طلب التمويل للحجز رقم ' . $reservation->id);
             UserNotification::create([
                 'user_id' => $reservation->marketing_employee_id,
-                'message' => 'تم رفض طلب التمويل للحجز رقم ' . $reservation->id,
+                'message' => $rejectMsg,
             ]);
         }
     }

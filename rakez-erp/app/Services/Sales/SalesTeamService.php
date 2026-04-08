@@ -4,6 +4,7 @@ namespace App\Services\Sales;
 
 use App\Models\SalesReservation;
 use App\Models\SalesTeamMemberRating;
+use App\Models\Team;
 use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Support\Collection;
@@ -37,6 +38,57 @@ class SalesTeamService
 
     private const RECENCY_DAYS = 90;
     private const DEFAULT_UNIT_WEIGHT = 30;
+
+    /**
+     * Default sales leader(s) for a team: team creator (if sales + active), then sales managers, then first active sales member.
+     * Used when assigning a contract to a team so a leader appears automatically in sales_project_assignments / API.
+     *
+     * @return Collection<int, User>
+     */
+    public function getDefaultSalesLeadersForTeam(Team $team): Collection
+    {
+        $candidates = collect();
+
+        if ($team->created_by) {
+            $u = User::query()
+                ->whereKey($team->created_by)
+                ->where('team_id', $team->id)
+                ->where('type', 'sales')
+                ->where('is_active', true)
+                ->first();
+            if ($u) {
+                $candidates->push($u);
+            }
+        }
+
+        $managers = User::query()
+            ->where('team_id', $team->id)
+            ->where('type', 'sales')
+            ->where('is_active', true)
+            ->where('is_manager', true)
+            ->orderBy('name')
+            ->get();
+        foreach ($managers as $u) {
+            if (!$candidates->contains(fn ($x) => (int) $x->id === (int) $u->id)) {
+                $candidates->push($u);
+            }
+        }
+
+        if ($candidates->isEmpty()) {
+            $first = User::query()
+                ->where('team_id', $team->id)
+                ->where('type', 'sales')
+                ->where('is_active', true)
+                ->orderBy('name')
+                ->orderBy('id')
+                ->first();
+            if ($first) {
+                $candidates->push($first);
+            }
+        }
+
+        return $candidates->unique('id')->values();
+    }
 
     /**
      * أعضاء الفريق لمدير معيّن (نفس team_id، نوع sales، باستثناء المدير).

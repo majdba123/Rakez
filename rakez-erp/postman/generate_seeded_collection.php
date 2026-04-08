@@ -38,6 +38,7 @@ use App\Models\UserNotification;
 use Carbon\Carbon;
 use Illuminate\Contracts\Console\Kernel;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 
 require __DIR__ . '/../vendor/autoload.php';
@@ -165,8 +166,15 @@ $offPlanContract = Contract::where('status', 'approved')->where('is_off_plan', t
 $baseContract = $readyContract ?? $approvedContract ?? Contract::orderBy('id')->first();
 $baseContractId = rid($baseContract);
 
-$unitQuery = fn (string $status) => ContractUnit::whereHas('secondPartyData', fn ($q) => $q->where('contract_id', $baseContractId))
-    ->where('status', $status)->orderBy('id')->first();
+$unitQuery = function (string $status) use ($baseContractId) {
+    $q = ContractUnit::query()->where('status', $status)->orderBy('id');
+    // Prefer units tied to the base contract when schema supports contract_id + second-party link.
+    if ($baseContractId && Schema::hasColumn((new ContractUnit())->getTable(), 'contract_id')) {
+        $q->whereHas('secondPartyData', fn ($sub) => $sub->where('contract_id', $baseContractId));
+    }
+
+    return $q->first();
+};
 
 $availableUnit = $baseContract ? $unitQuery('available') : null;
 $reservedUnit = $baseContract ? $unitQuery('reserved') : null;
@@ -417,7 +425,7 @@ function exampleBody(string $method, string $uri): ?array
         'POST api/hr/teams/{id}/members' => ['user_id' => '{{employee_id}}'],
         'PUT api/hr/teams/{id}' => ['name' => 'فريق محدث', 'description' => 'وصف محدث'],
         'POST api/accounting/sold-units/{id}/commission' => ['contract_unit_id' => '{{sold_unit_id}}', 'sales_reservation_id' => '{{confirmed_reservation_id}}', 'final_selling_price' => 950000, 'commission_percentage' => 2.5, 'commission_source' => 'owner'],
-        'PUT api/accounting/commissions/{id}/distributions' => ['distributions' => [['user_id' => '{{employee_id}}', 'type' => 'closing', 'percentage' => 50], ['user_id' => '{{admin_user_id}}', 'type' => 'team_leader', 'percentage' => 50]]],
+        'PUT api/accounting/commissions/{id}/distributions' => ['distributions' => [['user_id' => '{{employee_id}}', 'type' => 'closing', 'percentage' => 35], ['user_id' => '{{admin_user_id}}', 'type' => 'team_leader', 'percentage' => 25]]],
         'POST api/accounting/deposits/{id}/refund' => ['notes' => 'استرداد تجريبي'],
         'POST api/accounting/salaries/{userId}/distribute' => ['month' => '{{current_month}}', 'year' => '{{current_year}}'],
         'PATCH api/credit/bookings/negotiation/{id}' => ['notes' => 'تمت المراجعة'],
@@ -519,9 +527,14 @@ foreach (Route::getRoutes() as $route) {
 $collection = [
     'info' => [
         'name' => 'Rakez ERP Seeded Frontend Collection',
-        '_postman_id' => (string) Str::uuid(),
+        '_postman_id' => '1b4ced1a-7b5e-434f-a6be-671457cf5f71',
         'schema' => 'https://schema.getpostman.com/json/collection/v2.1.0/collection.json',
-        'description' => 'Generated from routes and seeded records. Variables use real seeded IDs where available.',
+        'description' => 'Generated from `postman/generate_seeded_collection.php` + Laravel routes + seeded DB IDs (when the script runs successfully).' . "\n\n"
+            . '**Changelog 2026-04-07 (frontend-facing APIs)**' . "\n"
+            . '- **Accounting deposits:** Pending rows expose `deposit_id` + `reservation_id` + `row_entity`. Follow-up rows are reservations: use `reservation_id` and nested `deposits[].deposit_id` for actions. Confirm/refund/PDF `{id}` must be a **real deposit id**; sending a reservation-only id returns **422** with an Arabic message.' . "\n"
+            . '- **Commissions:** `PUT .../commissions/{id}/distributions` allows total percentage **≤ 100%** (remainder stays with company). `distributions: []` clears pending lines. Responses include `total_distributed_percentage`, `remaining_percentage`, `distributed_amount`, `remaining_amount`.' . "\n"
+            . '- **Marketing:** `GET .../marketing/projects/{contractId}` merges `responsible_sales_teams` (sales leaders, members, optional ratings).' . "\n\n"
+            . 'See also: `docs/FRONTEND_CHANGELOG_2026-04-07.md`.',
     ],
     'variable' => vars_out($vars),
     'item' => array_map(fn ($folder, $items) => ['name' => $folder, 'item' => $items], array_keys($folders), array_values($folders)),
@@ -532,6 +545,7 @@ $json = json_encode($collection, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JS
 $outputs = [
     __DIR__ . '/Rakez_ERP_Seeded_Frontend.postman_collection.json',
     __DIR__ . '/Rakez_ERP_Seeded_Frontend.json',
+    __DIR__ . '/../docs/postman/collections/Rakez ERP Seeded Frontend Collection.postman_collection.json',
 ];
 
 foreach ($outputs as $output) {
