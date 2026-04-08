@@ -395,11 +395,10 @@
 					"request": {
 						"method": "GET",
 						"url": {
-							"raw": "{{base_url}}/api/hr/targets/reservation-statistics?marketer_id=&contract_id=&from=&to=",
+							"raw": "{{base_url}}/api/hr/targets/reservation-statistics/{{marketer_id}}?contract_id=&from=&to=",
 							"host": ["{{base_url}}"],
-							"path": ["api","hr","targets","reservation-statistics"],
+							"path": ["api","hr","targets","reservation-statistics", "{{marketer_id}}"],
 							"query": [
-								{ "key": "marketer_id", "value": "", "description": "Filter by marketer ID" },
 								{ "key": "contract_id", "value": "", "description": "Filter by contract/project ID" },
 								{ "key": "from", "value": "", "description": "Start date (Y-m-d)" },
 								{ "key": "to", "value": "", "description": "End date (Y-m-d)" }
