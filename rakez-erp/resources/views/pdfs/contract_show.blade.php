@@ -1,13 +1,24 @@
 @extends('layouts.pdf')
 
+@php
+    /** @var \App\Models\Contract $contract */
+    /** @var array<string,string> $contract_main */
+    /** @var array<string,string>|null $info_display */
+    /** @var array<int,array<string,string>> $unit_rows */
+    /** @var array<int,array<string,string>> $legacy_unit_rows */
+    /** @var array<string,string>|null $second_party_flags */
+    $unit_rows = $unit_rows ?? [];
+    $legacy_unit_rows = $legacy_unit_rows ?? [];
+@endphp
+
 @section('title', 'بيانات العقد رقم ' . ($contract->id ?? ''))
 
 @section('content')
     <p class="doc-title">بيانات العقد</p>
     <p class="doc-title-en" style="direction: ltr;">Contract details</p>
     <p class="doc-subtitle">تم الإنشاء: {{ $generated_at }} — رقم العقد: <span class="ltr">{{ $contract->id }}</span>
-        @if(!empty($contract->code))
-            — الكود: <span class="ltr">{{ $contract->code }}</span>
+        @if(($contract_main['code'] ?? '—') !== '—')
+            — الكود: <span class="ltr">{{ $contract_main['code'] }}</span>
         @endif
     </p>
 
@@ -15,23 +26,23 @@
     <table class="info-table">
         <tr>
             <td>اسم المشروع</td>
-            <td>{{ $contract->project_name ?? '—' }}</td>
+            <td>{{ $contract_main['project_name'] }}</td>
         </tr>
         <tr>
             <td>اسم المطور</td>
-            <td>{{ $contract->developer_name ?? '—' }}</td>
+            <td>{{ $contract_main['developer_name'] }}</td>
         </tr>
         <tr>
             <td>رقم المطور</td>
-            <td class="ltr">{{ $contract->developer_number ?? '—' }}</td>
+            <td class="ltr">{{ $contract_main['developer_number'] }}</td>
         </tr>
         <tr>
             <td>المدينة</td>
-            <td>{{ $contract->city?->name ?? '—' }}</td>
+            <td>{{ $contract_main['city'] }}</td>
         </tr>
         <tr>
             <td>الحي</td>
-            <td>{{ $contract->district?->name ?? '—' }}</td>
+            <td>{{ $contract_main['district'] }}</td>
         </tr>
         <tr>
             <td>الجانب (الاتجاه)</td>
@@ -47,11 +58,11 @@
         </tr>
         <tr>
             <td>متطلبات المطور</td>
-            <td>{{ $contract->developer_requiment ?? '—' }}</td>
+            <td>{{ $contract_main['developer_requiment'] }}</td>
         </tr>
         <tr>
             <td>العمولة %</td>
-            <td>{{ $contract->commission_percent !== null ? $contract->commission_percent . '%' : '—' }}</td>
+            <td>{{ $contract_main['commission_percent'] }}</td>
         </tr>
         <tr>
             <td>العمولة على</td>
@@ -59,78 +70,76 @@
         </tr>
         <tr>
             <td>ملاحظات</td>
-            <td>{{ $contract->notes ?? '—' }}</td>
+            <td>{{ $contract_main['notes'] }}</td>
         </tr>
-        @if($contract->user)
+        @if(($contract_main['owner_name'] ?? '—') !== '—')
             <tr>
                 <td>صاحب الطلب (الموظف)</td>
-                <td>{{ $contract->user->name ?? '—' }}</td>
+                <td>{{ $contract_main['owner_name'] }}</td>
             </tr>
         @endif
     </table>
 
-    @if($contract->info)
-        @php $info = $contract->info; @endphp
+    @if(!empty($info_display))
         <p class="section-title">معلومات العقد (الطرفان والتواريخ)</p>
         <table class="info-table">
             <tr>
                 <td>رقم العقد</td>
-                <td class="ltr">{{ $info->contract_number ?? '—' }}</td>
+                <td class="ltr">{{ $info_display['contract_number'] }}</td>
             </tr>
             <tr>
                 <td>الطرف الأول — الاسم</td>
-                <td>{{ $info->first_party_name ?? '—' }}</td>
+                <td>{{ $info_display['first_party_name'] }}</td>
             </tr>
             <tr>
                 <td>الطرف الأول — السجل التجاري</td>
-                <td class="ltr">{{ $info->first_party_cr_number ?? '—' }}</td>
+                <td class="ltr">{{ $info_display['first_party_cr_number'] }}</td>
             </tr>
             <tr>
                 <td>الطرف الثاني — الاسم</td>
-                <td>{{ $info->second_party_name ?? '—' }}</td>
+                <td>{{ $info_display['second_party_name'] }}</td>
             </tr>
             <tr>
                 <td>الطرف الثاني — العنوان</td>
-                <td>{{ $info->second_party_address ?? '—' }}</td>
+                <td>{{ $info_display['second_party_address'] }}</td>
             </tr>
             <tr>
                 <td>الطرف الثاني — الجوال</td>
-                <td class="ltr">{{ $info->second_party_phone ?? '—' }}</td>
+                <td class="ltr">{{ $info_display['second_party_phone'] }}</td>
             </tr>
             <tr>
                 <td>التاريخ الميلادي</td>
-                <td>{{ $info->gregorian_date ? $info->gregorian_date->format('Y-m-d') : '—' }}</td>
+                <td>{{ $info_display['gregorian_date'] }}</td>
             </tr>
             <tr>
                 <td>التاريخ الهجري</td>
-                <td>{{ $info->hijri_date ?? '—' }}</td>
+                <td>{{ $info_display['hijri_date'] }}</td>
             </tr>
             <tr>
                 <td>مدة الاتفاق (أيام)</td>
-                <td>{{ $info->agreement_duration_days !== null ? $info->agreement_duration_days : '—' }}</td>
+                <td>{{ $info_display['agreement_duration_days'] }}</td>
             </tr>
             <tr>
                 <td>مدينة العقد</td>
-                <td>{{ $info->contract_city ?? '—' }}</td>
+                <td>{{ $info_display['contract_city'] }}</td>
             </tr>
         </table>
     @endif
 
-    @if($contract->secondPartyData)
-        @php $spd = $contract->secondPartyData; @endphp
+    @if(!empty($second_party_flags))
         <p class="section-title">بيانات الطرف الثاني (المرفقات)</p>
         <table class="info-table">
-            <tr><td>أوراق العقار</td><td>{{ $spd->real_estate_papers_url ? 'متوفر (رابط)' : '—' }}</td></tr>
-            <tr><td>المخططات والتجهيزات</td><td>{{ $spd->plans_equipment_docs_url ? 'متوفر (رابط)' : '—' }}</td></tr>
-            <tr><td>شعار المشروع</td><td>{{ $spd->project_logo_url ? 'متوفر (رابط)' : '—' }}</td></tr>
-            <tr><td>الأسعار والوحدات</td><td>{{ $spd->prices_units_url ? 'متوفر (رابط)' : '—' }}</td></tr>
-            <tr><td>رخصة التسويق</td><td>{{ $spd->marketing_license_url ? 'متوفر (رابط)' : '—' }}</td></tr>
-            <tr><td>رقم المعلن / القسم</td><td>{{ $spd->advertiser_section_url ?? '—' }}</td></tr>
+            <tr><td>أوراق العقار</td><td>{{ $second_party_flags['real_estate_papers_url'] }}</td></tr>
+            <tr><td>المخططات والتجهيزات</td><td>{{ $second_party_flags['plans_equipment_docs_url'] }}</td></tr>
+            <tr><td>شعار المشروع</td><td>{{ $second_party_flags['project_logo_url'] }}</td></tr>
+            <tr><td>الأسعار والوحدات</td><td>{{ $second_party_flags['prices_units_url'] }}</td></tr>
+            <tr><td>رخصة التسويق</td><td>{{ $second_party_flags['marketing_license_url'] }}</td></tr>
+            <tr><td>رقم المعلن / القسم</td><td>{{ $second_party_flags['advertiser_section_url'] }}</td></tr>
         </table>
     @endif
 
     <p class="section-title">الوحدات</p>
-    @if($contract->contractUnits && $contract->contractUnits->isNotEmpty())
+    @if(count($unit_rows) > 0)
         <table class="data-table">
             <thead>
             <tr>
@@ -142,18 +151,18 @@
             </tr>
             </thead>
             <tbody>
-            @foreach($contract->contractUnits as $u)
+            @foreach($unit_rows as $u)
                 <tr>
-                    <td class="ltr">{{ $u->unit_number ?? $u->id }}</td>
-                    <td>{{ $u->unit_type ?? '—' }}</td>
-                    <td>{{ $u->status ?? '—' }}</td>
-                    <td class="ltr">{{ number_format((float)($u->price ?? 0), 2, '.', ',') }}</td>
-                    <td>{{ $u->area ?? $u->total_area_m2 ?? '—' }}</td>
+                    <td class="ltr">{{ $u['unit_number'] }}</td>
+                    <td>{{ $u['unit_type'] }}</td>
+                    <td>{{ $u['status'] }}</td>
+                    <td class="ltr">{{ $u['price'] }}</td>
+                    <td>{{ $u['area'] }}</td>
                 </tr>
             @endforeach
             </tbody>
         </table>
-    @elseif(is_array($contract->units) && count($contract->units) > 0)
+    @elseif(count($legacy_unit_rows) > 0)
         <table class="data-table">
             <thead>
             <tr>
@@ -163,11 +172,11 @@
             </tr>
             </thead>
             <tbody>
-            @foreach($contract->units as $row)
+            @foreach($legacy_unit_rows as $row)
                 <tr>
-                    <td>{{ $row['type'] ?? '—' }}</td>
-                    <td class="ltr">{{ $row['count'] ?? '—' }}</td>
-                    <td class="ltr">{{ isset($row['price']) ? number_format((float)$row['price'], 2, '.', ',') : '—' }}</td>
+                    <td>{{ $row['type'] }}</td>
+                    <td class="ltr">{{ $row['count'] }}</td>
+                    <td class="ltr">{{ $row['price'] }}</td>
                 </tr>
             @endforeach
             </tbody>

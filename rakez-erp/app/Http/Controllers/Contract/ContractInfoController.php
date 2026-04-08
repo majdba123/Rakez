@@ -44,15 +44,16 @@ class ContractInfoController extends Controller
             $contract = $this->contractService->getContractById($contractId, null);
             $this->authorize('view', $contract);
 
-            if (!$contract->info) {
+            $info = ContractInfo::query()->where('contract_id', $contractId)->first();
+            if (!$info) {
                 return response()->json([
                     'success' => false,
                     'message' => 'لا توجد بيانات معلومات العقد لهذا العقد',
                 ], 404);
             }
 
-            $data = $this->contractPdfDataService->buildContractInfoOnlyPdfPayload($contract);
-            $filename = sprintf('contract_info_%d_%s.pdf', $contractId, now()->format('Y-m-d'));
+            $data = $this->contractPdfDataService->buildContractInfoOnlyPdfPayload($info);
+            $filename = sprintf('contract_info_%d_%s.pdf', $info->id, now()->format('Y-m-d'));
 
             return PdfFactory::download('pdfs.contract_info_only', $data, $filename);
         } catch (\Illuminate\Auth\Access\AuthorizationException $e) {

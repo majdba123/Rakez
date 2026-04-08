@@ -3,6 +3,7 @@
 namespace App\Services\Pdf;
 
 use App\Models\Contract;
+use App\Models\ContractInfo;
 use Carbon\Carbon;
 
 /**
@@ -25,6 +26,139 @@ class ContractPdfDataService
         'owner' => 'المالك',
         'buyer' => 'المشتري',
     ];
+
+    /** Safe string for PDF: null, empty string, or whitespace → — */
+    public function pdfStr(mixed $value): string
+    {
+        if ($value === null) {
+            return '—';
+        }
+        if (is_string($value)) {
+            $t = trim($value);
+
+            return $t === '' ? '—' : $value;
+        }
+        if (is_bool($value)) {
+            return $value ? 'نعم' : 'لا';
+        }
+        if (is_scalar($value)) {
+            return (string) $value;
+        }
+
+        return '—';
+    }
+
+    /** Integer-like for PDF (keeps 0). */
+    public function pdfInt(mixed $value): string
+    {
+        if ($value === null || $value === '') {
+            return '—';
+        }
+        if (is_numeric($value)) {
+            return (string) (int) $value;
+        }
+
+        return '—';
+    }
+
+    /** Date/datetime from DB string, Carbon, or null. */
+    public function pdfDate(mixed $value): string
+    {
+        if ($value === null || $value === '') {
+            return '—';
+        }
+        if ($value instanceof \DateTimeInterface) {
+            return $value->format('Y-m-d');
+        }
+        if (is_string($value)) {
+            $t = trim($value);
+            if ($t === '') {
+                return '—';
+            }
+            try {
+                return Carbon::parse($t)->format('Y-m-d');
+            } catch (\Throwable) {
+                return $t;
+            }
+        }
+        try {
+            return Carbon::parse((string) $value)->format('Y-m-d');
+        } catch (\Throwable) {
+            return '—';
+        }
+    }
+
+    public function pdfDecimal(mixed $value, int $decimals = 2): string
+    {
+        if ($value === null || $value === '') {
+            return '—';
+        }
+        if (is_numeric($value)) {
+            return number_format((float) $value, $decimals, '.', ',');
+        }
+
+        return '—';
+    }
+
+    /**
+     * @return array<string, string> Display-ready fields for contract_infos PDF rows.
+     */
+    public function formatContractInfoForPdf(ContractInfo $info): array
+    {
+        $attrs = $info->getAttributes();
+
+        return [
+            'info_record_id' => $this->pdfStr($attrs['id'] ?? $info->getKey() ?? null),
+            'contract_id' => $this->pdfStr($attrs['contract_id'] ?? $info->contract_id ?? null),
+            'contract_number' => $this->pdfStr($attrs['contract_number'] ?? $info->contract_number ?? null),
+            'first_party_name' => $this->pdfStr($attrs['first_party_name'] ?? $info->first_party_name ?? null),
+            'first_party_cr_number' => $this->pdfStr($attrs['first_party_cr_number'] ?? $info->first_party_cr_number ?? null),
+            'first_party_signatory' => $this->pdfStr($attrs['first_party_signatory'] ?? $info->first_party_signatory ?? null),
+            'first_party_phone' => $this->pdfStr($attrs['first_party_phone'] ?? $info->first_party_phone ?? null),
+            'first_party_email' => $this->pdfStr($attrs['first_party_email'] ?? $info->first_party_email ?? null),
+            'second_party_name' => $this->pdfStr($attrs['second_party_name'] ?? $info->second_party_name ?? null),
+            'second_party_address' => $this->pdfStr($attrs['second_party_address'] ?? $info->second_party_address ?? null),
+            'second_party_cr_number' => $this->pdfStr($attrs['second_party_cr_number'] ?? $info->second_party_cr_number ?? null),
+            'second_party_id_number' => $this->pdfStr($attrs['second_party_id_number'] ?? $info->second_party_id_number ?? null),
+            'second_party_signatory' => $this->pdfStr($attrs['second_party_signatory'] ?? $info->second_party_signatory ?? null),
+            'second_party_role' => $this->pdfStr($attrs['second_party_role'] ?? $info->second_party_role ?? null),
+            'second_party_phone' => $this->pdfStr($attrs['second_party_phone'] ?? $info->second_party_phone ?? null),
+            'second_party_email' => $this->pdfStr($attrs['second_party_email'] ?? $info->second_party_email ?? null),
+            'hijri_date' => $this->pdfStr($attrs['hijri_date'] ?? $info->hijri_date ?? null),
+            'contract_city' => $this->pdfStr($attrs['contract_city'] ?? $info->contract_city ?? null),
+            'location_url' => $this->pdfStr($attrs['location_url'] ?? $info->location_url ?? null),
+            'agency_number' => $this->pdfStr($attrs['agency_number'] ?? $info->agency_number ?? null),
+            'gregorian_date' => $this->pdfDate($attrs['gregorian_date'] ?? $info->gregorian_date ?? null),
+            'agency_date' => $this->pdfDate($attrs['agency_date'] ?? $info->agency_date ?? null),
+            'release_date' => $this->pdfDate($attrs['release_date'] ?? $info->release_date ?? null),
+            'agreement_duration_days' => $this->pdfInt($attrs['agreement_duration_days'] ?? $info->agreement_duration_days ?? null),
+            'agreement_duration_months' => $this->pdfInt($attrs['agreement_duration_months'] ?? $info->agreement_duration_months ?? null),
+            'avg_property_value' => $this->pdfDecimal($attrs['avg_property_value'] ?? $info->avg_property_value ?? null),
+        ];
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    public function formatContractMainForPdf(Contract $contract): array
+    {
+        $a = $contract->getAttributes();
+
+        return [
+            'project_name' => $this->pdfStr($a['project_name'] ?? $contract->project_name ?? null),
+            'developer_name' => $this->pdfStr($a['developer_name'] ?? $contract->developer_name ?? null),
+            'developer_number' => $this->pdfStr($a['developer_number'] ?? $contract->developer_number ?? null),
+            'code' => $this->pdfStr($a['code'] ?? $contract->code ?? null),
+            'developer_requiment' => $this->pdfStr($a['developer_requiment'] ?? $contract->developer_requiment ?? null),
+            'notes' => $this->pdfStr($a['notes'] ?? $contract->notes ?? null),
+            'city' => $this->pdfStr($contract->city?->name ?? null),
+            'district' => $this->pdfStr($contract->district?->name ?? null),
+            'commission_percent' => $contract->commission_percent !== null
+                ? $this->pdfStr($contract->commission_percent) . '%'
+                : '—',
+            'owner_name' => $this->pdfStr($contract->user?->name ?? null),
+        ];
+    }
 
     public function getFillData(Contract $contract): array
     {
@@ -110,7 +244,7 @@ class ContractPdfDataService
      */
     public function buildShowPdfPayload(Contract $contract): array
     {
-        $contract->loadMissing([
+        $contract = $contract->fresh([
             'user',
             'info',
             'secondPartyData',
@@ -119,11 +253,18 @@ class ContractPdfDataService
             'district',
         ]);
 
+        if (!$contract) {
+            throw new \RuntimeException('Contract not found');
+        }
+
+        $this->normalizeContractUnitsAttribute($contract);
+
         $commissionFrom = $contract->commission_from ?? 'owner';
         $commissionFromAr = self::COMMISSION_FROM_LABELS[$commissionFrom] ?? (string) $commissionFrom;
 
-        return [
+        $payload = [
             'contract' => $contract,
+            'contract_main' => $this->formatContractMainForPdf($contract),
             'generated_at' => now()->format('Y-m-d H:i'),
             'status_label_ar' => match ((string) ($contract->status ?? '')) {
                 'pending' => 'قيد الانتظار',
@@ -146,24 +287,100 @@ class ContractPdfDataService
             },
             'commission_from_ar' => $commissionFromAr,
         ];
+
+        $infoRow = ContractInfo::query()->where('contract_id', $contract->id)->first();
+        if ($infoRow) {
+            $payload['info_display'] = $this->formatContractInfoForPdf($infoRow);
+        }
+
+        $payload['unit_rows'] = [];
+        foreach ($contract->contractUnits as $u) {
+            $num = $u->getAttribute('unit_number');
+            $unitNo = ($num !== null && $num !== '') ? $num : (string) $u->id;
+            $areaRaw = $u->getAttribute('area');
+            $totalRaw = $u->getAttribute('total_area_m2');
+            $areaDisp = ($areaRaw !== null && $areaRaw !== '') ? $areaRaw : (($totalRaw !== null && $totalRaw !== '') ? $totalRaw : null);
+
+            $payload['unit_rows'][] = [
+                'unit_number' => $this->pdfStr($unitNo),
+                'unit_type' => $this->pdfStr($u->getAttribute('unit_type')),
+                'status' => $this->pdfStr($u->getAttribute('status')),
+                'price' => $this->pdfDecimal($u->getAttribute('price'), 2),
+                'area' => $this->pdfStr($areaDisp),
+            ];
+        }
+
+        $payload['legacy_unit_rows'] = [];
+        $units = $contract->getAttribute('units');
+        if (is_array($units)) {
+            foreach ($units as $row) {
+                if (! is_array($row)) {
+                    continue;
+                }
+                $payload['legacy_unit_rows'][] = [
+                    'type' => $this->pdfStr($row['type'] ?? null),
+                    'count' => $this->pdfInt($row['count'] ?? null),
+                    'price' => isset($row['price']) && is_numeric($row['price'])
+                        ? $this->pdfDecimal($row['price'], 2)
+                        : '—',
+                ];
+            }
+        }
+
+        if ($contract->secondPartyData) {
+            $spd = $contract->secondPartyData;
+            $payload['second_party_flags'] = [
+                'real_estate_papers_url' => $this->pdfUrlPresent($spd->getAttribute('real_estate_papers_url')),
+                'plans_equipment_docs_url' => $this->pdfUrlPresent($spd->getAttribute('plans_equipment_docs_url')),
+                'project_logo_url' => $this->pdfUrlPresent($spd->getAttribute('project_logo_url')),
+                'prices_units_url' => $this->pdfUrlPresent($spd->getAttribute('prices_units_url')),
+                'marketing_license_url' => $this->pdfUrlPresent($spd->getAttribute('marketing_license_url')),
+                'advertiser_section_url' => $this->pdfStr($spd->getAttribute('advertiser_section_url')),
+            ];
+        }
+
+        return $payload;
+    }
+
+    private function pdfUrlPresent(mixed $url): string
+    {
+        if ($url === null || ! is_string($url)) {
+            return '—';
+        }
+
+        return trim($url) === '' ? '—' : 'متوفر (رابط)';
     }
 
     /**
-     * View data for PDF: contract_infos row only (معلومات العقد فقط).
-     *
-     * @throws \RuntimeException when contract has no info record
+     * Decode legacy JSON string in `units` when cast did not apply.
      */
-    public function buildContractInfoOnlyPdfPayload(Contract $contract): array
+    private function normalizeContractUnitsAttribute(Contract $contract): void
     {
-        $contract->loadMissing(['info', 'city', 'district']);
+        $raw = $contract->getAttributes()['units'] ?? null;
+        if (! is_string($raw) || trim($raw) === '') {
+            return;
+        }
+        $decoded = json_decode($raw, true);
+        if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
+            $contract->setAttribute('units', $decoded);
+        }
+    }
 
-        if (!$contract->info) {
+    /**
+     * View data for PDF: {@see ContractInfo} row only (no parent Contract fields).
+     *
+     * @throws \RuntimeException when record missing
+     */
+    public function buildContractInfoOnlyPdfPayload(ContractInfo $info): array
+    {
+        $fresh = $info->fresh();
+        if (!$fresh) {
             throw new \RuntimeException('لا توجد بيانات معلومات العقد');
         }
 
         return [
-            'contract' => $contract,
-            'info' => $contract->info,
+            'info' => $fresh,
+            'info_display' => $this->formatContractInfoForPdf($fresh),
             'generated_at' => now()->format('Y-m-d H:i'),
         ];
     }

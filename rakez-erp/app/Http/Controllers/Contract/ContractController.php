@@ -177,7 +177,6 @@ class ContractController extends Controller
     {
         try {
             $contract = $this->contractService->getContractById($id, null);
-            $contract->loadMissing('secondPartyData');
             $this->authorize('view', $contract);
 
             $data = $this->pdfDataService->buildShowPdfPayload($contract);
