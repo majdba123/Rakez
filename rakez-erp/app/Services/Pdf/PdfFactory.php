@@ -152,9 +152,12 @@ class PdfFactory
     }
 
     /**
-     * Return a PDF response for a Blade view (Content-Disposition: attachment by default).
+     * Return a PDF response for a Blade view.
      *
-     * @param  ?bool  $inline  True = open in browser tab; null/false = download file.
+     * By default the PDF opens in the browser (inline); users can still save from the viewer toolbar.
+     * Add query ?download=1 to force Save as file (attachment). Pass false as $inline to force attachment from code.
+     *
+     * @param  ?bool  $inline  null/true = show in browser; false = send as download only.
      */
     public static function download(string $view, array $data, string $filename, array $options = [], ?bool $inline = null): Response
     {
@@ -172,12 +175,13 @@ class PdfFactory
     /**
      * Wrap raw PDF bytes as an HTTP response suitable for browsers and Postman.
      *
-     * Only $inline === true uses inline disposition so normal API PDFs trigger a download.
-     * For preview-in-tab, use {@see stream()} or pass true as the last argument to {@see download()}.
+     * Default: Content-Disposition inline so the PDF displays in the tab; append ?download=1 to force attachment.
+     * Pass $inline === false to always use attachment (e.g. export-only actions in code).
      */
     public static function pdfResponse(string $content, string $filename, ?bool $inline = null): Response
     {
-        $disposition = $inline === true ? 'inline' : 'attachment';
+        $forceDownload = request()->boolean('download');
+        $disposition = ($inline === false || $forceDownload) ? 'attachment' : 'inline';
         $safeFilename = str_replace(["\r", "\n", '"', '\\'], '', $filename);
         if ($safeFilename === '') {
             $safeFilename = 'document.pdf';

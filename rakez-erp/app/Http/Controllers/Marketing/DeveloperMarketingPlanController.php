@@ -3,10 +3,14 @@
 namespace App\Http\Controllers\Marketing;
 
 use App\Http\Controllers\Controller;
+use App\Models\Contract;
 use App\Services\Marketing\DeveloperMarketingPlanService;
 use App\Services\Marketing\MarketingProjectService;
+use App\Services\Pdf\PdfFactory;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Mpdf\MpdfException;
+use Symfony\Component\HttpFoundation\Response;
 
 class DeveloperMarketingPlanController extends Controller
 {
@@ -21,6 +25,47 @@ class DeveloperMarketingPlanController extends Controller
             'success' => true,
             'data' => $this->planService->getPlanForDeveloper($contractId)
         ]);
+    }
+
+    /**
+     * Developer marketing plan as PDF (same template as marketing report export).
+     * GET /api/marketing/developer-plans/{contractId}/pdf
+     */
+    public function downloadPdf(int $contractId): Response|JsonResponse
+    {
+        try {
+            $planData = $this->planService->getPlanForDeveloper($contractId);
+            if (empty($planData['raw_plan']) || empty($planData['plan'])) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'لم يتم العثور على خطة تسويق المطور لهذا العقد',
+                ], 404);
+            }
+
+            $contract = Contract::find($contractId);
+            $projectName = $contract?->project_name ?? '';
+
+            return PdfFactory::download(
+                'marketing.developer_plan_export',
+                [
+                    'contractId' => $contractId,
+                    'projectName' => $projectName,
+                    'plan' => $planData,
+                ],
+                "developer_marketing_plan_contract_{$contractId}.pdf"
+            );
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'العقد غير موجود',
+            ], 404);
+        } catch (MpdfException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'تعذّر توليد الـ PDF (خط أو مكتبة mPDF). راجع storage/fonts وملفات DejaVu.',
+                'detail' => config('app.debug') ? $e->getMessage() : null,
+            ], 503);
+        }
     }
 
     /**

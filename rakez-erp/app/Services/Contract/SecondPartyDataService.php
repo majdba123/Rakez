@@ -56,14 +56,7 @@ class SecondPartyDataService
         }
     }
 
-    /**
-     * Update second party data by contract ID
-     *
-     * @param int $contractId
-     * @param array $data
-     * @return SecondPartyData
-     * @throws Exception
-     */
+
     public function updateByContractId(int $contractId, array $data): SecondPartyData
     {
         DB::beginTransaction();
@@ -91,13 +84,7 @@ class SecondPartyDataService
         }
     }
 
-    /**
-     * Get second party data by contract ID
-     *
-     * @param int $contractId
-     * @return SecondPartyData|null
-     * @throws Exception
-     */
+
     public function getByContractId(int $contractId): ?SecondPartyData
     {
         $contract = $this->getAuthorizedContract($contractId);

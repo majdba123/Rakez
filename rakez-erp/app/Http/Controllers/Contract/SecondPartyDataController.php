@@ -30,10 +30,7 @@ class SecondPartyDataController extends Controller
         $this->secondPartyDataService = $secondPartyDataService;
     }
 
-    /**
-     * PDF: second_party_data row only (عربي — mPDF).
-     * GET /api/second-party-data/{contractId}/pdf
-     */
+
     public function downloadPdf(int $contractId): Response|JsonResponse
     {
         try {
@@ -157,9 +154,7 @@ class SecondPartyDataController extends Controller
         }
     }
 
-    /**
-     * Upload CSV with second party data for a specific contract (ID from URL).
-     */
+
     public function import_csv(ImportSecondPartyDataCsv $request, int $contractId): JsonResponse
     {
         $contract = Contract::with('secondPartyData', 'info')->find($contractId);
@@ -209,9 +204,6 @@ class SecondPartyDataController extends Controller
         ], 202);
     }
 
-    /**
-     * Poll the status of a CSV second party data import.
-     */
     public function import_csv_status(int $id): JsonResponse
     {
         $csvImport = CsvImport::where('id', $id)

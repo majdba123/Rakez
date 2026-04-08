@@ -86,19 +86,16 @@ use App\Http\Controllers\Admin\DistrictController;
 
 use Illuminate\Support\Facades\File;  // أضف هذا السطر في الأعلى
 
-// Broadcasting authentication route for API tokens
     Broadcast::routes(['middleware' => ['auth:sanctum']]);
 
 
 
     Route::post('/login', [LoginController::class, 'login'])->middleware('throttle:login');
 
-    // CSRF token for SPA (project-tracker etc.) — يزيل 404 لطلب csrf-token
     Route::get('/csrf-token', function () {
         return response()->json(['token' => csrf_token()]);
     });
 
-    // Protected routes (auth required)
     Route::middleware('auth:sanctum')->group(function () {
         Route::get('/user', function (Request $request) {
             return $request->user();
@@ -540,6 +537,7 @@ use Illuminate\Support\Facades\File;  // أضف هذا السطر في الأع�
 
             // Developer Plans
             Route::get('developer-plans/{contractId}', [DeveloperMarketingPlanController::class, 'show'])->middleware('permission:marketing.plans.create');
+            Route::get('developer-plans/{contractId}/pdf', [DeveloperMarketingPlanController::class, 'downloadPdf'])->middleware('permission:marketing.plans.create')->whereNumber('contractId');
             Route::get('reports/developer-plan/{contractId}/pdf-data', [DeveloperMarketingPlanController::class, 'pdfData'])->middleware('permission:marketing.reports.view')->whereNumber('contractId');
             Route::post('developer-plans/calculate-budget', [DeveloperMarketingPlanController::class, 'calculateBudget'])->middleware('permission:marketing.plans.create');
             Route::post('developer-plans', [DeveloperMarketingPlanController::class, 'store'])->middleware('permission:marketing.plans.create');
