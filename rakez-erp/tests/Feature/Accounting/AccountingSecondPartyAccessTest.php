@@ -28,4 +28,15 @@ class AccountingSecondPartyAccessTest extends BasePermissionTestCase
 
         $this->assertNotEquals(403, $response->status());
     }
+
+    #[Test]
+    public function second_parties_accessible_by_accountant_staff(): void
+    {
+        $user = $this->createUserWithType('accountant');
+
+        $response = $this->actingAs($user, 'sanctum')
+            ->getJson('/api/second-party-data/second-parties');
+
+        $this->assertNotEquals(403, $response->status());
+    }
 }
