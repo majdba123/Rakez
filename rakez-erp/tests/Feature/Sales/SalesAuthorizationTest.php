@@ -242,7 +242,7 @@ class SalesAuthorizationTest extends TestCase
         $response->assertStatus(200);
     }
 
-    public function test_team_projects_only_include_pm_linked_team_projects()
+    public function test_team_projects_include_pm_linked_team_but_not_other_teams_projects()
     {
         $otherTeam = Team::factory()->create(['name' => 'Team Beta']);
         $otherContract = Contract::factory()->create(['status' => 'completed']);
@@ -254,6 +254,24 @@ class SalesAuthorizationTest extends TestCase
         $response->assertStatus(200)
             ->assertJsonCount(1, 'data')
             ->assertJsonPath('data.0.contract_id', $this->contract->id);
+    }
+
+    public function test_team_projects_include_sales_assignment_without_contract_team_pivot()
+    {
+        $assignmentOnly = Contract::factory()->create(['status' => 'completed']);
+        \App\Models\SalesProjectAssignment::create([
+            'leader_id' => $this->salesLeader->id,
+            'contract_id' => $assignmentOnly->id,
+            'assigned_by' => $this->admin->id,
+        ]);
+
+        $response = $this->actingAs($this->salesLeader, 'sanctum')
+            ->getJson('/api/sales/team/projects');
+
+        $response->assertStatus(200);
+        $ids = collect($response->json('data'))->pluck('contract_id')->all();
+        $this->assertContains($this->contract->id, $ids);
+        $this->assertContains($assignmentOnly->id, $ids);
     }
 
     public function test_employee_cannot_access_team_projects()
