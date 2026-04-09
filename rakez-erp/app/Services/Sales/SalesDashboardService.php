@@ -154,11 +154,15 @@ class SalesDashboardService
     {
         if ($scope === 'me') {
             $query->where('marketing_employee_id', $user->id);
-        } elseif ($scope === 'team' && $user->team) {
-            $teamMemberIds = User::where('team', $user->team)->pluck('id');
-            $query->whereIn('marketing_employee_id', $teamMemberIds);
+        } elseif ($scope === 'team') {
+            if ($user->team_id) {
+                $teamMemberIds = User::where('team_id', $user->team_id)->pluck('id');
+                $query->whereIn('marketing_employee_id', $teamMemberIds);
+            } else {
+                $query->where('marketing_employee_id', $user->id);
+            }
         }
-        // 'all' scope has no filter (admin view)
+        // 'all' scope has no filter (org-wide; use with care — mainly admin / explicit query)
     }
 
     /**
@@ -170,11 +174,17 @@ class SalesDashboardService
             $query->whereHas('salesReservations', function ($q) use ($user) {
                 $q->where('marketing_employee_id', $user->id);
             });
-        } elseif ($scope === 'team' && $user->team) {
-            $teamMemberIds = User::where('team', $user->team)->pluck('id');
-            $query->whereHas('salesReservations', function ($q) use ($teamMemberIds) {
-                $q->whereIn('marketing_employee_id', $teamMemberIds);
-            });
+        } elseif ($scope === 'team') {
+            if ($user->team_id) {
+                $teamMemberIds = User::where('team_id', $user->team_id)->pluck('id');
+                $query->whereHas('salesReservations', function ($q) use ($teamMemberIds) {
+                    $q->whereIn('marketing_employee_id', $teamMemberIds);
+                });
+            } else {
+                $query->whereHas('salesReservations', function ($q) use ($user) {
+                    $q->where('marketing_employee_id', $user->id);
+                });
+            }
         }
     }
 
@@ -191,13 +201,19 @@ class SalesDashboardService
             $query->whereHas('salesReservations', function ($q) use ($user) {
                 $q->where('marketing_employee_id', $user->id);
             });
-        } elseif ($scope === 'team' && $user->team) {
-            $teamLeaderIds = User::where('team', $user->team)
-                ->where('is_manager', true)
-                ->pluck('id');
-            $query->whereHas('salesProjectAssignments', function ($q) use ($teamLeaderIds) {
-                $q->whereIn('leader_id', $teamLeaderIds);
-            });
+        } elseif ($scope === 'team') {
+            if ($user->team_id) {
+                $teamLeaderIds = User::where('team_id', $user->team_id)
+                    ->where('is_manager', true)
+                    ->pluck('id');
+                $query->whereHas('salesProjectAssignments', function ($q) use ($teamLeaderIds) {
+                    $q->whereIn('leader_id', $teamLeaderIds);
+                });
+            } else {
+                $query->whereHas('salesProjectAssignments', function ($q) use ($user) {
+                    $q->where('leader_id', $user->id);
+                });
+            }
         }
     }
 
@@ -274,11 +290,17 @@ class SalesDashboardService
             $query->whereHas('salesReservation', function ($q) use ($user) {
                 $q->where('marketing_employee_id', $user->id);
             });
-        } elseif ($scope === 'team' && $user->team) {
-            $teamMemberIds = User::where('team', $user->team)->pluck('id');
-            $query->whereHas('salesReservation', function ($q) use ($teamMemberIds) {
-                $q->whereIn('marketing_employee_id', $teamMemberIds);
-            });
+        } elseif ($scope === 'team') {
+            if ($user->team_id) {
+                $teamMemberIds = User::where('team_id', $user->team_id)->pluck('id');
+                $query->whereHas('salesReservation', function ($q) use ($teamMemberIds) {
+                    $q->whereIn('marketing_employee_id', $teamMemberIds);
+                });
+            } else {
+                $query->whereHas('salesReservation', function ($q) use ($user) {
+                    $q->where('marketing_employee_id', $user->id);
+                });
+            }
         }
     }
 }

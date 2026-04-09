@@ -8,6 +8,7 @@ use App\Models\Commission;
 use App\Models\Deposit;
 use App\Models\SalesReservation;
 use App\Models\SecondPartyData;
+use App\Models\Team;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -27,22 +28,25 @@ class SalesDashboardTest extends TestCase
         // Seed roles and permissions
         $this->artisan('db:seed', ['--class' => 'RolesAndPermissionsSeeder']);
 
-        // Create sales users
+        // Create sales users (team scope uses users.team_id, not legacy string column)
+        $teamAlpha = Team::factory()->create(['name' => 'Team Alpha']);
+        $teamBeta = Team::factory()->create(['name' => 'Team Beta']);
+
         $this->salesUser = User::factory()->create([
             'type' => 'sales',
-            'team' => 'Team Alpha',
+            'team_id' => $teamAlpha->id,
         ]);
         $this->salesUser->assignRole('sales');
 
         $this->teamMember = User::factory()->create([
             'type' => 'sales',
-            'team' => 'Team Alpha',
+            'team_id' => $teamAlpha->id,
         ]);
         $this->teamMember->assignRole('sales');
 
         $this->otherTeamUser = User::factory()->create([
             'type' => 'sales',
-            'team' => 'Team Beta',
+            'team_id' => $teamBeta->id,
         ]);
         $this->otherTeamUser->assignRole('sales');
     }
