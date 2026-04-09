@@ -453,17 +453,13 @@ class SalesProjectService
     }
 
     /**
-     * Get team members for a leader (same team_id).
+     * Get team members for a leader (delegates to shared Sales team logic).
      */
     public function getTeamMembers(User $leader): \Illuminate\Database\Eloquent\Collection
     {
-        if (!$leader->team_id) {
-            return new \Illuminate\Database\Eloquent\Collection([]);
-        }
-        return User::where('team_id', $leader->team_id)
-            ->where('type', 'sales')
-            ->where('id', '!=', $leader->id)
-            ->get();
+        return new \Illuminate\Database\Eloquent\Collection(
+            app(\App\Services\Sales\SalesTeamService::class)->getTeamMembers($leader)->all()
+        );
     }
 
     /**

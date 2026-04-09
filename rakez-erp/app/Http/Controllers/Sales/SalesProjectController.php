@@ -227,18 +227,36 @@ class SalesProjectController extends Controller
     }
 
     /**
-     * List team projects (leader only).
+     * List projects for team leader UI.
+     * Default: same completed-project catalog as GET /api/sales/projects (fixes empty screens when PM contract_team is missing).
+     * Use ?team_only=1 for the narrower list (HR team pivot and/or direct leader assignment only).
      */
     public function teamProjects(Request $request): JsonResponse
     {
         try {
+            $user = $request->user();
             $perPage = ApiResponse::getPerPage($request);
-            $projects = $this->projectService->listTeamProjectsPaginated($request->user(), $perPage);
+            $defaultScope = $user->isSalesLeader() ? 'all' : 'me';
+
+            if ($request->boolean('team_only')) {
+                $projects = $this->projectService->listTeamProjectsPaginated($user, $perPage);
+            } else {
+                $filters = [
+                    'status' => $request->query('status'),
+                    'q' => $request->query('q'),
+                    'city_id' => $request->query('city_id'),
+                    'district_id' => $request->query('district_id'),
+                    'scope' => $request->query('scope', $defaultScope),
+                    'per_page' => $perPage,
+                ];
+                $projects = $this->projectService->listProjects($filters, $user);
+            }
 
             return response()->json([
                 'success' => true,
                 'data' => SalesProjectResource::collection($projects->items()),
                 'meta' => [
+                    'team_only' => $request->boolean('team_only'),
                     'pagination' => [
                         'total' => $projects->total(),
                         'count' => $projects->count(),

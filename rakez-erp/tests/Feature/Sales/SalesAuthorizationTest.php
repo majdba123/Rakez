@@ -242,21 +242,37 @@ class SalesAuthorizationTest extends TestCase
         $response->assertStatus(200);
     }
 
-    public function test_team_projects_include_pm_linked_team_but_not_other_teams_projects()
+    public function test_team_projects_team_only_mode_excludes_other_teams_pm_linked_projects()
     {
         $otherTeam = Team::factory()->create(['name' => 'Team Beta']);
         $otherContract = Contract::factory()->create(['status' => 'completed']);
         $otherContract->teams()->attach($otherTeam->id);
 
         $response = $this->actingAs($this->salesLeader, 'sanctum')
-            ->getJson('/api/sales/team/projects');
+            ->getJson('/api/sales/team/projects?team_only=1');
 
         $response->assertStatus(200)
+            ->assertJsonPath('meta.team_only', true)
             ->assertJsonCount(1, 'data')
             ->assertJsonPath('data.0.contract_id', $this->contract->id);
     }
 
-    public function test_team_projects_include_sales_assignment_without_contract_team_pivot()
+    public function test_team_projects_default_lists_all_completed_like_sales_index()
+    {
+        $otherTeam = Team::factory()->create(['name' => 'Team Gamma']);
+        $otherContract = Contract::factory()->create(['status' => 'completed']);
+        $otherContract->teams()->attach($otherTeam->id);
+
+        $response = $this->actingAs($this->salesLeader, 'sanctum')
+            ->getJson('/api/sales/team/projects');
+
+        $response->assertStatus(200)->assertJsonPath('meta.team_only', false);
+        $ids = collect($response->json('data'))->pluck('contract_id')->all();
+        $this->assertContains($this->contract->id, $ids);
+        $this->assertContains($otherContract->id, $ids);
+    }
+
+    public function test_team_projects_team_only_includes_sales_assignment_without_contract_team_pivot()
     {
         $assignmentOnly = Contract::factory()->create(['status' => 'completed']);
         \App\Models\SalesProjectAssignment::create([
@@ -266,7 +282,7 @@ class SalesAuthorizationTest extends TestCase
         ]);
 
         $response = $this->actingAs($this->salesLeader, 'sanctum')
-            ->getJson('/api/sales/team/projects');
+            ->getJson('/api/sales/team/projects?team_only=1');
 
         $response->assertStatus(200);
         $ids = collect($response->json('data'))->pluck('contract_id')->all();

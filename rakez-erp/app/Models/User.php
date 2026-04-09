@@ -237,8 +237,16 @@ class User extends Authenticatable
             ];
             $permissions = array_merge($permissions, $managerPermissions);
         }
-        
-        return array_unique($permissions);
+
+        // Sales leaders: ensure Gate can see leader permissions even when Spatie role sync lags (type sales + is_manager)
+        if ($this->isSalesLeader()) {
+            $leaderPerms = config('ai_capabilities.bootstrap_role_map.sales_leader', []);
+            if (is_array($leaderPerms) && $leaderPerms !== []) {
+                $permissions = array_merge($permissions, $leaderPerms);
+            }
+        }
+
+        return array_values(array_unique($permissions));
     }
 
     /**

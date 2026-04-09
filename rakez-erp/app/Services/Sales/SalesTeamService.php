@@ -2,6 +2,7 @@
 
 namespace App\Services\Sales;
 
+use App\Models\SalesProjectAssignment;
 use App\Models\SalesReservation;
 use App\Models\SalesTeamMemberRating;
 use App\Models\Team;
@@ -91,18 +92,63 @@ class SalesTeamService
     }
 
     /**
-     * أعضاء الفريق لمدير معيّن (نفس team_id، نوع sales، باستثناء المدير).
+     * أعضاء الفريق لمدير معيّن: نفس team_id (مبيعات/دور sales*، بدون القائد)، أو مسوّقون نشطون على عقود مُسندَة للقائد إن لم يكن له team_id.
      */
     public function getTeamMembers(User $leader): Collection
     {
-        if (!$leader->team_id) {
+        if ($leader->team_id) {
+            return User::query()
+                ->where('team_id', (int) $leader->team_id)
+                ->where('id', '!=', $leader->id)
+                ->where(function ($q) {
+                    $q->where('type', 'sales')
+                        ->orWhereHas('roles', fn ($r) => $r->whereIn('name', ['sales', 'sales_leader']));
+                })
+                ->with(['team'])
+                ->orderBy('name')
+                ->get();
+        }
+
+        $legacyTeamLabel = $leader->getRawOriginal('team');
+        if ($legacyTeamLabel !== null && $legacyTeamLabel !== '') {
+            return User::query()
+                ->where('team', (string) $legacyTeamLabel)
+                ->where('id', '!=', $leader->id)
+                ->where(function ($q) {
+                    $q->where('type', 'sales')
+                        ->orWhereHas('roles', fn ($r) => $r->whereIn('name', ['sales', 'sales_leader']));
+                })
+                ->with(['team'])
+                ->orderBy('name')
+                ->get();
+        }
+
+        $contractIds = SalesProjectAssignment::query()
+            ->where('leader_id', (int) $leader->id)
+            ->pluck('contract_id');
+
+        if ($contractIds->isEmpty()) {
             return collect([]);
         }
 
-        return User::where('team_id', $leader->team_id)
-            ->where('type', 'sales')
-            ->where('id', '!=', $leader->id)
+        $marketerIds = SalesReservation::query()
+            ->whereIn('contract_id', $contractIds)
+            ->whereNotNull('marketing_employee_id')
+            ->distinct()
+            ->pluck('marketing_employee_id')
+            ->map(fn ($id) => (int) $id)
+            ->filter(fn (int $id) => $id !== (int) $leader->id)
+            ->unique()
+            ->values();
+
+        if ($marketerIds->isEmpty()) {
+            return collect([]);
+        }
+
+        return User::query()
+            ->whereIn('id', $marketerIds)
             ->with(['team'])
+            ->orderBy('name')
             ->get();
     }
 
@@ -244,13 +290,33 @@ class SalesTeamService
 
     private function ensureMemberInLeaderTeam(User $leader, int $memberId): User
     {
-        if (!$leader->team_id) {
-            throw new \RuntimeException('أنت غير منتمٍ لفريق');
+        $member = User::find($memberId);
+        if (! $member) {
+            throw new \RuntimeException('العضو غير موجود');
         }
-        $member = User::where('id', $memberId)->where('team_id', $leader->team_id)->first();
-        if (!$member) {
+
+        if ($leader->team_id && (int) $member->team_id == (int) $leader->team_id) {
+            return $member;
+        }
+
+        $legacyLeader = (string) ($leader->getRawOriginal('team') ?? '');
+        $legacyMember = (string) ($member->getRawOriginal('team') ?? '');
+        if ($legacyLeader !== '' && $legacyLeader === $legacyMember) {
+            return $member;
+        }
+
+        $contractIds = SalesProjectAssignment::query()
+            ->where('leader_id', (int) $leader->id)
+            ->pluck('contract_id');
+        $onLeaderProject = SalesReservation::query()
+            ->where('marketing_employee_id', $memberId)
+            ->whereIn('contract_id', $contractIds)
+            ->exists();
+
+        if (! $onLeaderProject) {
             throw new \RuntimeException('العضو غير موجود في فريقك');
         }
+
         return $member;
     }
 
