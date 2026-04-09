@@ -8,6 +8,7 @@ use App\Models\Contract;
 use App\Models\Deposit;
 use App\Models\Commission;
 use App\Models\User;
+use Illuminate\Support\Collection;
 
 class SalesDashboardService
 {
@@ -16,50 +17,71 @@ class SalesDashboardService
     ) {}
 
     /**
+     * Normalize scope from query string (casing / whitespace). Invalid values use $fallback (e.g. role default).
+     */
+    public function normalizeDashboardScope(string $scope, ?string $fallback = null): string
+    {
+        $s = strtolower(trim($scope));
+        if ($s == 'me' || $s == 'team' || $s == 'all') {
+            return $s;
+        }
+
+        return $fallback ?? 'me';
+    }
+
+    /**
+     * IDs of users in the same HR team (empty collection if no team_id).
+     */
+    protected function teamMemberIds(User $user): Collection
+    {
+        if (! $user->team_id) {
+            return collect();
+        }
+
+        return User::query()
+            ->where('team_id', (int) $user->team_id)
+            ->pluck('id');
+    }
+
+    /**
      * Get KPI statistics for sales dashboard.
      */
     public function getKPIs(string $scope, ?string $from, ?string $to, User $user): array
     {
+        $scope = $this->normalizeDashboardScope($scope, 'me');
+
         $reservationsQuery = SalesReservation::query();
         $unitsQuery = ContractUnit::query();
         $contractsQuery = Contract::query();
 
-        // Apply scope filter
         $this->applyScopeFilter($reservationsQuery, $scope, $user);
         $this->applyScopeFilterToUnits($unitsQuery, $scope, $user);
         $this->applyScopeFilterToContracts($contractsQuery, $scope, $user);
 
-        // Apply date range filter if provided
         if ($from || $to) {
             $reservationsQuery->dateRange($from, $to);
         }
 
-        // Reserved units: units with active reservations
         $reservedUnitsQuery = clone $reservationsQuery;
         $reservedUnits = $reservedUnitsQuery->whereIn('status', ['under_negotiation', 'confirmed'])
             ->distinct('contract_unit_id')
             ->count('contract_unit_id');
 
-        // Available units: units with status available AND no active reservation
         $availableUnits = $unitsQuery->where('status', 'available')
             ->whereDoesntHave('activeSalesReservations')
             ->count();
 
-        // Projects under marketing: contracts that are sales-available (priced + completed)
         $projectsUnderMarketing = $this->salesProjectService->countProjectsUnderMarketing($scope, $user);
 
-        // Confirmed and negotiation counts
         $confirmedQuery = clone $reservationsQuery;
         $confirmedCount = $confirmedQuery->where('status', 'confirmed')->count();
 
         $negotiationQuery = clone $reservationsQuery;
         $negotiationCount = $negotiationQuery->where('status', 'under_negotiation')->count();
 
-        // Calculate percentage
         $total = $confirmedCount + $negotiationCount;
         $percentConfirmed = $total > 0 ? round(($confirmedCount / $total) * 100, 2) : 0;
 
-        // Financial KPI set
         $soldUnitsCount = $this->getSoldUnitsCount($scope, $from, $to, $user);
         $totalReceivedDeposits = $this->getTotalReceivedDeposits($scope, $from, $to, $user);
         $totalRefundedDeposits = $this->getTotalRefundedDeposits($scope, $from, $to, $user);
@@ -69,7 +91,6 @@ class SalesDashboardService
 
         $negotiationRatio = $total > 0 ? round(($negotiationCount / $total) * 100, 2) : 0;
 
-        // 4.6.8 مؤشرات مرئية للوحة المبيعات (visible indicators for sales dashboard)
         $indicators = [
             'reserved_units' => [
                 'value' => $reservedUnits,
@@ -101,10 +122,12 @@ class SalesDashboardService
 
         return [
             'kpi_version' => 'v2',
+            'scope' => $scope,
             'definitions' => [
                 'projects_under_marketing' => 'Contracts with completed status and all units priced',
                 'percent_confirmed' => 'confirmed_count / (confirmed_count + negotiation_count) * 100',
                 'total_received_projects_value' => 'Sum of unit prices for projects with confirmed reservations in selected scope',
+                'scope_team_for_leader' => 'Team members by team_id OR reservations on contracts where user is assigned sales leader',
             ],
             'indicators' => $indicators,
             'reserved_units' => $reservedUnits,
@@ -127,11 +150,9 @@ class SalesDashboardService
         ];
     }
 
-    /**
-     * Get deposits (عرابين) summary for dashboard: count and pending count.
-     */
     protected function getDepositsSummary(string $scope, ?string $from, ?string $to, User $user): array
     {
+        $scope = $this->normalizeDashboardScope($scope, 'me');
         $baseQuery = Deposit::query();
         $this->applyScopeFilterToDeposits($baseQuery, $scope, $user);
         if ($from || $to) {
@@ -148,62 +169,124 @@ class SalesDashboardService
     }
 
     /**
-     * Apply scope filter to reservations query.
+     * Reservation rows visible under scope (uses == for scope to tolerate normalized strings).
      */
     protected function applyScopeFilter($query, string $scope, User $user): void
     {
-        if ($scope === 'me') {
-            $query->where('marketing_employee_id', $user->id);
-        } elseif ($scope === 'team') {
-            if ($user->team_id) {
-                $teamMemberIds = User::where('team_id', $user->team_id)->pluck('id');
-                $query->whereIn('marketing_employee_id', $teamMemberIds);
-            } else {
-                $query->where('marketing_employee_id', $user->id);
-            }
+        $scope = $this->normalizeDashboardScope($scope, 'me');
+
+        if ($scope == 'me') {
+            $query->where('marketing_employee_id', (int) $user->id);
+
+            return;
         }
-        // 'all' scope has no filter (org-wide; use with care — mainly admin / explicit query)
+
+        if ($scope == 'team') {
+            $this->applyTeamScopeToReservationsQuery($query, $user);
+
+            return;
+        }
+
+        // all: no filter
     }
 
     /**
-     * Apply scope filter to units query.
+     * Team scope: members sharing team_id. For sales leaders, also rows on contracts they lead (اسناد مشروع).
      */
+    protected function applyTeamScopeToReservationsQuery($query, User $user): void
+    {
+        $teamMemberIds = $this->teamMemberIds($user);
+
+        if ($user->isSalesLeader()) {
+            $query->where(function ($q) use ($teamMemberIds, $user) {
+                if ($teamMemberIds->isNotEmpty()) {
+                    $q->whereIn('marketing_employee_id', $teamMemberIds);
+                }
+                $q->orWhereHas('contract.salesProjectAssignments', function ($aq) use ($user) {
+                    $aq->where('leader_id', (int) $user->id)->active();
+                });
+                if ($teamMemberIds->isEmpty()) {
+                    $q->orWhere('marketing_employee_id', (int) $user->id);
+                }
+            });
+
+            return;
+        }
+
+        if ($teamMemberIds->isNotEmpty()) {
+            $query->whereIn('marketing_employee_id', $teamMemberIds);
+        } else {
+            $query->where('marketing_employee_id', (int) $user->id);
+        }
+    }
+
     protected function applyScopeFilterToUnits($query, string $scope, User $user): void
     {
-        if ($scope === 'me') {
+        $scope = $this->normalizeDashboardScope($scope, 'me');
+
+        if ($scope == 'me') {
             $query->whereHas('salesReservations', function ($q) use ($user) {
-                $q->where('marketing_employee_id', $user->id);
+                $q->where('marketing_employee_id', (int) $user->id);
             });
-        } elseif ($scope === 'team') {
-            if ($user->team_id) {
-                $teamMemberIds = User::where('team_id', $user->team_id)->pluck('id');
-                $query->whereHas('salesReservations', function ($q) use ($teamMemberIds) {
-                    $q->whereIn('marketing_employee_id', $teamMemberIds);
-                });
-            } else {
-                $query->whereHas('salesReservations', function ($q) use ($user) {
-                    $q->where('marketing_employee_id', $user->id);
-                });
-            }
+
+            return;
+        }
+
+        if ($scope == 'team') {
+            $teamMemberIds = $this->teamMemberIds($user);
+
+            $query->where(function ($q) use ($teamMemberIds, $user) {
+                if ($teamMemberIds->isNotEmpty()) {
+                    $q->whereHas('salesReservations', function ($sq) use ($teamMemberIds) {
+                        $sq->whereIn('marketing_employee_id', $teamMemberIds);
+                    });
+                }
+                if ($user->isSalesLeader()) {
+                    $q->orWhereHas('salesReservations', function ($sq) use ($user) {
+                        $sq->whereHas('contract.salesProjectAssignments', function ($aq) use ($user) {
+                            $aq->where('leader_id', (int) $user->id)->active();
+                        });
+                    });
+                }
+                if ($teamMemberIds->isEmpty() && ! $user->isSalesLeader()) {
+                    $q->whereHas('salesReservations', function ($sq) use ($user) {
+                        $sq->where('marketing_employee_id', (int) $user->id);
+                    });
+                }
+                if ($teamMemberIds->isEmpty() && $user->isSalesLeader()) {
+                    $q->orWhereHas('salesReservations', function ($sq) use ($user) {
+                        $sq->where('marketing_employee_id', (int) $user->id);
+                    });
+                }
+            });
+
+            return;
         }
     }
 
-    /**
-     * Apply scope filter to contracts query.
-     */
     protected function applyScopeFilterToContracts($query, string $scope, User $user): void
     {
-        if ($scope === 'me' && $user->isSalesLeader()) {
+        $scope = $this->normalizeDashboardScope($scope, 'me');
+
+        if ($scope == 'me' && $user->isSalesLeader()) {
             $query->whereHas('salesProjectAssignments', function ($q) use ($user) {
-                $q->where('leader_id', $user->id);
+                $q->where('leader_id', (int) $user->id);
             });
-        } elseif ($scope === 'me') {
+
+            return;
+        }
+
+        if ($scope == 'me') {
             $query->whereHas('salesReservations', function ($q) use ($user) {
-                $q->where('marketing_employee_id', $user->id);
+                $q->where('marketing_employee_id', (int) $user->id);
             });
-        } elseif ($scope === 'team') {
+
+            return;
+        }
+
+        if ($scope == 'team') {
             if ($user->team_id) {
-                $teamLeaderIds = User::where('team_id', $user->team_id)
+                $teamLeaderIds = User::where('team_id', (int) $user->team_id)
                     ->where('is_manager', true)
                     ->pluck('id');
                 $query->whereHas('salesProjectAssignments', function ($q) use ($teamLeaderIds) {
@@ -211,7 +294,7 @@ class SalesDashboardService
                 });
             } else {
                 $query->whereHas('salesProjectAssignments', function ($q) use ($user) {
-                    $q->where('leader_id', $user->id);
+                    $q->where('leader_id', (int) $user->id);
                 });
             }
         }
@@ -219,6 +302,7 @@ class SalesDashboardService
 
     protected function getSoldUnitsCount(string $scope, ?string $from, ?string $to, User $user): int
     {
+        $scope = $this->normalizeDashboardScope($scope, 'me');
         $query = ContractUnit::query()->where('status', 'sold');
 
         $query->whereHas('salesReservations', function ($q) use ($scope, $from, $to, $user) {
@@ -234,6 +318,7 @@ class SalesDashboardService
 
     protected function getTotalReceivedDeposits(string $scope, ?string $from, ?string $to, User $user): float
     {
+        $scope = $this->normalizeDashboardScope($scope, 'me');
         $query = Deposit::query()->whereIn('status', ['received', 'confirmed']);
         $this->applyScopeFilterToDeposits($query, $scope, $user);
         if ($from || $to) {
@@ -245,6 +330,7 @@ class SalesDashboardService
 
     protected function getTotalRefundedDeposits(string $scope, ?string $from, ?string $to, User $user): float
     {
+        $scope = $this->normalizeDashboardScope($scope, 'me');
         $query = Deposit::query()->where('status', 'refunded');
         $this->applyScopeFilterToDeposits($query, $scope, $user);
         if ($from || $to) {
@@ -256,6 +342,7 @@ class SalesDashboardService
 
     protected function getTotalReceivedProjectsValue(string $scope, ?string $from, ?string $to, User $user): float
     {
+        $scope = $this->normalizeDashboardScope($scope, 'me');
         $contractsQuery = Contract::query()
             ->whereHas('salesReservations', function ($q) use ($scope, $from, $to, $user) {
                 $q->where('status', 'confirmed');
@@ -273,6 +360,7 @@ class SalesDashboardService
 
     protected function getTotalSalesValue(string $scope, ?string $from, ?string $to, User $user): float
     {
+        $scope = $this->normalizeDashboardScope($scope, 'me');
         $query = Commission::query();
         $query->whereHas('salesReservation', function ($q) use ($scope, $from, $to, $user) {
             $this->applyScopeFilter($q, $scope, $user);
@@ -286,21 +374,22 @@ class SalesDashboardService
 
     protected function applyScopeFilterToDeposits($query, string $scope, User $user): void
     {
-        if ($scope === 'me') {
+        $scope = $this->normalizeDashboardScope($scope, 'me');
+
+        if ($scope == 'me') {
             $query->whereHas('salesReservation', function ($q) use ($user) {
-                $q->where('marketing_employee_id', $user->id);
+                $q->where('marketing_employee_id', (int) $user->id);
             });
-        } elseif ($scope === 'team') {
-            if ($user->team_id) {
-                $teamMemberIds = User::where('team_id', $user->team_id)->pluck('id');
-                $query->whereHas('salesReservation', function ($q) use ($teamMemberIds) {
-                    $q->whereIn('marketing_employee_id', $teamMemberIds);
-                });
-            } else {
-                $query->whereHas('salesReservation', function ($q) use ($user) {
-                    $q->where('marketing_employee_id', $user->id);
-                });
-            }
+
+            return;
+        }
+
+        if ($scope == 'team') {
+            $query->whereHas('salesReservation', function ($q) use ($user) {
+                $this->applyTeamScopeToReservationsQuery($q, $user);
+            });
+
+            return;
         }
     }
 }

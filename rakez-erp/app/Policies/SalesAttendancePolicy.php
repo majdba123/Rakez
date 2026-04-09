@@ -33,7 +33,10 @@ class SalesAttendancePolicy
         // Leader can view team member schedules
         if ($user->hasPermissionTo('sales.attendance.manage')) {
             $scheduledUser = User::find($schedule->user_id);
-            return $scheduledUser && $scheduledUser->team === $user->team;
+
+            return $scheduledUser
+                && $user->team_id
+                && (int) $scheduledUser->team_id == (int) $user->team_id;
         }
 
         return false;

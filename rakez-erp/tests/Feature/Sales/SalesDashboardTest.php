@@ -150,6 +150,44 @@ class SalesDashboardTest extends TestCase
         $this->assertEquals(1, $data['confirmed_reservations']);
     }
 
+    public function test_dashboard_invalid_scope_uses_role_default_for_sales_leader()
+    {
+        $leader = User::factory()->create([
+            'type' => 'sales',
+            'is_manager' => true,
+            'team_id' => $this->salesUser->team_id,
+        ]);
+        $leader->assignRole('sales');
+
+        $contract = Contract::factory()->create(['status' => 'completed']);
+        $secondPartyData = SecondPartyData::factory()->create(['contract_id' => $contract->id]);
+        $unit = ContractUnit::factory()->create([
+            'contract_id' => $secondPartyData->contract_id,
+            'status' => 'available',
+            'price' => 500000,
+        ]);
+
+        SalesReservation::factory()->create([
+            'contract_id' => $contract->id,
+            'contract_unit_id' => $unit->id,
+            'marketing_employee_id' => $this->teamMember->id,
+            'status' => 'confirmed',
+        ]);
+
+        $response = $this->actingAs($leader, 'sanctum')
+            ->getJson('/api/sales/dashboard?scope=___not_a_valid_scope___');
+
+        $response->assertStatus(200);
+        $this->assertSame('team', $response->json('data.scope'));
+        $this->assertEquals(1, $response->json('data.total_reservations'));
+
+        $meResponse = $this->actingAs($leader, 'sanctum')
+            ->getJson('/api/sales/dashboard?scope=me');
+
+        $this->assertSame('me', $meResponse->json('data.scope'));
+        $this->assertEquals(0, $meResponse->json('data.total_reservations'));
+    }
+
     public function test_dashboard_scope_team_filters_by_team()
     {
         $contract = Contract::factory()->create(['status' => 'completed']);

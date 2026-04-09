@@ -60,7 +60,7 @@ class ContractController extends Controller
                 if ($request->filled('user_id')) {
                     $filters['user_id'] = (int) $request->input('user_id');
                 }
-            } elseif ($user->isManager() && $user->team) {
+            } elseif ($user->isManager() && $user->team_id) {
                 $filters['user_id'] = $user->id;
                 $filters['include_public_status_contracts'] = true;
             } else {

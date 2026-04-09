@@ -77,7 +77,7 @@ class SalesReservationService
                 'employee' => [
                     'id' => $user->id,
                     'name' => $user->name,
-                    'team' => $user->team,
+                    'team' => $user->team?->name ?? '',
                 ],
                 'client' => [
                     'name' => $data['client_name'],

@@ -64,7 +64,7 @@ class ContractPolicy
             return true;
         }
 
-        if ($user->isManager() && $user->team && $contract->user && $contract->user->team === $user->team) {
+        if ($user->isManager() && $user->team_id && $contract->user && (int) $contract->user->team_id == (int) $user->team_id) {
             return true;
         }
 
@@ -89,8 +89,8 @@ class ContractPolicy
             return true;
         }
 
-        // Manager can update team's contracts
-        if ($user->isManager() && $user->team && $contract->user && $contract->user->team === $user->team) {
+        // Manager can update team's contracts (compare team_id — relation === is always false across instances)
+        if ($user->isManager() && $user->team_id && $contract->user && (int) $contract->user->team_id == (int) $user->team_id) {
             return true;
         }
 

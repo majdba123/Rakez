@@ -36,7 +36,10 @@ class SalesDashboardController extends Controller
                 $defaultScope = $user->team_id ? 'team' : 'all';
             }
 
-            $scope = $request->query('scope', $defaultScope);
+            $rawScope = $request->query('scope');
+            $scope = ($rawScope === null || $rawScope === '')
+                ? $defaultScope
+                : $this->dashboardService->normalizeDashboardScope((string) $rawScope, $defaultScope);
             $from = $request->query('from');
             $to = $request->query('to');
 

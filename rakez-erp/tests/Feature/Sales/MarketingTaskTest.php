@@ -4,6 +4,7 @@ namespace Tests\Feature\Sales;
 
 use App\Models\Contract;
 use App\Models\MarketingTask;
+use App\Models\Team;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -22,17 +23,19 @@ class MarketingTaskTest extends TestCase
 
         $this->artisan('db:seed', ['--class' => 'RolesAndPermissionsSeeder']);
 
+        $team = Team::factory()->create(['name' => 'Team Alpha']);
+
         $this->leader = User::factory()->create([
             'type' => 'sales',
             'is_manager' => true,
-            'team' => 'Team Alpha',
+            'team_id' => $team->id,
         ]);
         $this->leader->assignRole('sales_leader');
 
         $this->marketer = User::factory()->create([
             'type' => 'sales',
             'is_manager' => false,
-            'team' => 'Team Alpha',
+            'team_id' => $team->id,
         ]);
         $this->marketer->assignRole('sales');
 

@@ -49,9 +49,9 @@ class MarketingTaskService
             throw new \Exception('Leader is not assigned to this project');
         }
 
-        // Validate marketer is in same team
+        // Validate marketer is in same team (compare team_id — relation !== is object identity, not same org team)
         $marketer = User::findOrFail($data['marketer_id']);
-        if ($marketer->team !== $leader->team) {
+        if (! $leader->team_id || $marketer->team_id !== $leader->team_id) {
             throw new \Exception('Marketer must be in the same team as leader');
         }
 
