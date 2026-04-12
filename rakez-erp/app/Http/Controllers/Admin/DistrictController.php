@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Http\Controllers\Admin\Concerns\RespondsWithCsvImportUpload;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\StoreDistrictRequest;
 use App\Http\Requests\Admin\UpdateDistrictRequest;
@@ -13,9 +14,12 @@ use App\Models\District;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Throwable;
 
 class DistrictController extends Controller
 {
+    use RespondsWithCsvImportUpload;
+
     public function index(Request $request): JsonResponse
     {
         $request->validate([
@@ -167,12 +171,20 @@ class DistrictController extends Controller
             'status' => CsvImport::STATUS_PENDING,
         ]);
 
-        ProcessDistrictsCsv::dispatch($csvImport->id);
+        try {
+            ProcessDistrictsCsv::dispatchSync($csvImport->id);
+        } catch (Throwable $e) {
+            $csvImport->refresh();
+            if ($csvImport->status !== CsvImport::STATUS_FAILED) {
+                return ApiResponse::serverError($e->getMessage());
+            }
 
-        return ApiResponse::accepted('CSV uploaded successfully. Import is being processed.', [
-            'import_id' => $csvImport->id,
-            'status' => $csvImport->status,
-        ]);
+            return $this->jsonResponseForCsvImportFinished($csvImport);
+        }
+
+        $csvImport->refresh();
+
+        return $this->jsonResponseForCsvImportFinished($csvImport);
     }
 
     /**
@@ -185,17 +197,7 @@ class DistrictController extends Controller
             ->where('type', CsvImport::TYPE_DISTRICTS)
             ->firstOrFail();
 
-        return ApiResponse::success([
-            'import_id' => $csvImport->id,
-            'status' => $csvImport->status,
-            'total_rows' => $csvImport->total_rows,
-            'processed_rows' => $csvImport->processed_rows,
-            'successful_rows' => $csvImport->successful_rows,
-            'failed_rows' => $csvImport->failed_rows,
-            'row_errors' => $csvImport->row_errors,
-            'error_message' => $csvImport->error_message,
-            'completed_at' => $csvImport->completed_at,
-        ]);
+        return ApiResponse::success($this->csvImportResultPayload($csvImport));
     }
 
     /**

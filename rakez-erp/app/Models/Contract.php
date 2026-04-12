@@ -44,6 +44,7 @@ class Contract extends Model
         'emergency_contact_number',
         'security_guard_number',
         'is_closed',
+        'is_complete_second',
     ];
 
     /**
@@ -55,6 +56,7 @@ class Contract extends Model
         'units' => 'array',
         'is_off_plan' => 'boolean',
         'is_closed' => 'boolean',
+        'is_complete_second' => 'boolean',
         'commission_percent' => 'decimal:2',
         'created_at' => 'datetime',
         'updated_at' => 'datetime',

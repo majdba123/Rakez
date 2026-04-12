@@ -32,6 +32,75 @@ class SecondPartyData extends Model
     ];
 
     /**
+     * All six second-party fields must be non-empty for the contract flag {@see Contract::$is_complete_second}.
+     *
+     * @return list<string>
+     */
+    public static function fieldNamesRequiredForContractCompletion(): array
+    {
+        return [
+            'real_estate_papers_url',
+            'plans_equipment_docs_url',
+            'project_logo_url',
+            'prices_units_url',
+            'marketing_license_url',
+            'advertiser_section_url',
+        ];
+    }
+
+    public static function hasAllCompletionFieldsFilled(?self $record): bool
+    {
+        if (!$record) {
+            return false;
+        }
+
+        foreach (self::fieldNamesRequiredForContractCompletion() as $field) {
+            $val = $record->getAttribute($field);
+            if ($val === null || (is_string($val) && trim($val) === '')) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    /**
+     * For keys present in $data, turn empty strings into null so updates actually clear columns
+     * and {@see syncIsCompleteSecondOnContract()} can set is_complete_second to false.
+     *
+     * @param  array<string, mixed>  $data
+     * @return array<string, mixed>
+     */
+    public static function normalizeCompletionFieldsInPayload(array $data): array
+    {
+        foreach (self::fieldNamesRequiredForContractCompletion() as $field) {
+            if (!array_key_exists($field, $data)) {
+                continue;
+            }
+            $v = $data[$field];
+            if ($v === null || (is_string($v) && trim($v) === '')) {
+                $data[$field] = null;
+            }
+        }
+
+        return $data;
+    }
+
+    /**
+     * Keep Contract::is_complete_second in sync with this row.
+     */
+    public function syncIsCompleteSecondOnContract(): void
+    {
+        if (!$this->contract_id) {
+            return;
+        }
+
+        Contract::whereKey($this->contract_id)->update([
+            'is_complete_second' => self::hasAllCompletionFieldsFilled($this),
+        ]);
+    }
+
+    /**
      * Get the contract that owns this second party data.
      */
     public function contract()
@@ -67,6 +136,7 @@ class SecondPartyData extends Model
             'project_logo_url' => $this->project_logo_url,
             'prices_units_url' => $this->prices_units_url,
             'marketing_license_url' => $this->marketing_license_url,
+            'advertiser_section_url' => $this->advertiser_section_url,
         ];
     }
 

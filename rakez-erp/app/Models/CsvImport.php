@@ -44,6 +44,47 @@ class CsvImport extends Model
     const TYPE_SECOND_PARTY_DATA = 'second_party_data';
     const TYPE_TEAMS = 'teams';
 
+    /**
+     * @return list<string>
+     */
+    public static function allTypes(): array
+    {
+        return [
+            self::TYPE_EMPLOYEES,
+            self::TYPE_CONTRACTS,
+            self::TYPE_CITIES_DISTRICTS,
+            self::TYPE_DISTRICTS,
+            self::TYPE_CONTRACT_INFO,
+            self::TYPE_SECOND_PARTY_DATA,
+            self::TYPE_TEAMS,
+        ];
+    }
+
+    public static function labelForType(string $type): string
+    {
+        return match ($type) {
+            self::TYPE_EMPLOYEES => 'استيراد الموظفين',
+            self::TYPE_CONTRACTS => 'استيراد العقود',
+            self::TYPE_CITIES_DISTRICTS => 'استيراد المدن والأحياء',
+            self::TYPE_DISTRICTS => 'استيراد الأحياء',
+            self::TYPE_CONTRACT_INFO => 'استيراد معلومات العقد',
+            self::TYPE_SECOND_PARTY_DATA => 'استيراد بيانات الطرف الثاني',
+            self::TYPE_TEAMS => 'استيراد الفرق',
+            default => $type,
+        };
+    }
+
+    /**
+     * @return list<array{value: string, label: string}>
+     */
+    public static function typesCatalog(): array
+    {
+        return array_map(
+            fn (string $value) => ['value' => $value, 'label' => self::labelForType($value)],
+            self::allTypes()
+        );
+    }
+
     public function uploader(): BelongsTo
     {
         return $this->belongsTo(User::class, 'uploaded_by');

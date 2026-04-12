@@ -3,6 +3,20 @@ Rakez — CSV import examples (multipart uploads)
 All paths assume API prefix /api (e.g. https://your-domain/api/...).
 Replace {contractId} with a real contract ID.
 
+Most CSV uploads and their import_status / import_info_status endpoints require Spatie role "admin"
+(auth:sanctum + role:admin): contracts bulk import, contract info CSV, second-party CSV, teams import,
+employees import (under /admin), cities/districts import.
+
+Exception: contract units CSV — POST /contracts/units/upload-csv/{contractId} stays as before
+(project_management|admin + permission units.csv_upload).
+
+Admin — audit all CSV imports (role:admin, Bearer token):
+   GET /admin/csv-imports?type=employees&status=completed&per_page=15
+   Query: type (optional: employees|contracts|cities_districts|districts|contract_info|second_party_data|teams),
+          status (optional), uploaded_by (optional user id). Newest first.
+   GET /admin/csv-imports/types — list type values + Arabic labels for filters.
+   GET /admin/csv-imports/{id} — one record including row_errors.
+
 ────────────────────────────────────────────────────────────────────────────
 1) Contracts (bulk create contracts)
    POST /contracts/import_csv
@@ -43,11 +57,14 @@ Replace {contractId} with a real contract ID.
    Form field name: file
    Sample file: cities_only_import.csv
    Column details: cities_only_import.txt
+   Response: processing is synchronous; data includes status, total_rows, row_errors, error_message.
+   GET /admin/cities/import_status/{id} is optional (same fields).
 
    Step B — add districts under existing cities (use real city_id from /api/cities or DB):
    POST /admin/districts/import_csv
    Form field name: file
    Sample file: districts_import.csv
+   Response: synchronous (same as cities import above).
    Replace city_id values with IDs returned after step A (example uses 1, 2 for illustration only).
 
    Optional: you can use one combined cities import with district_name filled on later rows

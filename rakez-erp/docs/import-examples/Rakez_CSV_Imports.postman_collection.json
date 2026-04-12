@@ -229,7 +229,7 @@
 							"host": ["{{base_url}}"],
 							"path": ["admin", "cities", "import_csv"]
 						},
-						"description": "Step 1 — Create cities first. Required: city_name, city_code. Optional: district_name (omit for cities-only sample).\n\nSample: docs/import-examples/cities_only_import.csv\n\nThen use 5b with real city_id values from GET /cities or your DB."
+						"description": "Step 1 — Create cities first. Required: city_name, city_code. Optional: district_name (omit for cities-only sample).\n\nProcessing runs in the same request: response data includes final status, total_rows, row_errors (per-row), and error_message on fatal parse errors (HTTP 422).\n\nSample: docs/import-examples/cities_only_import.csv\n\nThen use 5b with real city_id values from GET /cities or your DB. GET import_status is optional (same payload shape)."
 					}
 				},
 				{
@@ -256,7 +256,7 @@
 							"host": ["{{base_url}}"],
 							"path": ["admin", "districts", "import_csv"]
 						},
-						"description": "Step 2 — Districts only. Required: city_id, name. city_id must exist (from step 5a).\n\nSample: docs/import-examples/districts_import.csv — replace city_id with your real IDs."
+						"description": "Step 2 — Districts only. Required: city_id, name. city_id must exist (from step 5a).\n\nSame synchronous response as 5a (final status + row_errors in data).\n\nSample: docs/import-examples/districts_import.csv — replace city_id with your real IDs."
 					}
 				},
 				{

@@ -44,8 +44,11 @@ class SecondPartyDataService
             $data['processed_by'] = Auth::id();
             $data['processed_at'] = now();
 
+            $data = SecondPartyData::normalizeCompletionFieldsInPayload($data);
+
             // Create second party data
             $secondPartyData = SecondPartyData::create($data);
+            $secondPartyData->syncIsCompleteSecondOnContract();
 
             DB::commit();
 
@@ -72,8 +75,12 @@ class SecondPartyDataService
             $data['processed_by'] = Auth::id();
             $data['processed_at'] = now();
 
-            // Update only provided fields
+            $data = SecondPartyData::normalizeCompletionFieldsInPayload($data);
+
+            // Update only provided fields (null clears a column; flag syncs to false if any field empty)
             $contract->secondPartyData->update($data);
+            $contract->secondPartyData->refresh();
+            $contract->secondPartyData->syncIsCompleteSecondOnContract();
 
             DB::commit();
 
