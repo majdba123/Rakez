@@ -1,0 +1,60 @@
+Rakez — CSV import examples (multipart uploads)
+
+All paths assume API prefix /api (e.g. https://your-domain/api/...).
+Replace {contractId} with a real contract ID.
+
+────────────────────────────────────────────────────────────────────────────
+1) Contracts (bulk create contracts)
+   POST /contracts/import_csv
+   Form field name: file
+   Sample file: contracts_import.csv
+
+2) Contract info (one contract; merges rows then completes contract)
+   POST /contracts/import_info_csv/{contractId}
+   Form field name: file
+   Sample file: contract_info_import.csv
+
+3) Second party data (URLs for a contract)
+   POST /second-party-data/import_csv/{contractId}
+   Form field name: file
+   Sample file: second_party_data_import.csv
+
+4) Contract units (replaces all units for that contract — use with care)
+   POST /contracts/units/upload-csv/{contractId}
+   Form field name: csv_file   (not "file")
+   Sample file: contract_units_import.csv
+
+5) Teams (project management)
+   POST /project_management/teams/import_csv
+   Form field name: file
+   Sample file: teams_import.csv
+   (Also accepts .xlsx / .xls — see TabularImportReader.)
+
+6) Employees (admin)
+   POST /admin/employees/import_employees_csv
+   Form field name: file
+   Sample file: employees_import.csv
+   Poll: GET /admin/employees/import_status/{id}
+
+7) Cities FIRST — then districts (two steps; admin)
+
+   Step A — create cities only (sample uses city_name + city_code only; optional district_name column supported):
+   POST /admin/cities/import_csv
+   Form field name: file
+   Sample file: cities_only_import.csv
+   Column details: cities_only_import.txt
+
+   Step B — add districts under existing cities (use real city_id from /api/cities or DB):
+   POST /admin/districts/import_csv
+   Form field name: file
+   Sample file: districts_import.csv
+   Replace city_id values with IDs returned after step A (example uses 1, 2 for illustration only).
+
+   Optional: you can use one combined cities import with district_name filled on later rows
+   (same POST /admin/cities/import_csv) — the job creates the city once per city_code, then
+   districts. The two-step files above match “cities first, districts separate” clearly.
+
+Notes
+- city_id / district_id in contracts_import.csv must exist in your DB (import cities + districts first if needed).
+- employees_import.csv: "type" is numeric per config/user_types.php (e.g. 6=sales, 8=hr).
+- contract_units_import.csv: headers can use English aliases (unit_type, price, …) as in ContractUnitService.

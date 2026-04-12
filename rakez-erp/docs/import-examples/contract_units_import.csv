@@ -1,0 +1,3 @@
+unit_type,unit_number,status,price,area,floor,bedrooms,bathrooms,private_area_m2,view,description_en,description_ar,diagrames
+Villa,V-101,available,1500000,280,0,4,3,25,North,Spacious villa with garden,فيلا واسعة مع حديقة,https://example.com/diagrams/v101.pdf
+Apartment,A-201,pending,650000,120,2,3,2,12,East,Nice apartment with balcony,شقة جميلة مع شرفة,

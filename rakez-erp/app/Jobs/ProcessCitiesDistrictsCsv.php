@@ -218,6 +218,10 @@ class ProcessCitiesDistrictsCsv implements ShouldQueue
                 }
             }
 
+            if (!array_key_exists('district_name', $mapped)) {
+                $mapped['district_name'] = null;
+            }
+
             $rows[] = $mapped;
         }
 

@@ -14,6 +14,7 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
+use App\Support\TabularImportReader;
 use Exception;
 
 class ProcessTeamsCsv implements ShouldQueue
@@ -152,45 +153,20 @@ class ProcessTeamsCsv implements ShouldQueue
     {
         $fullPath = Storage::disk('local')->path($filePath);
 
-        if (!file_exists($fullPath)) {
-            throw new Exception('CSV file not found on disk.');
+        if (! file_exists($fullPath)) {
+            throw new Exception('Import file not found on disk.');
         }
 
-        $handle = fopen($fullPath, 'r');
-        if ($handle === false) {
-            throw new Exception('Unable to open CSV file.');
+        try {
+            $rows = TabularImportReader::parseAssocRows($fullPath);
+        } catch (\Throwable $e) {
+            throw new Exception($e->getMessage());
         }
 
-        $header = fgetcsv($handle);
-        if (!$header) {
-            fclose($handle);
-            throw new Exception('CSV file is empty or has no header row.');
-        }
-
-        $header = array_map(fn ($col) => strtolower(trim($col)), $header);
-
+        $header = array_keys($rows[0] ?? []);
         $missing = array_diff(self::REQUIRED_COLUMNS, $header);
-        if (!empty($missing)) {
-            fclose($handle);
-            throw new Exception('CSV is missing required columns: ' . implode(', ', $missing));
-        }
-
-        $rows = [];
-        $lineNumber = 1;
-
-        while (($line = fgetcsv($handle)) !== false) {
-            $lineNumber++;
-            if (count($line) !== count($header)) {
-                fclose($handle);
-                throw new Exception("Row {$lineNumber} has a column count mismatch with the header.");
-            }
-            $rows[] = array_combine($header, array_map('trim', $line));
-        }
-
-        fclose($handle);
-
-        if (empty($rows)) {
-            throw new Exception('CSV file contains no data rows.');
+        if (! empty($missing)) {
+            throw new Exception('File is missing required columns: ' . implode(', ', $missing));
         }
 
         return $rows;

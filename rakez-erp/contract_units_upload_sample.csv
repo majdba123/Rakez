@@ -1,6 +1,0 @@
-unit_type,unit_number,status,price,area,floor,bedrooms,bathrooms,private_area_m2,view,description_en,description_ar,diagrames
-Villa,V-101,available,1500000,280,0,4,3,25,North,Spacious villa with garden,Vيلا واسعة مع حديقة,https://example.com/diagrams/v101.pdf
-Apartment,A-201,pending,650000,120,2,3,2,12,East,Nice apartment with balcony,شقة جميلة مع شرفة,
-Townhouse,TH-05,available,980000,200,1,4,3,18,South,Family townhouse,تاون هاوس عائلي,https://example.com/diagrams/th05.png
-Apartment,A-102,sold,420000,85,1,2,2,8,West,Sold unit,وحدة مباعة,
-Penthouse,PH-01,reserved,2200000,350,10,5,4,40,North East,Luxury penthouse,بنتهاوس فاخر,https://example.com/diagrams/ph01.pdf

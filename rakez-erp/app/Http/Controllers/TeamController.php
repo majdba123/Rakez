@@ -15,6 +15,7 @@ use App\Models\CsvImport;
 use App\Models\Team;
 use App\Services\Contract\ContractService;
 use App\Services\Team\TeamService;
+use App\Support\TabularImportReader;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -394,31 +395,26 @@ class TeamController extends Controller
     public function import_csv(ImportTeamsCsv $request): JsonResponse
     {
         $file = $request->file('file');
-        $path = $file->store('csv_imports/teams', 'local');
+        $header = TabularImportReader::peekHeader($file->getRealPath());
 
-        $handle = fopen($file->getRealPath(), 'r');
-        $header = $handle ? fgetcsv($handle) : null;
-        if ($handle) {
-            fclose($handle);
-        }
-
-        if (!$header) {
+        if ($header === []) {
             return response()->json([
                 'success' => false,
-                'message' => 'CSV file is empty or has no header row.',
+                'message' => 'The file is empty or has no header row.',
             ], 422);
         }
 
-        $header = array_map(fn ($col) => strtolower(trim($col)), $header);
         $required = ['name'];
         $missing = array_diff($required, $header);
 
         if (!empty($missing)) {
             return response()->json([
                 'success' => false,
-                'message' => 'CSV is missing required columns: ' . implode(', ', $missing),
+                'message' => 'The file is missing required columns: ' . implode(', ', $missing),
             ], 422);
         }
+
+        $path = $file->store('csv_imports/teams', 'local');
 
         $csvImport = CsvImport::create([
             'type'        => CsvImport::TYPE_TEAMS,

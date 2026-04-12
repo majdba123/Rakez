@@ -1,0 +1,3 @@
+developer_name,developer_number,city_id,district_id,side,contract_type,project_name,project_image_url,developer_requiment,notes,commission_percent,commission_from,unit_type,unit_count,unit_price
+شركة الإعمار,DEV-EX-001,1,1,N,sale,مشروع النموذج,,متطلبات المطور — نص تجريبي,ملاحظات اختيارية,5,developer,apartment,10,500000
+شركة البناء,DEV-EX-002,1,1,W,rent,مشروع الفجر,,متطلبات المطور الثاني,,3,owner,villa,5,1200000

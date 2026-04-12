@@ -16,7 +16,7 @@ class ImportTeamsCsv extends FormRequest
     public function rules(): array
     {
         return [
-            'file' => 'required|file|mimes:csv,txt|max:5120',
+            'file' => 'required|file|mimes:csv,txt,xlsx,xls|max:5120',
         ];
     }
 
@@ -25,7 +25,7 @@ class ImportTeamsCsv extends FormRequest
         return [
             'file.required' => 'CSV file is required.',
             'file.file'     => 'The upload must be a valid file.',
-            'file.mimes'    => 'The file must be a CSV (.csv) file.',
+            'file.mimes'    => 'The file must be CSV (.csv) or Excel (.xlsx, .xls).',
             'file.max'      => 'The file must not exceed 5 MB.',
         ];
     }

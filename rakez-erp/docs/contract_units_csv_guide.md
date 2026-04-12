@@ -26,7 +26,7 @@ At least **unit_type**, **unit_number**, and **price** are recommended. Other co
 | diagrames        | diagrams، المخططات        | No       | Unit diagrams (URLs or paths) |
 
 ## Sample CSV (English headers)
-Use the file **`contract_units_upload_sample.csv`** in the project root for testing.
+Use **`docs/import-examples/contract_units_import.csv`** for testing (form field **`csv_file`**).
 
 ## Notes
 - First row must be the header (column names). Headers are matched case-insensitively.
