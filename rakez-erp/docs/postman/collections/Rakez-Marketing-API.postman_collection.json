@@ -1,0 +1,2880 @@
+{
+  "info": {
+    "_postman_id": "rakez-marketing-api-v1",
+    "name": "Rakez ERP — Marketing API (production base)",
+    "description": "Repo-grounded collection for `routes/api.php` marketing + ads groups. Default `baseUrl` is https://rakez.com.sa/api . Use Bearer token from POST /login (Sanctum). **Do not** run mutating requests against production without approval.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "https://rakez.com.sa/api"
+    },
+    {
+      "key": "token",
+      "value": ""
+    },
+    {
+      "key": "userEmail",
+      "value": ""
+    },
+    {
+      "key": "userPassword",
+      "value": ""
+    },
+    {
+      "key": "contractId",
+      "value": ""
+    },
+    {
+      "key": "projectId",
+      "value": ""
+    },
+    {
+      "key": "planId",
+      "value": ""
+    },
+    {
+      "key": "employeePlanId",
+      "value": ""
+    },
+    {
+      "key": "developerPlanId",
+      "value": ""
+    },
+    {
+      "key": "userId",
+      "value": ""
+    },
+    {
+      "key": "teamId",
+      "value": ""
+    },
+    {
+      "key": "leadId",
+      "value": ""
+    },
+    {
+      "key": "taskId",
+      "value": ""
+    },
+    {
+      "key": "settingKey",
+      "value": "conversion_rate"
+    }
+  ],
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{token}}",
+        "type": "string"
+      }
+    ]
+  },
+  "item": [
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Login (Sanctum token)",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{userEmail}}\",\n  \"password\": \"{{userPassword}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "login"
+              ]
+            },
+            "description": "POST /api/login — `LoginController@login`. Body: `email`, `password` (min 8). Response: `access_token`, `user`. **Live check:** apex host returned nginx 404 for `/api/*` in automated probe; SPA uses `api.rakez.com.sa` in CSP — set `baseUrl` in environment if your deployment differs."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Response time < 30s\", function () { pm.expect(pm.response.responseTime).to.be.below(30000); });",
+                  "if (pm.response.code === 200) { try { var j = pm.response.json(); if (j.access_token) { pm.collectionVariables.set(\"token\", j.access_token); } } catch (e) {} }"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Logout",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/logout",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "logout"
+              ]
+            },
+            "description": "Deletes all Sanctum tokens for current user.\n\n**Verification:** code-verified only (requires valid token)",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status 2xx or auth error\", function () { pm.expect([200,201,204,401,403,422]).to.include(pm.response.code); });",
+                  "pm.test(\"Response time < 30s\", function () { pm.expect(pm.response.responseTime).to.be.below(30000); });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Marketing — Dashboard",
+      "item": [
+        {
+          "name": "Dashboard KPIs",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/marketing/dashboard",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "marketing",
+                "dashboard"
+              ]
+            },
+            "description": "Marketing dashboard aggregates. Requires `marketing.dashboard.view`.\n\n**Verification:** code-verified only (production `/api` path not reachable from probe)",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status 2xx or auth error\", function () { pm.expect([200,201,204,401,403,422]).to.include(pm.response.code); });",
+                  "pm.test(\"Response time < 30s\", function () { pm.expect(pm.response.responseTime).to.be.below(30000); });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Marketing — Projects & budget",
+      "item": [
+        {
+          "name": "List marketing projects",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/marketing/projects",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "marketing",
+                "projects"
+              ]
+            },
+            "description": "Paginated list. Permission: `marketing.projects.view`.\n\n**Verification:** code-verified only",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status 2xx or auth error\", function () { pm.expect([200,201,204,401,403,422]).to.include(pm.response.code); });",
+                  "pm.test(\"Response time < 30s\", function () { pm.expect(pm.response.responseTime).to.be.below(30000); });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Show project by contract",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/marketing/projects/{{contractId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "marketing",
+                "projects",
+                "{{contractId}}"
+              ]
+            },
+            "description": "Details for one contract's marketing project. Replace `contractId` (contracts.id).\n\n**Verification:** code-verified only",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status 2xx or auth error\", function () { pm.expect([200,201,204,401,403,422]).to.include(pm.response.code); });",
+                  "pm.test(\"Response time < 30s\", function () { pm.expect(pm.response.responseTime).to.be.below(30000); });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Calculate project budget (preview)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/marketing/projects/calculate-budget",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "marketing",
+                "projects",
+                "calculate-budget"
+              ]
+            },
+            "description": "Preview budget calculation. Permission `marketing.budgets.manage`. See `CalculateBudgetRequest`.\n\n**Verification:** code-derived example body — do not run on production without safe contract_id",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"contract_id\": 0,\n  \"marketing_percent\": 5,\n  \"marketing_value\": null,\n  \"average_cpm\": 10,\n  \"average_cpc\": 2,\n  \"conversion_rate\": 2.5,\n  \"total_unit_price_override\": null\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status 2xx or auth error\", function () { pm.expect([200,201,204,401,403,422]).to.include(pm.response.code); });",
+                  "pm.test(\"Response time < 30s\", function () { pm.expect(pm.response.responseTime).to.be.below(30000); });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Marketing — Developer plans",
+      "item": [
+        {
+          "name": "Show developer plan",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/marketing/developer-plans/{{contractId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "marketing",
+                "developer-plans",
+                "{{contractId}}"
+              ]
+            },
+            "description": "Developer marketing plan for contract. `marketing.plans.create`.\n\n**Verification:** code-verified only",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status 2xx or auth error\", function () { pm.expect([200,201,204,401,403,422]).to.include(pm.response.code); });",
+                  "pm.test(\"Response time < 30s\", function () { pm.expect(pm.response.responseTime).to.be.below(30000); });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Download developer plan PDF",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/marketing/developer-plans/{{contractId}}/pdf",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "marketing",
+                "developer-plans",
+                "{{contractId}}",
+                "pdf"
+              ]
+            },
+            "description": "PDF stream. May return JSON on error.\n\n**Verification:** code-verified only",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status 2xx or PDF error JSON\", function () { pm.expect([200,401,403,422,503]).to.include(pm.response.code); });",
+                  "pm.test(\"Response time < 60s\", function () { pm.expect(pm.response.responseTime).to.be.below(60000); });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Developer plan PDF data (JSON)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/marketing/reports/developer-plan/{{contractId}}/pdf-data",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "marketing",
+                "reports",
+                "developer-plan",
+                "{{contractId}}",
+                "pdf-data"
+              ]
+            },
+            "description": "JSON for PDF rendering. `marketing.reports.view`.\n\n**Verification:** code-verified only",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status 2xx or auth error\", function () { pm.expect([200,201,204,401,403,422]).to.include(pm.response.code); });",
+                  "pm.test(\"Response time < 30s\", function () { pm.expect(pm.response.responseTime).to.be.below(30000); });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Calculate developer plan budget",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/marketing/developer-plans/calculate-budget",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "marketing",
+                "developer-plans",
+                "calculate-budget"
+              ]
+            },
+            "description": "See `StoreDeveloperPlanRequest` / controller. **Mutating** — example from code only.\n\n**Verification:** code-derived example — not executed on production",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"contract_id\": 0\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status 2xx or auth error\", function () { pm.expect([200,201,204,401,403,422]).to.include(pm.response.code); });",
+                  "pm.test(\"Response time < 30s\", function () { pm.expect(pm.response.responseTime).to.be.below(30000); });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Store developer plan",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/marketing/developer-plans",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "marketing",
+                "developer-plans"
+              ]
+            },
+            "description": "Creates/updates developer plan. **Mutating**.\n\n**Verification:** code-derived example — not executed on production",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"contract_id\": 0\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status 2xx or auth error\", function () { pm.expect([200,201,204,401,403,422]).to.include(pm.response.code); });",
+                  "pm.test(\"Response time < 30s\", function () { pm.expect(pm.response.responseTime).to.be.below(30000); });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Marketing — Users (HR list)",
+      "item": [
+        {
+          "name": "List users (dropdown)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/marketing/users",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "marketing",
+                "users"
+              ]
+            },
+            "description": "Same data as GET /hr/users — for employee plan dropdowns. `marketing.plans.create`.\n\n**Verification:** code-verified only",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status 2xx or auth error\", function () { pm.expect([200,201,204,401,403,422]).to.include(pm.response.code); });",
+                  "pm.test(\"Response time < 30s\", function () { pm.expect(pm.response.responseTime).to.be.below(30000); });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Marketing — Employee plans",
+      "item": [
+        {
+          "name": "List employee plans",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/marketing/employee-plans",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "marketing",
+                "employee-plans"
+              ],
+              "query": [
+                {
+                  "key": "project_id",
+                  "value": "{{projectId}}",
+                  "description": ""
+                }
+              ]
+            },
+            "description": "Optional query `project_id` supported in controller. Route order: list routes before `{planId}`.\n\n**Verification:** code-verified only",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status 2xx or auth error\", function () { pm.expect([200,201,204,401,403,422]).to.include(pm.response.code); });",
+                  "pm.test(\"Response time < 30s\", function () { pm.expect(pm.response.responseTime).to.be.below(30000); });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "List employee plans for project",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/marketing/employee-plans/project/{{projectId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "marketing",
+                "employee-plans",
+                "project",
+                "{{projectId}}"
+              ]
+            },
+            "description": "Filter by marketing project id.\n\n**Verification:** code-verified only",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status 2xx or auth error\", function () { pm.expect([200,201,204,401,403,422]).to.include(pm.response.code); });",
+                  "pm.test(\"Response time < 30s\", function () { pm.expect(pm.response.responseTime).to.be.below(30000); });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Employee plans PDF data",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/marketing/employee-plans/pdf-data",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "marketing",
+                "employee-plans",
+                "pdf-data"
+              ]
+            },
+            "description": "Query params per `EmployeeMarketingPlanController::pdfData` (see controller).\n\n**Verification:** code-verified only",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status 2xx or auth error\", function () { pm.expect([200,201,204,401,403,422]).to.include(pm.response.code); });",
+                  "pm.test(\"Response time < 30s\", function () { pm.expect(pm.response.responseTime).to.be.below(30000); });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Show employee plan",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/marketing/employee-plans/{{planId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "marketing",
+                "employee-plans",
+                "{{planId}}"
+              ]
+            },
+            "description": "Single employee marketing plan.\n\n**Verification:** code-verified only",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status 2xx or auth error\", function () { pm.expect([200,201,204,401,403,422]).to.include(pm.response.code); });",
+                  "pm.test(\"Response time < 30s\", function () { pm.expect(pm.response.responseTime).to.be.below(30000); });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Create employee plan",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/marketing/employee-plans",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "marketing",
+                "employee-plans"
+              ]
+            },
+            "description": "**Mutating**. See `StoreEmployeePlanRequest`.\n\n**Verification:** code-derived example — not executed on production",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"marketing_project_id\": 0,\n  \"user_id\": 0\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status 2xx or auth error\", function () { pm.expect([200,201,204,401,403,422]).to.include(pm.response.code); });",
+                  "pm.test(\"Response time < 30s\", function () { pm.expect(pm.response.responseTime).to.be.below(30000); });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Auto-generate employee plans",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/marketing/employee-plans/auto-generate",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "marketing",
+                "employee-plans",
+                "auto-generate"
+              ]
+            },
+            "description": "**Mutating** batch operation.\n\n**Verification:** code-derived example — not executed on production",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"marketing_project_id\": 0\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status 2xx or auth error\", function () { pm.expect([200,201,204,401,403,422]).to.include(pm.response.code); });",
+                  "pm.test(\"Response time < 30s\", function () { pm.expect(pm.response.responseTime).to.be.below(30000); });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Marketing — Expected sales & conversion",
+      "item": [
+        {
+          "name": "Calculate / upsert expected sales for project",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/marketing/expected-sales/{{projectId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "marketing",
+                "expected-sales",
+                "{{projectId}}"
+              ],
+              "query": [
+                {
+                  "key": "conversion_rate",
+                  "value": "2.5",
+                  "description": ""
+                }
+              ]
+            },
+            "description": "Query optional: `marketing_value`, `average_cpm`, `average_cpc`, `conversion_rate` (`CalculateExpectedSalesRequest`). Uses `ExpectedSalesService::createOrUpdateExpectedBookings` — **writes** expected bookings.\n\n**Verification:** code-verified only — mutating side effect; do not run blindly on production",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status 2xx or auth error\", function () { pm.expect([200,201,204,401,403,422]).to.include(pm.response.code); });",
+                  "pm.test(\"Response time < 30s\", function () { pm.expect(pm.response.responseTime).to.be.below(30000); });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Update global conversion rate setting",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/marketing/settings/conversion-rate",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "marketing",
+                "settings",
+                "conversion-rate"
+              ]
+            },
+            "description": "Body: `{ \"value\": number }` (0–100). **Mutating**.\n\n**Verification:** code-derived — not executed on production",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"value\": 2.5\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status 2xx or auth error\", function () { pm.expect([200,201,204,401,403,422]).to.include(pm.response.code); });",
+                  "pm.test(\"Response time < 30s\", function () { pm.expect(pm.response.responseTime).to.be.below(30000); });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Marketing — Tasks",
+      "item": [
+        {
+          "name": "List my marketing tasks",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/marketing/tasks",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "marketing",
+                "tasks"
+              ],
+              "query": [
+                {
+                  "key": "date",
+                  "value": "",
+                  "description": ""
+                },
+                {
+                  "key": "status",
+                  "value": "",
+                  "description": ""
+                }
+              ]
+            },
+            "description": "Query: `date`, `status`, pagination. `marketing.tasks.view`.\n\n**Verification:** code-verified only",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status 2xx or auth error\", function () { pm.expect([200,201,204,401,403,422]).to.include(pm.response.code); });",
+                  "pm.test(\"Response time < 30s\", function () { pm.expect(pm.response.responseTime).to.be.below(30000); });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Create marketing task",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/marketing/tasks",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "marketing",
+                "tasks"
+              ]
+            },
+            "description": "**Mutating**. `StoreMarketingTaskRequest`.\n\n**Verification:** code-derived — not executed on production",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Example\",\n  \"marketing_project_id\": 0\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status 2xx or auth error\", function () { pm.expect([200,201,204,401,403,422]).to.include(pm.response.code); });",
+                  "pm.test(\"Response time < 30s\", function () { pm.expect(pm.response.responseTime).to.be.below(30000); });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Update marketing task",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/marketing/tasks/{{taskId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "marketing",
+                "tasks",
+                "{{taskId}}"
+              ]
+            },
+            "description": "**Mutating**.\n\n**Verification:** code-derived — not executed on production",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Updated\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status 2xx or auth error\", function () { pm.expect([200,201,204,401,403,422]).to.include(pm.response.code); });",
+                  "pm.test(\"Response time < 30s\", function () { pm.expect(pm.response.responseTime).to.be.below(30000); });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Update task status",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/marketing/tasks/{{taskId}}/status",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "marketing",
+                "tasks",
+                "{{taskId}}",
+                "status"
+              ]
+            },
+            "description": "Body: `{ \"status\": \"new\"|\"in_progress\"|\"completed\" }`.\n\n**Verification:** code-derived — not executed on production",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"completed\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status 2xx or auth error\", function () { pm.expect([200,201,204,401,403,422]).to.include(pm.response.code); });",
+                  "pm.test(\"Response time < 30s\", function () { pm.expect(pm.response.responseTime).to.be.below(30000); });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Marketing — Project team",
+      "item": [
+        {
+          "name": "Assign team to project",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/marketing/projects/{{projectId}}/team",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "marketing",
+                "projects",
+                "{{projectId}}",
+                "team"
+              ]
+            },
+            "description": "**Mutating**. See `TeamManagementController`.\n\n**Verification:** code-derived — not executed on production",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"team_id\": 0\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status 2xx or auth error\", function () { pm.expect([200,201,204,401,403,422]).to.include(pm.response.code); });",
+                  "pm.test(\"Response time < 30s\", function () { pm.expect(pm.response.responseTime).to.be.below(30000); });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get project team",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/marketing/projects/{{projectId}}/team",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "marketing",
+                "projects",
+                "{{projectId}}",
+                "team"
+              ]
+            },
+            "description": "Current team assignment.\n\n**Verification:** code-verified only",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status 2xx or auth error\", function () { pm.expect([200,201,204,401,403,422]).to.include(pm.response.code); });",
+                  "pm.test(\"Response time < 30s\", function () { pm.expect(pm.response.responseTime).to.be.below(30000); });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Recommend employee",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/marketing/projects/{{projectId}}/recommend-employee",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "marketing",
+                "projects",
+                "{{projectId}}",
+                "recommend-employee"
+              ]
+            },
+            "description": "Recommendation endpoint for staffing.\n\n**Verification:** code-verified only",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status 2xx or auth error\", function () { pm.expect([200,201,204,401,403,422]).to.include(pm.response.code); });",
+                  "pm.test(\"Response time < 30s\", function () { pm.expect(pm.response.responseTime).to.be.below(30000); });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Marketing — Employees (read-only)",
+      "item": [
+        {
+          "name": "List marketing employees",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/marketing/employees",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "marketing",
+                "employees"
+              ]
+            },
+            "description": "`marketing.teams.view`.\n\n**Verification:** code-verified only",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status 2xx or auth error\", function () { pm.expect([200,201,204,401,403,422]).to.include(pm.response.code); });",
+                  "pm.test(\"Response time < 30s\", function () { pm.expect(pm.response.responseTime).to.be.below(30000); });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Show marketing employee",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/marketing/employees/{{userId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "marketing",
+                "employees",
+                "{{userId}}"
+              ]
+            },
+            "description": "Numeric id.\n\n**Verification:** code-verified only",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status 2xx or auth error\", function () { pm.expect([200,201,204,401,403,422]).to.include(pm.response.code); });",
+                  "pm.test(\"Response time < 30s\", function () { pm.expect(pm.response.responseTime).to.be.below(30000); });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Marketing — Leads",
+      "item": [
+        {
+          "name": "List leads",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/marketing/leads",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "marketing",
+                "leads"
+              ]
+            },
+            "description": "Paginated. `StoreLeadRequest` / policies.\n\n**Verification:** code-verified only",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status 2xx or auth error\", function () { pm.expect([200,201,204,401,403,422]).to.include(pm.response.code); });",
+                  "pm.test(\"Response time < 30s\", function () { pm.expect(pm.response.responseTime).to.be.below(30000); });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Create lead",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/marketing/leads",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "marketing",
+                "leads"
+              ]
+            },
+            "description": "**Mutating**. `project_id` is contracts.id per validation.\n\n**Verification:** code-derived — not executed on production",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Example\",\n  \"contact_info\": \"+966500000000\",\n  \"project_id\": 0,\n  \"source\": \"web\",\n  \"status\": \"new\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status 2xx or auth error\", function () { pm.expect([200,201,204,401,403,422]).to.include(pm.response.code); });",
+                  "pm.test(\"Response time < 30s\", function () { pm.expect(pm.response.responseTime).to.be.below(30000); });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Update lead",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/marketing/leads/{{leadId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "marketing",
+                "leads",
+                "{{leadId}}"
+              ]
+            },
+            "description": "**Mutating**.\n\n**Verification:** code-derived — not executed on production",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"contacted\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status 2xx or auth error\", function () { pm.expect([200,201,204,401,403,422]).to.include(pm.response.code); });",
+                  "pm.test(\"Response time < 30s\", function () { pm.expect(pm.response.responseTime).to.be.below(30000); });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Marketing — Reports & exports",
+      "item": [
+        {
+          "name": "Project performance report",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/marketing/reports/project/{{projectId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "marketing",
+                "reports",
+                "project",
+                "{{projectId}}"
+              ]
+            },
+            "description": "JSON summary.\n\n**Verification:** code-verified only",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status 2xx or auth error\", function () { pm.expect([200,201,204,401,403,422]).to.include(pm.response.code); });",
+                  "pm.test(\"Response time < 30s\", function () { pm.expect(pm.response.responseTime).to.be.below(30000); });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Budget report",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/marketing/reports/budget",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "marketing",
+                "reports",
+                "budget"
+              ]
+            },
+            "description": "Aggregates employee plans + developer distributions.\n\n**Verification:** code-verified only",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status 2xx or auth error\", function () { pm.expect([200,201,204,401,403,422]).to.include(pm.response.code); });",
+                  "pm.test(\"Response time < 30s\", function () { pm.expect(pm.response.responseTime).to.be.below(30000); });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Expected bookings report",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/marketing/reports/expected-bookings",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "marketing",
+                "reports",
+                "expected-bookings"
+              ]
+            },
+            "description": "\n\n**Verification:** code-verified only",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status 2xx or auth error\", function () { pm.expect([200,201,204,401,403,422]).to.include(pm.response.code); });",
+                  "pm.test(\"Response time < 30s\", function () { pm.expect(pm.response.responseTime).to.be.below(30000); });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Employee performance",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/marketing/reports/employee/{{userId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "marketing",
+                "reports",
+                "employee",
+                "{{userId}}"
+              ]
+            },
+            "description": "\n\n**Verification:** code-verified only",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status 2xx or auth error\", function () { pm.expect([200,201,204,401,403,422]).to.include(pm.response.code); });",
+                  "pm.test(\"Response time < 30s\", function () { pm.expect(pm.response.responseTime).to.be.below(30000); });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Export employee plan (pdf/excel/csv)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/marketing/reports/export/{{planId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "marketing",
+                "reports",
+                "export",
+                "{{planId}}"
+              ],
+              "query": [
+                {
+                  "key": "format",
+                  "value": "pdf",
+                  "description": ""
+                }
+              ]
+            },
+            "description": "Query `format`: pdf (default), excel, csv. Employee plan id.\n\n**Verification:** code-verified only",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status 2xx or PDF error JSON\", function () { pm.expect([200,401,403,422,503]).to.include(pm.response.code); });",
+                  "pm.test(\"Response time < 60s\", function () { pm.expect(pm.response.responseTime).to.be.below(60000); });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Export distribution PDF by project",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/marketing/reports/distribution/project/{{projectId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "marketing",
+                "reports",
+                "distribution",
+                "project",
+                "{{projectId}}"
+              ]
+            },
+            "description": "Project-level platform distribution PDF.\n\n**Verification:** code-verified only",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status 2xx or PDF error JSON\", function () { pm.expect([200,401,403,422,503]).to.include(pm.response.code); });",
+                  "pm.test(\"Response time < 60s\", function () { pm.expect(pm.response.responseTime).to.be.below(60000); });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Export distribution PDF by plan",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/marketing/reports/distribution/{{planId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "marketing",
+                "reports",
+                "distribution",
+                "{{planId}}"
+              ]
+            },
+            "description": "Employee marketing plan id.\n\n**Verification:** code-verified only",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status 2xx or PDF error JSON\", function () { pm.expect([200,401,403,422,503]).to.include(pm.response.code); });",
+                  "pm.test(\"Response time < 60s\", function () { pm.expect(pm.response.responseTime).to.be.below(60000); });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Marketing — Settings",
+      "item": [
+        {
+          "name": "List marketing settings",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/marketing/settings",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "marketing",
+                "settings"
+              ]
+            },
+            "description": "`marketing.budgets.manage`.\n\n**Verification:** code-verified only",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status 2xx or auth error\", function () { pm.expect([200,201,204,401,403,422]).to.include(pm.response.code); });",
+                  "pm.test(\"Response time < 30s\", function () { pm.expect(pm.response.responseTime).to.be.below(30000); });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Update setting by key",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/marketing/settings/{{settingKey}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "marketing",
+                "settings",
+                "{{settingKey}}"
+              ]
+            },
+            "description": "**Mutating**. Body: `value` (required), `description` optional. See `UpdateMarketingSettingRequest`.\n\n**Verification:** code-derived — not executed on production",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"value\": \"0\",\n  \"description\": \"\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status 2xx or auth error\", function () { pm.expect([200,201,204,401,403,422]).to.include(pm.response.code); });",
+                  "pm.test(\"Response time < 30s\", function () { pm.expect(pm.response.responseTime).to.be.below(30000); });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Ads (role: admin|marketing)",
+      "item": [
+        {
+          "name": "Ads — list accounts",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/ads/accounts",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "ads",
+                "accounts"
+              ]
+            },
+            "description": "Requires `auth:sanctum`, `role:admin|marketing`, `marketing.ads.view`.\n\n**Verification:** code-verified only",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status 2xx or auth error\", function () { pm.expect([200,201,204,401,403,422]).to.include(pm.response.code); });",
+                  "pm.test(\"Response time < 30s\", function () { pm.expect(pm.response.responseTime).to.be.below(30000); });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Ads — campaigns",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/ads/campaigns",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "ads",
+                "campaigns"
+              ]
+            },
+            "description": "\n\n**Verification:** code-verified only",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status 2xx or auth error\", function () { pm.expect([200,201,204,401,403,422]).to.include(pm.response.code); });",
+                  "pm.test(\"Response time < 30s\", function () { pm.expect(pm.response.responseTime).to.be.below(30000); });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Ads — insights",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/ads/insights",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "ads",
+                "insights"
+              ]
+            },
+            "description": "\n\n**Verification:** code-verified only",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status 2xx or auth error\", function () { pm.expect([200,201,204,401,403,422]).to.include(pm.response.code); });",
+                  "pm.test(\"Response time < 30s\", function () { pm.expect(pm.response.responseTime).to.be.below(30000); });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Ads — leads",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/ads/leads",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "ads",
+                "leads"
+              ]
+            },
+            "description": "\n\n**Verification:** code-verified only",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status 2xx or auth error\", function () { pm.expect([200,201,204,401,403,422]).to.include(pm.response.code); });",
+                  "pm.test(\"Response time < 30s\", function () { pm.expect(pm.response.responseTime).to.be.below(30000); });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Ads — leads export",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/ads/leads/export",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "ads",
+                "leads",
+                "export"
+              ]
+            },
+            "description": "\n\n**Verification:** code-verified only",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status 2xx or auth error\", function () { pm.expect([200,201,204,401,403,422]).to.include(pm.response.code); });",
+                  "pm.test(\"Response time < 30s\", function () { pm.expect(pm.response.responseTime).to.be.below(30000); });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Ads — export snapshot",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/ads/leads/export-snap",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "ads",
+                "leads",
+                "export-snap"
+              ]
+            },
+            "description": "**Mutating** snapshot/export.\n\n**Verification:** not executed on production",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status 2xx or auth error\", function () { pm.expect([200,201,204,401,403,422]).to.include(pm.response.code); });",
+                  "pm.test(\"Response time < 30s\", function () { pm.expect(pm.response.responseTime).to.be.below(30000); });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Ads — trigger sync",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/ads/sync",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "ads",
+                "sync"
+              ]
+            },
+            "description": "**Mutating** `marketing.ads.manage`.\n\n**Verification:** not executed on production",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status 2xx or auth error\", function () { pm.expect([200,201,204,401,403,422]).to.include(pm.response.code); });",
+                  "pm.test(\"Response time < 30s\", function () { pm.expect(pm.response.responseTime).to.be.below(30000); });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Ads — store outcome",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/ads/outcomes",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "ads",
+                "outcomes"
+              ]
+            },
+            "description": "\n\n**Verification:** not executed on production",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status 2xx or auth error\", function () { pm.expect([200,201,204,401,403,422]).to.include(pm.response.code); });",
+                  "pm.test(\"Response time < 30s\", function () { pm.expect(pm.response.responseTime).to.be.below(30000); });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Ads — outcome status",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/ads/outcomes/status",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "ads",
+                "outcomes",
+                "status"
+              ]
+            },
+            "description": "\n\n**Verification:** code-verified only",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status 2xx or auth error\", function () { pm.expect([200,201,204,401,403,422]).to.include(pm.response.code); });",
+                  "pm.test(\"Response time < 30s\", function () { pm.expect(pm.response.responseTime).to.be.below(30000); });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        }
+      ],
+      "description": "Prefix `ads` under same `/api` root. Used by marketing for ad platform integration."
+    },
+    {
+      "name": "Sales API — Marketing tasks (sales leader)",
+      "item": [
+        {
+          "name": "List projects with marketing tasks",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/sales/tasks/projects",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "sales",
+                "tasks",
+                "projects"
+              ]
+            },
+            "description": "`permission:sales.tasks.manage` inside sales leader group.\n\n**Verification:** code-verified only",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status 2xx or auth error\", function () { pm.expect([200,201,204,401,403,422]).to.include(pm.response.code); });",
+                  "pm.test(\"Response time < 30s\", function () { pm.expect(pm.response.responseTime).to.be.below(30000); });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Marketing tasks for contract",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/sales/tasks/projects/{{contractId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "sales",
+                "tasks",
+                "projects",
+                "{{contractId}}"
+              ]
+            },
+            "description": "\n\n**Verification:** code-verified only",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status 2xx or auth error\", function () { pm.expect([200,201,204,401,403,422]).to.include(pm.response.code); });",
+                  "pm.test(\"Response time < 30s\", function () { pm.expect(pm.response.responseTime).to.be.below(30000); });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Create marketing task (sales)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/sales/marketing-tasks",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "sales",
+                "marketing-tasks"
+              ]
+            },
+            "description": "**Mutating** — Sales\\MarketingTaskController.\n\n**Verification:** not executed on production",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"contract_id\": 0\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status 2xx or auth error\", function () { pm.expect([200,201,204,401,403,422]).to.include(pm.response.code); });",
+                  "pm.test(\"Response time < 30s\", function () { pm.expect(pm.response.responseTime).to.be.below(30000); });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Patch marketing task (sales)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/sales/marketing-tasks/{{taskId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "sales",
+                "marketing-tasks",
+                "{{taskId}}"
+              ]
+            },
+            "description": "\n\n**Verification:** not executed on production",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"completed\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status 2xx or auth error\", function () { pm.expect([200,201,204,401,403,422]).to.include(pm.response.code); });",
+                  "pm.test(\"Response time < 30s\", function () { pm.expect(pm.response.responseTime).to.be.below(30000); });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        }
+      ],
+      "description": "These routes live under `Route::prefix('sales')` — full path `/api/sales/...`."
+    }
+  ]
+}
