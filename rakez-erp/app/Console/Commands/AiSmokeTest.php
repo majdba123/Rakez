@@ -17,8 +17,9 @@ class AiSmokeTest extends Command
             return self::FAILURE;
         }
 
-        if (! env('OPENAI_API_KEY')) {
-            $this->error('OPENAI_API_KEY is not set.');
+        $apiKey = config('openai.api_key');
+        if (! is_string($apiKey) || trim($apiKey) === '' || trim($apiKey) === 'test-fake-key-not-used') {
+            $this->error('OpenAI provider is not configured. Set OPENAI_API_KEY in .env.');
             return self::FAILURE;
         }
 

@@ -30,4 +30,20 @@ class AiBootstrapRoleToolGateParityTest extends TestCase
 
         $this->assertContains('tool_kpi_sales', $allowed);
     }
+
+    public function test_marketing_bootstrap_role_excludes_sales_advisor_tool(): void
+    {
+        $user = $this->createUserWithBootstrapRole('marketing', ['type' => 'marketing']);
+        $allowed = app(ToolRegistry::class)->allowedToolNamesForUser($user);
+
+        $this->assertNotContains('tool_sales_advisor', $allowed);
+    }
+
+    public function test_sales_bootstrap_role_includes_sales_advisor_tool(): void
+    {
+        $user = $this->createUserWithBootstrapRole('sales', ['type' => 'sales']);
+        $allowed = app(ToolRegistry::class)->allowedToolNamesForUser($user);
+
+        $this->assertContains('tool_sales_advisor', $allowed);
+    }
 }

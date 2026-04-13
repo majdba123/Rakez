@@ -4,17 +4,20 @@ namespace App\Http\Controllers;
 
 use App\Models\UserNotification;
 use App\Models\AdminNotification;
-use App\Events\UserNotificationEvent;
-use App\Events\PublicNotificationEvent;
 use App\Http\Resources\AdminNotificationResource;
 use App\Http\Resources\UserNotificationResource;
 use App\Http\Responses\ApiResponse;
+use App\Services\Notification\NotificationAdminService;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 
 class NotificationController extends Controller
 {
+    public function __construct(
+        private NotificationAdminService $notificationAdminService
+    ) {}
+
     // ==========================================
     // ADMIN APIs
     // ==========================================
@@ -71,12 +74,10 @@ class NotificationController extends Controller
             'message' => 'required|string',
         ]);
 
-        $notification = UserNotification::create([
-            'user_id' => $request->user_id,
-            'message' => $request->message,
-        ]);
-
-        event(new UserNotificationEvent($request->user_id, $request->message));
+        $notification = $this->notificationAdminService->sendToUser(
+            (int) $request->user_id,
+            (string) $request->message
+        );
 
         return response()->json([
             'message' => 'Notification sent to user',
@@ -93,12 +94,7 @@ class NotificationController extends Controller
             'message' => 'required|string',
         ]);
 
-        $notification = UserNotification::create([
-            'user_id' => null,
-            'message' => $request->message,
-        ]);
-
-        event(new PublicNotificationEvent($request->message));
+        $notification = $this->notificationAdminService->sendPublic((string) $request->message);
 
         return response()->json([
             'message' => 'Public notification sent',
@@ -159,9 +155,7 @@ class NotificationController extends Controller
      */
     public function userMarkAllAsRead(Request $request): JsonResponse
     {
-        UserNotification::where('user_id', $request->user()->id)
-            ->where('status', 'pending')
-            ->update(['status' => 'read']);
+        $this->notificationAdminService->markAllUserNotificationsAsRead($request->user()->id);
 
         return response()->json(['message' => 'All notifications marked as read']);
     }
@@ -174,7 +168,7 @@ class NotificationController extends Controller
         $notification = UserNotification::where('user_id', $request->user()->id)
             ->findOrFail($id);
 
-        $notification->update(['status' => 'read']);
+        $this->notificationAdminService->markUserNotificationAsRead($notification);
 
         return response()->json(['message' => 'Notification marked as read']);
     }

@@ -107,6 +107,7 @@ final class SnapLeadGenReader
             'campaign_id' => (string) ($item['campaign_id'] ?? ''),
             'created_time' => $created,
             'extra_data' => array_merge($byKey, $extra),
+            'raw_payload' => $item,
         ];
     }
 

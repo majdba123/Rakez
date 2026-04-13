@@ -3,6 +3,8 @@
 namespace App\Http\Controllers\Ads;
 
 use App\Infrastructure\Ads\Persistence\Models\AdsCampaign;
+use App\Infrastructure\Ads\Persistence\Models\AdsAdSet;
+use App\Infrastructure\Ads\Persistence\Models\AdsAd;
 use App\Infrastructure\Ads\Persistence\Models\AdsInsightRow;
 use App\Infrastructure\Ads\Persistence\Models\AdsPlatformAccount;
 use App\Jobs\Ads\SyncCampaignStructureJob;
@@ -78,6 +80,46 @@ class AdsInsightsController
     }
 
     /**
+     * GET /api/ads/adsets
+     */
+    public function adSets(Request $request): JsonResponse
+    {
+        $query = AdsAdSet::query()->orderByDesc('updated_at');
+
+        if ($platform = $request->input('platform')) {
+            $query->where('platform', $platform);
+        }
+        if ($accountId = $request->input('account_id')) {
+            $query->where('account_id', $accountId);
+        }
+        if ($campaignId = $request->input('campaign_id')) {
+            $query->where('campaign_id', $campaignId);
+        }
+
+        return response()->json($query->paginate($request->input('per_page', 50)));
+    }
+
+    /**
+     * GET /api/ads/ads
+     */
+    public function ads(Request $request): JsonResponse
+    {
+        $query = AdsAd::query()->orderByDesc('updated_at');
+
+        if ($platform = $request->input('platform')) {
+            $query->where('platform', $platform);
+        }
+        if ($accountId = $request->input('account_id')) {
+            $query->where('account_id', $accountId);
+        }
+        if ($adsetId = $request->input('adset_id')) {
+            $query->where('ad_set_id', $adsetId);
+        }
+
+        return response()->json($query->paginate($request->input('per_page', 50)));
+    }
+
+    /**
      * GET /api/ads/insights
      */
     public function insights(Request $request): JsonResponse
@@ -124,6 +166,18 @@ class AdsInsightsController
             'action' => 'required|string|in:campaigns,insights',
             'days' => 'nullable|integer|min:1|max:90',
         ]);
+
+        $account = AdsPlatformAccount::where('platform', $validated['platform'])
+            ->where('account_id', $validated['account_id'])
+            ->where('is_active', true)
+            ->first();
+
+        if (! $account) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Ads platform account not found or inactive.',
+            ], 404);
+        }
 
         match ($validated['action']) {
             'campaigns' => SyncCampaignStructureJob::dispatch(

@@ -84,9 +84,9 @@ final class TikTokInsightsReader implements AdsReadPort
         $tikTokDates = $dateRange->toTikTokDates();
 
         $dataLevel = match ($level) {
-            'ad' => 'AUCTION_AD',
-            'adset', 'adgroup' => 'AUCTION_ADGROUP',
-            default => 'AUCTION_CAMPAIGN',
+            'ad' => 'AD',
+            'adset', 'adgroup' => 'ADGROUP',
+            default => 'CAMPAIGN',
         };
 
         $dimensions = match ($level) {
@@ -101,6 +101,7 @@ final class TikTokInsightsReader implements AdsReadPort
 
         $params = [
             'advertiser_id' => $advertiserId,
+            'service_type' => (string) config('ads_platforms.tiktok.insights.service_type', 'AUCTION'),
             'report_type' => 'BASIC',
             'data_level' => $dataLevel,
             'dimensions' => json_encode($dimensions),
@@ -134,10 +135,14 @@ final class TikTokInsightsReader implements AdsReadPort
 
     private function defaultMetrics(): array
     {
+        $cfg = config('ads_platforms.tiktok.insights.metrics');
+        if (is_array($cfg) && ! empty($cfg)) {
+            return $cfg;
+        }
+
         return [
             'spend', 'impressions', 'clicks', 'reach',
             'conversion', 'cost_per_conversion', 'conversion_rate',
-            'total_complete_payment_rate', 'complete_payment',
             'video_play_actions', 'video_watched_6s',
         ];
     }
@@ -158,6 +163,21 @@ final class TikTokInsightsReader implements AdsReadPort
             $date = substr($date, 0, 10);
         }
 
+        $conversionKeys = config('ads_platforms.tiktok.insights.conversion_metric_keys', ['conversion']);
+        if (! is_array($conversionKeys)) {
+            $conversionKeys = ['conversion'];
+        }
+
+        $leadKeys = config('ads_platforms.tiktok.insights.lead_metric_keys', []);
+        if (! is_array($leadKeys)) {
+            $leadKeys = [];
+        }
+
+        $revenueKeys = config('ads_platforms.tiktok.insights.revenue_metric_keys', []);
+        if (! is_array($revenueKeys)) {
+            $revenueKeys = [];
+        }
+
         return [
             'entity_id' => $entityId,
             'date_start' => $date,
@@ -165,9 +185,10 @@ final class TikTokInsightsReader implements AdsReadPort
             'impressions' => (int) ($metrics['impressions'] ?? 0),
             'clicks' => (int) ($metrics['clicks'] ?? 0),
             'spend' => (float) ($metrics['spend'] ?? 0),
-            'spend_currency' => 'USD',
-            'conversions' => (int) ($metrics['conversion'] ?? $metrics['complete_payment'] ?? 0),
-            'revenue' => (float) ($metrics['total_complete_payment_rate'] ?? 0),
+            'spend_currency' => (string) config('ads_platforms.default_normalized_currency', 'USD'),
+            'conversions' => $this->firstIntMetric($metrics, $conversionKeys, 0),
+            'leads' => $this->firstIntMetric($metrics, $leadKeys, 0),
+            'revenue' => $this->firstFloatMetric($metrics, $revenueKeys, 0.0),
             'video_views' => (int) ($metrics['video_play_actions'] ?? 0),
             'reach' => (int) ($metrics['reach'] ?? 0),
             'raw_metrics' => $metrics,
@@ -177,5 +198,35 @@ final class TikTokInsightsReader implements AdsReadPort
     private function resolveAdvertiserId(string $accountId): string
     {
         return config('ads_platforms.tiktok.advertiser_id') ?: $accountId;
+    }
+
+    /**
+     * @param  array<string, mixed>  $metrics
+     * @param  string[]  $keys
+     */
+    private function firstIntMetric(array $metrics, array $keys, int $default): int
+    {
+        foreach ($keys as $k) {
+            if ($k !== '' && array_key_exists($k, $metrics) && is_numeric($metrics[$k])) {
+                return (int) $metrics[$k];
+            }
+        }
+
+        return $default;
+    }
+
+    /**
+     * @param  array<string, mixed>  $metrics
+     * @param  string[]  $keys
+     */
+    private function firstFloatMetric(array $metrics, array $keys, float $default): float
+    {
+        foreach ($keys as $k) {
+            if ($k !== '' && array_key_exists($k, $metrics) && is_numeric($metrics[$k])) {
+                return (float) $metrics[$k];
+            }
+        }
+
+        return $default;
     }
 }

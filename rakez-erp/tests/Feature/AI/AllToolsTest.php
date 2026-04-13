@@ -37,9 +37,10 @@ class AllToolsTest extends TestCase
             'sales.dashboard.view',
             'marketing.dashboard.view',
             'marketing.tasks.view',
-            'hr.view',
+            'hr.dashboard.view',
             'second_party_data.view',
             'ai-calls.manage',
+            'sales.reservations.view',
         ];
 
         foreach ($permissions as $perm) {
@@ -52,7 +53,7 @@ class AllToolsTest extends TestCase
         $this->regularUser = User::factory()->create();
     }
 
-    public function test_all_17_tools_are_registered(): void
+    public function test_all_exposed_tools_are_registered(): void
     {
         $names = $this->registry->registeredNames();
 
@@ -69,10 +70,6 @@ class AllToolsTest extends TestCase
             'tool_finance_calculator',
             'tool_marketing_analytics',
             'tool_sales_advisor',
-            'tool_smart_distribution',
-            'tool_employee_recommendation',
-            'tool_campaign_funnel',
-            'tool_roas_optimizer',
             'tool_ai_call_status',
         ];
 
@@ -123,7 +120,8 @@ class AllToolsTest extends TestCase
             'lead_id' => 99999,
         ]);
 
-        $this->assertStringContainsString('not found', $result['result']['error']);
+        $this->assertSame('invalid_arguments', $result['result']['status'] ?? null);
+        $this->assertStringContainsString('not found', $result['result']['error'] ?? '');
     }
 
     public function test_kpi_sales_tool(): void
@@ -180,7 +178,7 @@ class AllToolsTest extends TestCase
 
         $data = $result['result']['data'];
         $this->assertArrayHasKey('estimated_leads', $data);
-        $this->assertArrayHasKey('avg_cpl', $data);
+        $this->assertArrayHasKey('avg_cpl_used', $data);
     }
 
     public function test_hiring_advisor_tool(): void
@@ -193,32 +191,60 @@ class AllToolsTest extends TestCase
 
         $data = $result['result']['data'];
         $this->assertArrayHasKey('profile', $data);
-        $this->assertArrayHasKey('team_recommendation', $data);
+        $this->assertSame('static_knowledge', $data['data_source'] ?? null);
+        $this->assertNotEmpty($data['warnings'] ?? []);
     }
 
-    public function test_sales_advisor_tool(): void
+    public function test_sales_advisor_reservation_momentum(): void
+    {
+        $result = $this->registry->execute($this->adminUser, 'tool_sales_advisor', [
+            'topic' => 'reservation_momentum',
+            'date_from' => '2020-01-01',
+            'date_to' => now()->toDateString(),
+            'contract_id' => null,
+            'sales_reservation_id' => null,
+        ]);
+
+        $data = $result['result']['data'];
+        $this->assertSame('success', $data['status'] ?? null);
+        $this->assertArrayHasKey('total_reservations', $data);
+    }
+
+    public function test_sales_advisor_rejects_legacy_topic(): void
     {
         $result = $this->registry->execute($this->adminUser, 'tool_sales_advisor', [
             'topic' => 'closing_tips',
-            'project_type' => 'on_map',
+            'date_from' => null,
+            'date_to' => null,
+            'contract_id' => null,
+            'sales_reservation_id' => null,
         ]);
 
-        $data = $result['result']['data'];
-        $this->assertArrayHasKey('tips', $data);
+        $this->assertSame('unsupported_operation', $result['result']['status'] ?? null);
     }
 
-    public function test_sales_advisor_performance_diagnosis(): void
+    public function test_finance_calculator_rejects_unknown_type(): void
     {
-        $result = $this->registry->execute($this->adminUser, 'tool_sales_advisor', [
-            'topic' => 'performance_diagnosis',
-            'close_rate' => 3.0,
-            'calls_per_day' => 10,
-            'visit_rate' => 5.0,
+        $result = $this->registry->execute($this->adminUser, 'tool_finance_calculator', [
+            'calculation_type' => 'not_a_real_type',
+            'unit_price' => 1,
+            'down_payment_percent' => 10,
+            'annual_rate' => 5,
+            'years' => 25,
+            'sale_price' => 1,
+            'commission_rate' => 2,
+            'agent_count' => 1,
+            'leader_share_percent' => 0,
+            'total_units' => 1,
+            'avg_unit_price' => 1,
+            'sold_units' => 0,
+            'marketing_spend' => 0,
+            'operational_cost' => 0,
+            'installments' => 12,
+            'grace_period' => false,
         ]);
 
-        $data = $result['result']['data'];
-        $this->assertNotEmpty($data['issues_found']);
-        $this->assertNotEmpty($data['recommendations']);
+        $this->assertSame('unsupported_operation', $result['result']['status'] ?? null);
     }
 
     public function test_rag_search_tool_with_mock(): void
@@ -233,10 +259,12 @@ class AllToolsTest extends TestCase
         $result = $this->registry->execute($this->adminUser, 'tool_rag_search', [
             'query' => 'test query',
             'limit' => 5,
+            'filters' => null,
         ]);
 
         $this->assertArrayHasKey('result', $result);
         // No documents seeded, so should return empty matches
+        $this->assertSame('insufficient_data', $result['result']['data']['status'] ?? null);
         $this->assertEquals(0, $result['result']['data']['total_found']);
     }
 

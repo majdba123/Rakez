@@ -12,7 +12,7 @@ class CommissionPolicy
      */
     public function viewAny(User $user): bool
     {
-        return $user->hasAnyRole(['admin', 'sales_manager', 'accountant']);
+        return $user->hasAnyRole(['admin', 'sales_leader', 'accountant']);
     }
 
     /**
@@ -21,7 +21,7 @@ class CommissionPolicy
     public function view(User $user, Commission $commission): bool
     {
         // Admin, sales manager, and accountant can view all
-        if ($user->hasAnyRole(['admin', 'sales_manager', 'accountant'])) {
+        if ($user->hasAnyRole(['admin', 'sales_leader', 'accountant'])) {
             return true;
         }
 
@@ -34,7 +34,7 @@ class CommissionPolicy
      */
     public function create(User $user): bool
     {
-        return $user->hasAnyRole(['admin', 'sales_manager']);
+        return $user->hasAnyRole(['admin', 'sales_leader']);
     }
 
     /**
@@ -47,7 +47,7 @@ class CommissionPolicy
         return false;
         }
 
-        return $user->hasAnyRole(['admin', 'sales_manager']);
+        return $user->hasAnyRole(['admin', 'sales_leader']);
     }
 
     /**
@@ -68,7 +68,7 @@ class CommissionPolicy
      */
     public function approve(User $user, Commission $commission): bool
     {
-        return $user->hasAnyRole(['admin', 'sales_manager']);
+        return $user->hasAnyRole(['admin', 'sales_leader']);
     }
 
     /**

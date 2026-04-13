@@ -49,6 +49,20 @@ class MarketingTaskService
         return $task;
     }
 
+    public function updateTask(int $taskId, array $data): MarketingTask
+    {
+        $task = MarketingTask::findOrFail($taskId);
+        $task->update($data);
+
+        return $task->fresh();
+    }
+
+    public function deleteTask(int $taskId): void
+    {
+        $task = MarketingTask::findOrFail($taskId);
+        $task->delete();
+    }
+
     public function getTaskAchievementRate($userId, $date = null)
     {
         $query = MarketingTask::where('marketer_id', $userId);

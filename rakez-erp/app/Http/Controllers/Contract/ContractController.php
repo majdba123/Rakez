@@ -84,7 +84,7 @@ class ContractController extends Controller
 
     public function store(StoreContractRequest $request): JsonResponse
     {
-       // $this->authorize('create', Contract::class);
+        $this->authorize('create', Contract::class);
 
         try {
             $validated = $request->validated();
@@ -396,6 +396,9 @@ class ContractController extends Controller
     {
         try {
             $validated = $request->validated();
+            $contract = $this->contractService->getContractById($id, null);
+
+            $this->authorize('update', $contract);
 
             $contract = $this->contractService->updateContractStatus($id, $validated['status']);
 
@@ -421,6 +424,10 @@ class ContractController extends Controller
                 'status.required' => 'الحالة مطلوبة',
                 'status.in' => 'الحالة يجب أن تكون: جاهز أو مرفوض',
             ]);
+
+            $contract = $this->contractService->getContractById($id, null);
+
+            $this->authorize('update', $contract);
 
             $contract = $this->contractService->updateContractStatusByProjectManagement($id, $request->status);
 

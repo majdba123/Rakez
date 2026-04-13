@@ -16,8 +16,21 @@ class ToolResponseTest extends TestCase
         $this->assertArrayHasKey('source_refs', $result);
         $this->assertEquals('tool_test', $result['result']['tool']);
         $this->assertEquals(['key' => 'value'], $result['result']['inputs']);
-        $this->assertEquals(['data' => 123], $result['result']['data']);
+        $this->assertSame('success', $result['result']['data']['status'] ?? null);
+        $this->assertSame('database', $result['result']['data']['data_source'] ?? null);
+        $this->assertEquals(123, $result['result']['data']['data']);
         $this->assertEmpty($result['source_refs']);
+    }
+
+    public function test_success_envelope_status_wins_over_conflicting_payload_keys(): void
+    {
+        $result = ToolResponse::success('tool_test', [], [
+            'status' => 'would_break_contract_if_merged_wrong',
+            'entity' => 'x',
+        ]);
+
+        $this->assertSame('success', $result['result']['data']['status'] ?? null);
+        $this->assertSame('x', $result['result']['data']['entity'] ?? null);
     }
 
     public function test_success_with_source_refs(): void
@@ -46,8 +59,9 @@ class ToolResponseTest extends TestCase
 
         $this->assertArrayHasKey('result', $result);
         $this->assertArrayHasKey('source_refs', $result);
+        $this->assertSame('denied', $result['result']['status'] ?? null);
         $this->assertFalse($result['result']['allowed']);
-        $this->assertStringContainsString('leads.view', $result['result']['error']);
+        $this->assertStringContainsString('الصلاحية', $result['result']['error']);
         $this->assertEquals('leads.view', $result['result']['required_permission']);
         $this->assertEmpty($result['source_refs']);
     }
@@ -88,7 +102,23 @@ class ToolResponseTest extends TestCase
     {
         $result = ToolResponse::error('Something went wrong');
 
+        $this->assertSame('error', $result['result']['status'] ?? null);
         $this->assertEquals('Something went wrong', $result['result']['error']);
         $this->assertEmpty($result['source_refs']);
+    }
+
+    public function test_invalid_arguments_returns_status(): void
+    {
+        $result = ToolResponse::invalidArguments('bad');
+
+        $this->assertSame('invalid_arguments', $result['result']['status'] ?? null);
+        $this->assertSame('bad', $result['result']['error']);
+    }
+
+    public function test_unsupported_operation_returns_status(): void
+    {
+        $result = ToolResponse::unsupportedOperation('nope');
+
+        $this->assertSame('unsupported_operation', $result['result']['status'] ?? null);
     }
 }

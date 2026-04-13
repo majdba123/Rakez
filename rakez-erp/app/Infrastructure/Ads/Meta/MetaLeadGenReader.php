@@ -121,6 +121,7 @@ final class MetaLeadGenReader
             'campaign_id' => (string) ($item['campaign_id'] ?? ''),
             'created_time' => $createdTime,
             'extra_data' => $byName,
+            'raw_payload' => $item,
         ];
     }
 

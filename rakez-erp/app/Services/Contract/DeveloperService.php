@@ -4,8 +4,9 @@ namespace App\Services\Contract;
 
 use App\Models\Contract;
 use App\Models\Team;
+use Illuminate\Contracts\Auth\Authenticatable;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Pagination\LengthAwarePaginator;
-use Illuminate\Support\Collection;
 
 class DeveloperService
 {
@@ -14,7 +15,7 @@ class DeveloperService
      * with their projects, units count, and teams. Access-scoped like contract index.
      */
     public function getDevelopers(
-        \Illuminate\Contracts\Auth\Authenticatable $user,
+        Authenticatable $user,
         ?string $search = null,
         int $perPage = 15,
         int $page = 1
@@ -51,57 +52,50 @@ class DeveloperService
     /**
      * Get one developer by developer_number (same shape as list item). Returns null if not found.
      */
-    public function getDeveloperByNumber(string $developerNumber, \Illuminate\Contracts\Auth\Authenticatable $user): ?array
+    public function getDeveloperByNumber(string $developerNumber, Authenticatable $user): ?array
     {
         $developerNumber = trim($developerNumber);
         if ($developerNumber === '') {
             return null;
         }
 
-        // Normalize: frontend may send "+" as "(" (e.g. %28) in URL path
-        $normalized = str_replace('(', '+', $developerNumber);
-        if ($normalized !== $developerNumber) {
-            $developerNumber = $normalized;
-        }
+        // Normalize: frontend may send "+" as "(" (e.g. %28) in URL path.
+        $developerNumber = str_replace('(', '+', $developerNumber);
 
         $baseQuery = $this->buildContractBaseQuery($user, null);
-        $contract = $baseQuery
-            ->where('developer_number', $developerNumber)
-            ->select('id', 'developer_number', 'developer_name')
-            ->first();
 
-        // Fallback: try with/without leading + (e.g. 966112345005 vs +966112345005)
-        if (!$contract && !str_starts_with($developerNumber, '+')) {
-            $contract = $baseQuery
-                ->where('developer_number', '+' . $developerNumber)
-                ->select('id', 'developer_number', 'developer_name')
-                ->first();
-        } elseif (!$contract && str_starts_with($developerNumber, '+')) {
-            $contract = $baseQuery
-                ->where('developer_number', ltrim($developerNumber, '+'))
-                ->select('id', 'developer_number', 'developer_name')
-                ->first();
+        $candidateNumbers = [$developerNumber];
+        if (!str_starts_with($developerNumber, '+')) {
+            $candidateNumbers[] = '+' . $developerNumber;
+        } else {
+            $candidateNumbers[] = ltrim($developerNumber, '+');
         }
 
-        if (!$contract) {
-            return null;
+        foreach (array_unique($candidateNumbers) as $candidateNumber) {
+            $contract = (clone $baseQuery)
+                ->where('developer_number', $candidateNumber)
+                ->select('id', 'developer_number', 'developer_name')
+                ->first();
+
+            if ($contract) {
+                return $this->buildDeveloperItem(
+                    $contract->developer_number,
+                    $contract->developer_name,
+                    $user,
+                    (int) $contract->id
+                );
+            }
         }
 
-        return $this->buildDeveloperItem(
-            $contract->developer_number,
-            $contract->developer_name,
-            $user,
-            (int) $contract->id
-        );
+        return null;
     }
 
     /**
      * Get one developer by contract id (representative id for this developer). Same shape as getDeveloperByNumber.
      */
-    public function getDeveloperById(int $contractId, \Illuminate\Contracts\Auth\Authenticatable $user): ?array
+    public function getDeveloperById(int $contractId, Authenticatable $user): ?array
     {
-        $baseQuery = $this->buildContractBaseQuery($user, null);
-        $contract = $baseQuery
+        $contract = $this->buildContractBaseQuery($user, null)
             ->where('contracts.id', $contractId)
             ->select('id', 'developer_number', 'developer_name')
             ->first();
@@ -122,14 +116,12 @@ class DeveloperService
      * Base contract query with access control and optional search.
      */
     protected function buildContractBaseQuery(
-        \Illuminate\Contracts\Auth\Authenticatable $user,
+        Authenticatable $user,
         ?string $search = null
-    ): \Illuminate\Database\Eloquent\Builder {
-        $query = Contract::query()->where('status', 'completed');
+    ): Builder {
+        $query = Contract::query();
 
-        if ($user->can('contracts.view_all')) {
-            // no user filter
-        } else {
+        if (!$user->can('contracts.view_all')) {
             $query->where('user_id', $user->getAuthIdentifier());
         }
 
@@ -150,21 +142,19 @@ class DeveloperService
     protected function buildDeveloperItem(
         string $developerNumber,
         string $developerName,
-        \Illuminate\Contracts\Auth\Authenticatable $user,
+        Authenticatable $user,
         ?int $representativeId = null
     ): array {
-        $baseQuery = $this->buildContractBaseQuery($user, null);
-
-        $contracts = $baseQuery
+        $contracts = $this->buildContractBaseQuery($user, null)
             ->where('developer_number', $developerNumber)
             ->where('developer_name', $developerName)
-            ->with(['units', 'teams', 'user', 'city', 'district'])
+            ->with(['contractUnits', 'teams', 'user', 'city', 'district'])
             ->orderBy('project_name')
             ->get();
 
-        // contractUnits() relation (ContractUnit count); Contract has JSON `units` column — use contractUnits()
         $projects = $contracts->map(function (Contract $contract) {
-            $unitsCount = $contract->contractUnits()->count();
+            $unitsCount = $contract->contractUnits->count();
+
             return [
                 'id' => $contract->id,
                 'project_name' => $contract->project_name,
@@ -176,18 +166,18 @@ class DeveloperService
             ];
         })->values()->all();
 
-        $allTeamIds = $contracts->pluck('id')->toArray();
-        $teams = collect();
-        if (!empty($allTeamIds)) {
-            $teams = Team::query()
-                ->whereHas('contracts', function ($q) use ($allTeamIds) {
-                    $q->whereIn('contracts.id', $allTeamIds);
+        $contractIds = $contracts->pluck('id')->all();
+
+        $teams = empty($contractIds)
+            ? collect()
+            : Team::query()
+                ->whereHas('contracts', function ($q) use ($contractIds) {
+                    $q->whereIn('contracts.id', $contractIds);
                 })
                 ->get()
-                ->map(fn (Team $t) => ['id' => $t->id, 'name' => $t->name]);
-        }
+                ->map(fn (Team $team) => ['id' => $team->id, 'name' => $team->name]);
 
-        $unitsCount = $contracts->sum(fn (Contract $c) => $c->contractUnits()->count());
+        $unitsCount = $contracts->sum(fn (Contract $contract) => $contract->contractUnits->count());
 
         $item = [
             'developer_number' => $developerNumber,
@@ -197,9 +187,11 @@ class DeveloperService
             'units_count' => $unitsCount,
             'teams' => $teams->values()->all(),
         ];
+
         if ($representativeId !== null) {
             $item['id'] = $representativeId;
         }
+
         return $item;
     }
 }

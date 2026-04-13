@@ -24,6 +24,7 @@ class ChatRequest extends FormRequest
             'section' => ['nullable', 'string', Rule::in($sections)],
             'context' => ['nullable', 'array'],
             'stream' => ['nullable', 'boolean'],
+            'provider' => ['nullable', 'string', Rule::in(['openai', 'anthropic'])],
         ];
 
         // Add nested context validation rules

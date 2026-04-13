@@ -3,9 +3,11 @@
 namespace App\Http\Controllers\AI;
 
 use App\Http\Controllers\Controller;
+use App\Services\AI\AIAssistantService;
 use App\Services\AI\Exceptions\AiAssistantException;
 use App\Services\AI\Policy\RakizAiPolicyContextBuilder;
 use App\Services\AI\RakizAiOrchestrator;
+use App\Services\AI\Skills\SkillRuntime;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\StreamedResponse;
@@ -15,6 +17,8 @@ class AiV2Controller extends Controller
     public function __construct(
         private readonly RakizAiOrchestrator $orchestrator,
         private readonly RakizAiPolicyContextBuilder $policyContext,
+        private readonly AIAssistantService $assistantService,
+        private readonly SkillRuntime $skillRuntime,
     ) {}
 
     /**
@@ -24,9 +28,12 @@ class AiV2Controller extends Controller
     public function chat(Request $request): JsonResponse
     {
         $request->validate([
-            'message' => 'required|string|max:16000',
+            'message' => 'required_without:skill_key|string|max:16000',
             'session_id' => 'nullable|string|max:128',
             'page_context' => 'nullable|array',
+            'provider' => 'nullable|string|in:openai,anthropic',
+            'skill_key' => 'nullable|string|max:160',
+            'skill_input' => 'nullable|array',
         ]);
 
         $user = $request->user();
@@ -36,6 +43,28 @@ class AiV2Controller extends Controller
                 'success' => false,
                 'message' => 'You do not have permission to use the AI assistant.',
             ], 403);
+        }
+
+        $this->assistantService->ensureBudgetAvailable($user);
+
+        $skillKey = (string) $request->input('skill_key', '');
+        if ($skillKey !== '') {
+            $result = $this->skillRuntime->execute(
+                $user,
+                $skillKey,
+                (array) $request->input('skill_input', []),
+                [
+                    'correlation_id' => $request->header('X-Request-Id')
+                        ?? $request->header('X-Request-ID')
+                        ?? $request->header('X-Correlation-Id')
+                        ?? $request->header('X-Correlation-ID'),
+                ],
+            );
+
+            return response()->json([
+                'success' => true,
+                'data' => $result,
+            ]);
         }
 
         ['message' => $message, 'section' => $section, 'policy_snapshot' => $policySnapshot] = $this->preparePolicyContext($request, $user);
@@ -72,12 +101,71 @@ class AiV2Controller extends Controller
     public function stream(Request $request): StreamedResponse
     {
         $request->validate([
-            'message' => 'required|string|max:16000',
+            'message' => 'required_without:skill_key|string|max:16000',
             'session_id' => 'nullable|string|max:128',
             'page_context' => 'nullable|array',
+            'provider' => 'nullable|string|in:openai,anthropic',
+            'skill_key' => 'nullable|string|max:160',
+            'skill_input' => 'nullable|array',
         ]);
 
         $user = $request->user();
+        $this->assistantService->ensureBudgetAvailable($user);
+
+        $skillKey = (string) $request->input('skill_key', '');
+        if ($skillKey !== '') {
+            return new StreamedResponse(function () use ($request, $user, $skillKey) {
+                if (! $user->can('use-ai-assistant')) {
+                    echo 'data: '.json_encode([
+                        'error' => true,
+                        'message' => 'You do not have permission to use the AI assistant.',
+                    ])."\n\n";
+                    echo "data: [DONE]\n\n";
+                    flush();
+
+                    return;
+                }
+
+                try {
+                    $result = $this->skillRuntime->execute(
+                        $user,
+                        $skillKey,
+                        (array) $request->input('skill_input', []),
+                        [
+                            'correlation_id' => $request->header('X-Request-Id')
+                                ?? $request->header('X-Request-ID')
+                                ?? $request->header('X-Correlation-Id')
+                                ?? $request->header('X-Correlation-ID'),
+                        ],
+                    );
+
+                    echo 'data: '.json_encode(['chunk' => $result], JSON_UNESCAPED_UNICODE)."\n\n";
+                    echo 'data: '.json_encode(['done' => true])."\n\n";
+                    echo "data: [DONE]\n\n";
+                } catch (AiAssistantException $e) {
+                    echo 'data: '.json_encode([
+                        'error' => true,
+                        'error_code' => $e->errorCode(),
+                        'message' => $e->getMessage(),
+                    ])."\n\n";
+                    echo "data: [DONE]\n\n";
+                } catch (\Throwable) {
+                    echo 'data: '.json_encode([
+                        'error' => true,
+                        'message' => 'An unexpected error occurred.',
+                    ])."\n\n";
+                    echo "data: [DONE]\n\n";
+                }
+
+                flush();
+            }, 200, [
+                'Content-Type' => 'text/event-stream',
+                'Cache-Control' => 'no-cache',
+                'Connection' => 'keep-alive',
+                'X-Accel-Buffering' => 'no',
+            ]);
+        }
+
         ['message' => $message, 'section' => $section, 'policy_snapshot' => $policySnapshot] = $this->preparePolicyContext($request, $user);
 
         return new StreamedResponse(function () use ($request, $user, $message, $section, $policySnapshot) {
@@ -163,6 +251,7 @@ class AiV2Controller extends Controller
                 [
                     'section' => $section,
                     'policy_snapshot' => $policySnapshot,
+                    'provider' => $request->input('provider'),
                 ]
             ),
         );

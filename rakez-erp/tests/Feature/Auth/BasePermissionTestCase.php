@@ -48,6 +48,7 @@ abstract class BasePermissionTestCase extends TestCase
 
         // Create roles with their permissions
         $roleMap = config('ai_capabilities.bootstrap_role_map', []);
+        $roleMap['admin'] = array_keys($definitions);
         foreach ($roleMap as $roleName => $permissions) {
             $role = Role::firstOrCreate(['name' => $roleName, 'guard_name' => 'web']);
             $role->syncPermissions($permissions);
@@ -388,3 +389,6 @@ abstract class BasePermissionTestCase extends TestCase
         $this->assertContains($response->status(), [200, 201]);
     }
 }
+
+
+

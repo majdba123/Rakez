@@ -20,7 +20,12 @@ use App\Http\Controllers\Contract\MontageDepartmentController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\Dashboard\ProjectManagementDashboardController;
 use App\Http\Controllers\AI\AIAssistantController;
+use App\Http\Controllers\AI\AssistantDraftController;
+use App\Http\Controllers\AI\VoiceAssistantController;
+use App\Http\Controllers\AI\SafeWriteActionController;
+use App\Http\Controllers\AI\RealtimeSessionController;
 use App\Http\Controllers\AI\AiV2Controller;
+use App\Http\Controllers\AI\AiSkillCatalogController;
 use App\Http\Controllers\AI\DocumentController;
 use App\Http\Controllers\Sales\SalesDashboardController;
 use App\Http\Controllers\Sales\SalesProjectController;
@@ -67,6 +72,10 @@ use App\Http\Controllers\AI\TwilioWebhookController;
 use App\Http\Controllers\Ads\AdsInsightsController;
 use App\Http\Controllers\Ads\AdsLeadsController;
 use App\Http\Controllers\Ads\AdsOutcomeController;
+use App\Http\Controllers\Ads\AdsExportsController;
+use App\Http\Controllers\Ads\AdsAccountsController;
+use App\Http\Controllers\Ads\AdsOpsController;
+use App\Http\Controllers\Ads\AdsReportingController;
 use App\Http\Controllers\Sales\NegotiationApprovalController;
 use App\Http\Controllers\Sales\PaymentPlanController;
 use App\Http\Controllers\HR\HrTeamController;
@@ -82,6 +91,7 @@ use App\Http\Controllers\MyTasksController;
 use App\Http\Controllers\TaskMetaController;
 use App\Http\Controllers\Admin\CityController;
 use App\Http\Controllers\Admin\DistrictController;
+use App\Http\Controllers\Access\AccessProfileController;
 
 use Illuminate\Support\Facades\File;  // أضف هذا السطر في الأعلى
 
@@ -102,6 +112,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/user', function (Request $request) {
         return $request->user();
     });
+    Route::get('/access/profile', [AccessProfileController::class, 'show']);
 
     Route::post('/logout', [LoginController::class, 'logout']);
 
@@ -127,12 +138,40 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/developers', [DeveloperController::class, 'index']);
     Route::get('/developers/{developer_number}', [DeveloperController::class, 'show']);
 
-    Route::prefix('ai')->middleware('throttle:ai-assistant')->group(function () {
+    Route::prefix('ai')->middleware(['throttle:ai-assistant', 'ai.assistant', 'ai.redact'])->group(function () {
         Route::post('/ask', [AIAssistantController::class, 'ask']);
         Route::post('/chat', [AIAssistantController::class, 'chat']);
+        Route::post('/voice/chat', [VoiceAssistantController::class, 'chat']);
+        Route::prefix('realtime')->group(function () {
+            Route::post('/sessions', [RealtimeSessionController::class, 'create'])->middleware('throttle:ai-realtime-create');
+            Route::get('/sessions/{session}', [RealtimeSessionController::class, 'show']);
+            Route::post('/sessions/{session}/start', [RealtimeSessionController::class, 'start'])->middleware('throttle:ai-realtime-control');
+            Route::post('/sessions/{session}/heartbeat', [RealtimeSessionController::class, 'heartbeat'])->middleware('throttle:ai-realtime-control');
+            Route::post('/sessions/{session}/listening', [RealtimeSessionController::class, 'listening'])->middleware('throttle:ai-realtime-control');
+            Route::post('/sessions/{session}/partial-transcript', [RealtimeSessionController::class, 'partialTranscript'])->middleware('throttle:ai-realtime-control');
+            Route::post('/sessions/{session}/thinking', [RealtimeSessionController::class, 'thinking'])->middleware('throttle:ai-realtime-control');
+            Route::post('/sessions/{session}/speaking', [RealtimeSessionController::class, 'speaking'])->middleware('throttle:ai-realtime-control');
+            Route::post('/sessions/{session}/tool-start', [RealtimeSessionController::class, 'toolStart'])->middleware('throttle:ai-realtime-control');
+            Route::post('/sessions/{session}/tool-finish', [RealtimeSessionController::class, 'toolFinish'])->middleware('throttle:ai-realtime-control');
+            Route::post('/sessions/{session}/interrupt', [RealtimeSessionController::class, 'interrupt'])->middleware('throttle:ai-realtime-control');
+            Route::post('/sessions/{session}/reconnect', [RealtimeSessionController::class, 'reconnect'])->middleware('throttle:ai-realtime-control');
+            Route::post('/sessions/{session}/client-events', [RealtimeSessionController::class, 'clientEvent'])->middleware('throttle:ai-realtime-control');
+            Route::post('/sessions/{session}/bridge/start', [RealtimeSessionController::class, 'bridgeStart'])->middleware('throttle:ai-realtime-control');
+            Route::post('/sessions/{session}/bridge/stop', [RealtimeSessionController::class, 'bridgeStop'])->middleware('throttle:ai-realtime-control');
+            Route::post('/sessions/{session}/rollback', [RealtimeSessionController::class, 'rollback'])->middleware('throttle:ai-realtime-control');
+            Route::post('/sessions/{session}/terminate', [RealtimeSessionController::class, 'terminate'])->middleware('throttle:ai-realtime-control');
+        });
+        Route::get('/drafts/flows', [AssistantDraftController::class, 'flows']);
+        Route::post('/drafts/prepare', [AssistantDraftController::class, 'prepare']);
+        Route::get('/write-actions/catalog', [SafeWriteActionController::class, 'catalog']);
+        Route::post('/write-actions/propose', [SafeWriteActionController::class, 'propose']);
+        Route::post('/write-actions/preview', [SafeWriteActionController::class, 'preview']);
+        Route::post('/write-actions/confirm', [SafeWriteActionController::class, 'confirm']);
+        Route::post('/write-actions/reject', [SafeWriteActionController::class, 'reject']);
         Route::get('/conversations', [AIAssistantController::class, 'conversations']);
         Route::delete('/conversations/{sessionId}', [AIAssistantController::class, 'deleteSession']);
         Route::get('/sections', [AIAssistantController::class, 'sections']);
+        Route::get('/skills', [AiSkillCatalogController::class, 'index']);
 
         // Tool orchestrator (no /v2/ in URL — stable for frontend). Legacy /v2/* aliases kept for compatibility.
         Route::prefix('tools')->group(function () {
@@ -732,9 +771,14 @@ Route::prefix('accounting')->middleware(['auth:sanctum', 'role:accounting|admin'
     Route::post('deposits/{id}/refund', [AccountingDepositController::class, 'refund'])->middleware('permission:accounting.deposits.manage');
 
     // Down payment confirmations
-    Route::get('pending-confirmations', [AccountingConfirmationController::class, 'index'])->middleware('permission:accounting.deposits.view');
-    Route::get('confirmations/history', [AccountingConfirmationController::class, 'history'])->middleware('permission:accounting.deposits.view');
-    Route::post('confirmations/{id}/confirm', [AccountingConfirmationController::class, 'confirm'])->middleware('permission:accounting.deposits.manage');
+    Route::get('pending-confirmations', [AccountingConfirmationController::class, 'index'])
+        ->middleware('permission:accounting.deposits.view|accounting.down_payment.confirm');
+    Route::get('confirmations/history', [AccountingConfirmationController::class, 'history'])
+        ->middleware('permission:accounting.deposits.view|accounting.down_payment.confirm');
+    Route::post('confirm/{id}', [AccountingConfirmationController::class, 'confirm'])
+        ->middleware('permission:accounting.deposits.manage|accounting.down_payment.confirm');
+    Route::post('confirmations/{id}/confirm', [AccountingConfirmationController::class, 'confirm'])
+        ->middleware('permission:accounting.deposits.manage|accounting.down_payment.confirm');
 
     // Salary management
     Route::get('salaries', [AccountingSalaryController::class, 'index'])->middleware('permission:accounting.salaries.view');
@@ -837,8 +881,9 @@ Route::prefix('ai/knowledge')->middleware(['auth:sanctum', 'role:admin'])->group
     Route::delete('/{id}', [AssistantKnowledgeController::class, 'destroy']);
 });
 
-// Assistant Chat (all authenticated users)
-Route::post('/ai/assistant/chat', [AssistantChatController::class, 'chat'])->middleware(['auth:sanctum']);
+// Assistant Chat shares the same AI access controls as the main assistant.
+Route::post('/ai/assistant/chat', [AssistantChatController::class, 'chat'])
+    ->middleware(['auth:sanctum', 'throttle:ai-assistant', 'ai.assistant', 'ai.redact']);
 
 // ==========================================
 // TWILIO WEBHOOKS (Signed by Twilio - no user auth)
@@ -853,11 +898,31 @@ Route::prefix('webhooks/twilio')->middleware([\App\Http\Middleware\ValidateTwili
 // ADS PLATFORM ROUTES
 Route::prefix('ads')->middleware(['auth:sanctum', 'role:admin|marketing'])->group(function () {
     Route::get('accounts', [AdsInsightsController::class, 'accounts'])->middleware('permission:marketing.ads.view');
+    Route::post('accounts', [AdsAccountsController::class, 'upsert'])->middleware('permission:marketing.ads.manage');
+    Route::patch('accounts/{id}', [AdsAccountsController::class, 'update'])->middleware('permission:marketing.ads.manage')->whereNumber('id');
+    Route::post('accounts/{id}/refresh', [AdsAccountsController::class, 'refresh'])->middleware('permission:marketing.ads.manage')->whereNumber('id');
+    Route::post('accounts/{id}/test', [AdsAccountsController::class, 'test'])->middleware('permission:marketing.ads.manage')->whereNumber('id');
     Route::get('campaigns', [AdsInsightsController::class, 'campaigns'])->middleware('permission:marketing.ads.view');
+    Route::get('adsets', [AdsInsightsController::class, 'adSets'])->middleware('permission:marketing.ads.view');
+    Route::get('ads', [AdsInsightsController::class, 'ads'])->middleware('permission:marketing.ads.view');
     Route::get('insights', [AdsInsightsController::class, 'insights'])->middleware('permission:marketing.ads.view');
     Route::get('leads', [AdsLeadsController::class, 'index'])->middleware('permission:marketing.ads.view');
+    Route::get('leads/stored', [AdsLeadsController::class, 'stored'])->middleware('permission:marketing.ads.view');
     Route::get('leads/export', [AdsLeadsController::class, 'export'])->middleware('permission:marketing.ads.view');
     Route::post('leads/export-snap', [AdsLeadsController::class, 'exportSnap'])->middleware('permission:marketing.ads.view');
+    Route::post('leads/sync', [AdsLeadsController::class, 'triggerSync'])->middleware('permission:marketing.ads.manage');
+
+    Route::get('exports', [AdsExportsController::class, 'index'])->middleware('permission:marketing.ads.view');
+    Route::post('exports/leads', [AdsExportsController::class, 'createLeadsCsv'])->middleware('permission:marketing.ads.view');
+    Route::get('exports/{id}', [AdsExportsController::class, 'show'])->middleware('permission:marketing.ads.view')->whereNumber('id');
+    Route::get('exports/{id}/download', [AdsExportsController::class, 'download'])->middleware('permission:marketing.ads.view')->whereNumber('id');
+
+    Route::get('ops/sync-runs', [AdsOpsController::class, 'syncRuns'])->middleware('permission:marketing.ads.manage');
+
+    Route::get('reports/platform-performance', [AdsReportingController::class, 'platformPerformance'])->middleware('permission:marketing.ads.view');
+    Route::get('reports/campaign-performance', [AdsReportingController::class, 'campaignPerformance'])->middleware('permission:marketing.ads.view');
+    Route::get('reports/daily-trend', [AdsReportingController::class, 'dailyTrend'])->middleware('permission:marketing.ads.view');
+
     Route::post('sync', [AdsInsightsController::class, 'triggerSync'])->middleware('permission:marketing.ads.manage');
     Route::post('outcomes', [AdsOutcomeController::class, 'store'])->middleware('permission:marketing.ads.manage');
     Route::get('outcomes/status', [AdsOutcomeController::class, 'status'])->middleware('permission:marketing.ads.view');

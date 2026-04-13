@@ -15,13 +15,13 @@ class GetLeadSummaryTool implements ToolContract
 
         $leadId = $args['lead_id'] ?? null;
         if (! $leadId) {
-            return ToolResponse::error('lead_id is required.');
+            return ToolResponse::invalidArguments('lead_id is required.');
         }
 
         $lead = Lead::with(['assignedTo', 'project', 'aiCalls'])->find($leadId);
 
         if (! $lead) {
-            return ToolResponse::error("Lead #{$leadId} not found.");
+            return ToolResponse::invalidArguments("Lead #{$leadId} not found.");
         }
 
         // Check ownership unless user has view_all
@@ -34,7 +34,7 @@ class GetLeadSummaryTool implements ToolContract
             'name' => $lead->name,
             'contact_info' => $lead->contact_info,
             'source' => $lead->source,
-            'status' => $lead->status,
+            'lead_status' => $lead->status,
             'lead_score' => $lead->lead_score,
             'campaign_platform' => $lead->campaign_platform,
             'assigned_to' => $lead->assignedTo?->name ?? 'غير معين',

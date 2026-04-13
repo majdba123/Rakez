@@ -1,6 +1,7 @@
 <?php
 
 use App\Models\User;
+use App\Models\AiRealtimeSession;
 use Illuminate\Support\Facades\Broadcast;
 
 /*
@@ -34,6 +35,16 @@ Broadcast::channel('conversation.{conversationId}', function (User $user, $conve
 
     // Check if user is part of this conversation
     return $conversation->hasUser($user->id);
+});
+
+Broadcast::channel('ai-realtime-session.{publicId}', function (User $user, string $publicId) {
+    $session = AiRealtimeSession::query()->where('public_id', $publicId)->first();
+
+    if (! $session) {
+        return false;
+    }
+
+    return (int) $session->user_id === (int) $user->id;
 });
 
 // Public channel - no authorization needed (handled automatically)

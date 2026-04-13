@@ -81,19 +81,20 @@ final class EloquentInsightStore implements InsightStorePort
             AdsInsightRow::updateOrCreate(
                 [
                     'platform' => $platform->value,
+                    'account_id' => $accountId,
+                    'level' => $level,
                     'entity_id' => $row['entity_id'],
                     'date_start' => $dateStart,
                     'date_stop' => $dateStop,
                     'breakdown_hash' => $row['breakdown_hash'] ?? 'none',
                 ],
                 [
-                    'account_id' => $accountId,
-                    'level' => $level,
                     'impressions' => $row['impressions'] ?? 0,
                     'clicks' => $row['clicks'] ?? 0,
                     'spend' => $row['spend'] ?? 0,
                     'spend_currency' => $row['spend_currency'] ?? 'USD',
                     'conversions' => $row['conversions'] ?? 0,
+                    'leads' => $row['leads'] ?? 0,
                     'revenue' => $row['revenue'] ?? 0,
                     'video_views' => $row['video_views'] ?? 0,
                     'reach' => $row['reach'] ?? 0,

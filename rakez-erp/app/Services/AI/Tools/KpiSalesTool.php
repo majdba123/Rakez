@@ -31,6 +31,10 @@ class KpiSalesTool implements ToolContract
         $cancelled = (clone $query)->where('status', 'cancelled')->count();
 
         $data = [
+            'summary' => 'Organization-wide reservation counts for users with sales.dashboard.view (not scoped to a single employee unless filtered elsewhere).',
+            'warnings' => [
+                'Counts include all sales_reservations visible to this permission scope (typically org-wide dashboard metrics).',
+            ],
             'period' => [
                 'from' => $dateFrom?->toDateString() ?? 'all_time',
                 'to' => $dateTo->toDateString(),

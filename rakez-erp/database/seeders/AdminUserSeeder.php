@@ -14,11 +14,12 @@ class AdminUserSeeder extends Seeder
 
         if (! $exists) {
             User::create([
-                'name' => 'مدير النظام',
+                'name' => 'System Administrator',
                 'email' => 'admin@rakez.com',
                 'phone' => '0500000000',
                 'password' => Hash::make('password'),
                 'type' => 'admin',
+                'is_manager' => false,
                 'is_active' => true,
             ]);
         }

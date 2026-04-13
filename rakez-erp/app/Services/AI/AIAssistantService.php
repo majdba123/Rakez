@@ -5,6 +5,7 @@ namespace App\Services\AI;
 use App\Events\AI\AiRequestCompleted;
 use App\Models\AIConversation;
 use App\Models\User;
+use App\Services\AI\Data\AiTextResponse;
 use App\Services\AI\Exceptions\AiAssistantDisabledException;
 use App\Services\AI\Exceptions\AiAssistantException;
 use App\Services\AI\Exceptions\AiBudgetExceededException;
@@ -25,7 +26,7 @@ class AIAssistantService
         private readonly SectionRegistry $sectionRegistry,
         private readonly SystemPromptBuilder $promptBuilder,
         private readonly ContextBuilder $contextBuilder,
-        private readonly OpenAIResponsesClient $openAIClient,
+        private readonly AiTextClientManager $textClient,
         private readonly ContextValidator $contextValidator,
         private readonly AccessExplanationEngine $explanationEngine,
         private readonly AiAuditService $auditService,
@@ -34,7 +35,7 @@ class AIAssistantService
         private readonly ?RakizAiOrchestrator $orchestrator = null,
     ) {}
 
-    public function ask(string $question, User $user, ?string $sectionKey = null, array $context = []): array
+    public function ask(string $question, User $user, ?string $sectionKey = null, array $context = [], array $runtime = []): array
     {
         $this->ensureEnabled();
 
@@ -66,17 +67,19 @@ class AIAssistantService
             ['role' => 'user', 'content' => $question],
         ];
 
-        $response = $this->openAIClient->createResponse($instructions, $messages, [
+        $provider = $runtime['provider'] ?? null;
+        $response = $this->textClient->createResponse($instructions, $messages, [
             'session_id' => $sessionId,
             'section' => $sectionKey,
             'user_id' => $user->id,
             'service' => 'ai_assistant.ask',
-        ]);
+            'correlation_id' => $runtime['correlation_id'] ?? null,
+        ], [], $provider);
 
-        $answer = $this->extractAssistantReply($response);
+        $answer = $response->text;
         $errorCode = null;
         if ($answer === '') {
-            $answer = 'I could not generate a response. Please try again.';
+            $answer = (string) config('ai_assistant.messages.empty_response', 'تعذّر إنشاء ردّ الآن. يُرجى إعادة المحاولة.');
             $errorCode = 'empty_response';
         }
 
@@ -105,13 +108,13 @@ class AIAssistantService
         return $payload;
     }
 
-    public function chat(string $message, User $user, ?string $sessionId, ?string $sectionKey = null, array $context = []): array
+    public function chat(string $message, User $user, ?string $sessionId, ?string $sectionKey = null, array $context = [], array $runtime = []): array
     {
         $this->ensureEnabled();
 
         // Fast-path: Access Explanation
         if ($explanation = $this->explanationEngine->explain($user, $message)) {
-            return $this->buildExplanationResponse($explanation, $user, $sectionKey, $sessionId);
+            return $this->buildExplanationResponse($explanation, $user, $sectionKey, $sessionId, $runtime);
         }
 
         $capabilities = $this->capabilityResolver->resolve($user);
@@ -153,7 +156,8 @@ class AIAssistantService
         );
         $instructions = $promptVersion['content'];
         if ($summary) {
-            $instructions .= "\n\nConversation summary:\n".$summary->message;
+            $summaryLabel = (string) config('ai_assistant.messages.conversation_summary_label', 'ملخص المحادثة:');
+            $instructions .= "\n\n{$summaryLabel}\n".$summary->message;
         }
 
         $messages = $recentMessages->map(fn (AIConversation $entry) => [
@@ -167,17 +171,19 @@ class AIAssistantService
             return $this->chatWithOrchestrator($message, $user, $sessionId, $sectionKey, $context, $capabilities, $promptVersion);
         }
 
-        $response = $this->openAIClient->createResponse($instructions, $messages, [
+        $provider = $runtime['provider'] ?? null;
+        $response = $this->textClient->createResponse($instructions, $messages, [
             'session_id' => $sessionId,
             'section' => $sectionKey,
             'user_id' => $user->id,
             'service' => 'ai_assistant.chat',
-        ]);
+            'correlation_id' => $runtime['correlation_id'] ?? null,
+        ], [], $provider);
 
-        $answer = $this->extractAssistantReply($response);
+        $answer = $response->text;
         $errorCode = null;
         if ($answer === '') {
-            $answer = 'I could not generate a response. Please try again.';
+            $answer = (string) config('ai_assistant.messages.empty_response', 'تعذّر إنشاء ردّ الآن. يُرجى إعادة المحاولة.');
             $errorCode = 'empty_response';
         }
 
@@ -186,7 +192,14 @@ class AIAssistantService
             'capabilities' => $capabilities,
             'prompt_version_id' => $promptVersion['version_id'],
         ]);
-        $assistantMessage = $this->storeAssistantMessage($user, $sessionId, $answer, $sectionKey, $response);
+        $assistantMessage = $this->storeAssistantMessage(
+            $user,
+            $sessionId,
+            $answer,
+            $sectionKey,
+            $response,
+            $runtime['correlation_id'] ?? null
+        );
 
         $this->summarizeConversationIfNeeded($user, $sessionId);
 
@@ -226,7 +239,7 @@ class AIAssistantService
      *
      * @return Generator<int, string>
      */
-    public function streamChat(string $message, User $user, ?string $sessionId, ?string $sectionKey = null, array $context = []): Generator
+    public function streamChat(string $message, User $user, ?string $sessionId, ?string $sectionKey = null, array $context = [], array $runtime = []): Generator
     {
         $this->ensureEnabled();
 
@@ -272,9 +285,15 @@ class AIAssistantService
             ->orderByDesc('created_at')
             ->first();
 
-        $instructions = $this->promptBuilder->build($user, $capabilities, $section, $contextSummary);
+        $promptVersion = $this->promptVersionManager->resolve(
+            'assistant.system',
+            $this->promptBuilder->build($user, $capabilities, $section, $contextSummary),
+            $user->id
+        );
+        $instructions = $promptVersion['content'];
         if ($summary) {
-            $instructions .= "\n\nConversation summary:\n".$summary->message;
+            $summaryLabel = (string) config('ai_assistant.messages.conversation_summary_label', 'ملخص المحادثة:');
+            $instructions .= "\n\n{$summaryLabel}\n".$summary->message;
         }
 
         $messages = $recentMessages->map(fn (AIConversation $entry) => [
@@ -284,9 +303,25 @@ class AIAssistantService
 
         $messages[] = ['role' => 'user', 'content' => $message];
 
+        if ($this->shouldUseOrchestrator($user, $sectionKey, $message)) {
+            yield from $this->streamChatWithOrchestrator(
+                $message,
+                $user,
+                $sessionId,
+                $sectionKey,
+                $context,
+                $capabilities,
+                $promptVersion,
+                $runtime
+            );
+
+            return;
+        }
+
         $this->storeMessage($user, $sessionId, 'user', $message, $sectionKey, [
             'context' => $context,
             'capabilities' => $capabilities,
+            'prompt_version_id' => $promptVersion['version_id'],
         ]);
 
         $metadata = [
@@ -294,14 +329,16 @@ class AIAssistantService
             'section' => $sectionKey,
             'user_id' => $user->id,
             'service' => 'ai_assistant.stream',
+            'correlation_id' => $runtime['correlation_id'] ?? null,
         ];
+        $provider = $runtime['provider'] ?? null;
 
         $fullAnswer = '';
         $streamed = false;
 
         // ── Try streaming first ──
         try {
-            foreach ($this->openAIClient->createStreamedResponse($instructions, $messages, $metadata) as $delta) {
+            foreach ($this->textClient->createStreamedResponse($instructions, $messages, $metadata, [], $provider) as $delta) {
                 $fullAnswer .= $delta;
                 $streamed = true;
                 yield 'data: '.json_encode(['chunk' => $delta], JSON_UNESCAPED_UNICODE)."\n\n";
@@ -317,11 +354,11 @@ class AIAssistantService
             // ── Fallback: synchronous full response ──
             if (! $streamed) {
                 try {
-                    $response = $this->openAIClient->createResponse($instructions, $messages, $metadata);
-                    $fullAnswer = $this->extractAssistantReply($response);
+                    $response = $this->textClient->createResponse($instructions, $messages, $metadata, [], $provider);
+                    $fullAnswer = $response->text;
 
                     if ($fullAnswer === '') {
-                        $fullAnswer = 'I could not generate a response. Please try again.';
+                        $fullAnswer = (string) config('ai_assistant.messages.empty_response', 'تعذّر إنشاء ردّ الآن. يُرجى إعادة المحاولة.');
                     }
 
                     yield 'data: '.json_encode(['chunk' => $fullAnswer], JSON_UNESCAPED_UNICODE)."\n\n";
@@ -352,7 +389,7 @@ class AIAssistantService
         }
 
         if ($fullAnswer === '') {
-            $fullAnswer = 'I could not generate a response. Please try again.';
+            $fullAnswer = (string) config('ai_assistant.messages.empty_response', 'تعذّر إنشاء ردّ الآن. يُرجى إعادة المحاولة.');
             yield 'data: '.json_encode(['chunk' => $fullAnswer], JSON_UNESCAPED_UNICODE)."\n\n";
         }
 
@@ -362,8 +399,12 @@ class AIAssistantService
             'role' => 'assistant',
             'message' => $fullAnswer,
             'section' => $sectionKey,
-            'metadata' => ['streamed' => $streamed],
-            'model' => config('ai_assistant.openai.model', 'gpt-4.1-mini'),
+            'metadata' => [
+                'streamed' => $streamed,
+                'provider' => $this->textClient->resolveProvider($provider),
+                'correlation_id' => $runtime['correlation_id'] ?? null,
+            ],
+            'model' => $this->textClient->defaultModelFor($provider),
         ]);
 
         $this->summarizeConversationIfNeeded($user, $sessionId);
@@ -385,6 +426,53 @@ class AIAssistantService
         yield "data: [DONE]\n\n";
     }
 
+    /**
+     * Tool-mode streaming currently emits a single final assistant chunk so that
+     * the streaming route respects the same policy/tool path as sync chat
+     * without introducing parallel or partial tool-call turns.
+     *
+     * @return Generator<int, string>
+     */
+    private function streamChatWithOrchestrator(
+        string $message,
+        User $user,
+        string $sessionId,
+        ?string $sectionKey,
+        array $context,
+        array $capabilities,
+        array $promptVersion,
+        array $runtime = [],
+    ): Generator {
+        $payload = $this->chatWithOrchestrator(
+            $message,
+            $user,
+            $sessionId,
+            $sectionKey,
+            $context,
+            $capabilities,
+            $promptVersion,
+            $runtime
+        );
+
+        yield 'data: '.json_encode([
+            'chunk' => $payload['message'],
+            'tool_mode' => true,
+        ], JSON_UNESCAPED_UNICODE)."\n\n";
+
+        yield 'data: '.json_encode([
+            'session_id' => $payload['session_id'],
+            'conversation_id' => $payload['conversation_id'],
+            'done' => true,
+            'tool_mode' => true,
+            'sources' => $payload['sources'] ?? [],
+            'links' => $payload['links'] ?? [],
+            'suggestions' => $payload['suggestions'] ?? [],
+            'meta' => $payload['meta'] ?? [],
+        ], JSON_UNESCAPED_UNICODE)."\n\n";
+
+        yield "data: [DONE]\n\n";
+    }
+
     private function chatWithOrchestrator(
         string $message,
         User $user,
@@ -393,6 +481,7 @@ class AIAssistantService
         array $context,
         array $capabilities,
         array $promptVersion,
+        array $runtime = [],
     ): array {
         if (! $this->orchestrator) {
             throw new AiAssistantException('AI tool orchestration is unavailable.', 'ai_provider_failed', 500);
@@ -424,7 +513,9 @@ class AIAssistantService
                 'section' => $section,
                 'policy_snapshot' => $policySnapshot,
             ]);
-            $result = $this->orchestrator->chat($user, $message, $sessionId, $pageContext);
+            $result = $this->orchestrator->chat($user, $message, $sessionId, array_merge($pageContext, [
+                'provider' => $runtime['provider'] ?? null,
+            ]));
             $result = $this->rakizPolicyContext->applySnapshotNormalization($result, $policySnapshot);
             $execMeta = $result['_execution_meta'] ?? [];
         }
@@ -444,6 +535,7 @@ class AIAssistantService
                 'follow_up_questions' => $result['follow_up_questions'] ?? [],
                 'access_notes' => $result['access_notes'] ?? [],
                 'correlation_id' => $execMeta['correlation_id'] ?? null,
+                'provider' => $execMeta['provider'] ?? ($runtime['provider'] ?? null),
             ],
             'model' => $execMeta['model'] ?? config('ai_assistant.v2.openai.model', config('ai_assistant.openai.model', 'gpt-4.1-mini')),
             'prompt_tokens' => $execMeta['prompt_tokens'] ?? null,
@@ -520,25 +612,6 @@ class AIAssistantService
             ->delete();
     }
 
-    private function extractAssistantReply($response): string
-    {
-        if (isset($response->output) && is_array($response->output)) {
-            foreach ($response->output as $output) {
-                if (($output->type ?? '') === 'message' && ($output->role ?? '') === 'assistant') {
-                    if (isset($output->content) && is_array($output->content)) {
-                        foreach ($output->content as $content) {
-                            if (($content->type ?? '') === 'output_text') {
-                                return $content->text ?? '';
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
-        return $response->outputText ?? '';
-    }
-
     public function availableSections(User $user): array
     {
         $this->ensureEnabled();
@@ -579,12 +652,16 @@ class AIAssistantService
         ]);
     }
 
-    private function storeAssistantMessage(User $user, string $sessionId, string $message, ?string $section, $response): AIConversation
+    private function storeAssistantMessage(
+        User $user,
+        string $sessionId,
+        string $message,
+        ?string $section,
+        AiTextResponse $response,
+        ?string $fallbackCorrelationId = null,
+    ): AIConversation
     {
-        $usage = $response->usage;
-        $meta = $response->meta();
-
-        $correlationId = $response->metadata['correlation_id'] ?? null;
+        $correlationId = $response->correlationId ?? $fallbackCorrelationId;
 
         return AIConversation::query()->create([
             'user_id' => $user->id,
@@ -593,15 +670,16 @@ class AIAssistantService
             'message' => $message,
             'section' => $section,
             'metadata' => [
-                'response_id' => $response->id,
+                'provider_response_id' => $response->responseId,
                 'correlation_id' => $correlationId,
+                'provider' => $response->provider,
             ],
             'model' => $response->model,
-            'prompt_tokens' => $usage?->inputTokens,
-            'completion_tokens' => $usage?->outputTokens,
-            'total_tokens' => $usage?->totalTokens,
-            'latency_ms' => $meta->openai->processingMs ?? null,
-            'request_id' => $meta->requestId ?? null,
+            'prompt_tokens' => $response->promptTokens,
+            'completion_tokens' => $response->completionTokens,
+            'total_tokens' => $response->totalTokens,
+            'latency_ms' => $response->latencyMs,
+            'request_id' => $response->requestId,
         ]);
     }
 
@@ -673,7 +751,7 @@ class AIAssistantService
             'Keep it concise and safe for internal use.',
         ]);
 
-        $response = $this->openAIClient->createResponse($instructions, $recent, [
+        $response = $this->textClient->createResponse($instructions, $recent, [
             'session_id' => $sessionId,
             'summary' => 'true',
             'service' => 'ai_assistant.summary',
@@ -683,15 +761,19 @@ class AIAssistantService
             'user_id' => $user->id,
             'session_id' => $sessionId,
             'role' => 'assistant',
-            'message' => $response->outputText ?? '',
+            'message' => $response->text,
             'section' => null,
-            'metadata' => ['summary' => true],
+            'metadata' => [
+                'summary' => true,
+                'provider' => $response->provider,
+                'correlation_id' => $response->correlationId,
+            ],
             'model' => $response->model,
-            'prompt_tokens' => $response->usage?->inputTokens,
-            'completion_tokens' => $response->usage?->outputTokens,
-            'total_tokens' => $response->usage?->totalTokens,
-            'latency_ms' => $response->meta()->openai->processingMs ?? null,
-            'request_id' => $response->meta()->requestId ?? null,
+            'prompt_tokens' => $response->promptTokens,
+            'completion_tokens' => $response->completionTokens,
+            'total_tokens' => $response->totalTokens,
+            'latency_ms' => $response->latencyMs,
+            'request_id' => $response->requestId,
             'is_summary' => true,
         ]);
     }
@@ -701,6 +783,12 @@ class AIAssistantService
         if (! config('ai_assistant.enabled')) {
             throw new AiAssistantDisabledException;
         }
+    }
+
+    public function ensureBudgetAvailable(User $user): void
+    {
+        $this->ensureEnabled();
+        $this->ensureWithinBudget($user);
     }
 
     private function ensureWithinBudget(User $user): void
@@ -722,13 +810,15 @@ class AIAssistantService
         }
     }
 
-    private function buildExplanationResponse(array $explanation, User $user, ?string $sectionKey, ?string $sessionId = null): array
+    private function buildExplanationResponse(array $explanation, User $user, ?string $sectionKey, ?string $sessionId = null, array $runtime = []): array
     {
         $sessionId = $sessionId ?: (string) Str::uuid();
+        $correlationId = $runtime['correlation_id'] ?? null;
 
         // Store the user message
         $this->storeMessage($user, $sessionId, 'user', 'Access Explanation Request', $sectionKey, [
             'explanation_result' => $explanation,
+            'correlation_id' => $correlationId,
         ]);
 
         return [
@@ -747,7 +837,7 @@ class AIAssistantService
                 'latency_ms' => 0,
                 'model' => 'deterministic_access_explainer',
                 'request_id' => null,
-                'correlation_id' => null,
+                'correlation_id' => $correlationId,
             ],
         ];
     }
@@ -762,6 +852,7 @@ class AIAssistantService
             'model' => $assistantMessage->model,
             'request_id' => $assistantMessage->request_id,
             'correlation_id' => $assistantMessage->metadata['correlation_id'] ?? null,
+            'provider' => $assistantMessage->metadata['provider'] ?? null,
         ], $extra);
     }
 
@@ -789,7 +880,7 @@ class AIAssistantService
             sessionId: $sessionId,
             section: $sectionKey,
             requestType: $requestType,
-            model: $assistantMessage->model ?? config('ai_assistant.openai.model', 'gpt-4.1-mini'),
+            model: $assistantMessage->model ?? $this->textClient->defaultModelFor(),
             promptTokens: (int) ($assistantMessage->prompt_tokens ?? 0),
             completionTokens: (int) ($assistantMessage->completion_tokens ?? 0),
             totalTokens: (int) ($assistantMessage->total_tokens ?? 0),

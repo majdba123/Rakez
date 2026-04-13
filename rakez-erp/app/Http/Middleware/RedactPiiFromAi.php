@@ -26,16 +26,19 @@ class RedactPiiFromAi
 
     public function handle(Request $request, Closure $next): Response
     {
-        // Only redact specific fields that go to AI
-        $fieldsToRedact = ['message', 'question'];
+        // Only redact fields that are known to flow into AI-facing prompts.
+        $fieldsToRedact = ['message', 'question', 'fallback_text'];
 
         foreach ($fieldsToRedact as $field) {
             if ($request->has($field)) {
-                $value = $request->input($field);
-                if (is_string($value)) {
-                    $request->merge([$field => $this->redact($value)]);
-                }
+                $request->merge([$field => $this->redactValue($request->input($field))]);
             }
+        }
+
+        if ($request->has('context')) {
+            $request->merge([
+                'context' => $this->redactValue($request->input('context')),
+            ]);
         }
 
         return $next($request);
@@ -51,5 +54,26 @@ class RedactPiiFromAi
         }
 
         return $text;
+    }
+
+    /**
+     * @return mixed
+     */
+    private function redactValue(mixed $value): mixed
+    {
+        if (is_string($value)) {
+            return $this->redact($value);
+        }
+
+        if (is_array($value)) {
+            $redacted = [];
+            foreach ($value as $key => $item) {
+                $redacted[$key] = $this->redactValue($item);
+            }
+
+            return $redacted;
+        }
+
+        return $value;
     }
 }

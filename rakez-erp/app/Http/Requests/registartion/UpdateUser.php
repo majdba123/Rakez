@@ -8,6 +8,15 @@ use Illuminate\Validation\Rule;
 
 class UpdateUser extends FormRequest
 {
+    protected function prepareForValidation(): void
+    {
+        if ($this->has('team') && ! $this->has('team_id')) {
+            $this->merge([
+                'team_id' => $this->input('team'),
+            ]);
+        }
+    }
+
     /**
      * Determine if the user is authorized to make this request.
      */
@@ -33,10 +42,9 @@ class UpdateUser extends FormRequest
                 'integer',
                 Rule::in(config('user_types.valid_ids', range(1, 13))),
                 function (string $attribute, mixed $value, \Closure $fail) {
-                    // Only admin can set employee type=admin (1)
                     if ((int) $value === 1) {
                         $user = Auth::user();
-                        if (!$user || $user->type !== 'admin') {
+                        if (! $user || $user->type !== 'admin') {
                             $fail('Only admin can set employee type to admin.');
                         }
                     }
@@ -44,12 +52,9 @@ class UpdateUser extends FormRequest
             ],
             'role' => 'nullable|string|exists:roles,name',
             'is_manager' => 'nullable|boolean',
-            // Profile fields
-            // Team should be a valid teams.id
-            'team' => 'sometimes|integer|exists:teams,id',
-            // Employee files
-            'cv' => 'sometimes|file|mimes:pdf,doc,docx|max:10240', // max 10MB
-            'contract' => 'sometimes|file|mimes:pdf,doc,docx|max:10240', // max 10MB
+            'team_id' => 'sometimes|integer|exists:teams,id',
+            'cv' => 'sometimes|file|mimes:pdf,doc,docx|max:10240',
+            'contract' => 'sometimes|file|mimes:pdf,doc,docx|max:10240',
             'identity_number' => 'sometimes|string|max:100|unique:users,identity_number,' . $this->route('id'),
             'birthday' => 'sometimes|date',
             'date_of_works' => 'sometimes|date',
@@ -68,17 +73,17 @@ class UpdateUser extends FormRequest
     public function messages(): array
     {
         return [
-            'name.string' => 'الاسم يجب أن يكون نصاً',
-            'name.max' => 'الاسم يجب ألا يتجاوز 255 حرفاً',
-            'email.email' => 'يجب إدخال بريد إلكتروني صحيح',
-            'email.unique' => 'البريد الإلكتروني مسجل مسبقاً',
-            'phone.string' => 'رقم الهاتف يجب أن يكون نصاً',
-            'phone.max' => 'رقم الهاتف يجب ألا يتجاوز 20 رقماً',
-            'password.min' => 'كلمة المرور يجب أن تكون على الأقل 6 أحرف',
-            'type.integer' => 'نوع المستخدم يجب أن يكون رقماً',
-            'type.between' => 'نوع المستخدم يجب أن يكون بين 1 و 13',
+            'name.string' => '????? ??? ?? ???? ????',
+            'name.max' => '????? ??? ??? ?????? 255 ?????',
+            'email.email' => '??? ????? ???? ???????? ????',
+            'email.unique' => '?????? ?????????? ???? ??????',
+            'phone.string' => '??? ?????? ??? ?? ???? ????',
+            'phone.max' => '??? ?????? ??? ??? ?????? 20 ?????',
+            'password.min' => '???? ?????? ??? ?? ???? ??? ????? 6 ????',
+            'type.integer' => '??? ???????? ??? ?? ???? ?????',
+            'type.between' => '??? ???????? ??? ?? ???? ??? 1 ? 13',
             'role.exists' => 'The selected role does not exist.',
-            'is_manager.boolean' => 'قيمة المدير يجب أن تكون صحيحة أو خاطئة',
+            'is_manager.boolean' => '???? ?????? ??? ?? ???? ????? ?? ?????',
         ];
     }
 }

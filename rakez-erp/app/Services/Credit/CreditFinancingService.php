@@ -7,6 +7,7 @@ use App\Models\CreditFinancingTracker;
 use App\Models\User;
 use App\Models\UserNotification;
 use App\Events\UserNotificationEvent;
+use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Support\Facades\DB;
 use Exception;
 
@@ -273,6 +274,25 @@ class CreditFinancingService
         ];
     }
 
+    public function getTrackerDetailsByReservationIdForAiSkill(int $reservationId, User $user): array
+    {
+        if (! $user->can('credit.bookings.view')) {
+            throw new AuthorizationException('Unauthorized to view credit financing details');
+        }
+
+        $tracker = CreditFinancingTracker::with(['reservation.contract', 'reservation.contractUnit', 'assignedUser'])
+            ->where('sales_reservation_id', $reservationId)
+            ->firstOrFail();
+
+        return [
+            'financing' => $tracker,
+            'progress_summary' => $tracker->getProgressSummary(),
+            'current_stage' => $tracker->getCurrentStage(),
+            'remaining_days' => $tracker->getRemainingDays(),
+            'all_completed' => $tracker->allStagesCompleted(),
+        ];
+    }
+
     /**
      * Notify about stage completion.
      */
@@ -339,6 +359,5 @@ class CreditFinancingService
         }
     }
 }
-
 
 

@@ -1,0 +1,901 @@
+<?php
+
+use App\Services\AI\Skills\Formatting\AnalysisSkillFormatter;
+use App\Services\AI\Skills\Formatting\DefaultSkillFormatter;
+use App\Services\AI\Skills\Formatting\DraftSkillFormatter;
+use App\Services\AI\Skills\Handlers\AiCallSkillHandler;
+use App\Services\AI\Skills\Handlers\CreditFinancingSkillHandler;
+use App\Services\AI\Skills\Handlers\DraftSkillHandler;
+use App\Services\AI\Skills\Handlers\NotificationDigestSkillHandler;
+use App\Services\AI\Skills\Handlers\SalesReservationSkillHandler;
+use App\Services\AI\Skills\Handlers\ToolBackedSkillHandler;
+use App\Services\AI\Skills\Handlers\WorkflowQueueSkillHandler;
+use App\Services\AI\Skills\Scope\AiCallRowScopeResolver;
+use App\Services\AI\Skills\Scope\CreditBookingReservationRowScopeResolver;
+use App\Services\AI\Skills\Scope\CreditReservationRowScopeResolver;
+use App\Services\AI\Skills\Scope\ContractRecordRowScopeResolver;
+use App\Services\AI\Skills\Scope\ContractProjectRowScopeResolver;
+use App\Services\AI\Skills\Scope\LeadRowScopeResolver;
+use App\Services\AI\Skills\Scope\NoopRowScopeResolver;
+use App\Services\AI\Skills\Scope\SalesReservationRowScopeResolver;
+
+return [
+    'enabled' => (bool) env('AI_SKILLS_ENABLED', true),
+
+    'section_aliases' => [
+        'finance' => 'accounting',
+        'marketing' => 'marketing_dashboard',
+    ],
+
+    'flags' => [
+        'sales_kpi_snapshot' => true,
+        'sales_kpi_analysis' => true,
+        'sales_reservation_summary' => true,
+        'sales_reservation_analysis' => true,
+        'credit_financing_summary' => true,
+        'credit_financing_analysis' => true,
+        'ai_calls_analytics_summary' => true,
+        'ai_calls_call_summary' => true,
+        'ai_calls_call_analysis' => true,
+        'workflow_queue_summary' => true,
+        'notifications_digest' => true,
+        'workflow_task_create_draft' => true,
+        'marketing_task_create_draft' => true,
+        'marketing_lead_create_draft' => true,
+        'sales_followup_action_draft' => true,
+        'credit_client_contact_draft' => true,
+        'marketing_dashboard_insights' => true,
+        'marketing_dashboard_analysis' => true,
+        'marketing_lead_summary' => true,
+        'marketing_lead_analysis' => true,
+        'contracts_project_summary' => true,
+        'contracts_project_analysis' => true,
+        'contracts_contract_status_summary' => true,
+        'contracts_contract_status_analysis' => true,
+        'knowledge_rag_search' => true,
+    ],
+
+    'definitions' => [
+        'sales.kpi_snapshot' => [
+            'skill_key' => 'sales.kpi_snapshot',
+            'section_key' => 'sales',
+            'title' => 'Sales KPI Snapshot',
+            'business_goal' => 'Provide an up-to-date KPI snapshot for sales performance.',
+            'category' => 'informational',
+            'type' => 'read',
+            'risk_level' => 'medium',
+            'required_permissions' => ['sales.dashboard.view'],
+            'required_capabilities' => ['sales.dashboard.view'],
+            'input_schema' => [
+                'date_from' => 'nullable|date',
+                'date_to' => 'nullable|date',
+                'group_by' => 'nullable|in:day,team',
+            ],
+            'row_scope' => [
+                'mode' => 'none',
+                'resolver' => NoopRowScopeResolver::class,
+            ],
+            'output_schema' => [
+                'type' => 'assistant.v2.default',
+            ],
+            'feature_flag' => 'ai_skills.flags.sales_kpi_snapshot',
+            'backend_dependencies' => ['tool_kpi_sales'],
+            'handler' => ToolBackedSkillHandler::class,
+            'formatter' => DefaultSkillFormatter::class,
+            'tool_name' => 'tool_kpi_sales',
+            'redaction' => [
+                'profile' => 'none',
+            ],
+            'audit' => [
+                'action' => 'skill_call',
+            ],
+        ],
+        'sales.kpi_analysis' => [
+            'skill_key' => 'sales.kpi_analysis',
+            'section_key' => 'sales',
+            'title' => 'Sales KPI Analysis',
+            'business_goal' => 'Analyze current sales KPI trends using live reservation data.',
+            'category' => 'analytical',
+            'type' => 'analysis',
+            'risk_level' => 'medium',
+            'required_permissions' => ['sales.dashboard.view'],
+            'required_capabilities' => ['sales.dashboard.view'],
+            'input_schema' => [
+                'date_from' => 'nullable|date',
+                'date_to' => 'nullable|date',
+                'group_by' => 'nullable|in:day,team',
+            ],
+            'row_scope' => [
+                'mode' => 'none',
+                'resolver' => NoopRowScopeResolver::class,
+            ],
+            'output_schema' => [
+                'type' => 'assistant.v2.analysis',
+            ],
+            'feature_flag' => 'ai_skills.flags.sales_kpi_analysis',
+            'backend_dependencies' => ['tool_kpi_sales'],
+            'handler' => ToolBackedSkillHandler::class,
+            'formatter' => AnalysisSkillFormatter::class,
+            'tool_name' => 'tool_kpi_sales',
+            'redaction' => [
+                'profile' => 'none',
+            ],
+            'audit' => [
+                'action' => 'skill_call',
+            ],
+        ],
+        'sales.reservation_summary' => [
+            'skill_key' => 'sales.reservation_summary',
+            'section_key' => 'sales_reservations',
+            'title' => 'Sales Reservation Summary',
+            'business_goal' => 'Retrieve a scoped reservation summary using live reservation data.',
+            'category' => 'informational',
+            'type' => 'read',
+            'risk_level' => 'high',
+            'required_permissions' => ['sales.reservations.view'],
+            'required_capabilities' => ['sales.reservations.view'],
+            'input_schema' => [
+                'reservation_id' => 'required|integer|min:1',
+            ],
+            'row_scope' => [
+                'mode' => 'record',
+                'required_inputs' => ['reservation_id'],
+                'resolver' => SalesReservationRowScopeResolver::class,
+            ],
+            'output_schema' => [
+                'type' => 'assistant.v2.default',
+            ],
+            'feature_flag' => 'ai_skills.flags.sales_reservation_summary',
+            'backend_dependencies' => ['sales_reservation_service'],
+            'handler' => SalesReservationSkillHandler::class,
+            'formatter' => DefaultSkillFormatter::class,
+            'redaction' => [
+                'profile' => 'credit_sensitive',
+            ],
+            'audit' => [
+                'action' => 'skill_call',
+            ],
+        ],
+        'sales.reservation_analysis' => [
+            'skill_key' => 'sales.reservation_analysis',
+            'section_key' => 'sales_reservations',
+            'title' => 'Sales Reservation Analysis',
+            'business_goal' => 'Analyze a scoped reservation using live negotiation, payment, and credit signals.',
+            'category' => 'analytical',
+            'type' => 'analysis',
+            'risk_level' => 'high',
+            'required_permissions' => ['sales.reservations.view'],
+            'required_capabilities' => ['sales.reservations.view'],
+            'input_schema' => [
+                'reservation_id' => 'required|integer|min:1',
+            ],
+            'row_scope' => [
+                'mode' => 'record',
+                'required_inputs' => ['reservation_id'],
+                'resolver' => SalesReservationRowScopeResolver::class,
+            ],
+            'output_schema' => [
+                'type' => 'assistant.v2.analysis',
+            ],
+            'feature_flag' => 'ai_skills.flags.sales_reservation_analysis',
+            'backend_dependencies' => ['sales_reservation_service'],
+            'handler' => SalesReservationSkillHandler::class,
+            'formatter' => AnalysisSkillFormatter::class,
+            'redaction' => [
+                'profile' => 'credit_sensitive',
+            ],
+            'audit' => [
+                'action' => 'skill_call',
+            ],
+        ],
+        'credit.financing_summary' => [
+            'skill_key' => 'credit.financing_summary',
+            'section_key' => 'credit_bookings',
+            'title' => 'Credit Financing Summary',
+            'business_goal' => 'Retrieve a scoped financing summary using live credit tracker data.',
+            'category' => 'informational',
+            'type' => 'read',
+            'risk_level' => 'high',
+            'required_permissions' => ['credit.bookings.view'],
+            'required_capabilities' => ['credit.bookings.view'],
+            'input_schema' => [
+                'reservation_id' => 'required|integer|min:1',
+            ],
+            'row_scope' => [
+                'mode' => 'record',
+                'required_inputs' => ['reservation_id'],
+                'resolver' => CreditReservationRowScopeResolver::class,
+            ],
+            'output_schema' => [
+                'type' => 'assistant.v2.default',
+            ],
+            'feature_flag' => 'ai_skills.flags.credit_financing_summary',
+            'backend_dependencies' => ['credit_financing_service'],
+            'handler' => CreditFinancingSkillHandler::class,
+            'formatter' => DefaultSkillFormatter::class,
+            'redaction' => [
+                'profile' => 'credit_sensitive',
+            ],
+            'audit' => [
+                'action' => 'skill_call',
+            ],
+        ],
+        'credit.financing_analysis' => [
+            'skill_key' => 'credit.financing_analysis',
+            'section_key' => 'credit_bookings',
+            'title' => 'Credit Financing Analysis',
+            'business_goal' => 'Analyze a scoped financing tracker using live stage and deadline data.',
+            'category' => 'analytical',
+            'type' => 'analysis',
+            'risk_level' => 'high',
+            'required_permissions' => ['credit.bookings.view'],
+            'required_capabilities' => ['credit.bookings.view'],
+            'input_schema' => [
+                'reservation_id' => 'required|integer|min:1',
+            ],
+            'row_scope' => [
+                'mode' => 'record',
+                'required_inputs' => ['reservation_id'],
+                'resolver' => CreditReservationRowScopeResolver::class,
+            ],
+            'output_schema' => [
+                'type' => 'assistant.v2.analysis',
+            ],
+            'feature_flag' => 'ai_skills.flags.credit_financing_analysis',
+            'backend_dependencies' => ['credit_financing_service'],
+            'handler' => CreditFinancingSkillHandler::class,
+            'formatter' => AnalysisSkillFormatter::class,
+            'redaction' => [
+                'profile' => 'credit_sensitive',
+            ],
+            'audit' => [
+                'action' => 'skill_call',
+            ],
+        ],
+        'ai_calls.analytics_summary' => [
+            'skill_key' => 'ai_calls.analytics_summary',
+            'section_key' => 'ai_calls',
+            'title' => 'AI Calls Analytics Summary',
+            'business_goal' => 'Retrieve aggregate AI calling analytics using live call history data.',
+            'category' => 'informational',
+            'type' => 'read',
+            'risk_level' => 'medium',
+            'required_permissions' => ['ai-calls.manage'],
+            'required_capabilities' => ['ai-calls.manage'],
+            'input_schema' => [
+                'date_from' => 'nullable|date',
+                'date_to' => 'nullable|date',
+            ],
+            'row_scope' => [
+                'mode' => 'none',
+                'resolver' => NoopRowScopeResolver::class,
+            ],
+            'output_schema' => [
+                'type' => 'assistant.v2.default',
+            ],
+            'feature_flag' => 'ai_skills.flags.ai_calls_analytics_summary',
+            'backend_dependencies' => ['ai_calling_service'],
+            'handler' => AiCallSkillHandler::class,
+            'formatter' => DefaultSkillFormatter::class,
+            'mode' => 'analytics',
+            'redaction' => [
+                'profile' => 'none',
+            ],
+            'audit' => [
+                'action' => 'skill_call',
+            ],
+        ],
+        'ai_calls.call_summary' => [
+            'skill_key' => 'ai_calls.call_summary',
+            'section_key' => 'ai_calls',
+            'title' => 'AI Call Summary',
+            'business_goal' => 'Retrieve a scoped AI call summary and transcript snapshot.',
+            'category' => 'informational',
+            'type' => 'read',
+            'risk_level' => 'high',
+            'required_permissions' => ['ai-calls.manage'],
+            'required_capabilities' => ['ai-calls.manage'],
+            'input_schema' => [
+                'call_id' => 'required|integer|min:1',
+            ],
+            'row_scope' => [
+                'mode' => 'record',
+                'required_inputs' => ['call_id'],
+                'resolver' => AiCallRowScopeResolver::class,
+            ],
+            'output_schema' => [
+                'type' => 'assistant.v2.default',
+            ],
+            'feature_flag' => 'ai_skills.flags.ai_calls_call_summary',
+            'backend_dependencies' => ['ai_calling_service'],
+            'handler' => AiCallSkillHandler::class,
+            'formatter' => DefaultSkillFormatter::class,
+            'mode' => 'call',
+            'redaction' => [
+                'profile' => 'pii_basic',
+            ],
+            'audit' => [
+                'action' => 'skill_call',
+            ],
+        ],
+        'ai_calls.call_analysis' => [
+            'skill_key' => 'ai_calls.call_analysis',
+            'section_key' => 'ai_calls',
+            'title' => 'AI Call Analysis',
+            'business_goal' => 'Analyze a scoped AI call using live transcript and outcome data.',
+            'category' => 'analytical',
+            'type' => 'analysis',
+            'risk_level' => 'high',
+            'required_permissions' => ['ai-calls.manage'],
+            'required_capabilities' => ['ai-calls.manage'],
+            'input_schema' => [
+                'call_id' => 'required|integer|min:1',
+            ],
+            'row_scope' => [
+                'mode' => 'record',
+                'required_inputs' => ['call_id'],
+                'resolver' => AiCallRowScopeResolver::class,
+            ],
+            'output_schema' => [
+                'type' => 'assistant.v2.analysis',
+            ],
+            'feature_flag' => 'ai_skills.flags.ai_calls_call_analysis',
+            'backend_dependencies' => ['ai_calling_service'],
+            'handler' => AiCallSkillHandler::class,
+            'formatter' => AnalysisSkillFormatter::class,
+            'mode' => 'call',
+            'redaction' => [
+                'profile' => 'pii_basic',
+            ],
+            'audit' => [
+                'action' => 'skill_call',
+            ],
+        ],
+        'workflow.queue_summary' => [
+            'skill_key' => 'workflow.queue_summary',
+            'section_key' => 'workflow_tasks',
+            'title' => 'Workflow Queue Summary',
+            'business_goal' => 'Summarize assigned and requested workflow tasks for the authenticated user.',
+            'category' => 'informational',
+            'type' => 'read',
+            'risk_level' => 'low',
+            'required_permissions' => ['tasks.create'],
+            'required_capabilities' => ['tasks.create'],
+            'input_schema' => [
+                'status' => 'nullable|in:in_progress,completed,could_not_complete',
+                'per_page' => 'nullable|integer|min:1|max:25',
+            ],
+            'row_scope' => [
+                'mode' => 'none',
+                'resolver' => NoopRowScopeResolver::class,
+            ],
+            'output_schema' => [
+                'type' => 'assistant.v2.default',
+            ],
+            'feature_flag' => 'ai_skills.flags.workflow_queue_summary',
+            'backend_dependencies' => ['workflow_task_admin_service'],
+            'handler' => WorkflowQueueSkillHandler::class,
+            'formatter' => DefaultSkillFormatter::class,
+            'redaction' => [
+                'profile' => 'none',
+            ],
+            'audit' => [
+                'action' => 'skill_call',
+            ],
+        ],
+        'notifications.digest' => [
+            'skill_key' => 'notifications.digest',
+            'section_key' => 'notifications',
+            'title' => 'Notifications Digest',
+            'business_goal' => 'Summarize private and public notifications for the authenticated user.',
+            'category' => 'informational',
+            'type' => 'read',
+            'risk_level' => 'low',
+            'required_permissions' => ['notifications.view'],
+            'required_capabilities' => ['notifications.view'],
+            'input_schema' => [
+                'per_page' => 'nullable|integer|min:1|max:25',
+            ],
+            'row_scope' => [
+                'mode' => 'none',
+                'resolver' => NoopRowScopeResolver::class,
+            ],
+            'output_schema' => [
+                'type' => 'assistant.v2.default',
+            ],
+            'feature_flag' => 'ai_skills.flags.notifications_digest',
+            'backend_dependencies' => ['notification_admin_service'],
+            'handler' => NotificationDigestSkillHandler::class,
+            'formatter' => DefaultSkillFormatter::class,
+            'redaction' => [
+                'profile' => 'none',
+            ],
+            'audit' => [
+                'action' => 'skill_call',
+            ],
+        ],
+        'workflow.task_create_draft' => [
+            'skill_key' => 'workflow.task_create_draft',
+            'section_key' => 'workflow_tasks',
+            'title' => 'Workflow Task Create Draft',
+            'business_goal' => 'Prepare a manual-only draft payload for task creation.',
+            'category' => 'workflow',
+            'type' => 'draft',
+            'risk_level' => 'low',
+            'required_permissions' => ['use-ai-assistant'],
+            'required_capabilities' => ['tasks.create'],
+            'input_schema' => [
+                'task_name' => 'nullable|string|max:255',
+                'assigned_to' => 'nullable|integer|min:1',
+                'due_at' => 'nullable|date',
+                'section' => 'nullable|string|max:50',
+                'team_id' => 'nullable|integer|min:1',
+            ],
+            'row_scope' => [
+                'mode' => 'none',
+                'resolver' => NoopRowScopeResolver::class,
+            ],
+            'output_schema' => [
+                'type' => 'assistant.v2.draft',
+            ],
+            'feature_flag' => 'ai_skills.flags.workflow_task_create_draft',
+            'backend_dependencies' => ['assistant_draft_validation_service'],
+            'handler' => DraftSkillHandler::class,
+            'formatter' => DraftSkillFormatter::class,
+            'draft_flow_key' => 'create_task_draft',
+            'redaction' => [
+                'profile' => 'none',
+            ],
+            'audit' => [
+                'action' => 'skill_call',
+            ],
+        ],
+        'marketing.task_create_draft' => [
+            'skill_key' => 'marketing.task_create_draft',
+            'section_key' => 'marketing_tasks',
+            'title' => 'Marketing Task Create Draft',
+            'business_goal' => 'Prepare a manual-only draft payload for marketing task creation.',
+            'category' => 'workflow',
+            'type' => 'draft',
+            'risk_level' => 'medium',
+            'required_permissions' => ['marketing.tasks.confirm'],
+            'required_capabilities' => ['marketing.tasks.confirm'],
+            'input_schema' => [
+                'contract_id' => 'nullable|integer|min:1',
+                'task_name' => 'nullable|string|max:255',
+                'marketer_id' => 'nullable|integer|min:1',
+                'marketing_project_id' => 'nullable|integer|min:1',
+                'participating_marketers_count' => 'nullable|integer|min:1',
+                'design_link' => 'nullable|string|max:1000',
+                'design_number' => 'nullable|string|max:255',
+                'design_description' => 'nullable|string|max:2000',
+                'status' => 'nullable|string|max:50',
+            ],
+            'row_scope' => [
+                'mode' => 'none',
+                'resolver' => NoopRowScopeResolver::class,
+            ],
+            'output_schema' => [
+                'type' => 'assistant.v2.draft',
+            ],
+            'feature_flag' => 'ai_skills.flags.marketing_task_create_draft',
+            'backend_dependencies' => ['assistant_draft_validation_service'],
+            'handler' => DraftSkillHandler::class,
+            'formatter' => DraftSkillFormatter::class,
+            'draft_flow_key' => 'create_marketing_task_draft',
+            'redaction' => [
+                'profile' => 'none',
+            ],
+            'audit' => [
+                'action' => 'skill_call',
+            ],
+        ],
+        'marketing.lead_create_draft' => [
+            'skill_key' => 'marketing.lead_create_draft',
+            'section_key' => 'marketing_projects',
+            'title' => 'Marketing Lead Create Draft',
+            'business_goal' => 'Prepare a manual-only draft payload for lead creation.',
+            'category' => 'workflow',
+            'type' => 'draft',
+            'risk_level' => 'medium',
+            'required_permissions' => ['marketing.projects.view'],
+            'required_capabilities' => ['marketing.projects.view'],
+            'input_schema' => [
+                'name' => 'nullable|string|max:255',
+                'contact_info' => 'nullable|string|max:255',
+                'project_id' => 'nullable|integer|min:1',
+                'assigned_to' => 'nullable|integer|min:1',
+                'source' => 'nullable|string|max:255',
+                'status' => 'nullable|string|max:50',
+            ],
+            'row_scope' => [
+                'mode' => 'none',
+                'resolver' => NoopRowScopeResolver::class,
+            ],
+            'output_schema' => [
+                'type' => 'assistant.v2.draft',
+            ],
+            'feature_flag' => 'ai_skills.flags.marketing_lead_create_draft',
+            'backend_dependencies' => ['assistant_draft_validation_service'],
+            'handler' => DraftSkillHandler::class,
+            'formatter' => DraftSkillFormatter::class,
+            'draft_flow_key' => 'create_lead_draft',
+            'redaction' => [
+                'profile' => 'pii_basic',
+            ],
+            'audit' => [
+                'action' => 'skill_call',
+            ],
+        ],
+        'sales.followup_action_draft' => [
+            'skill_key' => 'sales.followup_action_draft',
+            'section_key' => 'sales_reservations',
+            'title' => 'Sales Follow-up Action Draft',
+            'business_goal' => 'Prepare a manual-only draft payload for reservation follow-up actions.',
+            'category' => 'workflow',
+            'type' => 'draft',
+            'risk_level' => 'medium',
+            'required_permissions' => ['sales.reservations.view'],
+            'required_capabilities' => ['sales.reservations.view'],
+            'input_schema' => [
+                'sales_reservation_id' => 'nullable|integer|min:1',
+                'action_type' => 'nullable|string|max:100',
+                'notes' => 'nullable|string|max:2000',
+            ],
+            'row_scope' => [
+                'mode' => 'record',
+                'required_inputs' => ['sales_reservation_id'],
+                'resolver' => SalesReservationRowScopeResolver::class,
+                'id_field' => 'sales_reservation_id',
+            ],
+            'output_schema' => [
+                'type' => 'assistant.v2.draft',
+            ],
+            'feature_flag' => 'ai_skills.flags.sales_followup_action_draft',
+            'backend_dependencies' => ['assistant_draft_validation_service'],
+            'handler' => DraftSkillHandler::class,
+            'formatter' => DraftSkillFormatter::class,
+            'draft_flow_key' => 'log_reservation_action_draft',
+            'redaction' => [
+                'profile' => 'credit_sensitive',
+            ],
+            'audit' => [
+                'action' => 'skill_call',
+            ],
+        ],
+        'credit.client_contact_draft' => [
+            'skill_key' => 'credit.client_contact_draft',
+            'section_key' => 'credit_bookings',
+            'title' => 'Credit Client Contact Draft',
+            'business_goal' => 'Prepare a manual-only draft payload for credit follow-up notes.',
+            'category' => 'workflow',
+            'type' => 'draft',
+            'risk_level' => 'medium',
+            'required_permissions' => ['credit.bookings.view', 'credit.bookings.manage'],
+            'required_capabilities' => ['credit.bookings.view', 'credit.bookings.manage'],
+            'input_schema' => [
+                'sales_reservation_id' => 'nullable|integer|min:1',
+                'notes' => 'nullable|string|max:2000',
+            ],
+            'row_scope' => [
+                'mode' => 'record',
+                'required_inputs' => ['sales_reservation_id'],
+                'resolver' => CreditBookingReservationRowScopeResolver::class,
+                'id_field' => 'sales_reservation_id',
+            ],
+            'output_schema' => [
+                'type' => 'assistant.v2.draft',
+            ],
+            'feature_flag' => 'ai_skills.flags.credit_client_contact_draft',
+            'backend_dependencies' => ['assistant_draft_validation_service'],
+            'handler' => DraftSkillHandler::class,
+            'formatter' => DraftSkillFormatter::class,
+            'draft_flow_key' => 'log_credit_client_contact_draft',
+            'redaction' => [
+                'profile' => 'credit_sensitive',
+            ],
+            'audit' => [
+                'action' => 'skill_call',
+            ],
+        ],
+        'marketing.dashboard_insights' => [
+            'skill_key' => 'marketing.dashboard_insights',
+            'section_key' => 'marketing_dashboard',
+            'title' => 'Marketing Dashboard Insights',
+            'business_goal' => 'Summarize marketing analytics with source-grounded values.',
+            'category' => 'informational',
+            'type' => 'read',
+            'risk_level' => 'medium',
+            'required_permissions' => ['marketing.dashboard.view'],
+            'required_capabilities' => ['marketing.dashboard.view'],
+            'input_schema' => [
+                'report_type' => 'nullable|in:overview,channel_comparison,team_performance,lead_quality',
+                'date_from' => 'nullable|date',
+                'date_to' => 'nullable|date',
+            ],
+            'row_scope' => [
+                'mode' => 'none',
+                'resolver' => NoopRowScopeResolver::class,
+            ],
+            'output_schema' => [
+                'type' => 'assistant.v2.default',
+            ],
+            'feature_flag' => 'ai_skills.flags.marketing_dashboard_insights',
+            'backend_dependencies' => ['tool_marketing_analytics'],
+            'handler' => ToolBackedSkillHandler::class,
+            'formatter' => DefaultSkillFormatter::class,
+            'tool_name' => 'tool_marketing_analytics',
+            'redaction' => [
+                'profile' => 'none',
+            ],
+            'audit' => [
+                'action' => 'skill_call',
+            ],
+        ],
+        'marketing.dashboard_analysis' => [
+            'skill_key' => 'marketing.dashboard_analysis',
+            'section_key' => 'marketing_dashboard',
+            'title' => 'Marketing Dashboard Analysis',
+            'business_goal' => 'Analyze marketing dashboard metrics with grounded campaign and lead data.',
+            'category' => 'analytical',
+            'type' => 'analysis',
+            'risk_level' => 'medium',
+            'required_permissions' => ['marketing.dashboard.view'],
+            'required_capabilities' => ['marketing.dashboard.view'],
+            'input_schema' => [
+                'report_type' => 'nullable|in:overview,channel_comparison,team_performance,lead_quality',
+                'date_from' => 'nullable|date',
+                'date_to' => 'nullable|date',
+            ],
+            'row_scope' => [
+                'mode' => 'none',
+                'resolver' => NoopRowScopeResolver::class,
+            ],
+            'output_schema' => [
+                'type' => 'assistant.v2.analysis',
+            ],
+            'feature_flag' => 'ai_skills.flags.marketing_dashboard_analysis',
+            'backend_dependencies' => ['tool_marketing_analytics'],
+            'handler' => ToolBackedSkillHandler::class,
+            'formatter' => AnalysisSkillFormatter::class,
+            'tool_name' => 'tool_marketing_analytics',
+            'redaction' => [
+                'profile' => 'none',
+            ],
+            'audit' => [
+                'action' => 'skill_call',
+            ],
+        ],
+        'marketing.lead_summary' => [
+            'skill_key' => 'marketing.lead_summary',
+            'section_key' => 'marketing_dashboard',
+            'title' => 'Marketing Lead Summary',
+            'business_goal' => 'Retrieve a scoped lead summary with grounded CRM and AI-call data.',
+            'category' => 'informational',
+            'type' => 'read',
+            'risk_level' => 'high',
+            'required_permissions' => ['marketing.dashboard.view', 'leads.view'],
+            'required_capabilities' => ['marketing.dashboard.view'],
+            'input_schema' => [
+                'lead_id' => 'required|integer|min:1',
+            ],
+            'row_scope' => [
+                'mode' => 'record',
+                'required_inputs' => ['lead_id'],
+                'resolver' => LeadRowScopeResolver::class,
+            ],
+            'output_schema' => [
+                'type' => 'assistant.v2.default',
+            ],
+            'feature_flag' => 'ai_skills.flags.marketing_lead_summary',
+            'backend_dependencies' => ['tool_get_lead_summary'],
+            'handler' => ToolBackedSkillHandler::class,
+            'formatter' => DefaultSkillFormatter::class,
+            'tool_name' => 'tool_get_lead_summary',
+            'redaction' => [
+                'profile' => 'pii_basic',
+            ],
+            'audit' => [
+                'action' => 'skill_call',
+            ],
+        ],
+        'marketing.lead_analysis' => [
+            'skill_key' => 'marketing.lead_analysis',
+            'section_key' => 'marketing_dashboard',
+            'title' => 'Marketing Lead Analysis',
+            'business_goal' => 'Analyze a scoped lead using live qualification, assignment, and campaign data.',
+            'category' => 'analytical',
+            'type' => 'analysis',
+            'risk_level' => 'high',
+            'required_permissions' => ['marketing.dashboard.view', 'leads.view'],
+            'required_capabilities' => ['marketing.dashboard.view'],
+            'input_schema' => [
+                'lead_id' => 'required|integer|min:1',
+            ],
+            'row_scope' => [
+                'mode' => 'record',
+                'required_inputs' => ['lead_id'],
+                'resolver' => LeadRowScopeResolver::class,
+            ],
+            'output_schema' => [
+                'type' => 'assistant.v2.analysis',
+            ],
+            'feature_flag' => 'ai_skills.flags.marketing_lead_analysis',
+            'backend_dependencies' => ['tool_get_lead_summary'],
+            'handler' => ToolBackedSkillHandler::class,
+            'formatter' => AnalysisSkillFormatter::class,
+            'tool_name' => 'tool_get_lead_summary',
+            'redaction' => [
+                'profile' => 'pii_basic',
+            ],
+            'audit' => [
+                'action' => 'skill_call',
+            ],
+        ],
+        'contracts.project_summary' => [
+            'skill_key' => 'contracts.project_summary',
+            'section_key' => 'contracts',
+            'title' => 'Contracts Project Summary',
+            'business_goal' => 'Retrieve a scoped project summary from contracts.',
+            'category' => 'informational',
+            'type' => 'read',
+            'risk_level' => 'high',
+            'required_permissions' => ['contracts.view'],
+            'required_capabilities' => ['contracts.view'],
+            'input_schema' => [
+                'project_id' => 'required|integer|min:1',
+            ],
+            'row_scope' => [
+                'mode' => 'record',
+                'required_inputs' => ['project_id'],
+                'resolver' => ContractProjectRowScopeResolver::class,
+            ],
+            'output_schema' => [
+                'type' => 'assistant.v2.default',
+            ],
+            'feature_flag' => 'ai_skills.flags.contracts_project_summary',
+            'backend_dependencies' => ['tool_get_project_summary'],
+            'handler' => ToolBackedSkillHandler::class,
+            'formatter' => DefaultSkillFormatter::class,
+            'tool_name' => 'tool_get_project_summary',
+            'redaction' => [
+                'profile' => 'pii_basic',
+            ],
+            'audit' => [
+                'action' => 'skill_call',
+            ],
+        ],
+        'contracts.project_analysis' => [
+            'skill_key' => 'contracts.project_analysis',
+            'section_key' => 'contracts',
+            'title' => 'Contracts Project Analysis',
+            'business_goal' => 'Analyze a contract project status and key delivery signals using scoped project data.',
+            'category' => 'analytical',
+            'type' => 'analysis',
+            'risk_level' => 'high',
+            'required_permissions' => ['contracts.view'],
+            'required_capabilities' => ['contracts.view'],
+            'input_schema' => [
+                'project_id' => 'required|integer|min:1',
+            ],
+            'row_scope' => [
+                'mode' => 'record',
+                'required_inputs' => ['project_id'],
+                'resolver' => ContractProjectRowScopeResolver::class,
+            ],
+            'output_schema' => [
+                'type' => 'assistant.v2.analysis',
+            ],
+            'feature_flag' => 'ai_skills.flags.contracts_project_analysis',
+            'backend_dependencies' => ['tool_get_project_summary'],
+            'handler' => ToolBackedSkillHandler::class,
+            'formatter' => AnalysisSkillFormatter::class,
+            'tool_name' => 'tool_get_project_summary',
+            'redaction' => [
+                'profile' => 'pii_basic',
+            ],
+            'audit' => [
+                'action' => 'skill_call',
+            ],
+        ],
+        'contracts.contract_status_summary' => [
+            'skill_key' => 'contracts.contract_status_summary',
+            'section_key' => 'contracts',
+            'title' => 'Contracts Status Summary',
+            'business_goal' => 'Retrieve a scoped contract status summary from live contract data.',
+            'category' => 'informational',
+            'type' => 'read',
+            'risk_level' => 'high',
+            'required_permissions' => ['contracts.view'],
+            'required_capabilities' => ['contracts.view'],
+            'input_schema' => [
+                'contract_id' => 'required|integer|min:1',
+            ],
+            'row_scope' => [
+                'mode' => 'record',
+                'required_inputs' => ['contract_id'],
+                'resolver' => ContractRecordRowScopeResolver::class,
+            ],
+            'output_schema' => [
+                'type' => 'assistant.v2.default',
+            ],
+            'feature_flag' => 'ai_skills.flags.contracts_contract_status_summary',
+            'backend_dependencies' => ['tool_get_contract_status'],
+            'handler' => ToolBackedSkillHandler::class,
+            'formatter' => DefaultSkillFormatter::class,
+            'tool_name' => 'tool_get_contract_status',
+            'redaction' => [
+                'profile' => 'pii_basic',
+            ],
+            'audit' => [
+                'action' => 'skill_call',
+            ],
+        ],
+        'contracts.contract_status_analysis' => [
+            'skill_key' => 'contracts.contract_status_analysis',
+            'section_key' => 'contracts',
+            'title' => 'Contracts Status Analysis',
+            'business_goal' => 'Analyze a scoped contract status and its current commercial signals using live data.',
+            'category' => 'analytical',
+            'type' => 'analysis',
+            'risk_level' => 'high',
+            'required_permissions' => ['contracts.view'],
+            'required_capabilities' => ['contracts.view'],
+            'input_schema' => [
+                'contract_id' => 'required|integer|min:1',
+            ],
+            'row_scope' => [
+                'mode' => 'record',
+                'required_inputs' => ['contract_id'],
+                'resolver' => ContractRecordRowScopeResolver::class,
+            ],
+            'output_schema' => [
+                'type' => 'assistant.v2.analysis',
+            ],
+            'feature_flag' => 'ai_skills.flags.contracts_contract_status_analysis',
+            'backend_dependencies' => ['tool_get_contract_status'],
+            'handler' => ToolBackedSkillHandler::class,
+            'formatter' => AnalysisSkillFormatter::class,
+            'tool_name' => 'tool_get_contract_status',
+            'redaction' => [
+                'profile' => 'pii_basic',
+            ],
+            'audit' => [
+                'action' => 'skill_call',
+            ],
+        ],
+        'knowledge.rag_search' => [
+            'skill_key' => 'knowledge.rag_search',
+            'section_key' => 'general',
+            'title' => 'Knowledge RAG Search',
+            'business_goal' => 'Search indexed assistant documents with scoped access.',
+            'category' => 'informational',
+            'type' => 'read',
+            'risk_level' => 'medium',
+            'required_permissions' => ['use-ai-assistant'],
+            'required_capabilities' => ['use-ai-assistant'],
+            'input_schema' => [
+                'query' => 'required|string|min:2|max:1000',
+                'limit' => 'nullable|integer|min:1|max:20',
+            ],
+            'row_scope' => [
+                'mode' => 'none',
+                'resolver' => NoopRowScopeResolver::class,
+            ],
+            'output_schema' => [
+                'type' => 'assistant.v2.default',
+            ],
+            'feature_flag' => 'ai_skills.flags.knowledge_rag_search',
+            'backend_dependencies' => ['tool_rag_search'],
+            'handler' => ToolBackedSkillHandler::class,
+            'formatter' => DefaultSkillFormatter::class,
+            'tool_name' => 'tool_rag_search',
+            'redaction' => [
+                'profile' => 'pii_basic',
+            ],
+            'audit' => [
+                'action' => 'skill_call',
+            ],
+        ],
+    ],
+];

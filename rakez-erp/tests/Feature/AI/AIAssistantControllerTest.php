@@ -7,11 +7,19 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Laravel\Sanctum\Sanctum;
 use OpenAI\Laravel\Facades\OpenAI;
 use OpenAI\Responses\Responses\CreateResponse;
+use Spatie\Permission\Models\Permission;
 use Tests\TestCase;
 
 class AIAssistantControllerTest extends TestCase
 {
     use RefreshDatabase;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        Permission::findOrCreate('use-ai-assistant', 'web');
+    }
 
     public function test_ask_endpoint_requires_authentication(): void
     {
@@ -24,7 +32,7 @@ class AIAssistantControllerTest extends TestCase
 
     public function test_ask_endpoint_validates_question_required(): void
     {
-        $user = User::factory()->create();
+        $user = $this->assistantUser();
         Sanctum::actingAs($user);
 
         $response = $this->postJson('/api/ai/ask', []);
@@ -35,7 +43,7 @@ class AIAssistantControllerTest extends TestCase
 
     public function test_ask_endpoint_validates_question_max_length(): void
     {
-        $user = User::factory()->create();
+        $user = $this->assistantUser();
         Sanctum::actingAs($user);
 
         OpenAI::fake([
@@ -52,7 +60,7 @@ class AIAssistantControllerTest extends TestCase
 
     public function test_ask_endpoint_validates_section_in_list(): void
     {
-        $user = User::factory()->create();
+        $user = $this->assistantUser();
         Sanctum::actingAs($user);
 
         $response = $this->postJson('/api/ai/ask', [
@@ -66,7 +74,7 @@ class AIAssistantControllerTest extends TestCase
 
     public function test_ask_endpoint_validates_context_schema(): void
     {
-        $user = User::factory()->create();
+        $user = $this->assistantUser();
         Sanctum::actingAs($user);
 
         OpenAI::fake([
@@ -87,7 +95,8 @@ class AIAssistantControllerTest extends TestCase
 
     public function test_ask_endpoint_returns_suggestions(): void
     {
-        $user = User::factory()->create();
+        $user = $this->assistantUser();
+        $user->givePermissionTo('contracts.view');
         Sanctum::actingAs($user);
 
         OpenAI::fake([
@@ -119,7 +128,7 @@ class AIAssistantControllerTest extends TestCase
 
     public function test_chat_endpoint_validates_message_required(): void
     {
-        $user = User::factory()->create();
+        $user = $this->assistantUser();
         Sanctum::actingAs($user);
 
         $response = $this->postJson('/api/ai/chat', []);
@@ -130,7 +139,7 @@ class AIAssistantControllerTest extends TestCase
 
     public function test_chat_endpoint_validates_session_id_uuid(): void
     {
-        $user = User::factory()->create();
+        $user = $this->assistantUser();
         Sanctum::actingAs($user);
 
         $response = $this->postJson('/api/ai/chat', [
@@ -144,7 +153,7 @@ class AIAssistantControllerTest extends TestCase
 
     public function test_chat_endpoint_creates_new_session(): void
     {
-        $user = User::factory()->create();
+        $user = $this->assistantUser();
         Sanctum::actingAs($user);
 
         OpenAI::fake([
@@ -166,7 +175,7 @@ class AIAssistantControllerTest extends TestCase
 
     public function test_chat_endpoint_uses_existing_session(): void
     {
-        $user = User::factory()->create();
+        $user = $this->assistantUser();
         Sanctum::actingAs($user);
 
         OpenAI::fake([
@@ -205,7 +214,7 @@ class AIAssistantControllerTest extends TestCase
 
     public function test_sections_endpoint_filters_by_capabilities(): void
     {
-        $user = User::factory()->create(['type' => 'developer']);
+        $user = $this->assistantUser(['type' => 'developer']);
         Sanctum::actingAs($user);
 
         $response = $this->getJson('/api/ai/sections');
@@ -229,7 +238,7 @@ class AIAssistantControllerTest extends TestCase
 
     public function test_conversations_endpoint_paginates_results(): void
     {
-        $user = User::factory()->create();
+        $user = $this->assistantUser();
         Sanctum::actingAs($user);
 
         OpenAI::fake([
@@ -264,7 +273,7 @@ class AIAssistantControllerTest extends TestCase
 
     public function test_deleteSession_endpoint_deletes_session(): void
     {
-        $user = User::factory()->create();
+        $user = $this->assistantUser();
         Sanctum::actingAs($user);
 
         OpenAI::fake([
@@ -305,5 +314,13 @@ class AIAssistantControllerTest extends TestCase
                 ],
             ],
         ]);
+    }
+
+    private function assistantUser(array $attributes = []): User
+    {
+        $user = User::factory()->create($attributes);
+        $user->givePermissionTo('use-ai-assistant');
+
+        return $user->fresh();
     }
 }

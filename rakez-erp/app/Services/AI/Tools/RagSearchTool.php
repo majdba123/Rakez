@@ -4,18 +4,19 @@ namespace App\Services\AI\Tools;
 
 use App\Models\AiDocument;
 use App\Models\User;
-use Illuminate\Support\Collection;
 use App\Services\AI\Rag\EmbeddingService;
-use App\Services\AI\Rag\SemanticCache;
 use App\Services\AI\Rag\VectorSearchService;
+use Illuminate\Support\Collection;
 use Throwable;
 
+/**
+ * Semantic document search. Uses embedding API for vectors; read-only for ERP transactional data.
+ */
 class RagSearchTool implements ToolContract
 {
     public function __construct(
         private readonly EmbeddingService $embeddingService,
         private readonly VectorSearchService $vectorSearchService,
-        private readonly SemanticCache $cache,
     ) {}
 
     public function __invoke(User $user, array $args): array
@@ -26,27 +27,19 @@ class RagSearchTool implements ToolContract
 
         $query = $args['query'] ?? '';
         if ($query === '') {
-            return ToolResponse::error('Query is required for RAG search.');
+            return ToolResponse::invalidArguments('نص البحث مطلوب لأداة البحث في المستندات.');
         }
 
         $limit = $args['limit'] ?? (int) config('ai_assistant.rag.search_limit', 5);
         $minSimilarity = (float) config('ai_assistant.rag.min_similarity', 0.7);
-        $documentId = $args['filters']['document_id'] ?? null;
-
-        // Check semantic cache
-        $cacheKey = $query . ':' . ($documentId ?? 'all') . ':' . $limit;
-        $cached = $this->cache->get($cacheKey);
-        if ($cached !== null) {
-            return $cached;
-        }
+        $filters = $args['filters'] ?? null;
+        $documentId = is_array($filters) ? ($filters['document_id'] ?? null) : null;
 
         try {
-            // Generate query embedding
             $queryEmbedding = $this->embeddingService->embed($query);
 
             $allowAll = $user->hasRole('admin');
 
-            // Search for similar chunks (scoped to user documents; admin can search all)
             $results = $this->vectorSearchService->search(
                 queryEmbedding: $queryEmbedding,
                 limit: $limit,
@@ -62,15 +55,12 @@ class RagSearchTool implements ToolContract
                 : AiDocument::query()->whereIn('id', $ids)->pluck('title', 'id');
 
             if ($results->isEmpty()) {
-                $response = ToolResponse::success('tool_rag_search', ['query' => $query], [
+                return ToolResponse::insufficientData('tool_rag_search', ['query' => $query], [
+                    'tool_kind' => 'document_knowledge',
                     'matches' => [],
                     'total_found' => 0,
                     'message' => 'لم يتم العثور على نتائج مطابقة.',
-                ]);
-
-                $this->cache->put($cacheKey, $response);
-
-                return $response;
+                ], [], 'vector_index');
             }
 
             $matches = [];
@@ -78,7 +68,7 @@ class RagSearchTool implements ToolContract
 
             foreach ($results as $chunk) {
                 $snippet = $this->snippet((string) $chunk->content_text);
-                $title = $titles[$chunk->document_id] ?? 'Document #' . $chunk->document_id;
+                $title = $titles[$chunk->document_id] ?? 'Document #'.$chunk->document_id;
 
                 $matches[] = [
                     'document_id' => $chunk->document_id,
@@ -96,16 +86,16 @@ class RagSearchTool implements ToolContract
                 ];
             }
 
-            $response = ToolResponse::success('tool_rag_search', ['query' => $query], [
+            return ToolResponse::success('tool_rag_search', ['query' => $query], [
+                'tool_kind' => 'document_knowledge',
+                'warnings' => [
+                    'Results are similarity-ranked document chunks, not authoritative ERP records.',
+                ],
                 'matches' => $matches,
                 'total_found' => count($matches),
-            ], $sourceRefs);
-
-            $this->cache->put($cacheKey, $response);
-
-            return $response;
+            ], $sourceRefs, [], 'vector_index');
         } catch (Throwable $e) {
-            return ToolResponse::error('RAG search failed: ' . $e->getMessage());
+            return ToolResponse::error('RAG search failed: '.$e->getMessage());
         }
     }
 
@@ -116,6 +106,6 @@ class RagSearchTool implements ToolContract
             return $t;
         }
 
-        return mb_substr($t, 0, $max) . '…';
+        return mb_substr($t, 0, $max).'…';
     }
 }

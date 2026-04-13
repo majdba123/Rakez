@@ -1,6 +1,14 @@
 @extends('layouts.pdf')
 
-@section('title', 'مطالبة عمولة - ' . $commission->id)
+@php
+    $claimTitle = $claim_file->isCombined() ? 'ملف مطالبة مجمع' : 'ملف مطالبة';
+    $summary = $file_data['summary'] ?? [];
+    $items = $file_data['items'] ?? [];
+    $primaryReservation = $claim_file->reservation;
+    $number = static fn ($value): string => $value === null || $value === '' ? '-' : number_format((float) $value, 2);
+@endphp
+
+@section('title', $claimTitle . ' - ' . $claim_file->id)
 
 @section('extra-styles')
     .totals-table { width: 100%; border-collapse: collapse; margin: 10px 0; }
@@ -10,93 +18,122 @@
 @endsection
 
 @section('content')
-    <p class="doc-title">مطالبة عمولة</p>
-    <p class="doc-subtitle">رقم العمولة: {{ $commission->id }} | تاريخ الإصدار: {{ $generated_at }}</p>
+    <p class="doc-title">{{ $claimTitle }}</p>
+    <p class="doc-subtitle">رقم الملف: {{ $claim_file->id }} | تاريخ الإصدار: {{ $generated_at }}</p>
 
-    <p class="section-title">&#9670; معلومات العمولة</p>
+    <p class="section-title">&#9670; معلومات الملف</p>
     <table class="info-table">
         <tr>
-            <td>سعر البيع النهائي</td>
-            <td>{{ number_format($commission->final_selling_price, 2) }} ريال</td>
+            <td>نوع الملف</td>
+            <td>{{ $claim_file->isCombined() ? 'مجمع' : 'فردي' }}</td>
         </tr>
         <tr>
-            <td>نسبة العمولة</td>
-            <td>{{ $commission->commission_percentage }}%</td>
+            <td>المولد بواسطة</td>
+            <td>{{ $claim_file->generatedBy?->name ?? '-' }}</td>
         </tr>
         <tr>
-            <td>الحالة</td>
-            <td>
-                <span class="status-badge status-{{ $commission->status }}">
-                    @if($commission->status === 'pending') معلق
-                    @elseif($commission->status === 'approved') معتمد
-                    @elseif($commission->status === 'paid') مدفوع
-                    @endif
-                </span>
-            </td>
+            <td>المشروع</td>
+            <td>{{ $summary['project_name'] ?? ($file_data['project_name'] ?? ($primaryReservation?->contract?->project_name ?? '-')) }}</td>
+        </tr>
+        <tr>
+            <td>عدد الحجوزات</td>
+            <td>{{ $claim_file->isCombined() ? count($items) : 1 }}</td>
+        </tr>
+        <tr>
+            <td>إجمالي مبلغ المطالبة</td>
+            <td>{{ $number($claim_file->total_claim_amount ?? ($summary['total_claim_amount'] ?? null)) }} AED</td>
         </tr>
     </table>
 
-    <p class="section-title">&#9670; توزيع العمولة</p>
+    @if (! $claim_file->isCombined())
+        <p class="section-title">&#9670; بيانات الحجز</p>
+        <table class="info-table">
+            <tr>
+                <td>رقم الحجز</td>
+                <td>{{ $file_data['reservation_id'] ?? ($claim_file->sales_reservation_id ?? '-') }}</td>
+            </tr>
+            <tr>
+                <td>العميل</td>
+                <td>{{ $file_data['client_name'] ?? ($primaryReservation?->client_name ?? '-') }}</td>
+            </tr>
+            <tr>
+                <td>رقم الوحدة</td>
+                <td>{{ $file_data['unit_number'] ?? ($primaryReservation?->contractUnit?->unit_number ?? '-') }}</td>
+            </tr>
+            <tr>
+                <td>قيمة الوحدة</td>
+                <td>{{ $number($file_data['unit_price'] ?? null) }} AED</td>
+            </tr>
+            <tr>
+                <td>نسبة العمولة</td>
+                <td>{{ $number($file_data['brokerage_commission_percent'] ?? null) }}%</td>
+            </tr>
+            <tr>
+                <td>مبلغ العربون</td>
+                <td>{{ $number($file_data['down_payment_amount'] ?? null) }} AED</td>
+            </tr>
+        </table>
+    @else
+        <p class="section-title">&#9670; ملخص المطالبة المجمعة</p>
+        <table class="totals-table">
+            <tr>
+                <td>عدد الحجوزات</td>
+                <td>{{ count($items) }}</td>
+            </tr>
+            <tr>
+                <td>إجمالي قيمة الوحدات</td>
+                <td>{{ $number($summary['total_unit_price'] ?? null) }} AED</td>
+            </tr>
+            <tr>
+                <td>إجمالي مبلغ المطالبة</td>
+                <td>{{ $number($summary['total_claim_amount'] ?? null) }} AED</td>
+            </tr>
+        </table>
+    @endif
+
+    <p class="section-title">&#9670; عناصر المطالبة</p>
     <table class="data-table">
         <thead>
             <tr>
-                <th>المستلم</th>
-                <th>النوع</th>
-                <th>النسبة</th>
-                <th>المبلغ</th>
-                <th>الحالة</th>
+                <th>رقم الحجز</th>
+                <th>المشروع</th>
+                <th>الوحدة</th>
+                <th>العميل</th>
+                <th>قيمة الوحدة</th>
+                <th>العمولة %</th>
             </tr>
         </thead>
         <tbody>
-            @foreach($distributions as $dist)
-            <tr>
-                <td>
-                    @if($dist->recipient)
-                        {{ $dist->recipient->name }}
-                    @else
-                        {{ $dist->external_marketer_name ?? 'غير محدد' }}
-                    @endif
-                </td>
-                <td>{{ $dist->type }}</td>
-                <td>{{ $dist->percentage }}%</td>
-                <td>{{ number_format($dist->amount, 2) }} ريال</td>
-                <td>
-                    <span class="status-badge status-{{ $dist->status }}">
-                        @if($dist->status === 'pending') معلق
-                        @elseif($dist->status === 'approved') معتمد
-                        @elseif($dist->status === 'rejected') مرفوض
-                        @elseif($dist->status === 'paid') مدفوع
-                        @endif
-                    </span>
-                </td>
-            </tr>
-            @endforeach
+            @if ($claim_file->isCombined())
+                @foreach ($items as $item)
+                    <tr>
+                        <td>{{ $item['reservation_id'] ?? '-' }}</td>
+                        <td>{{ $item['project_name'] ?? '-' }}</td>
+                        <td>{{ $item['unit_number'] ?? '-' }}</td>
+                        <td>{{ $item['client_name'] ?? '-' }}</td>
+                        <td>{{ $number($item['unit_price'] ?? null) }}</td>
+                        <td>{{ $number($item['brokerage_commission_percent'] ?? null) }}</td>
+                    </tr>
+                @endforeach
+            @else
+                <tr>
+                    <td>{{ $file_data['reservation_id'] ?? ($claim_file->sales_reservation_id ?? '-') }}</td>
+                    <td>{{ $file_data['project_name'] ?? ($primaryReservation?->contract?->project_name ?? '-') }}</td>
+                    <td>{{ $file_data['unit_number'] ?? ($primaryReservation?->contractUnit?->unit_number ?? '-') }}</td>
+                    <td>{{ $file_data['client_name'] ?? ($primaryReservation?->client_name ?? '-') }}</td>
+                    <td>{{ $number($file_data['unit_price'] ?? null) }}</td>
+                    <td>{{ $number($file_data['brokerage_commission_percent'] ?? null) }}</td>
+                </tr>
+            @endif
         </tbody>
     </table>
 
-    <p class="section-title">&#9670; الإجماليات</p>
-    <table class="totals-table">
-        <tr>
-            <td>المبلغ الإجمالي</td>
-            <td>{{ number_format($commission->total_amount, 2) }} ريال</td>
-        </tr>
-        <tr>
-            <td>ضريبة القيمة المضافة (15%)</td>
-            <td>{{ number_format($commission->vat, 2) }} ريال</td>
-        </tr>
-        <tr>
-            <td>مصاريف التسويق</td>
-            <td>{{ number_format($commission->marketing_expenses, 2) }} ريال</td>
-        </tr>
-        <tr>
-            <td>رسوم البنك</td>
-            <td>{{ number_format($commission->bank_fees, 2) }} ريال</td>
-        </tr>
-        <tr>
-            <td>صافي العمولة</td>
-            <td>{{ number_format($commission->net_amount, 2) }} ريال</td>
-        </tr>
-    </table>
+    @if (! empty($claim_file->notes))
+        <p class="section-title">&#9670; ملاحظات</p>
+        <div class="summary-box">
+            <p>{{ $claim_file->notes }}</p>
+        </div>
+    @endif
 
     <p class="auto-msg">هذا المستند تم إنشاؤه آلياً بواسطة نظام راكز العقاري | {{ $generated_at }}</p>
 @endsection

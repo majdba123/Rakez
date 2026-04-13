@@ -17,6 +17,7 @@ class OpenAIResponsesClientTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
+        config(['openai.api_key' => 'sk-test-configured']);
         $this->client = new OpenAIResponsesClient(new AiOpenAiGateway);
         Log::spy();
     }
@@ -24,6 +25,7 @@ class OpenAIResponsesClientTest extends TestCase
     public function test_createResponse_success(): void
     {
         config([
+            'openai.api_key' => 'sk-test-configured',
             'ai_assistant.openai.model' => 'gpt-4.1-mini',
             'ai_assistant.openai.temperature' => 0.7,
             'ai_assistant.openai.max_output_tokens' => 1000,
@@ -57,9 +59,30 @@ class OpenAIResponsesClientTest extends TestCase
         Log::shouldHaveReceived('info')->once();
     }
 
+    public function test_createResponse_fails_fast_when_provider_is_misconfigured(): void
+    {
+        config([
+            'openai.api_key' => '',
+            'ai_assistant.openai.model' => 'gpt-4.1-mini',
+        ]);
+
+        OpenAI::fake();
+
+        try {
+            $this->client->createResponse('instructions', [['role' => 'user', 'content' => 'test']], []);
+            $this->fail('Expected provider misconfiguration exception was not thrown.');
+        } catch (AiAssistantException $exception) {
+            $this->assertSame('ai_provider_misconfigured', $exception->errorCode());
+            $this->assertSame(503, $exception->statusCode());
+        }
+
+        OpenAI::assertNotSent(\OpenAI\Resources\Responses::class);
+    }
+
     public function test_createResponse_logs_latency(): void
     {
         config([
+            'openai.api_key' => 'sk-test-configured',
             'ai_assistant.openai.model' => 'gpt-4.1-mini',
             'ai_assistant.openai.temperature' => 0.7,
             'ai_assistant.openai.max_output_tokens' => 1000,
@@ -95,6 +118,7 @@ class OpenAIResponsesClientTest extends TestCase
     public function test_createResponse_logs_request_id(): void
     {
         config([
+            'openai.api_key' => 'sk-test-configured',
             'ai_assistant.openai.model' => 'gpt-4.1-mini',
             'ai_assistant.openai.temperature' => 0.7,
             'ai_assistant.openai.max_output_tokens' => 1000,
@@ -130,6 +154,7 @@ class OpenAIResponsesClientTest extends TestCase
     public function test_createResponse_retries_on_rate_limit(): void
     {
         config([
+            'openai.api_key' => 'sk-test-configured',
             'ai_assistant.openai.model' => 'gpt-4.1-mini',
             'ai_assistant.retries.max_attempts' => 3,
             'ai_assistant.retries.base_delay_ms' => 10,
@@ -170,6 +195,7 @@ class OpenAIResponsesClientTest extends TestCase
     public function test_createResponse_retries_on_503(): void
     {
         config([
+            'openai.api_key' => 'sk-test-configured',
             'ai_assistant.openai.model' => 'gpt-4.1-mini',
             'ai_assistant.retries.max_attempts' => 3,
             'ai_assistant.retries.base_delay_ms' => 10,
@@ -210,6 +236,7 @@ class OpenAIResponsesClientTest extends TestCase
     public function test_createResponse_retries_on_502(): void
     {
         config([
+            'openai.api_key' => 'sk-test-configured',
             'ai_assistant.openai.model' => 'gpt-4.1-mini',
             'ai_assistant.retries.max_attempts' => 3,
             'ai_assistant.retries.base_delay_ms' => 10,
@@ -250,6 +277,7 @@ class OpenAIResponsesClientTest extends TestCase
     public function test_createResponse_retries_on_timeout(): void
     {
         config([
+            'openai.api_key' => 'sk-test-configured',
             'ai_assistant.openai.model' => 'gpt-4.1-mini',
             'ai_assistant.retries.max_attempts' => 3,
             'ai_assistant.retries.base_delay_ms' => 10,
@@ -374,9 +402,10 @@ class OpenAIResponsesClientTest extends TestCase
 
         OpenAI::fake([$response]);
 
-        $result = $this->client->createResponse('instructions', [['role' => 'user', 'content' => 'test']], []);
+        $this->expectException(AiAssistantException::class);
+        $this->expectExceptionMessage('AI provider configuration is incomplete.');
 
-        $this->assertInstanceOf(CreateResponse::class, $result);
+        $this->client->createResponse('instructions', [['role' => 'user', 'content' => 'test']], []);
     }
 
     public function test_createResponse_includes_truncation(): void

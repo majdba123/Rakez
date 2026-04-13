@@ -14130,487 +14130,487 @@
   ],
   "variable": [
     {
-      "id": "bd63fa89-b442-4bbf-9d7d-1143ea41703e",
+      "id": "c3d4ec84-3f55-4a87-a247-11f54b5441ab",
       "key": "base_url",
       "value": "http://localhost/api",
       "type": "string"
     },
     {
-      "id": "f26def92-6224-4a8d-bab5-c5ffac8a084a",
+      "id": "3afb9c99-4db2-4ed6-89e1-133d0c2b277a",
       "key": "auth_token",
       "value": "",
       "type": "string"
     },
     {
-      "id": "750560ad-2930-41ca-b2f1-601fdab5c0fd",
+      "id": "c1222309-991c-4a99-aae2-fad2dc6216a2",
       "key": "default_password",
       "value": "password",
       "type": "string"
     },
     {
-      "id": "61abbe0c-7e78-4dfb-b16f-59ca44f83b93",
+      "id": "33b1044c-96a5-4744-8d56-f15be5ad43d6",
       "key": "admin_email",
       "value": "admin@rakez.com",
       "type": "string"
     },
     {
-      "id": "e3eae2f1-7fce-4070-8d5e-349014240282",
+      "id": "4eaece33-fb6d-46dc-a396-efece8853dff",
       "key": "sales_leader_email",
       "value": "sales.leader@rakez.com",
       "type": "string"
     },
     {
-      "id": "24ad9762-2e12-4fe7-837a-5bf796a749ab",
+      "id": "31879b28-546c-4af7-bb41-db19d1190ed4",
       "key": "sales_email",
       "value": "sales@rakez.com",
       "type": "string"
     },
     {
-      "id": "8d916c3c-fbec-40cd-ab16-50fe98a8ef8f",
+      "id": "37dc2703-26a0-4584-a2f4-40790bf99f90",
       "key": "marketing_email",
       "value": "marketing@rakez.com",
       "type": "string"
     },
     {
-      "id": "2d1f0266-5fcb-4e52-af1f-b23fbe5f2f30",
+      "id": "40b949d3-37ae-43b6-b1cf-11c64bd2b420",
       "key": "hr_email",
       "value": "hr@rakez.com",
       "type": "string"
     },
     {
-      "id": "99cf9415-3203-4b76-a427-fab5b4a8199b",
+      "id": "a6297527-0b2e-487d-b258-eb7af059c447",
       "key": "credit_email",
       "value": "credit@rakez.com",
       "type": "string"
     },
     {
-      "id": "6c07fe9e-b833-47f7-8645-8948044859c8",
+      "id": "29924506-41ef-4c86-a254-18f9245363fc",
       "key": "accounting_email",
       "value": "accounting@rakez.com",
       "type": "string"
     },
     {
-      "id": "40066164-bcd2-4ff8-aaa8-7bc6519c77e7",
+      "id": "4ce60138-f6ea-4a28-b1ff-50c8eaded8fe",
       "key": "pm_email",
       "value": "pm@rakez.com",
       "type": "string"
     },
     {
-      "id": "af6fd81a-d431-4288-97a6-e8c8f378a94c",
+      "id": "3aef37d7-9e3b-437f-be88-48e9edac16b0",
       "key": "editor_email",
       "value": "editor@rakez.com",
       "type": "string"
     },
     {
-      "id": "d1e26f9b-9c96-499e-a45a-4256439ba38a",
+      "id": "3c2dcf80-915d-4685-8072-d3c1506627b5",
       "key": "admin_token",
       "value": "",
       "type": "string"
     },
     {
-      "id": "27cae79a-602c-46e8-bac1-889735c9f16e",
+      "id": "25e805d4-8e24-4dcc-b195-b0dca8fbfefc",
       "key": "sales_leader_token",
       "value": "",
       "type": "string"
     },
     {
-      "id": "0839cfc9-6cd8-4ded-a34b-32ac6f1b5053",
+      "id": "46f0b776-01c7-4b75-89ff-0d464b82674d",
       "key": "sales_token",
       "value": "",
       "type": "string"
     },
     {
-      "id": "2a28bab9-ca09-49de-b3e8-688cd4229da2",
+      "id": "28e80d8d-7790-42dd-bd67-45421b281746",
       "key": "marketing_token",
       "value": "",
       "type": "string"
     },
     {
-      "id": "f583f59a-c5f8-4e0c-bf35-3eda1391edd9",
+      "id": "0e0b7c0e-4baa-4660-bf2e-08a8bb2b5d3c",
       "key": "hr_token",
       "value": "",
       "type": "string"
     },
     {
-      "id": "28cf03e8-1b48-421b-8560-f108ac51335c",
+      "id": "ce803511-125d-40ab-984e-8ff200b81d7e",
       "key": "credit_token",
       "value": "",
       "type": "string"
     },
     {
-      "id": "0c859bc0-4bf2-4e3a-848b-33ec11edab6b",
+      "id": "f40bbb46-26f3-4da1-b8cf-7f5ea0a80c36",
       "key": "accounting_token",
       "value": "",
       "type": "string"
     },
     {
-      "id": "73f6da6f-a4fa-48f5-9959-6917ab246d5f",
+      "id": "14697cad-62cf-4f79-9ed0-87a56507a334",
       "key": "pm_token",
       "value": "",
       "type": "string"
     },
     {
-      "id": "91b512e3-883c-411c-b58d-c7e5cda35552",
+      "id": "b52d396a-11d8-4c66-8fcf-b73519c3ed11",
       "key": "editor_token",
       "value": "",
       "type": "string"
     },
     {
-      "id": "174cb533-e9b4-4bdf-8888-ada80ee9da41",
+      "id": "0ad440ed-076f-4b33-9519-ac1d811d2510",
       "key": "admin_user_id",
       "value": "1",
       "type": "string"
     },
     {
-      "id": "d6225cfc-a267-4a45-9f66-3125a8117cbd",
+      "id": "1088ffa3-c875-458f-a674-00c6b25a7ef1",
       "key": "sales_leader_user_id",
       "value": "5",
       "type": "string"
     },
     {
-      "id": "bb725501-d919-405f-9de7-12b0e041dedf",
+      "id": "bf9d94d8-8bb7-4dc8-919a-ec5da8bffc9d",
       "key": "sales_user_id",
       "value": "6",
       "type": "string"
     },
     {
-      "id": "65d87aab-eb29-4c48-9037-d32db2493840",
+      "id": "9d4c05ac-9fa7-43c7-bcb0-d431bdf18be8",
       "key": "marketing_user_id",
       "value": "7",
       "type": "string"
     },
     {
-      "id": "cabf3794-8b23-41fd-a400-96b166e9d56c",
+      "id": "0b3856ab-ee3b-413a-905b-26d6080a5d62",
       "key": "hr_user_id",
       "value": "8",
       "type": "string"
     },
     {
-      "id": "1f7c06e0-ceb0-4f4b-b3e3-ba7cf71b71cc",
+      "id": "16159380-7abc-4a38-82c1-0199c8740ded",
       "key": "credit_user_id",
       "value": "9",
       "type": "string"
     },
     {
-      "id": "1c065840-44b2-4a1c-930c-864ab59878f0",
+      "id": "250ec447-ab3b-4f7f-8acd-ab65f302958c",
       "key": "accounting_user_id",
       "value": "10",
       "type": "string"
     },
     {
-      "id": "4bd82be7-dc31-4334-a999-1ae779e135e3",
+      "id": "bfc2bd35-cba9-4122-b8f9-2adb7ac67028",
       "key": "pm_user_id",
       "value": "11",
       "type": "string"
     },
     {
-      "id": "efb2803e-2f73-4d19-a6da-1c3a6ae805fa",
+      "id": "0e3bec0e-fd39-49cd-9d05-a9262d965313",
       "key": "editor_user_id",
       "value": "12",
       "type": "string"
     },
     {
-      "id": "be0a0474-e677-4736-a929-2074b390e3ad",
+      "id": "97734cf9-2116-40de-958d-f07cae10a41c",
       "key": "developer_user_id",
       "value": "13",
       "type": "string"
     },
     {
-      "id": "eb64f8cd-7c46-4e48-aa28-1a5253b27857",
+      "id": "31cb1ffd-1ef4-42a8-8857-69b8fa36cfb6",
       "key": "team_id",
       "value": "1",
       "type": "string"
     },
     {
-      "id": "266612e2-b620-464f-8f7d-1769336c32d4",
+      "id": "2e902817-847a-469d-843d-ecc3b12a4620",
       "key": "base_contract_id",
       "value": "5",
       "type": "string"
     },
     {
-      "id": "736fc418-dab3-45b1-b944-e651de72bdbd",
+      "id": "1a8f39b7-8f83-4c71-9eef-6353973d6a2a",
       "key": "ready_contract_id",
       "value": "5",
       "type": "string"
     },
     {
-      "id": "b4f63e52-b5b9-47d9-847e-baf9b9ca591c",
+      "id": "1b4c632f-10cd-49d3-8b7a-64b37430302d",
       "key": "approved_contract_id",
       "value": "1",
       "type": "string"
     },
     {
-      "id": "775953bb-f5aa-4954-a924-a45d25a2eef8",
+      "id": "57f6e973-3766-41aa-9c44-b1a04d4d8312",
       "key": "pending_contract_id",
       "value": "11",
       "type": "string"
     },
     {
-      "id": "b2bc26c4-7723-4d19-bf3d-65e951d35cbb",
+      "id": "303c0cf3-aa1f-4050-9230-ed5acd67b9fd",
       "key": "off_plan_contract_id",
       "value": "5",
       "type": "string"
     },
     {
-      "id": "4ccecc63-eacf-41f4-b101-5e419c8920eb",
+      "id": "bfe7121b-8695-4284-aa96-6261b4974739",
       "key": "developer_number",
       "value": "+966112345002",
       "type": "string"
     },
     {
-      "id": "d88e7745-9119-4b70-bdbd-bcfa177e113c",
+      "id": "c54de024-8ee7-466d-b4d0-a37ee04896d5",
       "key": "available_unit_id",
       "value": "32",
       "type": "string"
     },
     {
-      "id": "b4741e84-8bd5-480e-8f7a-dfe9647f713a",
+      "id": "872e444d-fb45-4358-b463-1c865b0715d1",
       "key": "reserved_unit_id",
       "value": "31",
       "type": "string"
     },
     {
-      "id": "5fe6cbd2-2575-4fe1-9520-db695d0613a6",
+      "id": "2a9a3092-a839-4556-bc8e-b114452dcc90",
       "key": "sold_unit_id",
       "value": "34",
       "type": "string"
     },
     {
-      "id": "8b18ad57-73ed-4c5c-a34f-1202f5d87f5d",
+      "id": "df8fea8c-15a3-4c8b-8f4b-07c931e5f8d8",
       "key": "confirmed_reservation_id",
       "value": "6",
       "type": "string"
     },
     {
-      "id": "cf28dcb6-b9f8-49eb-b8b7-04c613f2f45c",
+      "id": "8975ea55-e51d-47cb-bee8-da4252b92cdf",
       "key": "negotiation_reservation_id",
       "value": "1",
       "type": "string"
     },
     {
-      "id": "74d545e8-621c-4bad-b2c7-8d83d7786afa",
+      "id": "75a2ad12-26f8-4e48-a722-3339a679829e",
       "key": "cancelled_reservation_id",
       "value": "2",
       "type": "string"
     },
     {
-      "id": "e531706f-f2f9-44a3-aaf6-fecac3916cf5",
+      "id": "773b8065-7103-4f9c-b7f9-cb0bcab90813",
       "key": "bank_confirmed_reservation_id",
       "value": "7",
       "type": "string"
     },
     {
-      "id": "e3feb4e3-1463-4343-9260-f7647ecb505b",
+      "id": "80a08bdb-164c-4f82-bac6-65c5800d9b01",
       "key": "sales_target_id",
       "value": "1",
       "type": "string"
     },
     {
-      "id": "93642f02-968f-4314-a494-367827d248d7",
+      "id": "45ea50a8-fd7e-4a44-b1ae-fe72b7dd4068",
       "key": "attendance_id",
       "value": "1",
       "type": "string"
     },
     {
-      "id": "f2a9db78-a72a-4538-9c60-2ebfbd3e0203",
+      "id": "02e7036a-5bcb-47ec-833f-d5e4eaf607a9",
       "key": "waiting_list_id",
       "value": "1",
       "type": "string"
     },
     {
-      "id": "adb3c407-de59-4662-8d0d-dc8ef107d588",
+      "id": "c0fcbcf4-1dc3-4e98-845e-03cffac06f5a",
       "key": "negotiation_approval_id",
       "value": "1",
       "type": "string"
     },
     {
-      "id": "7c4ebb4a-83af-41d3-abbe-779ebeefbc68",
+      "id": "b6af8f47-80b4-4e03-b22c-54da27fc3a70",
       "key": "installment_id",
       "value": "1",
       "type": "string"
     },
     {
-      "id": "b06dc7a7-3e55-4dbf-b129-27c7a15c9191",
+      "id": "ef397a6b-fc1b-452d-a277-a8179834ae8d",
       "key": "marketing_project_id",
       "value": "1",
       "type": "string"
     },
     {
-      "id": "0bfd0007-d48a-4d93-8725-7c74fd062f27",
+      "id": "9a67f00a-3a1c-4fe0-a8ad-a73b234695fd",
       "key": "developer_plan_id",
       "value": "1",
       "type": "string"
     },
     {
-      "id": "b642872a-566f-46a4-8f9b-0c231793b1ba",
+      "id": "c650967f-d0bf-4951-be00-7726ec6dee7c",
       "key": "employee_plan_id",
       "value": "1",
       "type": "string"
     },
     {
-      "id": "a6291a59-f86e-4b8f-96d3-c9ef521b57e1",
+      "id": "f832e68a-d75d-4020-907f-e8100accd1bd",
       "key": "marketing_task_id",
       "value": "1",
       "type": "string"
     },
     {
-      "id": "3ae44926-77d8-4737-87ba-2d8345bad0c1",
+      "id": "dd8fc073-8848-4866-9d1e-2827b819ce73",
       "key": "lead_id",
       "value": "1",
       "type": "string"
     },
     {
-      "id": "217ee8d9-9c04-4c77-af64-e27b173e29b3",
+      "id": "46a6c006-7664-47bb-806e-fd00c782e4c3",
       "key": "employee_id",
       "value": "2",
       "type": "string"
     },
     {
-      "id": "efdcb549-f0af-4c0c-b551-5497c0df5b60",
+      "id": "333d732b-fcbb-436d-97fd-aa4982478b06",
       "key": "warning_id",
       "value": "1",
       "type": "string"
     },
     {
-      "id": "c4324344-52c1-4c62-8c8e-e815539dcc1c",
+      "id": "892fbfa7-1337-4f49-b883-b719cd0df99c",
       "key": "employee_contract_id",
       "value": "1",
       "type": "string"
     },
     {
-      "id": "5373cbc4-cc96-4d34-9c8e-9d36d05328ab",
+      "id": "38bd76c3-b795-4c53-b10f-b59a89c5ee18",
       "key": "task_id",
       "value": "1",
       "type": "string"
     },
     {
-      "id": "d369e7f3-7ae5-4644-b670-5d146c41439d",
+      "id": "8c6fcee4-1470-4641-a3ad-2bb623faef1d",
       "key": "conversation_id",
       "value": "",
       "type": "string"
     },
     {
-      "id": "d8879a11-7ae1-43cb-81f0-cea55b09208a",
+      "id": "a545976d-f205-4584-b818-277ff26d75f6",
       "key": "message_id",
       "value": "",
       "type": "string"
     },
     {
-      "id": "7eefb2f3-bdf4-427b-98d4-22e4326fcc08",
+      "id": "44298755-f81f-436e-a7df-5ab95dbbef00",
       "key": "private_notification_id",
       "value": "1",
       "type": "string"
     },
     {
-      "id": "b6f3bc4f-da32-42c5-ac63-428d97575c85",
+      "id": "c2212d38-6930-4e0f-8977-a500f90f0c0a",
       "key": "public_notification_id",
       "value": "353",
       "type": "string"
     },
     {
-      "id": "0a2d34cc-7932-4b1e-ac88-43f4d60a1a92",
+      "id": "50ba2d78-ba28-476e-93fe-cdb9cab88c82",
       "key": "admin_notification_id",
       "value": "1",
       "type": "string"
     },
     {
-      "id": "cd0a57f4-eef1-4e11-828a-cba26e89e664",
+      "id": "8e65e160-9bbd-4068-8e76-75be9a189539",
       "key": "commission_id",
       "value": "1",
       "type": "string"
     },
     {
-      "id": "2ce8e6a7-f341-4a57-8bdf-157581697321",
+      "id": "8504acfa-d6b5-480f-9a2b-130e46c0618e",
       "key": "commission_distribution_id",
       "value": "1",
       "type": "string"
     },
     {
-      "id": "541d7473-1b01-4ecf-aae6-903fa0cfba4d",
+      "id": "43f2d413-855c-4aad-9205-85720525c705",
       "key": "deposit_id",
       "value": "1",
       "type": "string"
     },
     {
-      "id": "350f9bd8-7af4-4a91-bda2-881d05b2c8f8",
+      "id": "4932d56f-d63b-4fa0-9a2e-5da4c04bacbc",
       "key": "salary_distribution_id",
       "value": "1",
       "type": "string"
     },
     {
-      "id": "dc318c98-296c-4753-9342-53fc48f10d8d",
+      "id": "f37993d9-298a-4ed1-aa7f-a8f95c071507",
       "key": "financing_booking_id",
       "value": "127",
       "type": "string"
     },
     {
-      "id": "24a9954d-b8ce-4de3-a85a-f249a599ffaa",
+      "id": "72772f25-aab3-49af-bb03-04154fc2e1d5",
       "key": "title_transfer_id",
       "value": "1",
       "type": "string"
     },
     {
-      "id": "c879e0e5-1001-45b0-94ce-a274076cbf22",
+      "id": "661eb39c-831c-42ce-8188-624518941647",
       "key": "claim_file_id",
       "value": "1",
       "type": "string"
     },
     {
-      "id": "fb3657b7-5584-4b25-81f7-5997971417c6",
+      "id": "03ad9e35-f196-4e5e-9ffa-ee5a00f14fbb",
       "key": "assistant_conversation_id",
       "value": "1",
       "type": "string"
     },
     {
-      "id": "e8c360e6-11b1-4c99-87ff-dd635fc07832",
+      "id": "feb9a860-77cb-4fdf-944d-4df449d96bca",
       "key": "assistant_knowledge_id",
       "value": "1",
       "type": "string"
     },
     {
-      "id": "a9980778-65ba-4da1-9d0d-470eb0d53a78",
+      "id": "d8bdf2eb-6290-4b8a-a20a-bf02d7c0208c",
       "key": "ai_script_id",
       "value": "1",
       "type": "string"
     },
     {
-      "id": "7731c564-1a4a-49c1-a657-918607e37b8c",
+      "id": "298fab0e-32cc-4576-9460-52f8de827ffa",
       "key": "ai_call_id",
       "value": "",
       "type": "string"
     },
     {
-      "id": "9ccc2349-28f0-4a25-935b-c25663b21b29",
+      "id": "e92b0147-54f5-48ff-8c7a-75ce97a17141",
       "key": "exclusive_project_id",
       "value": "",
       "type": "string"
     },
     {
-      "id": "418588f7-a21f-4219-9c45-6c1d84178631",
+      "id": "4ebff3dc-abec-48ca-b2fb-596aa9dd2236",
       "key": "today",
       "value": "2026-03-10",
       "type": "string"
     },
     {
-      "id": "4eb18610-4503-49e2-84d0-a3385d9ce2b8",
+      "id": "297a0400-19ba-4331-aa54-c6517c3adfe4",
       "key": "future_date",
       "value": "2026-03-17",
       "type": "string"
     },
     {
-      "id": "034873ca-a9b8-47c2-bd2a-0e5bc8d0b6e3",
+      "id": "17c18d8b-7ac8-4cc6-b62f-0e4a56392d6c",
       "key": "future_datetime",
       "value": "2026-03-12 20:47:57",
       "type": "string"
     },
     {
-      "id": "bfe97348-962c-41cc-a5f4-0e239d9490d6",
+      "id": "c156309f-feab-4631-a7ee-925e5c6b2a84",
       "key": "current_month",
       "value": "3",
       "type": "string"
     },
     {
-      "id": "6ac06646-45ca-47e8-be63-6732ab2c877b",
+      "id": "80c34bb1-80d4-442f-b8e4-65840a40337e",
       "key": "current_year",
       "value": "2026",
       "type": "string"

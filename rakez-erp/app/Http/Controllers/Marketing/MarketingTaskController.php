@@ -48,8 +48,7 @@ class MarketingTaskController extends Controller
 
     public function update(int $taskId, UpdateMarketingTaskRequest $request): JsonResponse
     {
-        $task = MarketingTask::findOrFail($taskId);
-        $task->update($request->validated());
+        $task = $this->taskService->updateTask($taskId, $request->validated());
 
         return response()->json([
             'success' => true,

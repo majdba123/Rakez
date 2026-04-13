@@ -5,6 +5,7 @@ namespace App\Services\Sales;
 use App\Models\Contract;
 use App\Models\SalesAttendanceSchedule;
 use App\Models\User;
+use App\Services\Governance\GovernanceAuditLogger;
 use Carbon\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
@@ -278,5 +279,27 @@ class SalesAttendanceService
             'updated' => $updated,
             'removed' => $removed,
         ];
+    }
+
+    /**
+     * Governance Filament: delete any schedule when actor has sales.attendance.manage (oversight).
+     */
+    public function governanceDeleteSchedule(int $scheduleId, User $actor): void
+    {
+        abort_unless($actor->can('sales.attendance.manage'), 403);
+
+        $schedule = SalesAttendanceSchedule::query()->findOrFail($scheduleId);
+
+        app(GovernanceAuditLogger::class)->log('governance.sales.attendance.schedule_deleted', $schedule, [
+            'before' => [
+                'contract_id' => $schedule->contract_id,
+                'user_id' => $schedule->user_id,
+                'schedule_date' => $schedule->schedule_date?->format('Y-m-d'),
+                'start_time' => $schedule->start_time,
+                'end_time' => $schedule->end_time,
+            ],
+        ], $actor);
+
+        $schedule->delete();
     }
 }

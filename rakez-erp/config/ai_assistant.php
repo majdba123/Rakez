@@ -2,6 +2,7 @@
 
 return [
     'enabled' => env('AI_ENABLED', true),
+    'default_provider' => env('AI_PROVIDER', 'openai'),
     'openai' => [
         'model' => env('OPENAI_MODEL', 'gpt-4.1-mini'),
         'temperature' => (float) env('OPENAI_TEMPERATURE', 0.7),
@@ -40,7 +41,8 @@ return [
         'per_minute' => (int) env('AI_RATE_LIMIT_PER_MINUTE', 60),
     ],
     'budgets' => [
-        'per_user_daily_tokens' => (int) env('AI_DAILY_TOKEN_BUDGET', 0),
+        // Keep this finite by default so new environments do not ship with unlimited token spend.
+        'per_user_daily_tokens' => (int) env('AI_DAILY_TOKEN_BUDGET', 20000),
     ],
     'retention' => [
         'days' => (int) env('AI_RETENTION_DAYS', 90),
@@ -75,7 +77,7 @@ return [
 
     'tools' => [
         'orchestrated_chat' => (bool) env('AI_TOOLS_ORCHESTRATED_CHAT', true),
-        'sections' => ['marketing', 'sales', 'finance', 'hr'],
+        'sections' => ['marketing', 'sales', 'accounting', 'hr'],
     ],
 
     'v2' => [
@@ -88,9 +90,39 @@ return [
         'tool_loop' => [
             'max_tool_calls' => (int) env('AI_V2_MAX_TOOL_CALLS', 6),
         ],
-        /** Optional per-tool gates; tools not listed default to use-ai-assistant only. */
+        /** Explicit per-tool gates so tool exposure stays aligned with domain permissions. */
         'tool_gates' => [
+            'tool_search_records' => ['permission' => 'use-ai-assistant'],
+            'tool_get_lead_summary' => ['permission' => 'leads.view'],
+            'tool_get_project_summary' => ['permission' => 'contracts.view'],
+            'tool_get_contract_status' => ['permission' => 'contracts.view'],
             'tool_kpi_sales' => ['permission' => 'sales.dashboard.view'],
+            'tool_explain_access' => ['permission' => 'use-ai-assistant'],
+            'tool_rag_search' => ['permission' => 'use-ai-assistant'],
+            'tool_campaign_advisor' => ['permission' => 'marketing.dashboard.view'],
+            'tool_hiring_advisor' => ['permission' => 'hr.dashboard.view'],
+            'tool_finance_calculator' => ['permission' => 'use-ai-assistant'],
+            'tool_marketing_analytics' => ['permission' => 'marketing.dashboard.view'],
+            /** ERP snapshots; handler enforces contracts.view / sales.reservations.view per topic. */
+            'tool_sales_advisor' => ['permission' => 'sales.dashboard.view'],
+            'tool_ai_call_status' => ['permission' => 'ai-calls.manage'],
+        ],
+    ],
+
+    /**
+     * Arabic-first UX copy for the assistant (Saudi business context).
+     * Technical identifiers (permissions, routes) may remain Latin where needed.
+     */
+    'messages' => [
+        'empty_response' => 'تعذّر إنشاء ردّ الآن. يُرجى إعادة المحاولة.',
+        'conversation_summary_label' => 'ملخص المحادثة:',
+        'assistant_llm_error' => 'عذرًا، حدث خطأ أثناء المعالجة. يُرجى المحاولة لاحقًا.',
+        'budget_exceeded' => 'تم تجاوز حدّ الرموز اليومي (%1$d/%2$d). يُرجى المحاولة لاحقًا.',
+        'orchestrator' => [
+            'could_not_complete' => 'تعذّر إكمال طلبك.',
+            'parse_failed' => 'تعذّر تحليل مخرجات النموذج.',
+            'tool_limit' => 'تم بلوغ الحدّ الأقصى لاستدعاءات الأدوات في هذه الجلسة.',
+            'generic_error' => 'حدث خطأ. يُرجى إعادة المحاولة.',
         ],
     ],
 ];

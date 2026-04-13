@@ -5,6 +5,7 @@ namespace Tests\Feature\Ads;
 use App\Jobs\Ads\PublishOutcomeEventsJob;
 use App\Jobs\Ads\SyncCampaignStructureJob;
 use App\Jobs\Ads\SyncInsightsJob;
+use App\Jobs\Ads\SyncLeadsJob;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Queue;
 use Tests\TestCase;
@@ -50,6 +51,17 @@ class AdsSyncCommandTest extends TestCase
             ->assertExitCode(0);
 
         Queue::assertPushed(SyncInsightsJob::class, 1);
+    }
+
+    public function test_sync_leads_dispatches_jobs(): void
+    {
+        Queue::fake();
+        $this->createPlatformAccount('meta', 'act_111');
+
+        $this->artisan('ads:sync', ['action' => 'sync-leads', '--days' => '7'])
+            ->assertExitCode(0);
+
+        Queue::assertPushed(SyncLeadsJob::class, 1);
     }
 
     public function test_publish_outcomes_dispatches_job(): void

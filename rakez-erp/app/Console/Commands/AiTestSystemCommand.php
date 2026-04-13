@@ -25,9 +25,9 @@ class AiTestSystemCommand extends Command
             return self::FAILURE;
         }
 
-        $apiKey = env('OPENAI_API_KEY');
-        if (! $apiKey || $apiKey === 'test-fake-key-not-used') {
-            $this->error('OPENAI_API_KEY is not set or is the test placeholder. Set a real key in .env');
+        $apiKey = config('openai.api_key');
+        if (! is_string($apiKey) || trim($apiKey) === '' || trim($apiKey) === 'test-fake-key-not-used') {
+            $this->error('OpenAI provider is not configured. Set a real OPENAI_API_KEY in .env');
             return self::FAILURE;
         }
 

@@ -109,6 +109,8 @@ final class SnapInsightsReader implements AdsReadPort
     {
         return [
             'impressions', 'swipes', 'spend',
+            'uniques',
+            'native_leads',
             'conversion_purchases', 'conversion_purchases_value',
             'video_views', 'video_views_25_percent',
         ];
@@ -154,11 +156,12 @@ final class SnapInsightsReader implements AdsReadPort
                     'impressions' => (int) ($s['impressions'] ?? 0),
                     'clicks' => (int) ($s['swipes'] ?? $s['clicks'] ?? 0),
                     'spend' => ((float) ($s['spend'] ?? 0)) / 1_000_000,
-                    'spend_currency' => 'USD',
+                    'spend_currency' => (string) config('ads_platforms.default_normalized_currency', 'USD'),
                     'conversions' => (int) ($s['conversion_purchases'] ?? 0),
+                    'leads' => (int) ($s['native_leads'] ?? 0),
                     'revenue' => ((float) ($s['conversion_purchases_value'] ?? 0)) / 1_000_000,
                     'video_views' => (int) ($s['video_views'] ?? 0),
-                    'reach' => 0,
+                    'reach' => (int) ($s['uniques'] ?? $s['total_reach'] ?? 0),
                     'raw_metrics' => $s,
                 ];
             }

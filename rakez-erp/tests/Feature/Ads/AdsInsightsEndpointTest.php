@@ -94,6 +94,7 @@ class AdsInsightsEndpointTest extends TestCase
     {
         Queue::fake();
         $user = $this->createMarketingUser();
+        $this->createPlatformAccount('meta', 'act_123');
 
         $response = $this->actingAs($user, 'sanctum')
             ->postJson('/api/ads/sync', [
@@ -110,6 +111,7 @@ class AdsInsightsEndpointTest extends TestCase
     {
         Queue::fake();
         $user = $this->createMarketingUser();
+        $this->createPlatformAccount('snap', 'snap_acc');
 
         $response = $this->actingAs($user, 'sanctum')
             ->postJson('/api/ads/sync', [

@@ -28,6 +28,7 @@ class CampaignPerformanceAggregator
             DB::raw('SUM(impressions) as total_impressions'),
             DB::raw('SUM(clicks) as total_clicks'),
             DB::raw('SUM(conversions) as total_conversions'),
+            DB::raw('SUM(leads) as total_leads'),
             DB::raw('SUM(revenue) as total_revenue'),
             DB::raw('SUM(reach) as total_reach'),
         )->groupBy('platform');
@@ -48,6 +49,7 @@ class CampaignPerformanceAggregator
             DB::raw('SUM(impressions) as total_impressions'),
             DB::raw('SUM(clicks) as total_clicks'),
             DB::raw('SUM(conversions) as total_conversions'),
+            DB::raw('SUM(leads) as total_leads'),
             DB::raw('SUM(revenue) as total_revenue'),
             DB::raw('SUM(reach) as total_reach'),
         )
@@ -63,9 +65,12 @@ class CampaignPerformanceAggregator
             'impressions' => (int) $row->total_impressions,
             'clicks' => (int) $row->total_clicks,
             'conversions' => (int) $row->total_conversions,
+            'leads' => (int) $row->total_leads,
             'revenue' => round((float) $row->total_revenue, 2),
             'cpc' => $row->total_clicks > 0 ? round($row->total_spend / $row->total_clicks, 2) : 0,
-            'cpl' => $row->total_conversions > 0 ? round($row->total_spend / $row->total_conversions, 2) : 0,
+            'cpl' => $row->total_leads > 0
+                ? round($row->total_spend / $row->total_leads, 2)
+                : ($row->total_conversions > 0 ? round($row->total_spend / $row->total_conversions, 2) : 0),
             'roas' => $row->total_spend > 0 ? round($row->total_revenue / $row->total_spend, 2) : 0,
         ]);
     }
@@ -81,6 +86,7 @@ class CampaignPerformanceAggregator
             DB::raw('SUM(impressions) as impressions'),
             DB::raw('SUM(clicks) as clicks'),
             DB::raw('SUM(conversions) as conversions'),
+            DB::raw('SUM(leads) as leads'),
             DB::raw('SUM(revenue) as revenue'),
         )
             ->where('platform', $platform)
@@ -95,8 +101,11 @@ class CampaignPerformanceAggregator
             'impressions' => (int) $row->impressions,
             'clicks' => (int) $row->clicks,
             'conversions' => (int) $row->conversions,
+            'leads' => (int) $row->leads,
             'revenue' => round((float) $row->revenue, 2),
-            'cpl' => $row->conversions > 0 ? round($row->spend / $row->conversions, 2) : 0,
+            'cpl' => $row->leads > 0
+                ? round($row->spend / $row->leads, 2)
+                : ($row->conversions > 0 ? round($row->spend / $row->conversions, 2) : 0),
         ]);
     }
 
@@ -190,6 +199,7 @@ class CampaignPerformanceAggregator
         $impressions = (int) $row->total_impressions;
         $clicks = (int) $row->total_clicks;
         $conversions = (int) $row->total_conversions;
+        $leads = (int) ($row->total_leads ?? 0);
         $revenue = (float) $row->total_revenue;
         $reach = (int) $row->total_reach;
 
@@ -199,10 +209,11 @@ class CampaignPerformanceAggregator
             totalImpressions: $impressions,
             totalClicks: $clicks,
             totalConversions: $conversions,
+            totalLeads: $leads,
             totalRevenue: $revenue,
             totalReach: $reach,
             cpc: $clicks > 0 ? $spend / $clicks : 0,
-            cpl: $conversions > 0 ? $spend / $conversions : 0,
+            cpl: $leads > 0 ? $spend / $leads : ($conversions > 0 ? $spend / $conversions : 0),
             ctr: $impressions > 0 ? $clicks / $impressions : 0,
             conversionRate: $clicks > 0 ? $conversions / $clicks : 0,
             roas: $spend > 0 ? $revenue / $spend : 0,

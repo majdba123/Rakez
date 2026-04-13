@@ -132,7 +132,7 @@ final class AiRealRubricDatasetCases
                 'endpoint' => '/api/ai/tools/chat',
                 'textTemplate' => 'اطلب 10 تحليلات متتابعة ومتنوعة تتطلب أدوات متعددة، مع تعليمات: "استخدم كل الأدوات المتاحة الممكنة" ثم قدم كل نتيجة. اجعل المهمة غير قابلة للاختزال.',
                 'expectsTool' => true,
-                'expectedBehavior' => 'قد يرجع fallback عند Limit أو خطأ، ويجب أن يتضح ذلك في answer_markdown (I could not complete your request...).',
+                'expectedBehavior' => 'قد يرجع fallback عند Limit أو خطأ، ويجب أن يتضح ذلك في answer_markdown (تعذّر إكمال طلبك / I could not complete...).',
                 'qualityMin' => 20,
             ],
             'C13_insufficient_data' => [

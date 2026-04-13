@@ -21,7 +21,6 @@ class ExplainAccessTool implements ToolContract
         $entityType = $args['entity_type'] ?? null;
         $entityId = $args['entity_id'] ?? null;
 
-        // Build a message from the route/entity info for the engine
         $message = "access to {$route}";
         if ($entityType && $entityId) {
             $message .= " for {$entityType} #{$entityId}";
@@ -30,20 +29,19 @@ class ExplainAccessTool implements ToolContract
         $explanation = $this->engine->explain($user, $message);
 
         if ($explanation === null) {
-            return ToolResponse::success('tool_explain_access', $args, [
-                'explanation' => 'Unable to determine access information for this route.',
-                'permissions' => $user->getAllPermissions()->pluck('name')->values()->toArray(),
-                'roles' => $user->getRoleNames()->toArray(),
-            ]);
+            return ToolResponse::insufficientData('tool_explain_access', $args, [
+                'tool_kind' => 'access_explanation',
+                'summary' => 'لم يُعثر على قاعدة وصول محدّدة لهذا المسار في محرّك الصلاحيات؛ قد يحتاج المسار إلى إعداد إضافي.',
+                'missing_data' => ['access_rule_match'],
+            ], [], 'access_engine');
         }
 
         return ToolResponse::success('tool_explain_access', $args, [
+            'tool_kind' => 'access_explanation',
             'allowed' => $explanation['allowed'],
             'reason_code' => $explanation['reason_code'],
             'message' => $explanation['message'],
             'steps' => $explanation['steps'] ?? [],
-            'current_permissions' => $user->getAllPermissions()->pluck('name')->values()->toArray(),
-            'current_roles' => $user->getRoleNames()->toArray(),
-        ]);
+        ], [], [], 'access_engine');
     }
 }

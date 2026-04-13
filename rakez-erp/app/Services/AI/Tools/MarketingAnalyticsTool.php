@@ -4,32 +4,48 @@ namespace App\Services\AI\Tools;
 
 use App\Models\DailyMarketingSpend;
 use App\Models\Lead;
-use App\Models\MarketingCampaign;
 use App\Models\User;
 use Illuminate\Support\Carbon;
 
 class MarketingAnalyticsTool implements ToolContract
 {
+    private const REPORT_OVERVIEW = 'overview';
+
+    private const REPORT_CHANNEL = 'channel_comparison';
+
+    private const REPORT_TEAM = 'team_performance';
+
+    private const REPORT_QUALITY = 'lead_quality';
+
     public function __invoke(User $user, array $args): array
     {
         if (! $user->can('marketing.dashboard.view')) {
             return ToolResponse::denied('marketing.dashboard.view');
         }
 
-        $reportType = $args['report_type'] ?? 'overview';
+        $reportType = $args['report_type'] ?? null;
+        $allowed = [self::REPORT_OVERVIEW, self::REPORT_CHANNEL, self::REPORT_TEAM, self::REPORT_QUALITY];
+        if (! is_string($reportType) || ! in_array($reportType, $allowed, true)) {
+            return ToolResponse::invalidArguments(
+                'report_type must be one of: '.implode(', ', $allowed).'.'
+            );
+        }
+
         $dateFrom = isset($args['date_from']) ? Carbon::parse($args['date_from']) : now()->subDays(30);
         $dateTo = isset($args['date_to']) ? Carbon::parse($args['date_to']) : now();
 
         $data = match ($reportType) {
-            'overview' => $this->overview($dateFrom, $dateTo),
-            'channel_comparison' => $this->channelComparison($dateFrom, $dateTo),
-            'team_performance' => $this->teamPerformance($dateFrom, $dateTo),
-            'lead_quality' => $this->leadQuality($dateFrom, $dateTo),
-            default => $this->overview($dateFrom, $dateTo),
+            self::REPORT_OVERVIEW => $this->overview($dateFrom, $dateTo),
+            self::REPORT_CHANNEL => $this->channelComparison($dateFrom, $dateTo),
+            self::REPORT_TEAM => $this->teamPerformance($dateFrom, $dateTo),
+            self::REPORT_QUALITY => $this->leadQuality($dateFrom, $dateTo),
         };
 
         $data['report_type'] = $reportType;
         $data['period'] = ['from' => $dateFrom->toDateString(), 'to' => $dateTo->toDateString()];
+        $data['warnings'] = array_merge($data['warnings'] ?? [], [
+            'Lead quality bands use configurable score thresholds (see config/ai_marketing_tools.php), not external CRM scoring.',
+        ]);
 
         return ToolResponse::success('tool_marketing_analytics', $args, $data, [
             ['type' => 'tool', 'title' => 'Marketing Analytics', 'ref' => 'analytics:marketing'],
@@ -100,6 +116,9 @@ class MarketingAnalyticsTool implements ToolContract
 
     private function leadQuality(Carbon $from, Carbon $to): array
     {
+        $hot = max(0, min(100, (int) config('ai_marketing_tools.lead_quality_score_thresholds.hot', 80)));
+        $warm = max(0, min(100, (int) config('ai_marketing_tools.lead_quality_score_thresholds.warm', 50)));
+
         $leads = Lead::whereBetween('created_at', [$from, $to]);
 
         $byStatus = (clone $leads)->selectRaw('status, COUNT(*) as count')
@@ -107,18 +126,19 @@ class MarketingAnalyticsTool implements ToolContract
             ->pluck('count', 'status')
             ->toArray();
 
-        $byScore = (clone $leads)->selectRaw('
+        $byScore = (clone $leads)->selectRaw("
             CASE
-                WHEN lead_score >= 80 THEN "hot"
-                WHEN lead_score >= 50 THEN "warm"
-                ELSE "cold"
+                WHEN lead_score >= {$hot} THEN 'hot'
+                WHEN lead_score >= {$warm} THEN 'warm'
+                ELSE 'cold'
             END as quality,
             COUNT(*) as count
-        ')->groupBy('quality')->pluck('count', 'quality')->toArray();
+        ")->groupBy('quality')->pluck('count', 'quality')->toArray();
 
         return [
             'by_status' => $byStatus,
             'by_quality' => $byScore,
+            'quality_thresholds' => ['hot_min' => $hot, 'warm_min' => $warm],
         ];
     }
 }

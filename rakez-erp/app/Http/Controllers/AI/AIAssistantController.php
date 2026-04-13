@@ -26,7 +26,8 @@ class AIAssistantController extends Controller
                 (string) $request->input('question'),
                 $user,
                 $request->input('section'),
-                $request->input('context', [])
+                $request->input('context', []),
+                ['provider' => $request->input('provider')]
             );
 
             $payload['suggestions'] = $this->assistantService->suggestions($request->input('section'));
@@ -59,7 +60,8 @@ class AIAssistantController extends Controller
                 $user,
                 $request->input('session_id'),
                 $request->input('section'),
-                $request->input('context', [])
+                $request->input('context', []),
+                ['provider' => $request->input('provider')]
             );
 
             $payload['suggestions'] = $this->assistantService->suggestions($request->input('section'));
@@ -87,9 +89,11 @@ class AIAssistantController extends Controller
         $section = $request->input('section');
         $context = $request->input('context', []);
 
-        return new StreamedResponse(function () use ($message, $user, $sessionId, $section, $context) {
+        $runtime = ['provider' => $request->input('provider')];
+
+        return new StreamedResponse(function () use ($message, $user, $sessionId, $section, $context, $runtime) {
             try {
-                foreach ($this->assistantService->streamChat($message, $user, $sessionId, $section, $context) as $sseChunk) {
+                foreach ($this->assistantService->streamChat($message, $user, $sessionId, $section, $context, $runtime) as $sseChunk) {
                     echo $sseChunk;
                     if (ob_get_level()) {
                         ob_flush();

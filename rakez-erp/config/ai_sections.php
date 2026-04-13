@@ -136,6 +136,16 @@ return [
             'Why did I get this notification?',
         ],
     ],
+    'workflow_tasks' => [
+        'label' => 'Workflow Tasks',
+        'required_capabilities' => ['tasks.create'],
+        'allowed_context_params' => [],
+        'suggestions' => [
+            'Summarize my current assigned tasks.',
+            'Show tasks I requested from others.',
+            'What workflow tasks are overdue or blocked?',
+        ],
+    ],
     'dashboard' => [
         'label' => 'Dashboard',
         'required_capabilities' => ['dashboard.analytics.view'],
@@ -195,6 +205,19 @@ return [
             'كيف أحسب العمولة؟',
         ],
     ],
+    'sales_reservations' => [
+        'label' => 'Sales Reservations',
+        'required_capabilities' => ['sales.reservations.view'],
+        'allowed_context_params' => ['reservation_id'],
+        'context_schema' => [
+            'reservation_id' => 'int|min:1',
+        ],
+        'suggestions' => [
+            'Show reservation details for reservation X.',
+            'Explain the current reservation status.',
+            'What is blocking this reservation from the next step?',
+        ],
+    ],
     'hr' => [
         'label' => 'Human Resources',
         'required_capabilities' => ['hr.dashboard.view'],
@@ -213,6 +236,32 @@ return [
             'كيف أحسب القسط الشهري للتمويل؟',
             'وش مراحل التمويل البنكي؟',
             'كم الحد الأدنى للراتب للتمويل؟',
+        ],
+    ],
+    'credit_bookings' => [
+        'label' => 'Credit Bookings',
+        'required_capabilities' => ['credit.bookings.view'],
+        'allowed_context_params' => ['reservation_id'],
+        'context_schema' => [
+            'reservation_id' => 'int|min:1',
+        ],
+        'suggestions' => [
+            'Show the financing status for reservation X.',
+            'Which financing stage is currently active?',
+            'What is blocking this credit booking?',
+        ],
+    ],
+    'ai_calls' => [
+        'label' => 'AI Calls',
+        'required_capabilities' => ['ai-calls.manage'],
+        'allowed_context_params' => ['call_id'],
+        'context_schema' => [
+            'call_id' => 'int|min:1',
+        ],
+        'suggestions' => [
+            'Show the latest AI call analytics.',
+            'Summarize AI call #123.',
+            'Explain what happened during this AI call.',
         ],
     ],
     'accounting' => [

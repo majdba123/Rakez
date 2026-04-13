@@ -10,6 +10,7 @@ use Generator;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use OpenAI\Laravel\Facades\OpenAI;
+use OpenAI\Responses\Audio\TranscriptionResponse;
 use OpenAI\Responses\Embeddings\CreateResponse as EmbeddingsApiResponse;
 use OpenAI\Responses\Responses\CreateResponse;
 use Throwable;
@@ -35,6 +36,7 @@ class AiOpenAiGateway
         $serviceName = (string) ($guardContext['service'] ?? $payload['metadata']['service'] ?? 'openai.responses');
         $user = $this->resolveUser($guardContext['user_id'] ?? null);
 
+        $this->assertConfiguredForResponses($payload, $serviceName);
         $this->guardAvailability($serviceName, $user, $guardContext['section'] ?? null);
 
         $start = microtime(true);
@@ -82,6 +84,7 @@ class AiOpenAiGateway
         $serviceName = (string) ($guardContext['service'] ?? $payload['metadata']['service'] ?? 'openai.responses.stream');
         $user = $this->resolveUser($guardContext['user_id'] ?? null);
 
+        $this->assertConfiguredForResponses($payload, $serviceName);
         $this->guardAvailability($serviceName, $user, $guardContext['section'] ?? null);
 
         $start = microtime(true);
@@ -122,6 +125,7 @@ class AiOpenAiGateway
         $serviceName = 'openai.embeddings';
         $user = $this->resolveUser($guardContext['user_id'] ?? null);
 
+        $this->assertConfiguredForEmbeddings($params, $serviceName);
         $this->guardAvailability($serviceName, $user, $guardContext['section'] ?? null);
 
         try {
@@ -131,6 +135,94 @@ class AiOpenAiGateway
             return $response;
         } catch (Throwable $e) {
             $this->markFailure($serviceName);
+            throw $this->normalizeException($e);
+        }
+    }
+
+    /**
+     * @param  array<string, mixed>  $parameters
+     * @param  array<string, mixed>  $guardContext
+     */
+    public function audioTranscribe(array $parameters, array $guardContext = []): TranscriptionResponse
+    {
+        $serviceName = (string) ($guardContext['service'] ?? 'openai.audio.transcribe');
+        $user = $this->resolveUser($guardContext['user_id'] ?? null);
+
+        $this->assertConfiguredForAudio($parameters, $serviceName, 'model');
+        $this->guardAvailability($serviceName, $user, $guardContext['section'] ?? null);
+
+        $start = microtime(true);
+
+        try {
+            $response = $this->withRetry(fn () => OpenAI::audio()->transcribe($parameters));
+            $this->markSuccess($serviceName);
+
+            Log::info('OpenAI gateway audio transcription ok', [
+                'latency_ms' => (int) round((microtime(true) - $start) * 1000),
+                'model' => $parameters['model'] ?? null,
+                'session_id' => $guardContext['session_id'] ?? null,
+                'section' => $guardContext['section'] ?? null,
+                'service' => $serviceName,
+            ]);
+
+            return $response;
+        } catch (Throwable $e) {
+            $this->markFailure($serviceName);
+            Log::warning('OpenAI gateway audio transcription failed', [
+                'latency_ms' => (int) round((microtime(true) - $start) * 1000),
+                'model' => $parameters['model'] ?? null,
+                'session_id' => $guardContext['session_id'] ?? null,
+                'section' => $guardContext['section'] ?? null,
+                'service' => $serviceName,
+                'error' => $e->getMessage(),
+            ]);
+
+            throw $this->normalizeException($e);
+        }
+    }
+
+    /**
+     * @param  array<string, mixed>  $parameters
+     * @param  array<string, mixed>  $guardContext
+     */
+    public function audioSpeech(array $parameters, array $guardContext = []): string
+    {
+        $serviceName = (string) ($guardContext['service'] ?? 'openai.audio.speech');
+        $user = $this->resolveUser($guardContext['user_id'] ?? null);
+
+        $this->assertConfiguredForAudio($parameters, $serviceName, 'model');
+        $this->guardAvailability($serviceName, $user, $guardContext['section'] ?? null);
+
+        $start = microtime(true);
+
+        try {
+            $response = $this->withRetry(fn () => OpenAI::audio()->speech($parameters));
+            $this->markSuccess($serviceName);
+
+            Log::info('OpenAI gateway audio speech ok', [
+                'latency_ms' => (int) round((microtime(true) - $start) * 1000),
+                'model' => $parameters['model'] ?? null,
+                'voice' => $parameters['voice'] ?? null,
+                'format' => $parameters['format'] ?? null,
+                'session_id' => $guardContext['session_id'] ?? null,
+                'section' => $guardContext['section'] ?? null,
+                'service' => $serviceName,
+            ]);
+
+            return $response;
+        } catch (Throwable $e) {
+            $this->markFailure($serviceName);
+            Log::warning('OpenAI gateway audio speech failed', [
+                'latency_ms' => (int) round((microtime(true) - $start) * 1000),
+                'model' => $parameters['model'] ?? null,
+                'voice' => $parameters['voice'] ?? null,
+                'format' => $parameters['format'] ?? null,
+                'session_id' => $guardContext['session_id'] ?? null,
+                'section' => $guardContext['section'] ?? null,
+                'service' => $serviceName,
+                'error' => $e->getMessage(),
+            ]);
+
             throw $this->normalizeException($e);
         }
     }
@@ -199,6 +291,66 @@ class AiOpenAiGateway
         }
 
         return User::query()->find($userId);
+    }
+
+    /**
+     * @param  array<string, mixed>  $payload
+     */
+    private function assertConfiguredForResponses(array $payload, string $serviceName): void
+    {
+        $this->assertOpenAiApiKeyConfigured($serviceName);
+        $this->assertConfiguredModel($payload['model'] ?? null, $serviceName, 'responses model');
+    }
+
+    /**
+     * @param  array<string, mixed>  $params
+     */
+    private function assertConfiguredForEmbeddings(array $params, string $serviceName): void
+    {
+        $this->assertOpenAiApiKeyConfigured($serviceName);
+        $this->assertConfiguredModel($params['model'] ?? null, $serviceName, 'embedding model');
+    }
+
+    /**
+     * @param  array<string, mixed>  $parameters
+     */
+    private function assertConfiguredForAudio(array $parameters, string $serviceName, string $modelKey): void
+    {
+        $this->assertOpenAiApiKeyConfigured($serviceName);
+        $this->assertConfiguredModel($parameters[$modelKey] ?? null, $serviceName, 'audio model');
+    }
+
+    private function assertOpenAiApiKeyConfigured(string $serviceName): void
+    {
+        $apiKey = config('openai.api_key');
+
+        if (! is_string($apiKey) || trim($apiKey) === '' || trim($apiKey) === 'test-fake-key-not-used') {
+            Log::warning('OpenAI gateway misconfigured: missing API key', [
+                'service' => $serviceName,
+            ]);
+
+            throw new AiAssistantException(
+                'AI provider is not configured for this environment.',
+                'ai_provider_misconfigured',
+                503
+            );
+        }
+    }
+
+    private function assertConfiguredModel(mixed $model, string $serviceName, string $label): void
+    {
+        if (! is_string($model) || trim($model) === '') {
+            Log::warning('OpenAI gateway misconfigured: missing model', [
+                'service' => $serviceName,
+                'label' => $label,
+            ]);
+
+            throw new AiAssistantException(
+                'AI provider configuration is incomplete.',
+                'ai_provider_misconfigured',
+                503
+            );
+        }
     }
 
     private function guardAvailability(string $serviceName, ?User $user, ?string $section): void

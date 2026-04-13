@@ -21,7 +21,29 @@ class SearchRecordsTool implements ToolContract
         $limit = $args['limit'] ?? 10;
 
         if ($query === '') {
-            return ToolResponse::error('Search query is required.');
+            return ToolResponse::invalidArguments('Search query is required.');
+        }
+
+        if (! is_array($modules) || $modules === []) {
+            return ToolResponse::invalidArguments('modules must be a non-empty array.');
+        }
+
+        $permissionByModule = [
+            'leads' => 'leads.view',
+            'projects' => 'contracts.view',
+            'contracts' => 'contracts.view',
+            'marketing_tasks' => 'marketing.tasks.view',
+            'customers' => 'second_party_data.view',
+        ];
+
+        foreach ($modules as $module) {
+            $perm = $permissionByModule[$module] ?? null;
+            if ($perm === null) {
+                return ToolResponse::invalidArguments("Unknown module '{$module}'.");
+            }
+            if (! $user->can($perm)) {
+                return ToolResponse::denied($perm);
+            }
         }
 
         $results = [];
@@ -48,13 +70,24 @@ class SearchRecordsTool implements ToolContract
                 }
             }
         } catch (Throwable $e) {
-            return ToolResponse::error('Search failed: ' . $e->getMessage());
+            return ToolResponse::error('Search failed: '.$e->getMessage());
         }
+
+        $data = array_merge(
+            [
+                'summary' => 'نتائج بحث نصّي ضمن صلاحياتك لكل وحدة (ليدات، عقود، مهام تسويق، عملاء).',
+                'warnings' => [
+                    'كل وحدة تتطلّب صلاحية مستقلة (leads.view، contracts.view، marketing.tasks.view، second_party_data.view).',
+                    'صلاحية المساعد الذكي وحدها لا تكفي للوصول إلى البيانات دون هذه الصلاحيات.',
+                ],
+            ],
+            $results
+        );
 
         return ToolResponse::success('tool_search_records', [
             'query' => $query,
             'modules' => $modules,
-        ], $results, $sourceRefs);
+        ], $data, $sourceRefs);
     }
 
     private function searchLeads(User $user, string $query, int $limit): array
@@ -65,7 +98,6 @@ class SearchRecordsTool implements ToolContract
                 ->orWhere('source', 'LIKE', "%{$query}%");
         });
 
-        // Scope to assigned leads unless user has view_all
         if (! $user->can('leads.view_all')) {
             $builder->where('assigned_to', $user->id);
         }
@@ -104,10 +136,6 @@ class SearchRecordsTool implements ToolContract
 
     private function searchMarketingTasks(User $user, string $query, int $limit): array
     {
-        if (! $user->can('marketing.tasks.view')) {
-            return [];
-        }
-
         return MarketingTask::where('title', 'LIKE', "%{$query}%")
             ->limit($limit)->get()->map(fn ($t) => [
                 'id' => $t->id,
@@ -118,10 +146,6 @@ class SearchRecordsTool implements ToolContract
 
     private function searchCustomers(User $user, string $query, int $limit): array
     {
-        if (! $user->can('second_party_data.view')) {
-            return [];
-        }
-
         return \App\Models\SecondPartyData::where(function ($q) use ($query) {
             $q->where('name', 'LIKE', "%{$query}%")
                 ->orWhere('phone', 'LIKE', "%{$query}%");

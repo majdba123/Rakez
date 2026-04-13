@@ -6,6 +6,7 @@ use App\Models\Contract;
 use App\Models\ContractUnit;
 use App\Models\SalesTarget;
 use App\Models\User;
+use App\Services\Governance\GovernanceAuditLogger;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Collection;
@@ -242,5 +243,34 @@ class SalesTargetService
             $page,
             ['path' => request()->url(), 'query' => request()->query()]
         );
+    }
+
+    /**
+     * Governance panel: update any target status when actor has permission `sales.targets.update`.
+     * Bypasses marketer-ownership checks used by {@see updateTargetStatus()} for operational sales users.
+     */
+    public function governanceUpdateTargetStatus(int $targetId, string $status, User $actor): SalesTarget
+    {
+        abort_unless($actor->can('sales.targets.update'), 403);
+
+        $allowed = ['new', 'in_progress', 'completed'];
+        if (! in_array($status, $allowed, true)) {
+            throw new \InvalidArgumentException('Invalid target status');
+        }
+
+        $target = SalesTarget::findOrFail($targetId);
+
+        $beforeStatus = $target->status;
+
+        $target->update(['status' => $status]);
+
+        $fresh = $target->fresh(['contract', 'contractUnit', 'contractUnits', 'leader', 'marketer']);
+
+        app(GovernanceAuditLogger::class)->log('governance.sales.target.status_updated', $fresh, [
+            'before' => ['status' => $beforeStatus],
+            'after' => ['status' => $fresh->status],
+        ], $actor);
+
+        return $fresh;
     }
 }

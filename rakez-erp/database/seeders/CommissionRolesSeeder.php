@@ -50,10 +50,10 @@ class CommissionRolesSeeder extends Seeder
         
         // Admin gets all permissions (handled by Gate::before in AppServiceProvider)
         
-        // Sales Manager permissions
-        if (Role::where('name', 'sales_manager')->exists()) {
-            $salesManager = Role::where('name', 'sales_manager')->first();
-            $salesManager->givePermissionTo([
+        // Sales leader permissions
+        if (Role::where('name', 'sales_leader')->exists()) {
+            $salesLeader = Role::where('name', 'sales_leader')->first();
+            $salesLeader->givePermissionTo([
                 'commissions.view',
                 'commissions.create',
                 'commissions.update',

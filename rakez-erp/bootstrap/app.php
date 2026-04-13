@@ -29,6 +29,8 @@ return Application::configure(basePath: dirname(__DIR__))
             'inventory' => InventoryMiddleware::class,
 
             'auth' => \App\Http\Middleware\Authenticate::class,
+            'ai.assistant' => \App\Http\Middleware\EnsureAiAssistantAccess::class,
+            'ai.redact' => \App\Http\Middleware\RedactPiiFromAi::class,
             'role' => \Spatie\Permission\Middleware\RoleMiddleware::class,
             'permission' => \Spatie\Permission\Middleware\PermissionMiddleware::class,
             'role_or_permission' => \Spatie\Permission\Middleware\RoleOrPermissionMiddleware::class,

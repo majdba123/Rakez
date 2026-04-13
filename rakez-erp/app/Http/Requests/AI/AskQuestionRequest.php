@@ -22,6 +22,7 @@ class AskQuestionRequest extends FormRequest
             'question' => ['required', 'string', 'max:2000'],
             'section' => ['nullable', 'string', Rule::in($sections)],
             'context' => ['nullable', 'array'],
+            'provider' => ['nullable', 'string', Rule::in(['openai', 'anthropic'])],
         ];
 
         // Add nested context validation rules

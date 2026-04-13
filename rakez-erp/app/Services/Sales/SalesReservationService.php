@@ -11,6 +11,7 @@ use App\Models\User;
 use App\Models\UserNotification;
 use App\Events\UserNotificationEvent;
 use App\Exceptions\UnitAlreadyReservedException;
+use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Exception;
@@ -172,10 +173,9 @@ class SalesReservationService
     {
         $reservation = SalesReservation::findOrFail($id);
 
-        // Check ownership first - regular sales employees can only confirm their own reservations
+        // Check ownership first; governance admins with the real confirm permission can also execute.
         if ($reservation->marketing_employee_id !== $user->id) {
-            // Only admins can confirm others' reservations
-            if (!$user->hasRole('admin')) {
+            if (! $user->can('sales.reservations.confirm') && ! $user->hasRole('admin')) {
                 throw new \Illuminate\Auth\Access\AuthorizationException('Unauthorized to confirm this reservation');
             }
         }
@@ -203,9 +203,14 @@ class SalesReservationService
     {
         $reservation = SalesReservation::findOrFail($id);
 
-        // Check ownership: sales can cancel own; admin and credit can cancel any (e.g. bank rejected, client withdrew)
+        // Sales can cancel their own; governance sales/credit admins can cancel through real permissions.
         if ($reservation->marketing_employee_id !== $user->id) {
-            if (!$user->hasRole('admin') && !$user->hasRole('credit')) {
+            if (
+                ! $user->can('sales.reservations.cancel')
+                && ! $user->can('credit.bookings.manage')
+                && ! $user->hasRole('admin')
+                && ! $user->hasRole('credit')
+            ) {
                 throw new \Illuminate\Auth\Access\AuthorizationException('Unauthorized to cancel this reservation');
             }
         }
@@ -285,6 +290,25 @@ class SalesReservationService
 
         $perPage = $filters['per_page'] ?? 15;
         return $query->orderBy('created_at', 'desc')->paginate($perPage);
+    }
+
+    public function getReservationForAiSkill(int $reservationId, User $user): SalesReservation
+    {
+        $reservation = SalesReservation::with([
+            'contract',
+            'contractUnit',
+            'marketingEmployee',
+            'negotiationApproval',
+            'paymentInstallments',
+            'financingTracker',
+            'titleTransfer',
+        ])->findOrFail($reservationId);
+
+        if (! $user->can('view', $reservation)) {
+            throw new AuthorizationException('Unauthorized to view this reservation');
+        }
+
+        return $reservation;
     }
 
     /**

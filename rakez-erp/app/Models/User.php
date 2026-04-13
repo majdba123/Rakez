@@ -3,15 +3,20 @@
 namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
+use App\Services\Governance\GovernanceAccessService;
+use App\Services\Governance\GovernanceTemporaryPermissionService;
+use Filament\Models\Contracts\FilamentUser;
+use Filament\Panel;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
 use Spatie\Permission\Traits\HasRoles;
 
-class User extends Authenticatable
+class User extends Authenticatable implements FilamentUser
 {
-    use HasApiTokens, HasFactory, Notifiable, HasRoles;
+    use HasApiTokens, HasFactory, Notifiable, HasRoles, SoftDeletes;
 
 
     protected $fillable = [
@@ -105,6 +110,11 @@ class User extends Authenticatable
     public function isAdmin()
     {
         return $this->type === 'admin';
+    }
+
+    public function canAccessPanel(Panel $panel): bool
+    {
+        return app(GovernanceAccessService::class)->canAccessPanel($this, $panel);
     }
 
     /**
@@ -226,7 +236,7 @@ class User extends Authenticatable
     public function getEffectivePermissions(): array
     {
         $permissions = $this->getAllPermissions()->pluck('name')->toArray();
-        
+
         // Add manager-specific permissions dynamically
         if ($this->isProjectManagementManager()) {
             $managerPermissions = [
@@ -237,8 +247,18 @@ class User extends Authenticatable
             ];
             $permissions = array_merge($permissions, $managerPermissions);
         }
-        
-        return array_unique($permissions);
+
+        $temporary = app(GovernanceTemporaryPermissionService::class)
+            ->activePermissionNamesForUser($this)
+            ->all();
+        $permissions = array_merge($permissions, $temporary);
+
+        return array_values(array_unique($permissions));
+    }
+
+    public function governanceTemporaryPermissions()
+    {
+        return $this->hasMany(GovernanceTemporaryPermission::class, 'user_id');
     }
 
     /**
@@ -260,8 +280,22 @@ class User extends Authenticatable
             $roleName = 'sales_leader';
         }
 
+        if ($this->type === 'user') {
+            $roleName = 'default';
+        }
+
         if (\Spatie\Permission\Models\Role::where('name', $roleName)->exists()) {
-            $this->syncRoles([$roleName]);
+            $operationalRoles = config('governance.operational_roles', []);
+
+            $preservedRoles = $this->roles()
+                ->whereNotIn('name', $operationalRoles)
+                ->pluck('name')
+                ->all();
+
+            $this->syncRoles(array_values(array_unique([
+                ...$preservedRoles,
+                $roleName,
+            ])));
         }
     }
 

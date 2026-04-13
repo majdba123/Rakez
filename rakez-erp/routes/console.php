@@ -18,3 +18,5 @@ Schedule::command('hr:check-performance-warnings')->dailyAt('08:00');
 
 // Check credit financing deadlines every hour
 Schedule::command('credit:check-deadlines')->hourly();
+
+Schedule::command('governance:expire-temporary-permissions')->hourly();

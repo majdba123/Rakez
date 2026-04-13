@@ -41,12 +41,30 @@ return [
         'advertiser_id' => env('TIKTOK_ADVERTISER_ID'),
         'base_url' => 'https://business-api.tiktok.com/open_api/v1.3',
         'auth_url' => 'https://open.tiktokapis.com/v2/oauth/token/',
+        'insights' => [
+            // TikTok requires service_type for integrated reports. AUCTION is the default for auction ads.
+            'service_type' => env('TIKTOK_INSIGHTS_SERVICE_TYPE', 'AUCTION'),
+
+            // Metrics list is provider-specific; keep it configurable to avoid code changes when TikTok updates names.
+            'metrics' => array_values(array_filter(array_map('trim', explode(',', env(
+                'TIKTOK_INSIGHTS_METRICS',
+                'spend,impressions,clicks,reach,conversion,cost_per_conversion,conversion_rate,video_play_actions,video_watched_6s'
+            ))))),
+
+            // Optional: map provider metrics into normalized fields (leads/revenue/conversions).
+            // Leave empty to keep revenue/leads at 0 while preserving raw_metrics for downstream modeling.
+            'lead_metric_keys' => array_values(array_filter(array_map('trim', explode(',', env('TIKTOK_INSIGHTS_LEAD_METRIC_KEYS', ''))))),
+            'revenue_metric_keys' => array_values(array_filter(array_map('trim', explode(',', env('TIKTOK_INSIGHTS_REVENUE_METRIC_KEYS', ''))))),
+            'conversion_metric_keys' => array_values(array_filter(array_map('trim', explode(',', env('TIKTOK_INSIGHTS_CONVERSION_METRIC_KEYS', 'conversion'))))),
+        ],
     ],
 
     // All insights/campaign data is fetched 100% from platform APIs (Meta, Snap, TikTok) and stored in ads_* tables. No static or mock data.
     'sync' => [
         'campaign_structure_interval' => env('ADS_CAMPAIGN_SYNC_HOURS', 6),
         'insights_lookback_days' => env('ADS_INSIGHTS_LOOKBACK_DAYS', 30),
+        'leads_lookback_days' => env('ADS_LEADS_LOOKBACK_DAYS', 7),
+        'leads_interval_hours' => env('ADS_LEADS_SYNC_HOURS', 6),
         'outcome_publish_interval_seconds' => env('ADS_OUTCOME_INTERVAL', 60),
     ],
 

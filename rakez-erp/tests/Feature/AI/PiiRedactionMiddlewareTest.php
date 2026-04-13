@@ -56,4 +56,25 @@ class PiiRedactionMiddlewareTest extends TestCase
             return new Response('ok');
         });
     }
+
+    public function test_middleware_redacts_nested_context_values(): void
+    {
+        $middleware = new RedactPiiFromAi;
+        $request = Request::create('/api/ai/chat', 'POST', [
+            'message' => 'hello',
+            'context' => [
+                'customer_note' => 'هوية العميل 1098765432',
+                'nested' => [
+                    'phone' => 'اتصل على 0512345678',
+                ],
+            ],
+        ]);
+
+        $middleware->handle($request, function ($req) {
+            $this->assertStringContainsString('[REDACTED_NATIONAL_ID]', $req->input('context.customer_note'));
+            $this->assertStringContainsString('[REDACTED_PHONE]', $req->input('context.nested.phone'));
+
+            return new Response('ok');
+        });
+    }
 }

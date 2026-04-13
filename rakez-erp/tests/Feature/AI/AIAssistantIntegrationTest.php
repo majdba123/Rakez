@@ -21,6 +21,7 @@ class AIAssistantIntegrationTest extends TestCase
         parent::setUp();
         
         // Ensure permissions exist
+        Permission::findOrCreate('use-ai-assistant', 'web');
         Permission::findOrCreate('contracts.view', 'web');
         Permission::findOrCreate('marketing.projects.view', 'web');
         Permission::findOrCreate('dashboard.analytics.view', 'web');
@@ -32,6 +33,7 @@ class AIAssistantIntegrationTest extends TestCase
     public function test_multi_turn_chat_history_persistence(): void
     {
         $user = User::factory()->create(['type' => 'admin']);
+        $user->givePermissionTo('use-ai-assistant');
         Sanctum::actingAs($user);
 
         $sessionId = '11111111-1111-1111-1111-111111111111';
@@ -134,6 +136,7 @@ class AIAssistantIntegrationTest extends TestCase
     public function test_contract_context_awareness(): void
     {
         $user = User::factory()->create(['type' => 'admin']);
+        $user->givePermissionTo(['use-ai-assistant', 'contracts.view']);
         Sanctum::actingAs($user);
 
         $contract = Contract::factory()->create([
@@ -193,8 +196,8 @@ class AIAssistantIntegrationTest extends TestCase
         // Create user without any permissions
         $user = User::factory()->create(['type' => 'test_no_permissions']);
         
-        // Ensure user has NO permissions
-        $user->syncPermissions([]);
+        // Authenticated for AI routes, but no section capabilities (except assistant gate)
+        $user->syncPermissions(['use-ai-assistant']);
         
         // Clear bootstrap fallback
         config(['ai_capabilities.bootstrap_role_map.test_no_permissions' => []]);
@@ -225,6 +228,7 @@ class AIAssistantIntegrationTest extends TestCase
         config(['ai_assistant.enabled' => false]);
         
         $user = User::factory()->create();
+        $user->givePermissionTo('use-ai-assistant');
         Sanctum::actingAs($user);
 
         $response = $this->postJson('/api/ai/ask', [
@@ -252,6 +256,7 @@ class AIAssistantIntegrationTest extends TestCase
             'message' => 'User 1 message',
         ]);
 
+        $user2->givePermissionTo('use-ai-assistant');
         Sanctum::actingAs($user2);
 
         $response = $this->deleteJson("/api/ai/conversations/{$sessionId}");
@@ -279,7 +284,7 @@ class AIAssistantIntegrationTest extends TestCase
     {
         // Create user WITH the required permission
         $user = User::factory()->create(['type' => 'test_with_permissions']);
-        $user->givePermissionTo('contracts.view');
+        $user->givePermissionTo(['use-ai-assistant', 'contracts.view']);
         
         Sanctum::actingAs($user);
         
@@ -319,6 +324,7 @@ class AIAssistantIntegrationTest extends TestCase
     public function test_budget_enforcement(): void
     {
         $user = User::factory()->create();
+        $user->givePermissionTo('use-ai-assistant');
         Sanctum::actingAs($user);
 
         // Set a very low budget for testing
@@ -349,6 +355,7 @@ class AIAssistantIntegrationTest extends TestCase
     public function test_session_lifecycle_and_deletion(): void
     {
         $user = User::factory()->create();
+        $user->givePermissionTo('use-ai-assistant');
         Sanctum::actingAs($user);
 
         $sessionId = '11111111-1111-1111-1111-111111111111';

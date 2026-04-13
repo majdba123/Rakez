@@ -29,10 +29,6 @@ class ToolRegistry
         $this->register('tool_finance_calculator', \App\Services\AI\Tools\FinanceCalculatorTool::class);
         $this->register('tool_marketing_analytics', \App\Services\AI\Tools\MarketingAnalyticsTool::class);
         $this->register('tool_sales_advisor', \App\Services\AI\Tools\SalesAdvisorTool::class);
-        $this->register('tool_smart_distribution', \App\Services\AI\Tools\SmartDistributionAdvisorTool::class);
-        $this->register('tool_employee_recommendation', \App\Services\AI\Tools\EmployeeRecommendationTool::class);
-        $this->register('tool_campaign_funnel', \App\Services\AI\Tools\CampaignFunnelAnalyticsTool::class);
-        $this->register('tool_roas_optimizer', \App\Services\AI\Tools\RoasOptimizerTool::class);
         $this->register('tool_ai_call_status', \App\Services\AI\Tools\AiCallStatusTool::class);
     }
 
@@ -49,25 +45,53 @@ class ToolRegistry
      */
     public function execute(User $user, string $toolName, array $args): array
     {
-        if (! $this->isToolAllowed($user, $toolName)) {
+        $handlerClass = $this->handlers[$toolName] ?? null;
+        if (! $handlerClass || ! class_exists($handlerClass)) {
             return [
-                'result' => ['allowed' => false, 'error' => 'Permission denied for this tool'],
+                'result' => [
+                    'status' => 'error',
+                    'error' => 'Unknown tool: '.$toolName,
+                ],
                 'source_refs' => [],
             ];
         }
 
-        $handlerClass = $this->handlers[$toolName] ?? null;
-        if (! $handlerClass || ! class_exists($handlerClass)) {
+        if (! $user->can('use-ai-assistant')) {
             return [
-                'result' => ['error' => 'Unknown tool: '.$toolName],
+                'result' => [
+                    'status' => 'denied',
+                    'allowed' => false,
+                    'error' => 'لا تملك الصلاحية الكافية لتنفيذ هذه العملية في النظام.',
+                    'required_permission' => 'use-ai-assistant',
+                ],
                 'source_refs' => [],
             ];
         }
+
+        if (! $this->isToolAllowed($user, $toolName)) {
+            $gates = config('ai_assistant.v2.tool_gates', []);
+            $rule = $gates[$toolName] ?? null;
+            $required = $rule['permission'] ?? null;
+
+            return [
+                'result' => [
+                    'status' => 'denied',
+                    'allowed' => false,
+                    'error' => 'لا تملك الصلاحية الكافية لاستخدام هذه الأداة.',
+                    'required_permission' => $required,
+                ],
+                'source_refs' => [],
+            ];
+        }
+
         $handler = app($handlerClass);
 
         if (! $handler instanceof ToolContract) {
             return [
-                'result' => ['error' => 'Invalid tool handler'],
+                'result' => [
+                    'status' => 'error',
+                    'error' => 'Invalid tool handler',
+                ],
                 'source_refs' => [],
             ];
         }
@@ -119,7 +143,7 @@ class ToolRegistry
         $rule = $gates[$toolName] ?? null;
 
         if ($rule === null) {
-            return true;
+            return false;
         }
 
         if (isset($rule['permission']) && ! $user->can((string) $rule['permission'])) {

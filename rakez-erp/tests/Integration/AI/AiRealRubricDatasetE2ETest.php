@@ -633,7 +633,9 @@ MD;
 
             $md = (string) ($payload['answer_markdown'] ?? '');
             // Fallback template from RakizAiOrchestrator:
-            $fallbackOk = str_contains($md, 'I could not complete your request');
+            $fallbackOk = str_contains($md, 'I could not complete your request')
+                || str_contains($md, 'تعذّر إكمال طلبك')
+                || str_contains($md, 'تعذر إكمال');
             $safeDeniedOk = str_contains($md, 'ما عندك صلاحية') || str_contains($md, 'غير متاح');
             $confidence = (string) ($payload['confidence'] ?? '');
             $manyToolCalls = count($toolCalls) >= 4;

@@ -6,12 +6,17 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\AI\StoreKnowledgeRequest;
 use App\Http\Requests\AI\UpdateKnowledgeRequest;
 use App\Models\AssistantKnowledgeEntry;
+use App\Services\AI\AssistantKnowledgeEntryService;
 use App\Http\Responses\ApiResponse;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class AssistantKnowledgeController extends Controller
 {
+    public function __construct(
+        protected AssistantKnowledgeEntryService $knowledgeService
+    ) {}
+
     /**
      * List knowledge entries with filtering and pagination.
      */
@@ -78,11 +83,10 @@ class AssistantKnowledgeController extends Controller
     public function store(StoreKnowledgeRequest $request): JsonResponse
     {
         $data = $request->validated();
-        $data['updated_by'] = $request->user()->id;
         $data['is_active'] = $data['is_active'] ?? true;
         $data['priority'] = $data['priority'] ?? 100;
 
-        $entry = AssistantKnowledgeEntry::create($data);
+        $entry = $this->knowledgeService->create($data, $request->user());
 
         return response()->json([
             'success' => true,
@@ -105,15 +109,12 @@ class AssistantKnowledgeController extends Controller
             ], 404);
         }
 
-        $data = $request->validated();
-        $data['updated_by'] = $request->user()->id;
-
-        $entry->update($data);
+        $entry = $this->knowledgeService->update($entry, $request->validated(), $request->user());
 
         return response()->json([
             'success' => true,
             'message' => 'Knowledge entry updated successfully.',
-            'data' => $entry->fresh(),
+            'data' => $entry,
         ]);
     }
 
@@ -131,7 +132,7 @@ class AssistantKnowledgeController extends Controller
             ], 404);
         }
 
-        $entry->delete();
+        $this->knowledgeService->delete($entry);
 
         return response()->json([
             'success' => true,

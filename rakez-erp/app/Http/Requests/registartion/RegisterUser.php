@@ -10,6 +10,15 @@ use Illuminate\Validation\Rule;
 
 class RegisterUser extends FormRequest
 {
+    protected function prepareForValidation(): void
+    {
+        if ($this->has('team') && ! $this->has('team_id')) {
+            $this->merge([
+                'team_id' => $this->input('team'),
+            ]);
+        }
+    }
+
     /**
      * Determine if the user is authorized to make this request.
      */
@@ -35,10 +44,9 @@ class RegisterUser extends FormRequest
                 'integer',
                 Rule::in(config('user_types.valid_ids', range(1, 13))),
                 function (string $attribute, mixed $value, \Closure $fail) {
-                    // Only admin can create an employee with type=admin (1)
                     if ((int) $value === 1) {
                         $user = Auth::user();
-                        if (!$user || $user->type !== 'admin') {
+                        if (! $user || $user->type !== 'admin') {
                             $fail('Only admin can create an employee with admin type.');
                         }
                     }
@@ -46,12 +54,9 @@ class RegisterUser extends FormRequest
             ],
             'role' => 'nullable|string|exists:roles,name',
             'is_manager' => 'nullable|boolean',
-            // Profile fields
-            // Team should be a valid teams.id
-            'team' => 'nullable|integer|exists:teams,id',
-            // Employee files
-            'cv' => 'nullable|file|mimes:pdf,doc,docx|max:10240', // max 10MB
-            'contract' => 'nullable|file|mimes:pdf,doc,docx|max:10240', // max 10MB
+            'team_id' => 'nullable|integer|exists:teams,id',
+            'cv' => 'nullable|file|mimes:pdf,doc,docx|max:10240',
+            'contract' => 'nullable|file|mimes:pdf,doc,docx|max:10240',
             'identity_number' => 'nullable|string|max:100|unique:users,identity_number',
             'birthday' => 'nullable|date',
             'date_of_works' => 'nullable|date',
@@ -59,11 +64,7 @@ class RegisterUser extends FormRequest
             'iban' => 'nullable|string|max:34',
             'salary' => 'nullable|numeric|min:0',
             'marital_status' => 'nullable|string|in:single,married,divorced,widowed',
-
-
         ];
-
-
 
         return $rules;
     }
@@ -78,14 +79,13 @@ class RegisterUser extends FormRequest
             'type.required' => 'User type is required.',
             'type.in' => 'User type must be one of the accepted values.',
             'role.exists' => 'The selected role does not exist.',
-            'is_manager.boolean' => 'قيمة المدير يجب أن تكون صحيحة أو خاطئة',
+            'is_manager.boolean' => '???? ?????? ??? ?? ???? ????? ?? ?????',
             'identity_number.unique' => 'Identity number has already been taken.',
             'identity_date.date' => 'Identity date must be a valid date.',
             'birthday.date' => 'Birthday must be a valid date.',
             'date_of_works.date' => 'Date of works must be a valid date.',
             'salary.numeric' => 'Salary must be a valid number.',
             'marital_status.in' => 'Marital status must be one of: single, married, divorced, widowed.',
-
         ];
     }
 
@@ -95,5 +95,4 @@ class RegisterUser extends FormRequest
             'errors' => $validator->errors(),
         ], 422));
     }
-
 }

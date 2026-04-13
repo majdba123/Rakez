@@ -22,7 +22,7 @@ final class MetaInsightsReader implements AdsReadPort
         $fields = 'id,name,status,objective,daily_budget,lifetime_budget,start_time,stop_time';
         $campaigns = [];
 
-        foreach ($this->client->paginate("act_{$accountId}/campaigns", [
+        foreach ($this->client->paginate("{$accountId}/campaigns", [
             'fields' => $fields,
             'limit' => 500,
         ], $accountId) as $item) {
@@ -42,7 +42,7 @@ final class MetaInsightsReader implements AdsReadPort
         $fields = 'id,name,status,campaign_id,daily_budget,lifetime_budget,targeting,optimization_goal';
         $adSets = [];
 
-        foreach ($this->client->paginate("act_{$accountId}/adsets", [
+        foreach ($this->client->paginate("{$accountId}/adsets", [
             'fields' => $fields,
             'limit' => 500,
         ], $accountId) as $item) {
@@ -62,7 +62,7 @@ final class MetaInsightsReader implements AdsReadPort
         $fields = 'id,name,status,adset_id,creative{id,name,thumbnail_url}';
         $ads = [];
 
-        foreach ($this->client->paginate("act_{$accountId}/ads", [
+        foreach ($this->client->paginate("{$accountId}/ads", [
             'fields' => $fields,
             'limit' => 500,
         ], $accountId) as $item) {
@@ -96,7 +96,7 @@ final class MetaInsightsReader implements AdsReadPort
         ];
 
         $rows = [];
-        foreach ($this->client->paginate("act_{$accountId}/insights", $params, $accountId) as $item) {
+        foreach ($this->client->paginate("{$accountId}/insights", $params, $accountId) as $item) {
             $rows[] = $this->normalizeInsightRow($item, $level);
         }
 
@@ -110,6 +110,7 @@ final class MetaInsightsReader implements AdsReadPort
             'adset_id', 'adset_name',
             'ad_id', 'ad_name',
             'impressions', 'clicks', 'spend',
+            'account_currency',
             'actions', 'action_values',
             'reach', 'video_30_sec_watched_actions',
             'date_start', 'date_stop',
@@ -123,6 +124,23 @@ final class MetaInsightsReader implements AdsReadPort
             'adset' => $item['adset_id'] ?? '',
             default => $item['campaign_id'] ?? '',
         };
+
+        $leads = 0;
+        foreach ($item['actions'] ?? [] as $action) {
+            $type = $action['action_type'] ?? '';
+            if (in_array($type, [
+                'lead',
+                'omni_lead',
+                'leadgen',
+                'leadgen_grouped',
+                'onsite_conversion.lead_grouped',
+                'offsite_conversion.fb_pixel_lead',
+                'offsite_conversion.fb_pixel_complete_registration',
+                'complete_registration',
+            ], true)) {
+                $leads += (int) ($action['value'] ?? 0);
+            }
+        }
 
         $conversions = 0;
         $revenue = 0.0;
@@ -142,6 +160,11 @@ final class MetaInsightsReader implements AdsReadPort
             $videoViews += (int) ($v['value'] ?? 0);
         }
 
+        $currency = (string) ($item['account_currency'] ?? '');
+        if ($currency === '') {
+            $currency = (string) config('ads_platforms.default_normalized_currency', 'USD');
+        }
+
         return [
             'entity_id' => $entityId,
             'date_start' => $item['date_start'] ?? '',
@@ -149,8 +172,9 @@ final class MetaInsightsReader implements AdsReadPort
             'impressions' => (int) ($item['impressions'] ?? 0),
             'clicks' => (int) ($item['clicks'] ?? 0),
             'spend' => (float) ($item['spend'] ?? 0),
-            'spend_currency' => 'USD',
+            'spend_currency' => $currency,
             'conversions' => $conversions,
+            'leads' => $leads,
             'revenue' => $revenue,
             'video_views' => $videoViews,
             'reach' => (int) ($item['reach'] ?? 0),

@@ -115,13 +115,27 @@ class MetaClient
         $params['limit'] = $params['limit'] ?? 500;
         $url = $endpoint;
         $isFirst = true;
+        $token = $this->getAccessToken($accountId);
 
         do {
             if ($isFirst) {
                 $response = $this->get($url, $params, $accountId);
                 $isFirst = false;
             } else {
-                $response = Http::timeout(30)->get($url)->throw()->json();
+                // Meta paging "next" links may or may not include an access_token.
+                // Ensure we can follow pages reliably without depending on upstream echoing tokens.
+                if (! str_contains($url, 'access_token=')) {
+                    $url .= (str_contains($url, '?') ? '&' : '?') . 'access_token=' . urlencode($token);
+                }
+
+                $response = Http::timeout(30)
+                    ->retry(3, 1000, function ($e, $request) {
+                        $status = property_exists($e, 'response') && $e->response ? $e->response->status() : null;
+                        return $status === 429 || ($status !== null && $status >= 500);
+                    })
+                    ->get($url)
+                    ->throw()
+                    ->json();
             }
 
             foreach ($response['data'] ?? [] as $item) {

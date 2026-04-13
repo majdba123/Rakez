@@ -4,8 +4,11 @@ namespace App\Http\Controllers\Ads;
 
 use App\Exports\PlatformLeadsExport;
 use App\Infrastructure\Ads\Meta\MetaLeadGenReader;
+use App\Infrastructure\Ads\Persistence\Models\AdsLeadSubmission;
+use App\Infrastructure\Ads\Persistence\Models\AdsPlatformAccount;
 use App\Infrastructure\Ads\Snap\SnapLeadGenReader;
 use App\Infrastructure\Ads\TikTok\TikTokLeadGenReader;
+use App\Jobs\Ads\SyncLeadsJob;
 use App\Services\Ads\PlatformLeadSyncService;
 use App\Services\Ads\SnapCsvLeadNormalizer;
 use Illuminate\Http\JsonResponse;
@@ -89,6 +92,77 @@ class AdsLeadsController
     /**
      * GET /api/ads/leads/export – export leads as Excel.
      */
+    public function stored(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'platform' => 'nullable|string|in:meta,tiktok,snap',
+            'account_id' => 'nullable|string',
+            'campaign_id' => 'nullable|string',
+            'adset_id' => 'nullable|string',
+            'ad_id' => 'nullable|string',
+            'form_id' => 'nullable|string',
+            'date_from' => 'nullable|date',
+            'date_to' => 'nullable|date|after_or_equal:date_from',
+            'per_page' => 'nullable|integer|min:1|max:500',
+        ]);
+
+        $query = AdsLeadSubmission::query()->orderByDesc('created_time')->orderByDesc('id');
+
+        foreach (['platform', 'account_id', 'campaign_id', 'adset_id', 'ad_id', 'form_id'] as $k) {
+            if (! empty($validated[$k])) {
+                $query->where($k, $validated[$k]);
+            }
+        }
+
+        if (! empty($validated['date_from'])) {
+            $query->where('created_time', '>=', $validated['date_from']);
+        }
+        if (! empty($validated['date_to'])) {
+            $query->where('created_time', '<=', $validated['date_to'] . ' 23:59:59');
+        }
+
+        return response()->json($query->paginate($validated['per_page'] ?? 100));
+    }
+
+    public function triggerSync(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'platform' => 'required|string|in:meta,tiktok,snap',
+            'account_id' => 'required|string',
+            'campaign_id' => 'nullable|string',
+            'adset_id' => 'nullable|string',
+            'ad_id' => 'nullable|string',
+            'form_id' => 'nullable|string',
+            'date_from' => 'nullable|date',
+            'date_to' => 'nullable|date|after_or_equal:date_from',
+        ]);
+
+        $account = AdsPlatformAccount::where('platform', $validated['platform'])
+            ->where('account_id', $validated['account_id'])
+            ->where('is_active', true)
+            ->first();
+
+        if (! $account) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Ads platform account not found or inactive.',
+            ], 404);
+        }
+
+        SyncLeadsJob::dispatch(
+            $validated['platform'],
+            $validated['account_id'],
+            $validated['campaign_id'] ?? null,
+            $validated['adset_id'] ?? null,
+            $validated['ad_id'] ?? null,
+            $validated['form_id'] ?? null,
+            $validated['date_from'] ?? null,
+            $validated['date_to'] ?? null,
+        );
+
+        return response()->json(['message' => 'Lead sync job dispatched.']);
+    }
+
     public function export(Request $request): BinaryFileResponse|JsonResponse|Response
     {
         $validated = $request->validate([

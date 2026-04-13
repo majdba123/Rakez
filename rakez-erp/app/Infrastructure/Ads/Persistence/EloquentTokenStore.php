@@ -57,7 +57,17 @@ final class EloquentTokenStore implements TokenStorePort
     private function refreshSnap(string $accountId): string
     {
         $account = $this->findAccount(Platform::Snap, $accountId);
+        if (! $account) {
+            throw new \RuntimeException("Snap account not found for token refresh: {$accountId}");
+        }
+        if (empty($account->refresh_token)) {
+            throw new \RuntimeException("Snap refresh_token is missing for account: {$accountId}");
+        }
+
         $cfg = config('ads_platforms.snap');
+        if (empty($cfg['client_id']) || empty($cfg['client_secret']) || empty($cfg['auth_url'])) {
+            throw new \RuntimeException('Snap OAuth configuration is missing (client_id/client_secret/auth_url).');
+        }
 
         $response = Http::asForm()->post($cfg['auth_url'], [
             'grant_type' => 'refresh_token',
@@ -82,7 +92,17 @@ final class EloquentTokenStore implements TokenStorePort
     private function refreshTikTok(string $accountId): string
     {
         $account = $this->findAccount(Platform::TikTok, $accountId);
+        if (! $account) {
+            throw new \RuntimeException("TikTok account not found for token refresh: {$accountId}");
+        }
+        if (empty($account->refresh_token)) {
+            throw new \RuntimeException("TikTok refresh_token is missing for account: {$accountId}");
+        }
+
         $cfg = config('ads_platforms.tiktok');
+        if (empty($cfg['app_id']) || empty($cfg['app_secret']) || empty($cfg['auth_url'])) {
+            throw new \RuntimeException('TikTok OAuth configuration is missing (app_id/app_secret/auth_url).');
+        }
 
         $response = Http::post($cfg['auth_url'], [
             'grant_type' => 'refresh_token',

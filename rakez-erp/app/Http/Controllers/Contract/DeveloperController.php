@@ -16,6 +16,20 @@ class DeveloperController extends Controller
     ) {
     }
 
+    protected function ensureDeveloperAccess(Request $request): void
+    {
+        $user = $request->user();
+
+        $canViewContracts = $user?->hasPermissionTo('contracts.view')
+            || $user?->hasPermissionTo('contracts.view_all')
+            || $user?->hasEffectivePermission('contracts.view')
+            || $user?->hasEffectivePermission('contracts.view_all');
+
+        if (!$canViewContracts) {
+            throw new AuthorizationException('غير مصرح لهذا الإجراء');
+        }
+    }
+
     /**
      * List developers (unique by developer_number + developer_name) with projects, units, teams.
      * GET /api/developers
@@ -31,7 +45,7 @@ class DeveloperController extends Controller
                 ], 401);
             }
 
-            $this->authorize('viewAny', \App\Models\Contract::class);
+            $this->ensureDeveloperAccess($request);
 
             $search = $request->input('search');
             $perPage = min((int) $request->input('per_page', 15), 100);
@@ -48,10 +62,12 @@ class DeveloperController extends Controller
                 'message' => $message,
                 'data' => $paginator->items(),
                 'meta' => [
-                    'total' => $paginator->total(),
-                    'per_page' => $paginator->perPage(),
-                    'current_page' => $paginator->currentPage(),
-                    'last_page' => $paginator->lastPage(),
+                    'pagination' => [
+                        'total' => $paginator->total(),
+                        'per_page' => $paginator->perPage(),
+                        'current_page' => $paginator->currentPage(),
+                        'total_pages' => $paginator->lastPage(),
+                    ],
                 ],
             ], 200);
         } catch (AuthorizationException $e) {
@@ -82,7 +98,7 @@ class DeveloperController extends Controller
                 ], 401);
             }
 
-            $this->authorize('viewAny', \App\Models\Contract::class);
+            $this->ensureDeveloperAccess($request);
 
             $idOrNumber = urldecode($idOrNumber);
             $developer = is_numeric($idOrNumber)

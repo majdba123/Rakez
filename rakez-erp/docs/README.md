@@ -10,6 +10,12 @@
 
 This index provides a structured reading path and quick lookup for all frontend integration needs.
 
+## 🛡️ Filament Admin Governance
+
+**PHASE 0 PACKET** → [`filament-admin/phase-0/README.md`](filament-admin/phase-0/README.md)
+
+This packet freezes the role model, permission dictionary, MVP boundary, and Filament in/out rules before any admin panel implementation begins.
+
 ---
 
 ## 📁 Directory Structure

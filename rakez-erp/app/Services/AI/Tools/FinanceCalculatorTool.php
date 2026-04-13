@@ -5,6 +5,9 @@ namespace App\Services\AI\Tools;
 use App\Models\User;
 use App\Services\AI\NumericGuardrails;
 
+/**
+ * Deterministic calculator on caller-supplied inputs — not ERP business truth.
+ */
 class FinanceCalculatorTool implements ToolContract
 {
     public function __construct(
@@ -17,7 +20,10 @@ class FinanceCalculatorTool implements ToolContract
             return ToolResponse::denied('use-ai-assistant');
         }
 
-        $type = $args['calculation_type'] ?? 'mortgage';
+        $type = $args['calculation_type'] ?? null;
+        if (! is_string($type) || $type === '') {
+            return ToolResponse::invalidArguments('calculation_type is required.');
+        }
 
         $data = match ($type) {
             'mortgage' => $this->calculateMortgage($args),
@@ -25,14 +31,25 @@ class FinanceCalculatorTool implements ToolContract
             'romi' => $this->calculateRomi($args),
             'project_roi' => $this->calculateProjectRoi($args),
             'payment_plan' => $this->calculatePaymentPlan($args),
-            default => ['error' => "Unknown calculation type: {$type}"],
+            default => null,
         };
+
+        if ($data === null) {
+            return ToolResponse::unsupportedOperation(
+                "Unknown calculation_type '{$type}'. Allowed: mortgage, commission, romi, project_roi, payment_plan."
+            );
+        }
+
+        $data['tool_kind'] = 'deterministic_calculator';
+        $data['warnings'] = array_merge(
+            isset($data['warnings']) && is_array($data['warnings']) ? $data['warnings'] : [],
+            ['النتائج تعتمد كلياً على المدخلات الممرّرة لهذه الأداة وليست أرقاماً مستخرجة حياً من سجلات النظام.']
+        );
 
         $response = ToolResponse::success('tool_finance_calculator', $args, $data, [
             ['type' => 'tool', 'title' => "Finance: {$type}", 'ref' => "finance:{$type}"],
-        ]);
+        ], [], 'caller_inputs');
 
-        // Apply guardrails
         if ($type === 'romi' && isset($data['romi_percent'])) {
             $check = $this->guardrails->validateROI($data['romi_percent'], 'romi');
             if (! $check->isOk()) {
@@ -69,7 +86,6 @@ class FinanceCalculatorTool implements ToolContract
         $monthlyRate = ($annualRate / 100) / 12;
         $months = $years * 12;
 
-        // Monthly payment using amortization formula
         if ($monthlyRate > 0) {
             $monthlyPayment = $loanAmount * ($monthlyRate * pow(1 + $monthlyRate, $months))
                 / (pow(1 + $monthlyRate, $months) - 1);
@@ -158,7 +174,7 @@ class FinanceCalculatorTool implements ToolContract
             'total_cost' => round($totalCost, 2),
             'net_profit' => round($netProfit, 2),
             'roi_percent' => round($roiPercent, 2),
-            'roi' => round($roiPercent, 2) . '%',
+            'roi' => round($roiPercent, 2).'%',
             'roi_label' => 'ROI الشامل للمشروع',
         ];
     }

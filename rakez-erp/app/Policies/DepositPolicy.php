@@ -12,7 +12,7 @@ class DepositPolicy
      */
     public function viewAny(User $user): bool
     {
-        return $user->hasAnyRole(['admin', 'sales_manager', 'accountant', 'sales']);
+        return $user->hasAnyRole(['admin', 'sales_leader', 'accountant', 'sales']);
     }
 
     /**
@@ -21,7 +21,7 @@ class DepositPolicy
     public function view(User $user, Deposit $deposit): bool
     {
         // Admin, sales manager, and accountant can view all
-        if ($user->hasAnyRole(['admin', 'sales_manager', 'accountant'])) {
+        if ($user->hasAnyRole(['admin', 'sales_leader', 'accountant'])) {
             return true;
         }
 
@@ -39,7 +39,7 @@ class DepositPolicy
      */
     public function create(User $user): bool
     {
-        return $user->hasAnyRole(['admin', 'sales_manager', 'sales', 'accountant']);
+        return $user->hasAnyRole(['admin', 'sales_leader', 'sales', 'accountant']);
     }
 
     /**
@@ -52,7 +52,7 @@ class DepositPolicy
         return false;
         }
 
-        return $user->hasAnyRole(['admin', 'sales_manager', 'accountant']);
+        return $user->hasAnyRole(['admin', 'sales_leader', 'accountant']);
     }
 
     /**
@@ -65,7 +65,7 @@ class DepositPolicy
         return false;
         }
 
-        return $user->hasAnyRole(['admin', 'sales_manager']);
+        return $user->hasAnyRole(['admin', 'sales_leader']);
     }
 
     /**
@@ -73,7 +73,7 @@ class DepositPolicy
      */
     public function confirmReceipt(User $user, Deposit $deposit): bool
     {
-        return $user->hasAnyRole(['admin', 'accountant', 'sales_manager']);
+        return $user->hasAnyRole(['admin', 'accountant', 'sales_leader']);
     }
 
     /**
@@ -81,6 +81,6 @@ class DepositPolicy
      */
     public function refund(User $user, Deposit $deposit): bool
     {
-        return $user->hasAnyRole(['admin', 'accountant', 'sales_manager']);
+        return $user->hasAnyRole(['admin', 'accountant', 'sales_leader']);
     }
 }

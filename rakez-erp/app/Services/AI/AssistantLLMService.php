@@ -7,7 +7,7 @@ use Illuminate\Support\Facades\Log;
 class AssistantLLMService
 {
     public function __construct(
-        private readonly OpenAIResponsesClient $openAIClient
+        private readonly AiTextClientManager $textClient
     ) {}
 
     /**
@@ -48,14 +48,13 @@ class AssistantLLMService
         ];
 
         try {
-            $response = $this->openAIClient->createResponse($instructions, $messages, $metadata);
+            $response = $this->textClient->createResponse($instructions, $messages, $metadata);
 
             $latencyMs = (int) round((microtime(true) - $start) * 1000);
-            $answer = $this->extractAnswer($response);
 
             return [
-                'answer' => $answer,
-                'tokens' => $response->usage?->totalTokens,
+                'answer' => $response->text,
+                'tokens' => $response->totalTokens,
                 'latency_ms' => $latencyMs,
             ];
         } catch (\Throwable $e) {
@@ -65,7 +64,7 @@ class AssistantLLMService
             ]);
 
             return [
-                'answer' => 'I apologize, but I encountered an error while processing your request. Please try again later.',
+                'answer' => (string) config('ai_assistant.messages.assistant_llm_error', 'عذرًا، حدث خطأ أثناء المعالجة. يُرجى المحاولة لاحقًا.'),
                 'tokens' => null,
                 'latency_ms' => (int) round((microtime(true) - $start) * 1000),
             ];
@@ -111,25 +110,4 @@ class AssistantLLMService
         return implode("\n", $lines);
     }
 
-    /**
-     * Extract the answer text from the OpenAI response.
-     */
-    private function extractAnswer($response): string
-    {
-        if (isset($response->output) && is_array($response->output)) {
-            foreach ($response->output as $output) {
-                if (($output->type ?? '') === 'message' && ($output->role ?? '') === 'assistant') {
-                    if (isset($output->content) && is_array($output->content)) {
-                        foreach ($output->content as $content) {
-                            if (($content->type ?? '') === 'output_text') {
-                                return $content->text ?? '';
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
-        return $response->outputText ?? 'I was unable to generate a response.';
-    }
 }

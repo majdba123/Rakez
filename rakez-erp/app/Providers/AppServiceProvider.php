@@ -2,11 +2,13 @@
 
 namespace App\Providers;
 
+use App\Services\AI\Realtime\OpenAiRealtimeWebSocketClient;
+use App\Services\AI\Realtime\RealtimeTransportClient;
+use Carbon\Carbon;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\RateLimiter;
-use Illuminate\Support\Facades\Route;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -16,7 +18,7 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        //
+        $this->app->bind(RealtimeTransportClient::class, OpenAiRealtimeWebSocketClient::class);
     }
 
     /**
@@ -25,6 +27,7 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         $this->ensureStorageDirectoriesExist();
+        $this->freezeClockFromEnvironment();
 
         // Register Policies
         Gate::policy(\App\Models\Contract::class, \App\Policies\ContractPolicy::class);
@@ -62,14 +65,18 @@ class AppServiceProvider extends ServiceProvider
             return app(\App\Policies\SalesTargetPolicy::class)->viewTargetsByProject($user, $contractId);
         });
 
-        // Implicitly grant "Super Admin" role all permissions
-        // This works in the app by using gate-related functions like auth()->user->can() and @can()
+        // Operational admin bypass: the legacy 'admin' role gets full access
+        // to operational abilities, but governance abilities (admin.* / governance.*)
+        // are handled exclusively by GovernanceAccessService — no Gate bypass.
         Gate::before(function ($user, $ability) {
+            if (\Illuminate\Support\Str::startsWith($ability, ['admin.', 'governance.'])) {
+                return null;
+            }
+
             if ($user->hasRole('admin')) {
                 return true;
             }
 
-            // Support dynamic permissions (ex: project_management managers via is_manager flag)
             if (method_exists($user, 'hasEffectivePermission') && $user->hasEffectivePermission($ability)) {
                 return true;
             }
@@ -78,8 +85,6 @@ class AppServiceProvider extends ServiceProvider
         });
 
         $this->configureRateLimiting();
-        $this->mapApiRoutes();
-        $this->mapWebRoutes();
     }
 
     /**
@@ -98,31 +103,31 @@ class AppServiceProvider extends ServiceProvider
         }
     }
 
-    /**
-     * Define the "web" routes for the application.
-     */
-    protected function mapWebRoutes(): void
+    protected function freezeClockFromEnvironment(): void
     {
-        Route::middleware('web')
-            ->group(base_path('routes/web.php'));
-    }
+        $frozenNow = env('APP_FROZEN_NOW');
 
-    /**
-     * Define the "api" routes for the application.
-     */
-    protected function mapApiRoutes(): void
-    {
-        Route::prefix('api')
-            ->middleware('api')
-            ->group(base_path('routes/api.php'));
+        if (filled($frozenNow)) {
+            Carbon::setTestNow(Carbon::parse($frozenNow));
+        }
     }
 
     protected function configureRateLimiting(): void
     {
         $perMinute = (int) config('ai_assistant.rate_limits.per_minute', 60);
+        $realtimeCreatePerMinute = (int) config('ai_realtime.rate_limits.session_create_per_minute', 3);
+        $realtimeControlPerMinute = (int) config('ai_realtime.rate_limits.control_events_per_minute', 60);
 
         RateLimiter::for('ai-assistant', function (Request $request) use ($perMinute) {
             return Limit::perMinute($perMinute)->by($request->user()?->id ?: $request->ip());
+        });
+
+        RateLimiter::for('ai-realtime-create', function (Request $request) use ($realtimeCreatePerMinute) {
+            return Limit::perMinute($realtimeCreatePerMinute)->by($request->user()?->id ?: $request->ip());
+        });
+
+        RateLimiter::for('ai-realtime-control', function (Request $request) use ($realtimeControlPerMinute) {
+            return Limit::perMinute($realtimeControlPerMinute)->by($request->user()?->id ?: $request->ip());
         });
 
         RateLimiter::for('login', function (Request $request) {
