@@ -624,10 +624,21 @@ def main() -> None:
         ],
     }
 
-    out = Path(__file__).resolve().parent / "collections" / "Rakez-Marketing-API.postman_collection.json"
-    out.parent.mkdir(parents=True, exist_ok=True)
-    out.write_text(json.dumps(collection, ensure_ascii=False, indent=2), encoding="utf-8")
-    print("Wrote", out)
+    text = json.dumps(collection, ensure_ascii=False, indent=2)
+    # Validate before writing (fail fast if not strict JSON)
+    json.loads(text)
+
+    docs_dir = Path(__file__).resolve().parent / "collections"
+    docs_dir.mkdir(parents=True, exist_ok=True)
+    primary = docs_dir / "Rakez-Marketing-API.postman_collection.json"
+    primary.write_text(text, encoding="utf-8", newline="\n")
+    print("Wrote", primary)
+
+    # Plain .json name at repo postman/ for drag-and-drop import (same content)
+    repo_postman = Path(__file__).resolve().parents[2] / "postman" / "Rakez-Marketing-API.json"
+    repo_postman.parent.mkdir(parents=True, exist_ok=True)
+    repo_postman.write_text(text, encoding="utf-8", newline="\n")
+    print("Wrote", repo_postman)
 
 
 if __name__ == "__main__":

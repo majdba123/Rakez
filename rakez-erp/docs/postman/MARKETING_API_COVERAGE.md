@@ -1,7 +1,7 @@
 # Marketing API — endpoint coverage report
 
 **Source of truth:** `rakez-erp/routes/api.php` (marketing group, `ads` group, sales marketing-task routes).  
-**Collection:** `collections/Rakez-Marketing-API.postman_collection.json`  
+**Collection (JSON):** `docs/postman/collections/Rakez-Marketing-API.postman_collection.json` — identical copy: `postman/Rakez-Marketing-API.json`  
 **Live verification:** Automated probe: `https://rakez.com.sa/api/*` returned **404** (nginx); **no JSON live verification** completed. All rows below are **code-verified** unless noted.
 
 | Folder | Request name | Method | Route (relative to `baseUrl`) | Live verified? | Safe on prod? | Needs auth? | Notes |

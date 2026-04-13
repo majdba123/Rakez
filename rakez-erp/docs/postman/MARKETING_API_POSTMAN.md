@@ -6,13 +6,17 @@ This folder contains a **repo-grounded** Postman collection for the Laravel rout
 
 | File | Purpose |
 |------|---------|
-| `collections/Rakez-Marketing-API.postman_collection.json` | Collection v2.1 |
+| `collections/Rakez-Marketing-API.postman_collection.json` | Collection v2.1 (strict JSON, UTF-8) |
+| `../../postman/Rakez-Marketing-API.json` | **Same collection** — short path, `.json` only (easiest import) |
 | `environments/Rakez-Marketing-Production.postman_environment.json` | Variables for production base URL and IDs |
-| `_generate_marketing_collection.py` | Regenerates the collection JSON after route changes |
+| `_generate_marketing_collection.py` | Regenerates both JSON files after route changes |
 
 ## Import
 
-1. Postman → **Import** → select `collections/Rakez-Marketing-API.postman_collection.json`.
+1. Postman → **Import** → **file** → choose either:
+   - `rakez-erp/postman/Rakez-Marketing-API.json`, or  
+   - `rakez-erp/docs/postman/collections/Rakez-Marketing-API.postman_collection.json`  
+   Both are identical **JSON** (Collection v2.1.0).
 2. Optional: import `environments/Rakez-Marketing-Production.postman_environment.json` and select it as the active environment.
 3. Set `userEmail` / `userPassword` (or paste a Sanctum token into `token`). Run **Auth → Login**; the test script saves `access_token` into the collection variable `token` when the response is `200`.
 
