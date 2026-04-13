@@ -11,6 +11,7 @@ use App\Models\ProjectMedia;
 use App\Models\SalesProjectAssignment;
 use App\Models\SalesTeamMemberRating;
 use App\Models\Team;
+use App\Models\ContractUnit;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
 class MarketingProjectTest extends TestCase
@@ -267,7 +268,43 @@ class MarketingProjectTest extends TestCase
         $response->assertStatus(200)
             ->assertJsonPath('success', true)
             ->assertJsonPath('data.commission_value', 25000)
-            ->assertJsonPath('data.marketing_value', 2500);
+            ->assertJsonPath('data.marketing_value', 2500)
+            ->assertJsonPath('data.pricing_basis.source', 'total_unit_price_override')
+            ->assertJsonPath('data.pricing_basis.total_unit_price', 1000000);
+    }
+
+    #[Test]
+    public function calculate_budget_uses_sum_of_available_unit_prices_when_no_override()
+    {
+        $contract = Contract::factory()->create([
+            'commission_percent' => 2.5,
+        ]);
+        ContractInfo::factory()->create([
+            'contract_id' => $contract->id,
+            'agreement_duration_days' => 30,
+            'agreement_duration_months' => 1,
+            'avg_property_value' => 999999,
+        ]);
+        ContractUnit::factory()->create([
+            'contract_id' => $contract->id,
+            'status' => 'available',
+            'price' => 400000,
+        ]);
+        ContractUnit::factory()->create([
+            'contract_id' => $contract->id,
+            'status' => 'available',
+            'price' => 600000,
+        ]);
+
+        $response = $this->actingAs($this->marketingUser, 'sanctum')
+            ->postJson('/api/marketing/projects/calculate-budget', [
+                'contract_id' => $contract->id,
+            ]);
+
+        $response->assertStatus(200)
+            ->assertJsonPath('data.pricing_basis.source', 'unit_prices_sum_available')
+            ->assertJsonPath('data.pricing_basis.total_unit_price', 1000000)
+            ->assertJsonPath('data.commission_value', 25000);
     }
 
     #[Test]

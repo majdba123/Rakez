@@ -8,6 +8,10 @@ use App\Models\MarketingSetting;
 
 class DeveloperMarketingPlanService
 {
+    public function __construct(
+        private ContractPricingBasisService $pricingBasisService
+    ) {}
+
     public function createOrUpdatePlan($contractId, $data)
     {
         $contract = Contract::findOrFail($contractId);
@@ -52,19 +56,27 @@ class DeveloperMarketingPlanService
         return $averageCpc > 0 ? ($marketingValue / $averageCpc) : 0;
     }
 
-    public function getPlanForDeveloper($contractId)
+    /**
+     * Developer plan payload for API / PDF. Numeric money/count fields are JSON numbers; human copy is *_display_*.
+     *
+     * @return array<string, mixed>
+     */
+    public function getPlanForDeveloper($contractId): array
     {
-        $contract = Contract::with('info')->findOrFail($contractId);
+        $contract = Contract::with(['info', 'contractUnits'])->findOrFail($contractId);
         app(MarketingProjectBootstrapService::class)->ensureForCompletedContract($contract);
         $info = $contract->info;
 
-        // نسبة السعي من العقد: تفاصيل العقد (contract_infos) أولاً ثم جدول العقود
-        $commissionPercent = $contract->getEffectiveCommissionPercent();
-        $averageUnitPrice = $info ? (float) ($info->avg_property_value ?? 0) : 0;
+        $commissionPercent = (float) $contract->getEffectiveCommissionPercent();
+        $pricingBasis = $this->pricingBasisService->resolve($contract, []);
 
         $contractData = [
             'commission_percent' => $commissionPercent,
-            'average_unit_price' => $averageUnitPrice,
+            'pricing_basis' => $pricingBasis,
+            /** @deprecated Prefer pricing_basis.total_unit_price / pricing_basis.average_unit_price */
+            'average_unit_price' => (float) $pricingBasis['average_unit_price'],
+            /** Canonical commission-base amount (same as pricing_basis.total_unit_price) */
+            'total_unit_price' => (float) $pricingBasis[ContractPricingBasisService::COMMISSION_BASE_KEY],
         ];
 
         $plan = DeveloperMarketingPlan::where('contract_id', $contractId)->first();
@@ -73,37 +85,68 @@ class DeveloperMarketingPlanService
                 'contract' => $contractData,
                 'plan' => null,
                 'total_budget' => null,
+                'total_budget_display' => null,
                 'expected_impressions' => null,
                 'expected_clicks' => null,
+                'expected_impressions_display_en' => null,
+                'expected_impressions_display_ar' => null,
+                'expected_clicks_display_en' => null,
+                'expected_clicks_display_ar' => null,
                 'marketing_duration' => null,
                 'marketing_duration_ar' => null,
-                'expected_impressions_ar' => null,
-                'expected_clicks_ar' => null,
-                'raw_plan' => null,
                 'platforms' => [],
             ];
         }
 
-        $durationDays = $info->agreement_duration_days ?? 0;
+        $planPayload = $this->serializeDeveloperPlan($plan);
+
+        $durationDays = (int) ($info->agreement_duration_days ?? 0);
         $impressionsFormatted = number_format($plan->expected_impressions, 0, '.', ',');
         $clicksFormatted = number_format($plan->expected_clicks, 0, '.', ',');
         $durationTextEn = $durationDays > 0 ? "According to contract duration ({$durationDays} days)" : 'According to contract duration';
         $durationTextAr = $durationDays > 0 ? "حسب مدة العقد ({$durationDays} يوم)" : 'حسب مدة العقد';
 
-        $response = [
+        $mv = (float) $plan->marketing_value;
+
+        return [
             'contract' => $contractData,
-            'plan' => $plan,
-            'total_budget' => number_format($plan->marketing_value, 0, '.', ','),
-            'expected_impressions' => 'Approximately ' . $impressionsFormatted . ' impressions',
-            'expected_clicks' => 'Approximately ' . $clicksFormatted . ' clicks',
+            'plan' => $planPayload,
+            'total_budget' => round($mv, 2),
+            'total_budget_display' => number_format($mv, 2, '.', ','),
+            'expected_impressions' => (int) $plan->expected_impressions,
+            'expected_clicks' => (int) $plan->expected_clicks,
+            'expected_impressions_display_en' => 'Approximately ' . $impressionsFormatted . ' impressions',
+            'expected_impressions_display_ar' => 'تقريباً ' . $impressionsFormatted . ' ظهور',
+            'expected_clicks_display_en' => 'Approximately ' . $clicksFormatted . ' clicks',
+            'expected_clicks_display_ar' => 'تقريباً ' . $clicksFormatted . ' نقرة',
             'marketing_duration' => $durationTextEn,
-            'expected_impressions_ar' => 'تقريباً ' . $impressionsFormatted . ' ظهور',
-            'expected_clicks_ar' => 'تقريباً ' . $clicksFormatted . ' نقرة',
             'marketing_duration_ar' => $durationTextAr,
-            'raw_plan' => $plan,
+            'platforms' => $planPayload['platforms'],
         ];
-        $response['platforms'] = !empty($plan->platforms) ? $plan->platforms : [];
-        return $response;
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    protected function serializeDeveloperPlan(DeveloperMarketingPlan $plan): array
+    {
+        $platforms = $plan->platforms;
+        if (! is_array($platforms)) {
+            $platforms = [];
+        }
+
+        return [
+            'id' => (int) $plan->id,
+            'contract_id' => (int) $plan->contract_id,
+            'average_cpm' => (float) $plan->average_cpm,
+            'average_cpc' => (float) $plan->average_cpc,
+            'marketing_value' => (float) $plan->marketing_value,
+            'marketing_percent' => $plan->marketing_percent !== null ? (float) $plan->marketing_percent : null,
+            'direct_contact_percent' => $plan->direct_contact_percent !== null ? (float) $plan->direct_contact_percent : null,
+            'expected_impressions' => (int) $plan->expected_impressions,
+            'expected_clicks' => (int) $plan->expected_clicks,
+            'platforms' => $platforms,
+        ];
     }
 
     /**
@@ -131,6 +174,7 @@ class DeveloperMarketingPlanService
         $value = MarketingSetting::getByKey('average_cpm')
             ?? MarketingSetting::getByKey('default_cpm')
             ?? 25.00;
+
         return (float) $value;
     }
 
@@ -142,6 +186,7 @@ class DeveloperMarketingPlanService
         $value = MarketingSetting::getByKey('average_cpc')
             ?? MarketingSetting::getByKey('default_cpc')
             ?? 2.50;
+
         return (float) $value;
     }
 }

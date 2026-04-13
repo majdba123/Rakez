@@ -28,6 +28,13 @@ This folder contains a **repo-grounded** Postman collection for the Laravel rout
 
 Bearer header: `Authorization: Bearer {{token}}`.
 
+## Pricing / response contract (2026)
+
+- **`POST marketing/projects/calculate-budget`:** JSON includes `pricing_basis` (`source`, `total_unit_price`, `commission_base_amount`, unit counts, averages, `avg_property_value_stored`, `override_applied`). Money fields in `data` are numeric. Commission base priority: `total_unit_price_override` / legacy `unit_price` → sum of **available** unit prices → stored `avg_property_value`.
+- **`GET marketing/developer-plans/{contractId}`:** `contract` includes `pricing_basis` and `total_unit_price`; `plan` is a **serialized** object (duplicate `raw_plan` removed). `total_budget` is numeric; `total_budget_display` is formatted text. `expected_impressions` / `expected_clicks` are integers; human-readable strings use `*_display_*` keys. `platforms` is always an array.
+
+Production will match only **after** this backend revision is deployed; compare responses to these rules when verifying.
+
 ## Live verification (automated probe)
 
 From this environment, `curl` to **`https://rakez.com.sa/api/login`** returned **nginx 404** (HTML), while **`https://rakez.com.sa/`** returned **200** (SPA). The public site CSP references **`https://api.rakez.com.sa`** for API calls — your production API host may differ from the apex `/api` path. **Set `baseUrl` accordingly** (e.g. if the API is served from `api.rakez.com.sa` with path `/api`).

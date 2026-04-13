@@ -16,7 +16,8 @@ class MarketingProjectService
 {
     public function __construct(
         private MarketingProjectBootstrapService $bootstrapService,
-        private SalesTeamService $salesTeamService
+        private SalesTeamService $salesTeamService,
+        private ContractPricingBasisService $pricingBasisService
     ) {}
 
     /**
@@ -323,7 +324,7 @@ class MarketingProjectService
 
     public function calculateCampaignBudget($contractId, $inputs)
     {
-        $contract = Contract::with('info')->findOrFail($contractId);
+        $contract = Contract::with(['info', 'contractUnits'])->findOrFail($contractId);
 
         if ($contract->status === ContractWorkflowStatus::Completed->value) {
             $this->bootstrapService->ensureForCompletedContract($contract);
@@ -331,25 +332,27 @@ class MarketingProjectService
 
         $info = $contract->info;
 
-        $unitPrice = $inputs['unit_price'] ?? ($info->avg_property_value ?? 0);
+        $pricingBasis = $this->pricingBasisService->resolve($contract, $inputs);
+        $commissionBase = (float) $pricingBasis['commission_base_amount'];
         $commissionPercent = $contract->getEffectiveCommissionPercent();
 
-        $commissionValue = $unitPrice * ($commissionPercent / 100);
+        $commissionValue = round($commissionBase * ($commissionPercent / 100), 2);
 
         // Get marketing percent from inputs, or fallback to 10%
         $marketingPercent = isset($inputs['marketing_percent']) ? (float) $inputs['marketing_percent'] : 10;
-        $marketingValue = $commissionValue * ($marketingPercent / 100);
+        $marketingValue = round($commissionValue * ($marketingPercent / 100), 2);
 
         $durationDays = (int) ($info->agreement_duration_days ?? 30);
         $durationMonths = $this->resolveDurationMonths($info, $durationDays);
 
         return [
-            'commission_percent' => $commissionPercent,
+            'commission_percent' => (float) $commissionPercent,
             'commission_value' => $commissionValue,
             'marketing_percent' => $marketingPercent,
             'marketing_value' => $marketingValue,
-            'daily_budget' => $this->calculateDailyBudget($marketingValue, $durationDays),
-            'monthly_budget' => $this->calculateMonthlyBudget($marketingValue, $durationMonths),
+            'daily_budget' => round((float) $this->calculateDailyBudget($marketingValue, $durationDays), 2),
+            'monthly_budget' => round((float) $this->calculateMonthlyBudget($marketingValue, $durationMonths), 2),
+            'pricing_basis' => $pricingBasis,
         ];
     }
 

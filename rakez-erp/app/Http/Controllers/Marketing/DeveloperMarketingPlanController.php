@@ -35,7 +35,7 @@ class DeveloperMarketingPlanController extends Controller
     {
         try {
             $planData = $this->planService->getPlanForDeveloper($contractId);
-            if (empty($planData['raw_plan']) || empty($planData['plan'])) {
+            if (empty($planData['plan'])) {
                 return response()->json([
                     'success' => false,
                     'message' => 'لم يتم العثور على خطة تسويق المطور لهذا العقد',
@@ -80,24 +80,30 @@ class DeveloperMarketingPlanController extends Controller
             return response()->json(['success' => false, 'message' => 'Contract or plan not found'], 404);
         }
         $contract = $planData['contract'] ?? [];
-        $plan = $planData['raw_plan'] ?? $planData['plan'] ?? null;
+        $plan = $planData['plan'] ?? null;
+        $basis = $contract['pricing_basis'] ?? [];
 
         $sections = [];
         $sections[] = [
             'sectionTitle' => 'بيانات العقد',
             'infoRows' => [
                 ['نسبة السعي %', (string) ($contract['commission_percent'] ?? '')],
-                ['متوسط سعر الوحدة', (string) ($contract['average_unit_price'] ?? '')],
+                ['أساس التسعير (المصدر)', (string) ($basis['source'] ?? '')],
+                ['إجمالي سعر الوحدات (أساس العمولة)', (string) ($basis['total_unit_price'] ?? '')],
+                ['وحدات متاحة / إجمالي', ($basis['available_units_count'] ?? '') . ' / ' . ($basis['all_units_count'] ?? '')],
+                ['متوسط سعر الوحدة (متاح)', (string) ($basis['average_unit_price'] ?? '')],
+                ['avg_property_value (مخزن)', (string) ($basis['avg_property_value_stored'] ?? '')],
             ],
         ];
         if ($plan) {
+            $mv = is_array($plan) ? ($plan['marketing_value'] ?? null) : ($plan->marketing_value ?? null);
             $sections[] = [
                 'sectionTitle' => 'خطة التسويق',
                 'infoRows' => [
-                    ['ميزانية التسويق', $planData['total_budget'] ?? (string) ($plan->marketing_value ?? '')],
+                    ['ميزانية التسويق', (string) ($planData['total_budget_display'] ?? $planData['total_budget'] ?? $mv ?? '')],
                     ['مدة التسويق', $planData['marketing_duration_ar'] ?? ''],
-                    ['الظهور المتوقع', $planData['expected_impressions_ar'] ?? ''],
-                    ['النقرات المتوقعة', $planData['expected_clicks_ar'] ?? ''],
+                    ['الظهور المتوقع', $planData['expected_impressions_display_ar'] ?? ''],
+                    ['النقرات المتوقعة', $planData['expected_clicks_display_ar'] ?? ''],
                 ],
             ];
         }

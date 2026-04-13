@@ -169,8 +169,11 @@ def main() -> None:
                         "Calculate project budget (preview)",
                         "POST",
                         "marketing/projects/calculate-budget",
-                        desc="Preview budget calculation. Permission `marketing.budgets.manage`. See `CalculateBudgetRequest`.",
-                        verification="code-derived example body — do not run on production without safe contract_id",
+                        desc="**Response:** numeric `commission_value`, `marketing_value`, `daily_budget`, `monthly_budget` plus `pricing_basis` "
+                        "(`source`, `total_unit_price`, `commission_base_amount`, unit counts, `average_unit_price`, `avg_property_value_stored`, …). "
+                        "Commission base = override **or** sum of available unit prices **or** stored `avg_property_value`. Permission `marketing.budgets.manage`. "
+                        "See `CalculateBudgetRequest` (`total_unit_price_override`, legacy `unit_price`).",
+                        verification="code-derived example — safe contract_id required for production",
                         body={
                             "contract_id": 0,
                             "marketing_percent": 5,
@@ -191,8 +194,10 @@ def main() -> None:
                         "Show developer plan",
                         "GET",
                         "marketing/developer-plans/{{contractId}}",
-                        desc="Developer marketing plan for contract. `marketing.plans.create`.",
-                        verification="code-verified only",
+                        desc="**Contract:** `pricing_basis`, `total_unit_price`, `commission_percent`, deprecated `average_unit_price`. "
+                        "**Plan:** serialized numeric plan (no duplicate `raw_plan`). **Totals:** `total_budget` (number), `total_budget_display` (string). "
+                        "**Counts:** `expected_impressions` / `expected_clicks` are integers; human text in `*_display_*` fields. `platforms` is always an array.",
+                        verification="code-verified only (set baseUrl to live API host if apex /api returns 404)",
                     ),
                     req(
                         "Download developer plan PDF",
