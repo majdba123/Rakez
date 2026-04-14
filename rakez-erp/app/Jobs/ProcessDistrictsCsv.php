@@ -2,7 +2,7 @@
 
 namespace App\Jobs;
 
-use App\Models\City;
+use App\Http\Requests\Admin\StoreDistrictRequest;
 use App\Models\CsvImport;
 use App\Models\District;
 use Illuminate\Bus\Queueable;
@@ -204,27 +204,13 @@ class ProcessDistrictsCsv implements ShouldQueue
 
     private function validateRow(array $row): array
     {
-        $rules = [
-            'city_id' => ['required', 'integer', 'exists:cities,id'],
-            'name' => [
-                'required',
-                'string',
-                'max:255',
-                Rule::unique('districts', 'name')->where(
-                    fn ($q) => $q->where('city_id', $row['city_id'] ?? 0)
-                ),
-            ],
-        ];
-
-        $messages = [
-            'city_id.required' => 'المدينة مطلوبة',
-            'city_id.exists'   => 'المدينة غير موجودة',
-            'name.required'    => 'اسم الحي مطلوب',
-            'name.max'         => 'اسم الحي يجب ألا يتجاوز 255 حرفاً',
-            'name.unique'      => 'اسم الحي موجود مسبقاً لهذه المدينة',
-        ];
-
-        $validator = Validator::make($row, $rules, $messages);
+        $cityId = (int) ($row['city_id'] ?? 0);
+        $request = new StoreDistrictRequest;
+        $validator = Validator::make(
+            $row,
+            StoreDistrictRequest::rulesForCsvRow($cityId),
+            $request->messages()
+        );
 
         return $validator->fails() ? $validator->errors()->toArray() : [];
     }

@@ -2,6 +2,7 @@
 
 namespace App\Jobs;
 
+use App\Http\Requests\Contract\StoreContractRequest;
 use App\Models\CsvImport;
 use App\Services\Contract\ContractService;
 use Illuminate\Bus\Queueable;
@@ -217,54 +218,12 @@ class ProcessContractsCsv implements ShouldQueue
 
     private function validateContract(array $data): array
     {
-        $rules = [
-            'developer_name'      => 'required|string|max:255',
-            'developer_number'    => 'required|string|max:255',
-            'city_id'             => 'required|integer|exists:cities,id',
-            'district_id'         => [
-                'required', 'integer',
-                Rule::exists('districts', 'id')->where(
-                    fn ($q) => $q->where('city_id', (int) ($data['city_id'] ?? 0))
-                ),
-            ],
-            'side'                => ['nullable', 'string', Rule::in(['N', 'W', 'E', 'S'])],
-            'contract_type'       => 'nullable|string|max:100',
-            'project_name'        => 'required|string|max:255',
-            'project_image_url'   => 'nullable|string|max:500',
-            'developer_requiment' => 'required|string',
-            'notes'               => 'nullable|string',
-            'commission_percent'  => 'nullable|numeric|min:0',
-            'commission_from'     => 'nullable|string|max:255',
-            'units'               => 'required|array|min:1',
-            'units.*.type'        => 'required|string|max:255',
-            'units.*.count'       => 'required|integer|min:1',
-            'units.*.price'       => 'required|numeric|min:0',
-        ];
+        $validator = Validator::make(
+            $data,
+            StoreContractRequest::contractImportRules($data),
+            StoreContractRequest::contractImportMessages()
+        );
 
-        $messages = [
-            'developer_name.required'      => 'اسم المطور مطلوب',
-            'developer_number.required'    => 'رقم المطور مطلوب',
-            'city_id.required'             => 'المدينة مطلوبة',
-            'city_id.exists'               => 'المدينة غير موجودة',
-            'district_id.required'         => 'الحي مطلوب',
-            'district_id.exists'           => 'الحي غير موجود أو لا يتبع المدينة المختارة',
-            'project_name.required'        => 'اسم المشروع مطلوب',
-            'developer_requiment.required' => 'متطلبات المطور مطلوبة',
-            'units.required'               => 'يجب إضافة وحدة واحدة على الأقل',
-            'units.min'                    => 'يجب إضافة وحدة واحدة على الأقل',
-            'units.*.type.required'        => 'نوع الوحدة مطلوب',
-            'units.*.count.required'       => 'عدد الوحدات مطلوب',
-            'units.*.count.min'            => 'عدد الوحدات يجب أن يكون أكبر من صفر',
-            'units.*.price.required'       => 'سعر الوحدة مطلوب',
-            'units.*.price.min'            => 'سعر الوحدة لا يمكن أن يكون سالبًا',
-        ];
-
-        $validator = Validator::make($data, $rules, $messages);
-
-        if ($validator->fails()) {
-            return $validator->errors()->toArray();
-        }
-
-        return [];
+        return $validator->fails() ? $validator->errors()->toArray() : [];
     }
 }

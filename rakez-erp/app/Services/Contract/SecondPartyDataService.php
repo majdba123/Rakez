@@ -59,6 +59,50 @@ class SecondPartyDataService
         }
     }
 
+    /**
+     * CSV import: create row when missing; if it already exists, only apply non-empty fields from the file (keeps existing URLs/data for columns not provided or left blank).
+     */
+    public function mergeFromCsvImport(int $contractId, array $merged): SecondPartyData
+    {
+        $contract = $this->getAuthorizedContract($contractId);
+
+        if (! $contract->info) {
+            throw new Exception('يجب أن يكون العقد لديه معلومات عليه قبل إضافة بيانات الطرف الثاني');
+        }
+
+        if (! $contract->secondPartyData) {
+            return $this->store($contractId, $merged);
+        }
+
+        DB::beginTransaction();
+        try {
+            $patch = [];
+            foreach (SecondPartyData::fieldNamesRequiredForContractCompletion() as $field) {
+                if (! array_key_exists($field, $merged)) {
+                    continue;
+                }
+                $v = $merged[$field];
+                if ($v !== null && (! is_string($v) || trim((string) $v) !== '')) {
+                    $patch[$field] = $v;
+                }
+            }
+
+            $patch['processed_by'] = Auth::id();
+            $patch['processed_at'] = now();
+            $patch = SecondPartyData::normalizeCompletionFieldsInPayload($patch);
+
+            $contract->secondPartyData->update($patch);
+            $contract->secondPartyData->refresh();
+            $contract->secondPartyData->syncIsCompleteSecondOnContract();
+
+            DB::commit();
+
+            return $contract->secondPartyData->fresh()->load(['contract.contractUnits', 'processedByUser']);
+        } catch (Exception $e) {
+            DB::rollBack();
+            throw $e;
+        }
+    }
 
     public function updateByContractId(int $contractId, array $data): SecondPartyData
     {

@@ -2,6 +2,7 @@
 
 namespace App\Jobs;
 
+use App\Http\Requests\Team\StoreTeamRequest;
 use App\Models\CsvImport;
 use App\Services\Team\TeamService;
 use Illuminate\Bus\Queueable;
@@ -171,21 +172,8 @@ class ProcessTeamsCsv implements ShouldQueue
 
     private function validateRow(array $row, array $seenNames, array $seenCodes): array
     {
-        $rules = [
-            'name'        => ['required', 'string', 'max:255', 'unique:teams,name'],
-            'code'        => ['nullable', 'string', 'max:32', 'unique:teams,code'],
-            'description' => ['nullable', 'string'],
-        ];
-
-        $messages = [
-            'name.required' => 'اسم الفريق مطلوب',
-            'name.max'      => 'اسم الفريق يجب ألا يتجاوز 255 حرفاً',
-            'name.unique'   => 'اسم الفريق مستخدم مسبقاً في قاعدة البيانات',
-            'code.max'      => 'رمز الفريق يجب ألا يتجاوز 32 حرفاً',
-            'code.unique'   => 'رمز الفريق مستخدم مسبقاً في قاعدة البيانات',
-        ];
-
-        $validator = Validator::make($row, $rules, $messages);
+        $request = new StoreTeamRequest;
+        $validator = Validator::make($row, $request->rules(), $request->messages());
 
         if ($validator->fails()) {
             return $validator->errors()->toArray();

@@ -701,6 +701,59 @@ class ContractService
     }
 
     /**
+     * CSV import: create {@see ContractInfo} when missing; otherwise merge only non-empty CSV fields into the existing row (never overwrite stored values with null/blank from a new file).
+     */
+    public function upsertContractInfoFromCsvImport(int $contractId, array $merged, ?Contract $contract = null): ContractInfo
+    {
+        if (! $contract) {
+            $contract = Contract::with(['user', 'info'])->findOrFail($contractId);
+        }
+
+        if (! $contract->isApproved()) {
+            throw new Exception('Contract must be approved before storing info.');
+        }
+
+        $this->authorizeContractAccess($contract, Auth::id());
+
+        $protected = ['contract_number', 'first_party_name', 'first_party_cr_number',
+            'first_party_signatory', 'first_party_phone', 'first_party_email'];
+
+        foreach ($protected as $field) {
+            unset($merged[$field]);
+        }
+
+        if (! $contract->info) {
+            return $this->storeContractInfo($contractId, $merged, $contract);
+        }
+
+        $info = $contract->info;
+        $fillable = array_flip($info->getFillable());
+        $patch = [];
+
+        foreach ($merged as $key => $value) {
+            if ($key === 'contract_id') {
+                continue;
+            }
+            if (! isset($fillable[$key])) {
+                continue;
+            }
+            if (in_array($key, $protected, true)) {
+                continue;
+            }
+            if (! $this->isMeaningfulCsvMergeValue($value)) {
+                continue;
+            }
+            $patch[$key] = $value;
+        }
+
+        if ($patch !== []) {
+            $info->update($patch);
+        }
+
+        return $info->fresh();
+    }
+
+    /**
      * Update contract info (only owner, admin, project_management)
      */
     public function updateContractInfo(int $contractId, array $data, int $userId = null): ContractInfo
@@ -839,5 +892,17 @@ class ContractService
             DB::rollBack();
             throw $e;
         }
+    }
+
+    private function isMeaningfulCsvMergeValue(mixed $value): bool
+    {
+        if ($value === null) {
+            return false;
+        }
+        if (is_string($value) && trim($value) === '') {
+            return false;
+        }
+
+        return true;
     }
 }

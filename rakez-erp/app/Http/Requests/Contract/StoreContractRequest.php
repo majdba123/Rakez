@@ -68,12 +68,15 @@ class StoreContractRequest extends FormRequest
     }
 
     /**
-     * Get the validation rules that apply to the request.
+     * Rules for API store and for CSV contract import rows (same shape as {@see buildContractPayload}).
      *
+     * @param  array<string, mixed>  $data  Must include city_id for district exists rule.
      * @return array<string, \Illuminate\Contracts\Validation\ValidationRule|array|string>
      */
-    public function rules(): array
+    public static function contractImportRules(array $data): array
     {
+        $cityId = (int) ($data['city_id'] ?? 0);
+
         return [
             'developer_name' => 'required|string|max:255',
             'developer_number' => 'required|string|max:255',
@@ -81,7 +84,7 @@ class StoreContractRequest extends FormRequest
             'district_id' => [
                 'required',
                 'integer',
-                Rule::exists('districts', 'id')->where(fn ($q) => $q->where('city_id', (int) $this->input('city_id'))),
+                Rule::exists('districts', 'id')->where(fn ($q) => $q->where('city_id', $cityId)),
             ],
             'side' => ['nullable', 'string', Rule::in(['N', 'W', 'E', 'S'])],
             'contract_type' => 'nullable|string|max:100',
@@ -89,10 +92,8 @@ class StoreContractRequest extends FormRequest
             'project_image_url' => 'nullable|string|max:500',
             'developer_requiment' => 'required|string',
             'notes' => 'nullable|string',
-            // Commission details (optional, same style as ContractInfo)
             'commission_percent' => 'nullable|numeric|min:0',
             'commission_from' => 'nullable|string|max:255',
-            // Units array validation
             'units' => 'required|array|min:1',
             'units.*.type' => 'required|string|max:255',
             'units.*.count' => 'required|integer|min:1',
@@ -100,16 +101,29 @@ class StoreContractRequest extends FormRequest
         ];
     }
 
+    /**
+     * Get the validation rules that apply to the request.
+     *
+     * @return array<string, \Illuminate\Contracts\Validation\ValidationRule|array|string>
+     */
+    public function rules(): array
+    {
+        return self::contractImportRules($this->all());
+    }
 
-    public function messages(): array
+    /**
+     * @return array<string, string>
+     */
+    public static function contractImportMessages(): array
     {
         return [
+            'developer_name.required' => 'اسم المطور مطلوب',
+            'developer_number.required' => 'رقم المطور مطلوب',
             'project_name.required' => 'اسم المشروع مطلوب',
             'developer_requiment.required' => 'متطلبات المطور مطلوب',
             'developer_requiment.string' => 'متطلبات المطور يجب أن يكون نصًا',
             'project_name.string' => 'اسم المشروع يجب أن يكون نصًا',
             'project_name.max' => 'اسم المشروع لا يجب أن يتجاوز 255 حرف',
-            'developer_number.required' => 'رقم المطور مطلوب',
             'city_id.required' => 'المدينة مطلوبة',
             'city_id.exists' => 'المدينة غير موجودة',
             'district_id.required' => 'الحي مطلوب',
@@ -127,5 +141,10 @@ class StoreContractRequest extends FormRequest
             'units.*.price.numeric' => 'سعر الوحدة يجب أن يكون رقمًا',
             'units.*.price.min' => 'سعر الوحدة لا يمكن أن يكون سالبًا',
         ];
+    }
+
+    public function messages(): array
+    {
+        return self::contractImportMessages();
     }
 }

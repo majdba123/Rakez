@@ -2,6 +2,7 @@
 
 namespace App\Jobs;
 
+use App\Http\Requests\Admin\StoreCityRequest;
 use App\Models\City;
 use App\Models\CsvImport;
 use App\Models\District;
@@ -48,7 +49,7 @@ class ProcessCitiesDistrictsCsv implements ShouldQueue
 
             foreach ($rows as $index => $row) {
                 $csvRowNumber = $index + 2;
-                $errors = $this->validateRow($row, $seenCityCodes);
+                $errors = $this->validateRow($row);
 
                 if (!empty($errors)) {
                     $rowErrors["row_{$csvRowNumber}"] = $errors;
@@ -231,28 +232,14 @@ class ProcessCitiesDistrictsCsv implements ShouldQueue
         return $rows;
     }
 
-    /**
-     * Validate a single row. Returns errors array (empty = valid).
-     * $seenCityCodes tracks codes already validated in this batch to allow
-     * multiple rows sharing the same city_code (for multiple districts).
-     */
-    private function validateRow(array $row, array $seenCityCodes): array
+    /** Validate a single row. Returns errors array (empty = valid). */
+    private function validateRow(array $row): array
     {
-        $rules = [
-            'city_name' => 'required|string|max:255',
-            'city_code' => 'required|string|max:64',
-            'district_name' => 'nullable|string|max:255',
-        ];
-
-        $messages = [
-            'city_name.required' => 'اسم المدينة مطلوب',
-            'city_name.max' => 'اسم المدينة يجب ألا يتجاوز 255 حرفاً',
-            'city_code.required' => 'رمز المدينة مطلوب',
-            'city_code.max' => 'رمز المدينة يجب ألا يتجاوز 64 حرفاً',
-            'district_name.max' => 'اسم الحي يجب ألا يتجاوز 255 حرفاً',
-        ];
-
-        $validator = Validator::make($row, $rules, $messages);
+        $validator = Validator::make(
+            $row,
+            StoreCityRequest::citiesDistrictsCsvRowRules(),
+            StoreCityRequest::citiesDistrictsCsvRowMessages()
+        );
 
         if ($validator->fails()) {
             return $validator->errors()->toArray();

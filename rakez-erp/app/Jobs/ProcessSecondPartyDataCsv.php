@@ -2,7 +2,9 @@
 
 namespace App\Jobs;
 
+use App\Http\Requests\Contract\StoreSecondPartyDataRequest;
 use App\Models\CsvImport;
+use App\Models\SecondPartyData;
 use App\Services\Contract\SecondPartyDataService;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -102,7 +104,7 @@ class ProcessSecondPartyDataCsv implements ShouldQueue
             DB::beginTransaction();
             try {
                 $service = app(SecondPartyDataService::class);
-                $service->store($this->contractId, $merged);
+                $service->mergeFromCsvImport($this->contractId, $merged);
 
                 $successful = 1;
                 DB::commit();
@@ -198,26 +200,8 @@ class ProcessSecondPartyDataCsv implements ShouldQueue
 
     private function validateRow(array $row): array
     {
-        $rules = [
-            'real_estate_papers_url'    => 'nullable|url|max:500',
-            'plans_equipment_docs_url'  => 'nullable|url|max:500',
-            'project_logo_url'          => 'nullable|url|max:500',
-            'prices_units_url'          => 'nullable|url|max:500',
-            'marketing_license_url'     => 'nullable|url|max:500',
-            'advertiser_section_url'    => 'nullable|string|max:50|regex:/^[0-9]+$/',
-        ];
-
-        $messages = [
-            'real_estate_papers_url.url'       => 'رابط اوراق العقار يجب أن يكون رابط صحيح',
-            'plans_equipment_docs_url.url'     => 'رابط مستندات المخططات والتجهيزات يجب أن يكون رابط صحيح',
-            'project_logo_url.url'             => 'رابط شعار المشروع يجب أن يكون رابط صحيح',
-            'prices_units_url.url'             => 'رابط الاسعار والوحدات يجب أن يكون رابط صحيح',
-            'marketing_license_url.url'        => 'رابط رخصة التسويق يجب أن يكون رابط صحيح',
-            'advertiser_section_url.regex'     => 'رقم قسم المعلن يجب أن يكون أرقام فقط',
-            'advertiser_section_url.max'       => 'رقم قسم المعلن يجب أن لا يتجاوز 50 رقم',
-        ];
-
-        $validator = Validator::make($row, $rules, $messages);
+        $request = new StoreSecondPartyDataRequest;
+        $validator = Validator::make($row, $request->rules(), $request->messages());
 
         return $validator->fails() ? $validator->errors()->toArray() : [];
     }

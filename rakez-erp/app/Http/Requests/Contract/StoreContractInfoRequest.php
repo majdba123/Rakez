@@ -42,8 +42,10 @@ class StoreContractInfoRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'gregorian_date.date' => 'يجب أن يكون تاريخ العقد بالتواريخ الميلادية',
-            'hijri_date.string' => 'يجب أن يكون تاريخ العقد بالتواريخ الهجرية',
+            'gregorian_date.date' => 'يجب أن يكون تاريخ العقد الميلادي صالحاً',
+            'hijri_date.string' => 'يجب أن يكون تاريخ العقد الهجري نصاً',
+            'location_url.url' => 'رابط الموقع يجب أن يكون عنوان URL صالحاً',
+            'second_party_email.email' => 'البريد الإلكتروني للطرف الثاني غير صالح',
         ];
     }
 
