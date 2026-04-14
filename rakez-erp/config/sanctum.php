@@ -15,12 +15,18 @@ return [
     |
     */
 
-    'stateful' => explode(',', env('SANCTUM_STATEFUL_DOMAINS', sprintf(
-        '%s%s',
-        'localhost,localhost:3000,127.0.0.1,127.0.0.1:8000,::1',
-        Sanctum::currentApplicationUrlWithPort(),
-        // Sanctum::currentRequestHost(),
-    ))),
+    'stateful' => array_values(array_unique(array_filter(array_map(
+        static fn (string $domain) => trim($domain),
+        array_merge(
+            explode(',', (string) env('SANCTUM_STATEFUL_DOMAINS', sprintf(
+                '%s%s',
+                'localhost,localhost:3000,127.0.0.1,127.0.0.1:8000,::1',
+                Sanctum::currentApplicationUrlWithPort(),
+            ))),
+            // Always allow the active HTTP Host: matches Origin/Referer for /api/* when APP_URL ≠ public URL.
+            [Sanctum::$currentRequestHostPlaceholder],
+        )
+    )))),
 
     /*
     |--------------------------------------------------------------------------
