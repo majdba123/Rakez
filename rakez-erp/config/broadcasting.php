@@ -48,13 +48,19 @@ return [
                 'useTLS' => env('REVERB_INTERNAL_SCHEME', 'http') === 'https',
             ],
             /*
-            | Browser WebSocket settings for Blade demos (notifications, etc.). Echo/Vite should keep using VITE_REVERB_*.
+            | Browser WebSocket (Blade + pusher-js). Must match resources/js/bootstrap.js (VITE_REVERB_*).
+            | REVERB_PORT is usually the Reverb process port (8080); browsers often use 443 + Nginx → Reverb.
+            | Prefer VITE_REVERB_HOST / VITE_REVERB_PORT / VITE_REVERB_SCHEME so notification pages match Echo/chat.
             */
             'frontend' => [
-                'host' => env('REVERB_HOST', 'localhost'),
-                'port' => (int) env('REVERB_PORT', 443),
-                'scheme' => env('REVERB_SCHEME', 'https'),
-                'useTLS' => env('REVERB_SCHEME', 'https') === 'https',
+                'host' => env('VITE_REVERB_HOST', env('REVERB_HOST', 'localhost')),
+                'port' => is_numeric(env('VITE_REVERB_PORT'))
+                    ? (int) env('VITE_REVERB_PORT')
+                    : (env('REVERB_SCHEME', 'https') === 'https'
+                        ? 443
+                        : (int) env('REVERB_PORT', 8080)),
+                'scheme' => env('VITE_REVERB_SCHEME', env('REVERB_SCHEME', 'https')),
+                'useTLS' => env('VITE_REVERB_SCHEME', env('REVERB_SCHEME', 'https')) === 'https',
             ],
             'client_options' => [
                 // Guzzle client options: https://docs.guzzlephp.org/en/stable/request-options.html
