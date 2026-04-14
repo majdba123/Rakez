@@ -1,4 +1,4 @@
-@extends('layouts.pdf_contract')
+@extends('layouts.pdf_sand_qabd')
 
 @php
     /** @var string $contract_id */
@@ -9,24 +9,34 @@
 @section('title', 'بيانات ملء العقد — عقد ' . $contract_id)
 
 @section('content')
-    <div class="doc-title-wrap">
-        <p class="doc-title">بيانات ملء قالب العقد الحصري</p>
-        <p class="doc-title-en" style="direction: ltr;">Exclusive contract — fill template fields</p>
-        <p class="doc-subtitle">
-            مرجع العقد (contract_id): <span class="ltr">{{ $contract_id }}</span>
-            — تم إنشاء المستند: {{ $generated_at }}
-        </p>
-    </div>
+    <p class="sand-title">بيانات ملء قالب العقد الحصري</p>
+    <p class="sand-title-en" dir="ltr">Exclusive contract — fill template fields</p>
+    <p class="sand-subtitle">
+        مرجع العقد (contract_id): <span class="ltr">{{ $contract_id }}</span>
+        — تم إنشاء المستند: {{ $generated_at }}
+    </p>
 
-    <p class="section-title first">الحقول</p>
-    <table class="info-table">
+    <table class="sand-meta-line" cellpadding="0" cellspacing="0">
+        <tr>
+            <td style="width: 55%;">
+                <strong>مرجع الوثيقة /</strong>
+                حقول مستخرجة من واجهة ملء العقد
+            </td>
+            <td style="width: 45%; text-align: left; direction: ltr;">
+                <strong>API</strong> <span class="ltr">/api/contracts/{id}/fill-data</span>
+            </td>
+        </tr>
+    </table>
+
+    <p class="sand-section first">الحقول</p>
+    <table class="sand-kv" cellpadding="0" cellspacing="0">
         @foreach ($rows as $row)
             <tr>
-                <td style="width: 38%;">{{ $row['label'] }}</td>
-                <td style="word-break: break-word;">{{ $row['value'] }}</td>
+                <td>{{ $row['label'] }}</td>
+                <td class="sand-val-ltr">{{ $row['value'] }}</td>
             </tr>
         @endforeach
     </table>
 
-    <p class="auto-msg">نسخة من بيانات /api/contracts/{id}/fill-data — نظام راكز</p>
+    <p class="sand-auto-msg">نسخة من بيانات /api/contracts/{id}/fill-data — نظام راكز العقارية</p>
 @endsection

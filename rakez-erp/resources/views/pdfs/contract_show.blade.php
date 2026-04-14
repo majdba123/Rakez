@@ -1,4 +1,4 @@
-@extends('layouts.pdf_contract')
+@extends('layouts.pdf_sand_qabd')
 
 @php
     /** @var \App\Models\Contract $contract */
@@ -14,18 +14,29 @@
 @section('title', 'بيانات العقد رقم ' . ($contract->id ?? ''))
 
 @section('content')
-    <div class="doc-title-wrap">
-        <p class="doc-title">بيانات العقد</p>
-        <p class="doc-title-en" style="direction: ltr;">Contract details</p>
-        <p class="doc-subtitle">تم الإنشاء: {{ $generated_at }} — رقم العقد: <span class="ltr">{{ $contract->id }}</span>
-            @if(($contract_main['code'] ?? '—') !== '—')
-                — الكود: <span class="ltr">{{ $contract_main['code'] }}</span>
-            @endif
-        </p>
-    </div>
+    <p class="sand-title">بيانات العقد</p>
+    <p class="sand-title-en" dir="ltr">Contract details</p>
+    <p class="sand-subtitle">
+        تم الإنشاء: {{ $generated_at }} — رقم العقد: <span class="ltr">{{ $contract->id }}</span>
+        @if(($contract_main['code'] ?? '—') !== '—')
+            — الكود: <span class="ltr">{{ $contract_main['code'] }}</span>
+        @endif
+    </p>
 
-    <p class="section-title first">المشروع والمطور</p>
-    <table class="info-table">
+    <table class="sand-meta-line" cellpadding="0" cellspacing="0">
+        <tr>
+            <td style="width: 55%;">
+                <strong>مرجع الوثيقة /</strong>
+                بيانات عقد إحالة تسويق — عرض تفصيلي
+            </td>
+            <td style="width: 45%; text-align: left; direction: ltr;">
+                <strong>Contract #</strong> <span class="ltr">{{ $contract->id }}</span>
+            </td>
+        </tr>
+    </table>
+
+    <p class="sand-section first">المشروع والمطور</p>
+    <table class="sand-kv" cellpadding="0" cellspacing="0">
         <tr>
             <td>اسم المشروع</td>
             <td>{{ $contract_main['project_name'] }}</td>
@@ -36,7 +47,7 @@
         </tr>
         <tr>
             <td>رقم المطور</td>
-            <td class="ltr">{{ $contract_main['developer_number'] }}</td>
+            <td class="sand-val-ltr">{{ $contract_main['developer_number'] }}</td>
         </tr>
         <tr>
             <td>المدينة</td>
@@ -83,11 +94,11 @@
     </table>
 
     @if(!empty($info_display))
-        <p class="section-title">معلومات العقد (الطرفان والتواريخ)</p>
-        <table class="info-table">
+        <p class="sand-section">معلومات العقد (الطرفان والتواريخ)</p>
+        <table class="sand-kv" cellpadding="0" cellspacing="0">
             <tr>
                 <td>رقم العقد</td>
-                <td class="ltr">{{ $info_display['contract_number'] }}</td>
+                <td class="sand-val-ltr">{{ $info_display['contract_number'] }}</td>
             </tr>
             <tr>
                 <td>الطرف الأول — الاسم</td>
@@ -95,7 +106,7 @@
             </tr>
             <tr>
                 <td>الطرف الأول — السجل التجاري</td>
-                <td class="ltr">{{ $info_display['first_party_cr_number'] }}</td>
+                <td class="sand-val-ltr">{{ $info_display['first_party_cr_number'] }}</td>
             </tr>
             <tr>
                 <td>الطرف الثاني — الاسم</td>
@@ -107,7 +118,7 @@
             </tr>
             <tr>
                 <td>الطرف الثاني — الجوال</td>
-                <td class="ltr">{{ $info_display['second_party_phone'] }}</td>
+                <td class="sand-val-ltr">{{ $info_display['second_party_phone'] }}</td>
             </tr>
             <tr>
                 <td>التاريخ الميلادي</td>
@@ -129,20 +140,20 @@
     @endif
 
     @if(!empty($second_party_flags))
-        <p class="section-title">بيانات الطرف الثاني (المرفقات)</p>
-        <table class="info-table">
-            <tr><td>أوراق العقار</td><td>{{ $second_party_flags['real_estate_papers_url'] }}</td></tr>
-            <tr><td>المخططات والتجهيزات</td><td>{{ $second_party_flags['plans_equipment_docs_url'] }}</td></tr>
-            <tr><td>شعار المشروع</td><td>{{ $second_party_flags['project_logo_url'] }}</td></tr>
-            <tr><td>الأسعار والوحدات</td><td>{{ $second_party_flags['prices_units_url'] }}</td></tr>
-            <tr><td>رخصة التسويق</td><td>{{ $second_party_flags['marketing_license_url'] }}</td></tr>
-            <tr><td>رقم المعلن / القسم</td><td>{{ $second_party_flags['advertiser_section_url'] }}</td></tr>
+        <p class="sand-section">بيانات الطرف الثاني (المرفقات)</p>
+        <table class="sand-kv" cellpadding="0" cellspacing="0">
+            <tr><td>أوراق العقار</td><td class="sand-val-ltr">{{ $second_party_flags['real_estate_papers_url'] }}</td></tr>
+            <tr><td>المخططات والتجهيزات</td><td class="sand-val-ltr">{{ $second_party_flags['plans_equipment_docs_url'] }}</td></tr>
+            <tr><td>شعار المشروع</td><td class="sand-val-ltr">{{ $second_party_flags['project_logo_url'] }}</td></tr>
+            <tr><td>الأسعار والوحدات</td><td class="sand-val-ltr">{{ $second_party_flags['prices_units_url'] }}</td></tr>
+            <tr><td>رخصة التسويق</td><td class="sand-val-ltr">{{ $second_party_flags['marketing_license_url'] }}</td></tr>
+            <tr><td>رقم المعلن / القسم</td><td class="sand-val-ltr">{{ $second_party_flags['advertiser_section_url'] }}</td></tr>
         </table>
     @endif
 
-    <p class="section-title">الوحدات</p>
+    <p class="sand-section">الوحدات</p>
     @if(count($unit_rows) > 0)
-        <table class="data-table">
+        <table class="sand-grid" cellpadding="0" cellspacing="0">
             <thead>
             <tr>
                 <th>رقم الوحدة</th>
@@ -155,17 +166,17 @@
             <tbody>
             @foreach($unit_rows as $u)
                 <tr>
-                    <td class="ltr">{{ $u['unit_number'] }}</td>
+                    <td class="sand-val-ltr">{{ $u['unit_number'] }}</td>
                     <td>{{ $u['unit_type'] }}</td>
                     <td>{{ $u['status'] }}</td>
-                    <td class="ltr">{{ $u['price'] }}</td>
+                    <td class="sand-val-ltr">{{ $u['price'] }}</td>
                     <td>{{ $u['area'] }}</td>
                 </tr>
             @endforeach
             </tbody>
         </table>
     @elseif(count($legacy_unit_rows) > 0)
-        <table class="data-table">
+        <table class="sand-grid" cellpadding="0" cellspacing="0">
             <thead>
             <tr>
                 <th>نوع الوحدة</th>
@@ -177,15 +188,15 @@
             @foreach($legacy_unit_rows as $row)
                 <tr>
                     <td>{{ $row['type'] }}</td>
-                    <td class="ltr">{{ $row['count'] }}</td>
-                    <td class="ltr">{{ $row['price'] }}</td>
+                    <td class="sand-val-ltr">{{ $row['count'] }}</td>
+                    <td class="sand-val-ltr">{{ $row['price'] }}</td>
                 </tr>
             @endforeach
             </tbody>
         </table>
     @else
-        <p class="empty-msg">لا توجد وحدات مسجلة.</p>
+        <p class="sand-desc" style="color:#6b7280;font-style:italic;">لا توجد وحدات مسجلة.</p>
     @endif
 
-    <p class="auto-msg">وثيقة تلقائية من نظام راكز — لا تعتبر عقدًا نهائيًا دون التوقيع والاعتماد الرسمي.</p>
+    <p class="sand-auto-msg">وثيقة تلقائية من نظام راكز العقارية — لا تعتبر عقدًا نهائيًا دون التوقيع والاعتماد الرسمي.</p>
 @endsection

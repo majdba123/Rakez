@@ -32,27 +32,27 @@
     <table class="sand-kv" cellpadding="0" cellspacing="0">
         <tr>
             <td>أوراق العقار</td>
-            <td class="ltr">{{ $display['real_estate_papers_url'] }}</td>
+            <td class="sand-val-ltr">{{ $display['real_estate_papers_url'] }}</td>
         </tr>
         <tr>
             <td>مستندات المخططات والتجهيزات</td>
-            <td class="ltr">{{ $display['plans_equipment_docs_url'] }}</td>
+            <td class="sand-val-ltr">{{ $display['plans_equipment_docs_url'] }}</td>
         </tr>
         <tr>
             <td>شعار المشروع</td>
-            <td class="ltr">{{ $display['project_logo_url'] }}</td>
+            <td class="sand-val-ltr">{{ $display['project_logo_url'] }}</td>
         </tr>
         <tr>
             <td>الأسعار والوحدات</td>
-            <td class="ltr">{{ $display['prices_units_url'] }}</td>
+            <td class="sand-val-ltr">{{ $display['prices_units_url'] }}</td>
         </tr>
         <tr>
             <td>رخصة التسويق</td>
-            <td class="ltr">{{ $display['marketing_license_url'] }}</td>
+            <td class="sand-val-ltr">{{ $display['marketing_license_url'] }}</td>
         </tr>
         <tr>
             <td>رقم قسم المعلن / المعلن</td>
-            <td class="ltr">{{ $display['advertiser_section_url'] }}</td>
+            <td class="sand-val-ltr">{{ $display['advertiser_section_url'] }}</td>
         </tr>
     </table>
 
