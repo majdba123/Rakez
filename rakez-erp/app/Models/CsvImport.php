@@ -17,6 +17,7 @@ class CsvImport extends Model
         'processed_rows',
         'successful_rows',
         'failed_rows',
+        'skipped_rows',
         'row_errors',
         'error_message',
         'completed_at',
@@ -130,6 +131,7 @@ class CsvImport extends Model
             'row_errors' => $rowErrors,
             'successful_rows' => 0,
             'failed_rows' => count($rowErrors),
+            'skipped_rows' => 0,
             'processed_rows' => 0,
             'completed_at' => now(),
         ]);
@@ -140,9 +142,9 @@ class CsvImport extends Model
      *
      * @param  array<string, mixed>|null  $rowErrors
      */
-    public function recordImportOutcome(int $successful, int $failed, ?array $rowErrors, ?int $processedRows = null): void
+    public function recordImportOutcome(int $successful, int $failed, ?array $rowErrors, ?int $processedRows = null, int $skippedRows = 0): void
     {
-        $processedRows ??= $successful + $failed;
+        $processedRows ??= $successful + $failed + $skippedRows;
 
         $summary = null;
         if ($failed > 0) {
@@ -154,6 +156,7 @@ class CsvImport extends Model
         $this->update([
             'successful_rows' => $successful,
             'failed_rows' => $failed,
+            'skipped_rows' => $skippedRows,
             'processed_rows' => $processedRows,
             'row_errors' => ! empty($rowErrors) ? $rowErrors : null,
             'error_message' => $summary,

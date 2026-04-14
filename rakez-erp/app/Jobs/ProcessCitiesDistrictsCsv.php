@@ -95,6 +95,7 @@ class ProcessCitiesDistrictsCsv implements ShouldQueue
 
             // Phase 2: insert only — existing cities/districts are not updated or removed
             $successful = 0;
+            $skipped = 0;
             $failed = 0;
 
             if (!empty($validRows)) {
@@ -108,19 +109,26 @@ class ProcessCitiesDistrictsCsv implements ShouldQueue
                                 ['name' => $row['city_name']]
                             );
 
+                            $addedSomething = $city->wasRecentlyCreated;
+
                             if (!empty($row['district_name'])) {
-                                District::firstOrCreate(
+                                $district = District::firstOrCreate(
                                     ['city_id' => $city->id, 'name' => $row['district_name']],
                                 );
+                                $addedSomething = $addedSomething || $district->wasRecentlyCreated;
                             }
 
-                            $successful++;
+                            if ($addedSomething) {
+                                $successful++;
+                            } else {
+                                $skipped++;
+                            }
                         } catch (Exception $e) {
                             $rowErrors["row_{$csvRowNumber}"] = ['insert' => [$e->getMessage()]];
                             $failed++;
                         }
 
-                        $csvImport->update(['processed_rows' => $successful + $failed]);
+                        $csvImport->update(['processed_rows' => $successful + $skipped + $failed]);
                     }
 
                     if ($successful > 0) {
@@ -137,11 +145,13 @@ class ProcessCitiesDistrictsCsv implements ShouldQueue
             $csvImport->recordImportOutcome(
                 $successful,
                 $failed,
-                ! empty($rowErrors) ? $rowErrors : null
+                ! empty($rowErrors) ? $rowErrors : null,
+                $successful + $skipped + $failed,
+                $skipped
             );
             Storage::disk('local')->delete($csvImport->file_path);
 
-            Log::info("Cities/Districts CSV import #{$this->csvImportId} completed: {$successful} ok, {$failed} failed.");
+            Log::info("Cities/Districts CSV import #{$this->csvImportId} completed: {$successful} new, {$skipped} unchanged, {$failed} failed.");
 
         } catch (Exception $e) {
             $csvImport->markFailed($e->getMessage());
