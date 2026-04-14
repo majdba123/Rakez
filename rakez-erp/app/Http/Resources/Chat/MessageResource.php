@@ -4,7 +4,6 @@ namespace App\Http\Resources\Chat;
 
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
-use App\Http\Resources\Shared\UserResource;
 
 class MessageResource extends JsonResource
 {
@@ -17,9 +16,10 @@ class MessageResource extends JsonResource
     {
         return [
             'id' => $this->id,
-            'conversation_id' => $this->conversation_id,
-            'sender' => new UserResource($this->whenLoaded('sender')),
-            'sender_id' => $this->sender_id,
+            'sender' => $this->whenLoaded(
+                'sender',
+                fn () => new ChatParticipantResource($this->sender)
+            ),
             'type' => $this->type ?? 'text',
             'message' => $this->message,
             'voice_url' => $this->when($this->resource->isVoice(), $this->voice_url),
@@ -30,9 +30,8 @@ class MessageResource extends JsonResource
                 $this->attachment_original_name
             ),
             'is_read' => $this->is_read,
-            'read_at' => $this->read_at?->toISOString(),
+            'read_at' => $this->when($this->read_at !== null, fn () => $this->read_at->toISOString()),
             'created_at' => $this->created_at?->toISOString(),
-            'updated_at' => $this->updated_at?->toISOString(),
         ];
     }
 }

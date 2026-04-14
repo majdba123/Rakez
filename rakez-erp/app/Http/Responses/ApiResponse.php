@@ -148,17 +148,44 @@ class ApiResponse
             $paginatedData->items(),
             $message,
             200,
-            [
-                'pagination' => [
-                    'total' => $paginatedData->total(),
-                    'count' => $paginatedData->count(),
-                    'per_page' => $paginatedData->perPage(),
-                    'current_page' => $paginatedData->currentPage(),
-                    'total_pages' => $paginatedData->lastPage(),
-                    'has_more_pages' => $paginatedData->hasMorePages(),
-                ],
-            ]
+            self::paginationMeta($paginatedData)
         );
+    }
+
+    /**
+     * Paginated response with pre-mapped data (e.g. API resources) to avoid double serialization.
+     *
+     * @param  \Illuminate\Contracts\Pagination\LengthAwarePaginator  $paginator
+     */
+    public static function paginatedWithData(
+        $paginator,
+        array $data,
+        string $message = 'تمت العملية بنجاح'
+    ): JsonResponse {
+        return self::success(
+            $data,
+            $message,
+            200,
+            self::paginationMeta($paginator)
+        );
+    }
+
+    /**
+     * @param  \Illuminate\Contracts\Pagination\LengthAwarePaginator  $paginator
+     * @return array<string, array<string, mixed>>
+     */
+    private static function paginationMeta($paginator): array
+    {
+        return [
+            'pagination' => [
+                'total' => $paginator->total(),
+                'count' => $paginator->count(),
+                'per_page' => $paginator->perPage(),
+                'current_page' => $paginator->currentPage(),
+                'total_pages' => $paginator->lastPage(),
+                'has_more_pages' => $paginator->hasMorePages(),
+            ],
+        ];
     }
 
     /**

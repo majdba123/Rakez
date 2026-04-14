@@ -620,7 +620,7 @@
 
             const senderName = message.sender?.name || message.sender?.data?.name || 'مستخدم';
             const messageDiv = document.createElement('div');
-            messageDiv.className = 'message ' + (message.sender_id === CURRENT_USER_ID ? 'sent' : 'received');
+            messageDiv.className = 'message ' + ((message.sender?.id ?? message.sender_id) === CURRENT_USER_ID ? 'sent' : 'received');
 
             const messageContent = document.createElement('div');
             messageContent.className = 'message-content';

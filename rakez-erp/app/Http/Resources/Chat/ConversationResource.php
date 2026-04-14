@@ -4,7 +4,6 @@ namespace App\Http\Resources\Chat;
 
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
-use App\Http\Resources\Shared\UserResource;
 
 class ConversationResource extends JsonResource
 {
@@ -26,11 +25,10 @@ class ConversationResource extends JsonResource
 
         return [
             'id' => $this->id,
-            'other_user' => $otherUser ? new UserResource($otherUser) : null,
+            'other_user' => $otherUser ? new ChatParticipantResource($otherUser) : null,
             'last_message_at' => $this->last_message_at?->toISOString(),
-            'unread_count' => $this->resource->getUnreadCount($currentUser->id),
-            'created_at' => $this->created_at?->toISOString(),
-            'updated_at' => $this->updated_at?->toISOString(),
+            'unread_count' => (int) ($this->resource->unread_count
+                ?? $this->resource->getUnreadCount($currentUser->id)),
         ];
     }
 }

@@ -12,7 +12,6 @@ use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
 
@@ -66,7 +65,15 @@ class ChatController extends Controller
 
             // Find or create conversation
             $conversation = Conversation::findOrCreateBetween($currentUser->id, $userId);
-            $conversation->load('userOne', 'userTwo');
+            $conversation->load([
+                'userOne:id,name',
+                'userTwo:id,name',
+            ]);
+            $conversation->loadCount([
+                'messages as unread_count' => static fn ($q) => $q
+                    ->where('sender_id', '!=', $currentUser->id)
+                    ->where('is_read', false),
+            ]);
 
             return ApiResponse::success(
                 new ConversationResource($conversation),
@@ -97,15 +104,31 @@ class ChatController extends Controller
 
             // Get messages with pagination
             $perPage = ApiResponse::getPerPage($request, 50, 100);
-            $messages = $conversation->messages()
-                ->with('sender')
-                ->orderBy('created_at', 'desc')
+            $paginator = $conversation->messages()
+                ->reorder()
+                ->select([
+                    'id',
+                    'conversation_id',
+                    'sender_id',
+                    'type',
+                    'message',
+                    'voice_path',
+                    'voice_duration_seconds',
+                    'attachment_path',
+                    'attachment_original_name',
+                    'is_read',
+                    'read_at',
+                    'created_at',
+                ])
+                ->with(['sender' => static fn ($q) => $q->select('id', 'name')])
+                ->orderByDesc('created_at')
                 ->paginate($perPage);
 
-            // Mark messages as read
             $conversation->markAsRead($user->id);
 
-            return ApiResponse::paginated($messages, 'تم جلب الرسائل بنجاح');
+            $items = MessageResource::collection($paginator->items())->resolve();
+
+            return ApiResponse::paginatedWithData($paginator, $items, 'تم جلب الرسائل بنجاح');
         } catch (\Exception $e) {
             return ApiResponse::serverError('حدث خطأ أثناء جلب الرسائل: ' . $e->getMessage());
         }
@@ -206,11 +229,31 @@ class ChatController extends Controller
                 'last_message_at' => now(),
             ]);
 
-            // Load sender relationship
-            $message->load('sender');
+            $message->load(['sender' => static fn ($q) => $q->select('id', 'name')]);
 
-            // Broadcast message via WebSocket
-            event(new MessageSent($message));
+            $messageId = $message->id;
+            dispatch(static function () use ($messageId): void {
+                $m = Message::query()
+                    ->select([
+                        'id',
+                        'conversation_id',
+                        'sender_id',
+                        'type',
+                        'message',
+                        'voice_path',
+                        'voice_duration_seconds',
+                        'attachment_path',
+                        'attachment_original_name',
+                        'is_read',
+                        'read_at',
+                        'created_at',
+                    ])
+                    ->with(['sender' => static fn ($q) => $q->select('id', 'name')])
+                    ->find($messageId);
+                if ($m !== null) {
+                    broadcast(new MessageSent($m));
+                }
+            })->afterResponse();
 
             return ApiResponse::created(
                 new MessageResource($message),
@@ -258,16 +301,11 @@ class ChatController extends Controller
         try {
             $user = $request->user();
 
-            // Get all conversations for the user
-            $conversations = Conversation::where('user_one_id', $user->id)
-                ->orWhere('user_two_id', $user->id)
-                ->get();
-
-            $totalUnread = 0;
-            foreach ($conversations as $conversation) {
-                /** @var \App\Models\Conversation $conversation */
-                $totalUnread += $conversation->getUnreadCount($user->id);
-            }
+            $totalUnread = Message::query()
+                ->whereHas('conversation', static fn ($q) => $q->forParticipant($user->id))
+                ->where('sender_id', '!=', $user->id)
+                ->where('is_read', false)
+                ->count();
 
             return ApiResponse::success([
                 'unread_count' => $totalUnread,

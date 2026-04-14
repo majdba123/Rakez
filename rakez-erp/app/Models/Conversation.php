@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -20,6 +21,16 @@ class Conversation extends Model
     protected $casts = [
         'last_message_at' => 'datetime',
     ];
+
+    /**
+     * Conversations where the user is user_one or user_two (proper SQL grouping).
+     */
+    public function scopeForParticipant(Builder $query, int $userId): Builder
+    {
+        return $query->where(function (Builder $q) use ($userId) {
+            $q->where('user_one_id', $userId)->orWhere('user_two_id', $userId);
+        });
+    }
 
     /**
      * Get the first user in the conversation.
@@ -74,7 +85,8 @@ class Conversation extends Model
      */
     public function getUnreadCount(int $userId): int
     {
-        return $this->messages()
+        return Message::query()
+            ->where('conversation_id', $this->id)
             ->where('sender_id', '!=', $userId)
             ->where('is_read', false)
             ->count();
@@ -85,7 +97,8 @@ class Conversation extends Model
      */
     public function markAsRead(int $userId): void
     {
-        $this->messages()
+        Message::query()
+            ->where('conversation_id', $this->id)
             ->where('sender_id', '!=', $userId)
             ->where('is_read', false)
             ->update([

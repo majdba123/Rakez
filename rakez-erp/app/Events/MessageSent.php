@@ -42,26 +42,37 @@ class MessageSent implements ShouldBroadcastNow
      */
     public function broadcastWith(): array
     {
+        $this->message->loadMissing(['sender' => static fn ($q) => $q->select('id', 'name')]);
 
-        return [
+        $payload = [
             'id' => $this->message->id,
-            'conversation_id' => $this->message->conversation_id,
-            'sender_id' => $this->message->sender_id,
             'sender' => [
                 'id' => $this->message->sender->id,
                 'name' => $this->message->sender->name,
-                'email' => $this->message->sender->email,
             ],
             'type' => $this->message->type ?? 'text',
             'message' => $this->message->message,
-            'voice_url' => $this->message->voice_url,
-            'voice_duration_seconds' => $this->message->voice_duration_seconds,
-            'attachment_url' => $this->message->attachment_url,
-            'attachment_original_name' => $this->message->attachment_original_name,
             'is_read' => $this->message->is_read,
             'created_at' => $this->message->created_at->toISOString(),
         ];
 
+        if ($this->message->read_at !== null) {
+            $payload['read_at'] = $this->message->read_at->toISOString();
+        }
+
+        if ($this->message->isVoice()) {
+            $payload['voice_url'] = $this->message->voice_url;
+            if ($this->message->voice_duration_seconds !== null) {
+                $payload['voice_duration_seconds'] = $this->message->voice_duration_seconds;
+            }
+        }
+
+        if ($this->message->hasAttachment()) {
+            $payload['attachment_url'] = $this->message->attachment_url;
+            $payload['attachment_original_name'] = $this->message->attachment_original_name;
+        }
+
+        return $payload;
     }
 }
 
