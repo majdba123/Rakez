@@ -126,4 +126,18 @@ return [
         'table' => 'failed_jobs',
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Contract CSV bulk import
+    |--------------------------------------------------------------------------
+    |
+    | When true (default), imports run with dispatchSync() in the same request,
+    | so status is no longer stuck on "pending" if queue workers are not running.
+    | Set CONTRACT_CSV_DISPATCH_SYNC=false and run `php artisan queue:work` for
+    | very large files to avoid HTTP timeouts.
+    |
+    */
+
+    'contract_csv_dispatch_sync' => env('CONTRACT_CSV_DISPATCH_SYNC', true),
+
 ];
