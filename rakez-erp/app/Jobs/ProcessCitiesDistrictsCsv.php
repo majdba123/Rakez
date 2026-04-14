@@ -53,34 +53,51 @@ class ProcessCitiesDistrictsCsv implements ShouldQueue
                 if (!empty($errors)) {
                     $rowErrors["row_{$csvRowNumber}"] = $errors;
                 } else {
+                    $row['_line'] = $csvRowNumber;
                     $validRows[] = $row;
                 }
             }
 
-            // Check for duplicate district names within same city in the CSV
-            $districtsByCityCode = [];
-            foreach ($validRows as $index => $row) {
-                if (empty($row['district_name'])) {
-                    continue;
-                }
-                $key = strtolower($row['city_code']);
-                $districtName = strtolower(trim($row['district_name']));
-                $csvRowNumber = $index + 2;
-
-                if (isset($districtsByCityCode[$key][$districtName])) {
-                    $firstRow = $districtsByCityCode[$key][$districtName];
-                    $rowErrors["row_{$csvRowNumber}"] = [
-                        'district_name' => ["اسم الحي مكرر لنفس المدينة في الملف (أول ظهور في الصف {$firstRow})."],
+            // Duplicate city_code within the same file → validation error (fail import)
+            $cityCodeFirstLine = [];
+            foreach ($validRows as $row) {
+                $line = $row['_line'];
+                $codeKey = strtolower(trim((string) $row['city_code']));
+                if (isset($cityCodeFirstLine[$codeKey])) {
+                    $firstRow = $cityCodeFirstLine[$codeKey];
+                    $rowErrors["row_{$line}"] = [
+                        'city_code' => ["رمز المدينة مكرر في الملف (أول ظهور في الصف {$firstRow})."],
                     ];
                 } else {
-                    $districtsByCityCode[$key][$districtName] = $csvRowNumber;
+                    $cityCodeFirstLine[$codeKey] = $line;
                 }
             }
 
-            // Remove rows that had duplicate district errors from validRows
-            $validRows = array_filter($validRows, function ($row, $index) use ($rowErrors) {
-                return !isset($rowErrors["row_" . ($index + 2)]);
-            }, ARRAY_FILTER_USE_BOTH);
+            // Duplicate district names within same city in the CSV
+            $districtsByCityCode = [];
+            foreach ($validRows as $row) {
+                if (empty($row['district_name'])) {
+                    continue;
+                }
+                $key = strtolower(trim((string) $row['city_code']));
+                $districtName = strtolower(trim((string) $row['district_name']));
+                $line = $row['_line'];
+
+                if (isset($districtsByCityCode[$key][$districtName])) {
+                    $firstRow = $districtsByCityCode[$key][$districtName];
+                    $rowErrors["row_{$line}"] = [
+                        'district_name' => ["اسم الحي مكرر لنفس المدينة في الملف (أول ظهور في الصف {$firstRow})."],
+                    ];
+                } else {
+                    $districtsByCityCode[$key][$districtName] = $line;
+                }
+            }
+
+            // Drop rows that have errors (keep original CSV line numbers via _line)
+            $validRows = array_values(array_filter(
+                $validRows,
+                fn (array $row) => ! isset($rowErrors['row_'.$row['_line']])
+            ));
 
             if (! empty($rowErrors)) {
                 $csvImport->markImportFailedWithRowErrors(
@@ -101,19 +118,22 @@ class ProcessCitiesDistrictsCsv implements ShouldQueue
             if (!empty($validRows)) {
                 DB::beginTransaction();
                 try {
-                    foreach ($validRows as $index => $row) {
-                        $csvRowNumber = $index + 2;
+                    foreach ($validRows as $row) {
+                        $csvRowNumber = $row['_line'];
+                        $rowForDb = $row;
+                        unset($rowForDb['_line']);
+
                         try {
                             $city = City::firstOrCreate(
-                                ['code' => $row['city_code']],
-                                ['name' => $row['city_name']]
+                                ['code' => $rowForDb['city_code']],
+                                ['name' => $rowForDb['city_name']]
                             );
 
                             $addedSomething = $city->wasRecentlyCreated;
 
-                            if (!empty($row['district_name'])) {
+                            if (!empty($rowForDb['district_name'])) {
                                 $district = District::firstOrCreate(
-                                    ['city_id' => $city->id, 'name' => $row['district_name']],
+                                    ['city_id' => $city->id, 'name' => $rowForDb['district_name']],
                                 );
                                 $addedSomething = $addedSomething || $district->wasRecentlyCreated;
                             }
@@ -143,11 +163,11 @@ class ProcessCitiesDistrictsCsv implements ShouldQueue
             }
 
             $csvImport->recordImportOutcome(
-                $successful,
-                $failed,
-                ! empty($rowErrors) ? $rowErrors : null,
-                $successful + $skipped + $failed,
-                $skipped
+                successful: $successful,
+                failed: $failed,
+                rowErrors: ! empty($rowErrors) ? $rowErrors : null,
+                processedRows: $successful + $skipped + $failed,
+                skippedRows: $skipped
             );
             Storage::disk('local')->delete($csvImport->file_path);
 
