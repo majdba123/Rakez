@@ -38,20 +38,35 @@
         </div>
     </div>
 
+    @php
+        $reverb = config('broadcasting.connections.reverb');
+        $reverbOpts = $reverb['options'] ?? [];
+    @endphp
     <script>
         let pusher = null;
         let channel = null;
         let notifications = [];
 
+        const reverbKey = @json($reverb['key'] ?? '');
+        const reverbHost = @json($reverbOpts['host'] ?? '127.0.0.1');
+        const reverbPort = {{ (int) ($reverbOpts['port'] ?? 8080) }};
+        const forceTLS = @json((bool) ($reverbOpts['useTLS'] ?? false));
+
         function connectWebSocket() {
-            pusher = new Pusher('{{ env("REVERB_APP_KEY") }}', {
-                wsHost: '{{ env("REVERB_HOST", "127.0.0.1") }}',
-                wsPort: {{ env("REVERB_PORT", 8080) }},
-                wssPort: {{ env("REVERB_PORT", 8080) }},
-                forceTLS: {{ env("REVERB_SCHEME", "http") === "https" ? 'true' : 'false' }},
+            if (!reverbKey) {
+                const el = document.getElementById('status');
+                el.className = 'status disconnected';
+                el.textContent = 'REVERB_APP_KEY غير مضبوط في الإعدادات';
+                return;
+            }
+
+            pusher = new Pusher(reverbKey, {
+                wsHost: reverbHost,
+                wsPort: reverbPort,
+                wssPort: reverbPort,
+                forceTLS: forceTLS,
                 enabledTransports: ['ws', 'wss'],
                 cluster: 'mt1'
-                // NO auth needed for public channel!
             });
 
             pusher.connection.bind('connected', () => updateStatus(true));

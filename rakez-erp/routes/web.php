@@ -36,23 +36,35 @@ Route::middleware('guest')->group(function () {
     });
 });
 
-// ==========================================
-// NOTIFICATION TEST PAGES
-// ==========================================
+Route::post('/logout', function (Request $request) {
+    Auth::logout();
+    $request->session()->invalidate();
+    $request->session()->regenerateToken();
 
-// Admin notifications (private - requires admin login)
-Route::get('/notifications/admin', function () {
-    return view('notifications.admin');
-});
+    return redirect()->route('login');
+})->middleware('auth')->name('logout');
 
-// User notifications (private - requires user login)
-Route::get('/notifications/user', function () {
-    return view('notifications.user');
-});
+// ==========================================
+// NOTIFICATION TEST PAGES (realtime via Reverb — use web session + /login)
+// ==========================================
 
 // Public notifications (no login required)
 Route::get('/notifications/public', function () {
     return view('notifications.public');
+});
+
+Route::middleware('auth')->group(function () {
+    Route::get('/notifications/user', function () {
+        return view('notifications.user');
+    });
+
+    Route::get('/notifications/admin', function () {
+        if (! auth()->user()->isAdmin()) {
+            abort(403, 'هذه الصفحة للمسؤولين فقط.');
+        }
+
+        return view('notifications.admin');
+    });
 });
 
 // ==========================================

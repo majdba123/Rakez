@@ -1,9 +1,10 @@
 <!DOCTYPE html>
-<html lang="en" dir="ltr">
+<html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>User Notifications</title>
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+    <title>User Notifications — اختبار فوري</title>
     <script src="https://js.pusher.com/8.2.0/pusher.min.js"></script>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -13,141 +14,111 @@
         .status { padding: 10px; border-radius: 8px; margin-bottom: 20px; text-align: center; }
         .status.connected { background: #238636; color: #aff5b4; }
         .status.disconnected { background: #da3633; color: #ffa198; }
-        .login-form { background: #161b22; padding: 20px; border-radius: 12px; margin-bottom: 20px; border: 1px solid #30363d; }
-        .login-form input { width: 100%; padding: 12px; margin-bottom: 10px; border: 1px solid #30363d; border-radius: 8px; background: #0d1117; color: #c9d1d9; }
-        .login-form button { width: 100%; padding: 12px; background: #238636; color: #fff; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; }
+        .user-info { background: #161b22; padding: 15px; border-radius: 8px; margin-bottom: 15px; border: 1px solid #30363d; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; }
+        .user-info form { display: inline; }
+        .user-info button { padding: 8px 14px; background: #da3633; color: #fff; border: none; border-radius: 6px; cursor: pointer; }
         .notifications { background: #161b22; border-radius: 12px; padding: 20px; border: 1px solid #30363d; }
-        .notification { background: #0d1117; padding: 15px; border-radius: 8px; margin-bottom: 10px; border-left: 4px solid #58a6ff; }
+        .notification { background: #0d1117; padding: 15px; border-radius: 8px; margin-bottom: 10px; border-right: 4px solid #58a6ff; }
         .notification .time { font-size: 12px; color: #8b949e; margin-top: 5px; }
         .empty { text-align: center; color: #8b949e; padding: 40px; }
         .badge { background: #f85149; color: #fff; padding: 2px 8px; border-radius: 12px; font-size: 12px; }
-        .user-info { background: #161b22; padding: 15px; border-radius: 8px; margin-bottom: 15px; border: 1px solid #30363d; }
+        .hint { font-size: 13px; color: #8b949e; margin-top: 12px; line-height: 1.5; }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>👤 User Notifications</h1>
+        <h1>إشعارات المستخدم — اختبار فوري</h1>
 
-        <div id="status" class="status disconnected">Disconnected</div>
+        <div id="status" class="status disconnected">غير متصل</div>
 
-        <div id="loginSection" class="login-form">
-            <input type="email" id="email" placeholder="Your Email">
-            <input type="password" id="password" placeholder="Password">
-            <button onclick="login()">Login</button>
+        <div class="user-info">
+            <div>
+                <p>المستخدم: <strong>{{ auth()->user()->name }}</strong></p>
+                <p>المعرف: <strong id="userIdLabel">{{ auth()->id() }}</strong></p>
+            </div>
+            <form action="{{ route('logout') }}" method="post">
+                @csrf
+                <button type="submit">تسجيل الخروج</button>
+            </form>
         </div>
 
-        <div id="notificationsSection" style="display:none;">
-            <div class="user-info">
-                <p>User: <strong id="userName"></strong></p>
-                <p>ID: <strong id="userId"></strong></p>
-                <button onclick="logout()" style="margin-top:10px;padding:8px 15px;cursor:pointer;background:#da3633;color:#fff;border:none;border-radius:6px;">Logout</button>
-            </div>
-            <div class="notifications">
-                <h3>My Notifications <span id="count" class="badge">0</span></h3>
-                <div id="notificationsList"></div>
-            </div>
+        <div class="notifications">
+            <h3>إشعاراتي <span id="count" class="badge">0</span></h3>
+            <div id="notificationsList"></div>
         </div>
+
+        <p class="hint">
+            جرّب: <code style="direction:ltr;display:inline-block;">GET {{ url('/test/broadcast/user') }}/{{ auth()->id() }}</code>
+            لإرسال حدث إلى <code style="direction:ltr;">private-user-notifications.{{ auth()->id() }}</code>.
+        </p>
     </div>
 
+    @php
+        $reverb = config('broadcasting.connections.reverb');
+        $reverbOpts = $reverb['options'] ?? [];
+    @endphp
     <script>
-        let token = localStorage.getItem('user_token');
-        let userId = localStorage.getItem('user_id');
+        const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+        const userId = {{ (int) auth()->id() }};
+        const reverbKey = @json($reverb['key'] ?? '');
+        const reverbHost = @json($reverbOpts['host'] ?? '127.0.0.1');
+        const reverbPort = {{ (int) ($reverbOpts['port'] ?? 8080) }};
+        const forceTLS = @json((bool) ($reverbOpts['useTLS'] ?? false));
+        const authEndpoint = @json(url('/api/broadcasting/auth'));
+
         let pusher = null;
         let channel = null;
-        let notifications = [];
-
-        async function login() {
-            const email = document.getElementById('email').value;
-            const password = document.getElementById('password').value;
-
-            try {
-                const res = await fetch('/api/login', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ email, password })
-                });
-                const data = await res.json();
-
-                if (data.access_token) {
-                    token = data.access_token;
-                    userId = data.user?.id;
-                    localStorage.setItem('user_token', token);
-                    localStorage.setItem('user_id', userId);
-                    document.getElementById('userName').textContent = data.user?.name || email;
-                    document.getElementById('userId').textContent = userId;
-                    showNotifications();
-                    connectWebSocket();
-                } else {
-                    alert('Login failed: ' + (data.message || 'Invalid credentials'));
-                }
-            } catch (e) {
-                alert('Error: ' + e.message);
-            }
-        }
-
-        function logout() {
-            localStorage.removeItem('user_token');
-            localStorage.removeItem('user_id');
-            token = null;
-            userId = null;
-            if (channel) channel.unbind_all();
-            if (pusher) pusher.disconnect();
-            document.getElementById('loginSection').style.display = 'block';
-            document.getElementById('notificationsSection').style.display = 'none';
-            updateStatus(false);
-        }
-
-        function showNotifications() {
-            document.getElementById('loginSection').style.display = 'none';
-            document.getElementById('notificationsSection').style.display = 'block';
-        }
+        const notifications = [];
 
         function connectWebSocket() {
-            pusher = new Pusher('{{ env("REVERB_APP_KEY") }}', {
-                wsHost: '{{ env("REVERB_HOST", "127.0.0.1") }}',
-                wsPort: {{ env("REVERB_PORT", 8080) }},
-                wssPort: {{ env("REVERB_PORT", 8080) }},
-                forceTLS: {{ env("REVERB_SCHEME", "http") === "https" ? 'true' : 'false' }},
+            if (!reverbKey) {
+                updateStatus(false, 'REVERB_APP_KEY غير مضبوط في الإعدادات');
+                return;
+            }
+
+            pusher = new Pusher(reverbKey, {
+                wsHost: reverbHost,
+                wsPort: reverbPort,
+                wssPort: reverbPort,
+                forceTLS: forceTLS,
                 enabledTransports: ['ws', 'wss'],
                 cluster: 'mt1',
-                authEndpoint: '/api/broadcasting/auth',
+                authEndpoint: authEndpoint,
                 auth: {
-                    headers: { 'Authorization': 'Bearer ' + token }
-                }
+                    headers: {
+                        'X-CSRF-TOKEN': csrfToken,
+                        'Accept': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest',
+                    },
+                },
             });
 
-            pusher.connection.bind('connected', () => updateStatus(true));
-            pusher.connection.bind('disconnected', () => updateStatus(false));
+            pusher.connection.bind('connected', () => updateStatus(true, 'متصل — WebSocket (Reverb)'));
+            pusher.connection.bind('disconnected', () => updateStatus(false, 'غير متصل'));
+            pusher.connection.bind('error', () => updateStatus(false, 'خطأ اتصال'));
 
-            // Subscribe to PRIVATE user channel (by user ID)
-            console.log('Subscribing to channel: private-user-notifications.' + userId);
-            channel = pusher.subscribe('private-user-notifications.' + userId);
+            const channelName = 'private-user-notifications.' + userId;
+            channel = pusher.subscribe(channelName);
 
             channel.bind('pusher:subscription_succeeded', () => {
-                console.log('✅ Successfully subscribed to channel!');
+                console.log('Subscribed:', channelName);
             });
 
-            channel.bind('pusher:subscription_error', (err) => {
-                console.error('❌ Subscription error:', err);
-            });
-
-            // Bind to the event name (without dot prefix for Reverb)
-            channel.bind('user.notification', function(data) {
-                console.log('🔔 User notification received:', data);
+            channel.bind('user.notification', function (data) {
                 const message = data.message || JSON.stringify(data);
                 addNotification(message);
             });
 
-            // Debug: listen to all events
-            channel.bind_global(function(eventName, data) {
-                console.log('📡 Event received:', eventName, data);
+            channel.bind('pusher:subscription_error', (err) => {
+                console.error('Subscription error:', err);
+                updateStatus(false, 'فشل الاشتراك — تحقق من /api/broadcasting/auth');
             });
         }
 
-        function updateStatus(connected) {
+        function updateStatus(connected, text) {
             const el = document.getElementById('status');
             el.className = 'status ' + (connected ? 'connected' : 'disconnected');
-            el.textContent = connected ? '✓ Connected to WebSocket' : '✗ Disconnected';
+            el.textContent = text;
         }
 
         function addNotification(message) {
@@ -160,27 +131,26 @@
             document.getElementById('count').textContent = notifications.length;
 
             if (notifications.length === 0) {
-                list.innerHTML = '<div class="empty">No notifications yet</div>';
+                list.innerHTML = '<div class="empty">لا إشعارات بعد</div>';
                 return;
             }
 
             list.innerHTML = notifications.map(n => `
                 <div class="notification">
-                    <div>${n.message}</div>
+                    <div>${escapeHtml(n.message)}</div>
                     <div class="time">${n.time}</div>
                 </div>
             `).join('');
         }
 
-        // Check existing session
-        if (token && userId) {
-            document.getElementById('userId').textContent = userId;
-            showNotifications();
-            connectWebSocket();
+        function escapeHtml(s) {
+            const d = document.createElement('div');
+            d.textContent = s;
+            return d.innerHTML;
         }
 
+        connectWebSocket();
         renderNotifications();
     </script>
 </body>
 </html>
-
