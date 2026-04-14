@@ -57,7 +57,34 @@ class DeveloperMarketingPlanService
     }
 
     /**
+     * Contract formulas (UI): total commission = sum(all unit prices)×commission%; marketing money = commission×marketing%.
+     *
+     * @return array<string, float|int>
+     */
+    public function buildCalculatedContractBudget(Contract $contract, array $pricingBasis, float $marketingPercent): array
+    {
+        $commissionPercent = (float) $contract->getEffectiveCommissionPercent();
+        $base = (float) $pricingBasis['commission_base_amount'];
+        $commissionValue = round($base * ($commissionPercent / 100), 2);
+        $marketingValue = round($commissionValue * ($marketingPercent / 100), 2);
+
+        return [
+            'total_unit_price_all_sum' => (float) ($pricingBasis['total_unit_price_all_sum'] ?? 0),
+            'all_units_count' => (int) ($pricingBasis['all_units_count'] ?? 0),
+            'average_unit_price_all' => (float) ($pricingBasis['average_unit_price_all'] ?? 0),
+            'commission_percent' => $commissionPercent,
+            'commission_value' => $commissionValue,
+            'commission_value_total' => $commissionValue,
+            'marketing_percent' => $marketingPercent,
+            'marketing_value' => $marketingValue,
+        ];
+    }
+
+    /**
      * Developer plan payload for API / PDF. Numeric money/count fields are JSON numbers; human copy is *_display_*.
+     *
+     * `total_budget` / `total_budget_display` follow the **calculated** marketing money (قيمة التسويق المحسوبة).
+     * `stored_plan_financials` holds persisted DB values; `plan.marketing_value` remains the saved campaign budget.
      *
      * @return array<string, mixed>
      */
@@ -73,19 +100,27 @@ class DeveloperMarketingPlanService
         $contractData = [
             'commission_percent' => $commissionPercent,
             'pricing_basis' => $pricingBasis,
-            /** @deprecated Prefer pricing_basis.average_unit_price_all or average_unit_price_available */
-            'average_unit_price' => (float) $pricingBasis['average_unit_price'],
-            /** Canonical commission-base amount (full project unit sum; same as pricing_basis.total_unit_price) */
+            /** Full-project average unit price (متوسط سعر الوحدات للمشروع) — same as pricing_basis.average_unit_price_all */
+            'average_unit_price' => (float) $pricingBasis['average_unit_price_all'],
+            /** Same as pricing_basis.commission_base_amount / total_unit_price — full project sum */
             'total_unit_price' => (float) $pricingBasis[ContractPricingBasisService::COMMISSION_BASE_KEY],
         ];
 
+        $defaultMarketingPercent = 10.0;
+
         $plan = DeveloperMarketingPlan::where('contract_id', $contractId)->first();
         if (!$plan) {
+            $calculated = $this->buildCalculatedContractBudget($contract, $pricingBasis, $defaultMarketingPercent);
+
             return [
                 'contract' => $contractData,
                 'plan' => null,
-                'total_budget' => null,
-                'total_budget_display' => null,
+                'calculated_contract_budget' => $calculated,
+                'stored_plan_financials' => null,
+                'total_budget' => $calculated['marketing_value'],
+                'total_budget_display' => number_format($calculated['marketing_value'], 2, '.', ','),
+                'stored_marketing_value' => null,
+                'stored_marketing_value_display' => null,
                 'expected_impressions' => null,
                 'expected_clicks' => null,
                 'expected_impressions_display_en' => null,
@@ -98,6 +133,8 @@ class DeveloperMarketingPlanService
             ];
         }
 
+        $mktPct = $plan->marketing_percent !== null ? (float) $plan->marketing_percent : $defaultMarketingPercent;
+        $calculatedContractBudget = $this->buildCalculatedContractBudget($contract, $pricingBasis, $mktPct);
         $planPayload = $this->serializeDeveloperPlan($plan);
 
         $durationDays = (int) ($info->agreement_duration_days ?? 0);
@@ -106,13 +143,24 @@ class DeveloperMarketingPlanService
         $durationTextEn = $durationDays > 0 ? "According to contract duration ({$durationDays} days)" : 'According to contract duration';
         $durationTextAr = $durationDays > 0 ? "حسب مدة العقد ({$durationDays} يوم)" : 'حسب مدة العقد';
 
-        $mv = (float) $plan->marketing_value;
+        $storedMv = (float) $plan->marketing_value;
+        $calcMv = $calculatedContractBudget['marketing_value'];
 
         return [
             'contract' => $contractData,
             'plan' => $planPayload,
-            'total_budget' => round($mv, 2),
-            'total_budget_display' => number_format($mv, 2, '.', ','),
+            'calculated_contract_budget' => $calculatedContractBudget,
+            'stored_plan_financials' => [
+                'marketing_value_stored' => $storedMv,
+                'marketing_percent_saved' => $plan->marketing_percent !== null ? (float) $plan->marketing_percent : null,
+                /** True when persisted budget differs from formula (rounding or manual edit). */
+                'stored_differs_from_calculated' => abs($storedMv - $calcMv) > 0.01,
+            ],
+            /** Primary UI campaign budget = formula result (قيمة التسويق المحسوبة). */
+            'total_budget' => round($calcMv, 2),
+            'total_budget_display' => number_format($calcMv, 2, '.', ','),
+            'stored_marketing_value' => round($storedMv, 2),
+            'stored_marketing_value_display' => number_format($storedMv, 2, '.', ','),
             'expected_impressions' => (int) $plan->expected_impressions,
             'expected_clicks' => (int) $plan->expected_clicks,
             'expected_impressions_display_en' => 'Approximately ' . $impressionsFormatted . ' impressions',
@@ -140,7 +188,9 @@ class DeveloperMarketingPlanService
             'contract_id' => (int) $plan->contract_id,
             'average_cpm' => (float) $plan->average_cpm,
             'average_cpc' => (float) $plan->average_cpc,
+            /** Persisted campaign budget at last save (may differ from `calculated_contract_budget.marketing_value`). */
             'marketing_value' => (float) $plan->marketing_value,
+            'marketing_value_stored' => (float) $plan->marketing_value,
             'marketing_percent' => $plan->marketing_percent !== null ? (float) $plan->marketing_percent : null,
             'direct_contact_percent' => $plan->direct_contact_percent !== null ? (float) $plan->direct_contact_percent : null,
             'expected_impressions' => (int) $plan->expected_impressions,

@@ -310,7 +310,10 @@ class MarketingProjectTest extends TestCase
             ->assertJsonPath('data.pricing_basis.source', 'unit_prices_sum_all')
             ->assertJsonPath('data.pricing_basis.total_unit_price', 1500000)
             ->assertJsonPath('data.pricing_basis.total_unit_price_available_sum', 1000000)
-            ->assertJsonPath('data.commission_value', 37500);
+            ->assertJsonPath('data.commission_value', 37500)
+            ->assertJsonPath('data.marketing_value', 3750)
+            ->assertJsonPath('data.calculated_contract_budget.commission_value', 37500)
+            ->assertJsonPath('data.calculated_contract_budget.marketing_value', 3750);
     }
 
     #[Test]

@@ -83,6 +83,8 @@ class DeveloperMarketingPlanController extends Controller
         $plan = $planData['plan'] ?? null;
         $basis = $contract['pricing_basis'] ?? [];
 
+        $calc = $planData['calculated_contract_budget'] ?? null;
+
         $sections = [];
         $sections[] = [
             'sectionTitle' => 'بيانات العقد',
@@ -91,16 +93,28 @@ class DeveloperMarketingPlanController extends Controller
                 ['أساس التسعير (المصدر)', (string) ($basis['source'] ?? '')],
                 ['إجمالي سعر الوحدات (أساس العمولة)', (string) ($basis['total_unit_price'] ?? '')],
                 ['وحدات متاحة / إجمالي', ($basis['available_units_count'] ?? '') . ' / ' . ($basis['all_units_count'] ?? '')],
-                ['متوسط سعر الوحدة (متاح)', (string) ($basis['average_unit_price'] ?? '')],
+                ['متوسط سعر الوحدة (كل الوحدات)', (string) ($basis['average_unit_price_all'] ?? '')],
+                ['متوسط سعر الوحدة (متاح فقط)', (string) ($basis['average_unit_price_available'] ?? '')],
                 ['avg_property_value (مخزن)', (string) ($basis['avg_property_value_stored'] ?? '')],
             ],
         ];
+        if ($calc) {
+            $sections[] = [
+                'sectionTitle' => 'الحسابات (العمولة والتسويق)',
+                'infoRows' => [
+                    ['إجمالي العمولة (محسوبة)', (string) ($calc['commission_value'] ?? '')],
+                    ['قيمة التسويق / ميزانية الحملة (محسوبة)', (string) ($calc['marketing_value'] ?? '')],
+                    ['نسبة التسويق % (مستخدمة في الحساب)', (string) ($calc['marketing_percent'] ?? '')],
+                ],
+            ];
+        }
         if ($plan) {
             $mv = is_array($plan) ? ($plan['marketing_value'] ?? null) : ($plan->marketing_value ?? null);
             $sections[] = [
                 'sectionTitle' => 'خطة التسويق',
                 'infoRows' => [
-                    ['ميزانية التسويق', (string) ($planData['total_budget_display'] ?? $planData['total_budget'] ?? $mv ?? '')],
+                    ['ميزانية التسويق (محسوبة — للعرض)', (string) ($planData['total_budget_display'] ?? $planData['total_budget'] ?? '')],
+                    ['ميزانية مخزنة في الخطة (آخر حفظ)', (string) ($planData['stored_marketing_value_display'] ?? $mv ?? '')],
                     ['مدة التسويق', $planData['marketing_duration_ar'] ?? ''],
                     ['الظهور المتوقع', $planData['expected_impressions_display_ar'] ?? ''],
                     ['النقرات المتوقعة', $planData['expected_clicks_display_ar'] ?? ''],

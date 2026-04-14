@@ -343,7 +343,7 @@
                 "calculate-budget"
               ]
             },
-            "description": "**Response:** numeric `commission_value`, `marketing_value`, `daily_budget`, `monthly_budget` plus `pricing_basis`. Canonical source is **`unit_prices_sum_all`** (sum of **all** unit prices) unless `total_unit_price_override` is set, else `avg_property_value_stored`. `total_unit_price_available_sum` / `average_unit_price_available` are informational only. Permission `marketing.budgets.manage`. See `CalculateBudgetRequest`.\n\n**Verification:** code-derived example — safe contract_id required for production",
+            "description": "**Formulas:** `commission_value` = `pricing_basis.commission_base_amount` × `commission_percent`/100 (full project sum by default). `marketing_value` = `commission_value` × `marketing_percent`/100. **Response:** root `commission_value`, `marketing_value`, `commission_value_total`, `calculated_contract_budget` (same numbers + `average_unit_price_all`), `daily_budget`, `monthly_budget`, `pricing_basis`. Canonical base is **`unit_prices_sum_all`** unless `total_unit_price_override`, else `avg_property_value_stored`. Available-only sums are informational. Permission `marketing.budgets.manage`. See `CalculateBudgetRequest`.\n\n**Verification:** code-derived example — safe contract_id required for production",
             "auth": {
               "type": "bearer",
               "bearer": [
@@ -399,7 +399,7 @@
                 "{{contractId}}"
               ]
             },
-            "description": "**Contract:** `pricing_basis` uses full-project unit sum as commission base (`source` = `unit_prices_sum_all` when units exist). See `average_unit_price_all` vs `average_unit_price_available`. **Plan:** serialized numeric plan. **Totals:** `total_budget` (number), `total_budget_display` (string). `platforms` is always an array.\n\n**Verification:** code-verified only (set baseUrl to live API host if apex /api returns 404)",
+            "description": "**Contract:** `average_unit_price` = full-project mean (`pricing_basis.average_unit_price_all`). **Calculated block:** `calculated_contract_budget` — commission + marketing money from full-project base. **Stored:** `plan.marketing_value` / `plan.marketing_value_stored` = persisted campaign budget; `total_budget` / `total_budget_display` = **calculated** marketing money (UI primary); `stored_marketing_value` + `stored_plan_financials` distinguish manual/saved vs formula.\n\n**Verification:** code-verified only (set baseUrl to live API host if apex /api returns 404)",
             "auth": {
               "type": "bearer",
               "bearer": [
@@ -548,7 +548,7 @@
                 "calculate-budget"
               ]
             },
-            "description": "See `StoreDeveloperPlanRequest` / controller. **Mutating** — example from code only.\n\n**Verification:** code-derived example — not executed on production",
+            "description": "Same financial engine as project calculate-budget: full-project commission base → `commission_value` → `marketing_value`. Body requires `marketing_percent` (6–10) per controller validation.\n\n**Verification:** code-derived example — not executed on production",
             "auth": {
               "type": "bearer",
               "bearer": [
@@ -561,7 +561,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"contract_id\": 0\n}"
+              "raw": "{\n  \"contract_id\": 0,\n  \"marketing_percent\": 8\n}"
             }
           },
           "event": [

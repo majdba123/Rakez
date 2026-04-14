@@ -10,6 +10,7 @@ use App\Models\ContractInfo;
 use App\Models\MarketingProject;
 use App\Models\DeveloperMarketingPlan;
 use App\Models\EmployeeMarketingPlan;
+use App\Models\ContractUnit;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
 /**
@@ -51,11 +52,19 @@ class MarketingPlansRoutesTest extends TestCase
         $response = $this->actingAs($this->marketingUser, 'sanctum')
             ->getJson("/api/marketing/developer-plans/{$contract->id}");
 
+        // Commission base = stored avg (500k) × 2.5% = 12,500; marketing default 10% → 1,250 (UI formula).
+        // Persisted plan.marketing_value (50k) is exposed separately from calculated totals.
         $response->assertStatus(200)
             ->assertJsonPath('success', true)
             ->assertJsonPath('data.contract.pricing_basis.source', 'avg_property_value_stored')
             ->assertJsonPath('data.contract.pricing_basis.avg_property_value_stored', 500000)
-            ->assertJsonPath('data.total_budget', 50000)
+            ->assertJsonPath('data.calculated_contract_budget.commission_value', 12500)
+            ->assertJsonPath('data.calculated_contract_budget.marketing_value', 1250)
+            ->assertJsonPath('data.total_budget', 1250)
+            ->assertJsonPath('data.stored_marketing_value', 50000)
+            ->assertJsonPath('data.stored_plan_financials.stored_differs_from_calculated', true)
+            ->assertJsonPath('data.plan.marketing_value', 50000)
+            ->assertJsonPath('data.plan.marketing_value_stored', 50000)
             ->assertJsonStructure([
                 'data' => [
                     'contract' => [
@@ -67,12 +76,55 @@ class MarketingPlansRoutesTest extends TestCase
                     'plan' => [
                         'id',
                         'marketing_value',
+                        'marketing_value_stored',
                         'platforms',
                     ],
+                    'calculated_contract_budget',
+                    'stored_plan_financials',
                     'total_budget',
                     'total_budget_display',
+                    'stored_marketing_value',
+                    'stored_marketing_value_display',
                 ],
             ]);
+    }
+
+    #[Test]
+    public function developer_plan_uses_sum_of_all_unit_prices_for_commission_and_marketing_formula(): void
+    {
+        $contract = Contract::factory()->create([
+            'commission_percent' => 2.5,
+        ]);
+        ContractInfo::factory()->create([
+            'contract_id' => $contract->id,
+            'avg_property_value' => 999999,
+        ]);
+        ContractUnit::factory()->create(['contract_id' => $contract->id, 'status' => 'available', 'price' => 400000]);
+        ContractUnit::factory()->create(['contract_id' => $contract->id, 'status' => 'available', 'price' => 600000]);
+        ContractUnit::factory()->create(['contract_id' => $contract->id, 'status' => 'sold', 'price' => 500000]);
+
+        DeveloperMarketingPlan::create([
+            'contract_id' => $contract->id,
+            'average_cpm' => 10,
+            'average_cpc' => 2.5,
+            'marketing_percent' => 10,
+            'marketing_value' => 4000,
+            'expected_impressions' => 100,
+            'expected_clicks' => 50,
+            'platforms' => [],
+        ]);
+
+        $response = $this->actingAs($this->marketingUser, 'sanctum')
+            ->getJson("/api/marketing/developer-plans/{$contract->id}");
+
+        $response->assertStatus(200)
+            ->assertJsonPath('data.contract.pricing_basis.source', 'unit_prices_sum_all')
+            ->assertJsonPath('data.contract.pricing_basis.total_unit_price_all_sum', 1500000)
+            ->assertJsonPath('data.calculated_contract_budget.commission_value', 37500)
+            ->assertJsonPath('data.calculated_contract_budget.marketing_value', 3750)
+            ->assertJsonPath('data.total_budget', 3750)
+            ->assertJsonPath('data.stored_marketing_value', 4000)
+            ->assertJsonPath('data.contract.average_unit_price', 500000);
     }
 
     #[Test]

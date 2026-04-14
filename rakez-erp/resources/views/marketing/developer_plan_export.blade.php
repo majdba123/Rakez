@@ -37,10 +37,19 @@
             <tr><td>وحدات متاحة / إجمالي</td><td class="ltr">{{ ($pb['available_units_count'] ?? '—') }} / {{ ($pb['all_units_count'] ?? '—') }}</td></tr>
         </table>
 
+        @if(!empty($pd['calculated_contract_budget']))
+            <p class="section-title">الحسابات (العمولة والتسويق)</p>
+            <table class="info-table">
+                <tr><td>إجمالي العمولة (محسوبة)</td><td class="ltr">{{ isset($pd['calculated_contract_budget']['commission_value']) ? number_format((float) $pd['calculated_contract_budget']['commission_value'], 2, '.', ',') : '—' }}</td></tr>
+                <tr><td>قيمة التسويق (محسوبة)</td><td class="ltr">{{ isset($pd['calculated_contract_budget']['marketing_value']) ? number_format((float) $pd['calculated_contract_budget']['marketing_value'], 2, '.', ',') : '—' }}</td></tr>
+            </table>
+        @endif
+
         @if(!empty($pd['plan']))
             <p class="section-title">ملخص خطة التسويق</p>
             <table class="info-table">
-                <tr><td>ميزانية التسويق (ريال)</td><td class="ltr">{{ $pd['total_budget_display'] ?? (isset($pd['total_budget']) ? number_format((float) $pd['total_budget'], 2, '.', ',') : '—') }}</td></tr>
+                <tr><td>ميزانية التسويق (محسوبة — للعرض)</td><td class="ltr">{{ $pd['total_budget_display'] ?? (isset($pd['total_budget']) ? number_format((float) $pd['total_budget'], 2, '.', ',') : '—') }}</td></tr>
+                <tr><td>ميزانية مخزنة (آخر حفظ)</td><td class="ltr">{{ $pd['stored_marketing_value_display'] ?? '—' }}</td></tr>
                 <tr><td>مدة التسويق</td><td>{{ $pd['marketing_duration_ar'] ?? '—' }}</td></tr>
                 <tr><td>الظهور المتوقع</td><td>{{ $pd['expected_impressions_display_ar'] ?? '—' }}</td></tr>
                 <tr><td>النقرات المتوقعة</td><td>{{ $pd['expected_clicks_display_ar'] ?? '—' }}</td></tr>

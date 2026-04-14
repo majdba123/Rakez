@@ -169,10 +169,12 @@ def main() -> None:
                         "Calculate project budget (preview)",
                         "POST",
                         "marketing/projects/calculate-budget",
-                        desc="**Response:** numeric `commission_value`, `marketing_value`, `daily_budget`, `monthly_budget` plus `pricing_basis`. "
-                        "Canonical source is **`unit_prices_sum_all`** (sum of **all** unit prices) unless `total_unit_price_override` is set, else `avg_property_value_stored`. "
-                        "`total_unit_price_available_sum` / `average_unit_price_available` are informational only. "
-                        "Permission `marketing.budgets.manage`. See `CalculateBudgetRequest`.",
+                        desc="**Formulas:** `commission_value` = `pricing_basis.commission_base_amount` × `commission_percent`/100 (full project sum by default). "
+                        "`marketing_value` = `commission_value` × `marketing_percent`/100. "
+                        "**Response:** root `commission_value`, `marketing_value`, `commission_value_total`, `calculated_contract_budget` (same numbers + `average_unit_price_all`), "
+                        "`daily_budget`, `monthly_budget`, `pricing_basis`. "
+                        "Canonical base is **`unit_prices_sum_all`** unless `total_unit_price_override`, else `avg_property_value_stored`. "
+                        "Available-only sums are informational. Permission `marketing.budgets.manage`. See `CalculateBudgetRequest`.",
                         verification="code-derived example — safe contract_id required for production",
                         body={
                             "contract_id": 0,
@@ -194,9 +196,11 @@ def main() -> None:
                         "Show developer plan",
                         "GET",
                         "marketing/developer-plans/{{contractId}}",
-                        desc="**Contract:** `pricing_basis` uses full-project unit sum as commission base (`source` = `unit_prices_sum_all` when units exist). "
-                        "See `average_unit_price_all` vs `average_unit_price_available`. **Plan:** serialized numeric plan. "
-                        "**Totals:** `total_budget` (number), `total_budget_display` (string). `platforms` is always an array.",
+                        desc="**Contract:** `average_unit_price` = full-project mean (`pricing_basis.average_unit_price_all`). "
+                        "**Calculated block:** `calculated_contract_budget` — commission + marketing money from full-project base. "
+                        "**Stored:** `plan.marketing_value` / `plan.marketing_value_stored` = persisted campaign budget; "
+                        "`total_budget` / `total_budget_display` = **calculated** marketing money (UI primary); "
+                        "`stored_marketing_value` + `stored_plan_financials` distinguish manual/saved vs formula.",
                         verification="code-verified only (set baseUrl to live API host if apex /api returns 404)",
                     ),
                     req(
@@ -218,9 +222,10 @@ def main() -> None:
                         "Calculate developer plan budget",
                         "POST",
                         "marketing/developer-plans/calculate-budget",
-                        desc="See `StoreDeveloperPlanRequest` / controller. **Mutating** — example from code only.",
+                        desc="Same financial engine as project calculate-budget: full-project commission base → `commission_value` → `marketing_value`. "
+                        "Body requires `marketing_percent` (6–10) per controller validation.",
                         verification="code-derived example — not executed on production",
-                        body={"contract_id": 0},
+                        body={"contract_id": 0, "marketing_percent": 8},
                         test=TEST_JSON_SOFT,
                     ),
                     req(

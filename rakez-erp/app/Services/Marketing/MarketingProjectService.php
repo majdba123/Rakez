@@ -336,6 +336,7 @@ class MarketingProjectService
         $commissionBase = (float) $pricingBasis['commission_base_amount'];
         $commissionPercent = $contract->getEffectiveCommissionPercent();
 
+        // UI formulas: commission = sum(all unit prices) × commission%; marketing $ = commission × marketing%
         $commissionValue = round($commissionBase * ($commissionPercent / 100), 2);
 
         // Get marketing percent from inputs, or fallback to 10%
@@ -345,14 +346,29 @@ class MarketingProjectService
         $durationDays = (int) ($info->agreement_duration_days ?? 30);
         $durationMonths = $this->resolveDurationMonths($info, $durationDays);
 
+        $calculatedContractBudget = [
+            'total_unit_price_all_sum' => (float) ($pricingBasis['total_unit_price_all_sum'] ?? 0),
+            'all_units_count' => (int) ($pricingBasis['all_units_count'] ?? 0),
+            'average_unit_price_all' => (float) ($pricingBasis['average_unit_price_all'] ?? 0),
+            'commission_percent' => (float) $commissionPercent,
+            'commission_value' => $commissionValue,
+            'commission_value_total' => $commissionValue,
+            'marketing_percent' => $marketingPercent,
+            'marketing_value' => $marketingValue,
+        ];
+
         return [
             'commission_percent' => (float) $commissionPercent,
             'commission_value' => $commissionValue,
+            /** @deprecated Prefer `commission_value` or `calculated_contract_budget.commission_value` — same as total commission (العمولة إجمالي) */
+            'commission_value_total' => $commissionValue,
             'marketing_percent' => $marketingPercent,
             'marketing_value' => $marketingValue,
             'daily_budget' => round((float) $this->calculateDailyBudget($marketingValue, $durationDays), 2),
             'monthly_budget' => round((float) $this->calculateMonthlyBudget($marketingValue, $durationMonths), 2),
             'pricing_basis' => $pricingBasis,
+            /** Canonical UI-aligned block: full-project basis → commission → marketing money (قيمة التسويق المحسوبة) */
+            'calculated_contract_budget' => $calculatedContractBudget,
         ];
     }
 
