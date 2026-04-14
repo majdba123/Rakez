@@ -1,6 +1,8 @@
 <?php
 
 use App\Services\Pdf\PdfFactory;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
 use App\Events\UserNotificationEvent;
 use App\Events\PublicNotificationEvent;
@@ -8,6 +10,30 @@ use App\Events\AdminNotificationEvent;
 
 Route::get('/', function () {
     return view('welcome');
+});
+
+// Session login for web pages (named "login" — required by auth middleware redirect)
+Route::middleware('guest')->group(function () {
+    Route::get('/login', function () {
+        return view('auth.web-login');
+    })->name('login');
+
+    Route::post('/login', function (Request $request) {
+        $credentials = $request->validate([
+            'email' => ['required', 'string', 'email'],
+            'password' => ['required', 'string'],
+        ]);
+
+        if (!Auth::attempt($credentials, $request->boolean('remember'))) {
+            return back()
+                ->withErrors(['email' => 'بيانات الدخول غير صحيحة.'])
+                ->onlyInput('email');
+        }
+
+        $request->session()->regenerate();
+
+        return redirect()->intended('/chat/test');
+    });
 });
 
 // ==========================================
@@ -63,12 +89,8 @@ Route::get('/tasks', function () {
 // CHAT SYSTEM TEST PAGE
 // ==========================================
 
-// Chat test page (requires authentication)
+// Chat test page (requires web session — use /login first; Sanctum API uses same session when stateful)
 Route::get('/chat/test', function () {
-    if (!auth()->check()) {
-        return redirect('/login')->with('error', 'يجب تسجيل الدخول لاستخدام نظام الدردشة');
-    }
-
     return view('chat.test');
 })->middleware('auth');
 

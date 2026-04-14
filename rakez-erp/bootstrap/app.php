@@ -19,6 +19,9 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware) {
+        // Allow auth:sanctum API routes to use the web session (same-site pages like /chat/test)
+        $middleware->statefulApi();
+
         // Register your middleware aliases here
         $middleware->alias([
             'admin' => AdminMiddleware::class,
@@ -29,6 +32,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'inventory' => InventoryMiddleware::class,
 
             'auth' => \App\Http\Middleware\Authenticate::class,
+            'guest' => \App\Http\Middleware\RedirectIfAuthenticated::class,
             'role' => \Spatie\Permission\Middleware\RoleMiddleware::class,
             'permission' => \Spatie\Permission\Middleware\PermissionMiddleware::class,
             'role_or_permission' => \Spatie\Permission\Middleware\RoleOrPermissionMiddleware::class,
