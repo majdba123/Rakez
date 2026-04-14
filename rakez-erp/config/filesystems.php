@@ -41,7 +41,12 @@ return [
         'public' => [
             'driver' => 'local',
             'root' => storage_path('app/public'),
-            'url' => env('APP_URL').'/storage',
+            /*
+            | Base URL for Storage::disk('public')->url() — must match where /storage is served (e.g. https://api.example.com).
+            | PUBLIC_STORAGE_ORIGIN: scheme + host only, no path (overrides APP_URL for voice/file URLs).
+            | HTTP requests also override this in AppServiceProvider so APP_URL=http://localhost does not break production clients.
+            */
+            'url' => rtrim(env('PUBLIC_STORAGE_ORIGIN', env('APP_URL', 'http://localhost')), '/').'/storage',
             'visibility' => 'public',
             'throw' => false,
             'report' => false,

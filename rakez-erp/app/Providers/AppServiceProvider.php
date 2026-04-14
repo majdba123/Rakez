@@ -54,6 +54,7 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         $this->ensureStorageDirectoriesExist();
+        $this->configurePublicDiskUrlForHttpRequest();
 
         // Register Policies
         Gate::policy(\App\Models\Contract::class, \App\Policies\ContractPolicy::class);
@@ -114,6 +115,33 @@ class AppServiceProvider extends ServiceProvider
     /**
      * Ensure PDF and font storage directories exist (avoids mPDF warnings and font path issues).
      */
+    /**
+     * Voice/file URLs use Storage::disk('public')->url(). If APP_URL is still localhost while clients call
+     * https://api.rakez.com.sa, JSON would expose http://localhost/storage/... and playback fails.
+     * Set PUBLIC_STORAGE_ORIGIN for queue/CLI; otherwise use the current request scheme + host.
+     */
+    protected function configurePublicDiskUrlForHttpRequest(): void
+    {
+        if (env('PUBLIC_STORAGE_ORIGIN')) {
+            return;
+        }
+
+        if ($this->app->runningInConsole()) {
+            return;
+        }
+
+        if (!$this->app->bound('request')) {
+            return;
+        }
+
+        /** @var \Illuminate\Http\Request $request */
+        $request = $this->app->make('request');
+
+        config([
+            'filesystems.disks.public.url' => rtrim($request->getSchemeAndHttpHost(), '/').'/storage',
+        ]);
+    }
+
     protected function ensureStorageDirectoriesExist(): void
     {
         $dirs = [
