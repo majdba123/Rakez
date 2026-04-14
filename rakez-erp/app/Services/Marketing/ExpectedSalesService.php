@@ -7,16 +7,31 @@ use App\Models\MarketingProject;
 
 class ExpectedSalesService
 {
+    public function __construct(
+        private ContractPricingBasisService $pricingBasisService
+    ) {}
+
     public function calculateExpectedBookings($directCommunications, $handRaises, $conversionRate)
     {
         $rate = $conversionRate ?: 1; // Default 1%
+
         return ($directCommunications + $handRaises) * ($rate / 100);
     }
 
+    /**
+     * Expected booking value uses project-wide average unit price when unit rows exist; else stored avg_property_value.
+     */
     public function calculateExpectedBookingValue($projectId, $expectedBookingsCount = null)
     {
-        $project = MarketingProject::with('contract.info')->findOrFail($projectId);
-        $avgValue = $project->contract->info->avg_property_value ?? 0;
+        $project = MarketingProject::with(['contract.info', 'contract.contractUnits'])->findOrFail($projectId);
+        $contract = $project->contract;
+        $contract->loadMissing(['info', 'contractUnits']);
+        $basis = $this->pricingBasisService->resolve($contract, []);
+
+        $avgPerUnit = (float) ($basis['average_unit_price_all'] ?? 0);
+        if ($avgPerUnit <= 0) {
+            $avgPerUnit = (float) ($contract->info->avg_property_value ?? 0);
+        }
 
         $count = $expectedBookingsCount;
         if ($count === null) {
@@ -24,7 +39,7 @@ class ExpectedSalesService
             $count = $expectedBooking ? $expectedBooking->expected_bookings_count : 0;
         }
 
-        return $count * $avgValue;
+        return $count * $avgPerUnit;
     }
 
     public function aggregateExpectedBookings()

@@ -274,7 +274,7 @@ class MarketingProjectTest extends TestCase
     }
 
     #[Test]
-    public function calculate_budget_uses_sum_of_available_unit_prices_when_no_override()
+    public function calculate_budget_uses_sum_of_all_unit_prices_when_no_override()
     {
         $contract = Contract::factory()->create([
             'commission_percent' => 2.5,
@@ -295,6 +295,11 @@ class MarketingProjectTest extends TestCase
             'status' => 'available',
             'price' => 600000,
         ]);
+        ContractUnit::factory()->create([
+            'contract_id' => $contract->id,
+            'status' => 'sold',
+            'price' => 500000,
+        ]);
 
         $response = $this->actingAs($this->marketingUser, 'sanctum')
             ->postJson('/api/marketing/projects/calculate-budget', [
@@ -302,9 +307,10 @@ class MarketingProjectTest extends TestCase
             ]);
 
         $response->assertStatus(200)
-            ->assertJsonPath('data.pricing_basis.source', 'unit_prices_sum_available')
-            ->assertJsonPath('data.pricing_basis.total_unit_price', 1000000)
-            ->assertJsonPath('data.commission_value', 25000);
+            ->assertJsonPath('data.pricing_basis.source', 'unit_prices_sum_all')
+            ->assertJsonPath('data.pricing_basis.total_unit_price', 1500000)
+            ->assertJsonPath('data.pricing_basis.total_unit_price_available_sum', 1000000)
+            ->assertJsonPath('data.commission_value', 37500);
     }
 
     #[Test]

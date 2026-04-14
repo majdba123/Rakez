@@ -19,9 +19,9 @@ class BudgetCalculationTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->developerService = new DeveloperMarketingPlanService();
-        $this->employeeService = new EmployeeMarketingPlanService();
-        $this->salesService = new ExpectedSalesService();
+        $this->developerService = app(DeveloperMarketingPlanService::class);
+        $this->employeeService = app(EmployeeMarketingPlanService::class);
+        $this->salesService = app(ExpectedSalesService::class);
     }
 
     #[Test]

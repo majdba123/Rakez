@@ -31,10 +31,10 @@
             <tr><td>نسبة السعي %</td><td class="ltr">{{ $c['commission_percent'] ?? '—' }}</td></tr>
             <tr><td>مصدر التسعير</td><td class="ltr">{{ $pb['source'] ?? '—' }}</td></tr>
             <tr><td>إجمالي سعر الوحدات (أساس العمولة)</td><td class="ltr">{{ isset($pb['total_unit_price']) ? number_format((float) $pb['total_unit_price'], 2, '.', ',') : '—' }}</td></tr>
-            <tr><td>متوسط سعر الوحدة (متاح)</td><td class="ltr">{{ isset($pb['average_unit_price']) ? number_format((float) $pb['average_unit_price'], 2, '.', ',') : '—' }}</td></tr>
+            <tr><td>متوسط سعر الوحدة (كل الوحدات)</td><td class="ltr">{{ isset($pb['average_unit_price_all']) ? number_format((float) $pb['average_unit_price_all'], 2, '.', ',') : '—' }}</td></tr>
+            <tr><td>متوسط سعر الوحدة (متاح فقط)</td><td class="ltr">{{ isset($pb['average_unit_price_available']) ? number_format((float) $pb['average_unit_price_available'], 2, '.', ',') : '—' }}</td></tr>
             <tr><td>avg_property_value (مخزن)</td><td class="ltr">{{ isset($pb['avg_property_value_stored']) ? number_format((float) $pb['avg_property_value_stored'], 2, '.', ',') : '—' }}</td></tr>
             <tr><td>وحدات متاحة / إجمالي</td><td class="ltr">{{ ($pb['available_units_count'] ?? '—') }} / {{ ($pb['all_units_count'] ?? '—') }}</td></tr>
-            <tr><td>متوسط سعر الوحدة (قديم)</td><td class="ltr">{{ isset($c['average_unit_price']) ? number_format((float) $c['average_unit_price'], 2, '.', ',') : '—' }}</td></tr>
         </table>
 
         @if(!empty($pd['plan']))

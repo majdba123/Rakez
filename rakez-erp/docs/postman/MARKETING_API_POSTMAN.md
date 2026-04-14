@@ -30,8 +30,9 @@ Bearer header: `Authorization: Bearer {{token}}`.
 
 ## Pricing / response contract (2026)
 
-- **`POST marketing/projects/calculate-budget`:** JSON includes `pricing_basis` (`source`, `total_unit_price`, `commission_base_amount`, unit counts, averages, `avg_property_value_stored`, `override_applied`). Money fields in `data` are numeric. Commission base priority: `total_unit_price_override` / legacy `unit_price` → sum of **available** unit prices → stored `avg_property_value`.
-- **`GET marketing/developer-plans/{contractId}`:** `contract` includes `pricing_basis` and `total_unit_price`; `plan` is a **serialized** object (duplicate `raw_plan` removed). `total_budget` is numeric; `total_budget_display` is formatted text. `expected_impressions` / `expected_clicks` are integers; human-readable strings use `*_display_*` keys. `platforms` is always an array.
+- **`POST marketing/projects/calculate-budget`:** JSON includes `pricing_basis`. **Canonical commission base** = sum of **all** contract unit prices (`source`: `unit_prices_sum_all`), unless override or fallback to stored `avg_property_value`. `total_unit_price_available_sum` and `average_unit_price_available` are **informational** (inventory), not the default basis. Keys include `average_unit_price_all`, `average_unit_price_available`, and deprecated `average_unit_price` (= all-units mean).
+- **`GET marketing/developer-plans/{contractId}`:** Same `pricing_basis` rules. Employee plan auto-generation and implicit commission derivation use **project-wide** unit sum via `ContractPricingBasisService`.
+- **Expected booking value** (`ExpectedSalesService`): uses `average_unit_price_all` when units exist; else `avg_property_value` on contract info.
 
 Production will match only **after** this backend revision is deployed; compare responses to these rules when verifying.
 

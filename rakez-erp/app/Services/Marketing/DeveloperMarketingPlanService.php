@@ -73,9 +73,9 @@ class DeveloperMarketingPlanService
         $contractData = [
             'commission_percent' => $commissionPercent,
             'pricing_basis' => $pricingBasis,
-            /** @deprecated Prefer pricing_basis.total_unit_price / pricing_basis.average_unit_price */
+            /** @deprecated Prefer pricing_basis.average_unit_price_all or average_unit_price_available */
             'average_unit_price' => (float) $pricingBasis['average_unit_price'],
-            /** Canonical commission-base amount (same as pricing_basis.total_unit_price) */
+            /** Canonical commission-base amount (full project unit sum; same as pricing_basis.total_unit_price) */
             'total_unit_price' => (float) $pricingBasis[ContractPricingBasisService::COMMISSION_BASE_KEY],
         ];
 

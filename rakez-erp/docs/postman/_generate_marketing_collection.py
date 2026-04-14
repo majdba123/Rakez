@@ -169,10 +169,10 @@ def main() -> None:
                         "Calculate project budget (preview)",
                         "POST",
                         "marketing/projects/calculate-budget",
-                        desc="**Response:** numeric `commission_value`, `marketing_value`, `daily_budget`, `monthly_budget` plus `pricing_basis` "
-                        "(`source`, `total_unit_price`, `commission_base_amount`, unit counts, `average_unit_price`, `avg_property_value_stored`, …). "
-                        "Commission base = override **or** sum of available unit prices **or** stored `avg_property_value`. Permission `marketing.budgets.manage`. "
-                        "See `CalculateBudgetRequest` (`total_unit_price_override`, legacy `unit_price`).",
+                        desc="**Response:** numeric `commission_value`, `marketing_value`, `daily_budget`, `monthly_budget` plus `pricing_basis`. "
+                        "Canonical source is **`unit_prices_sum_all`** (sum of **all** unit prices) unless `total_unit_price_override` is set, else `avg_property_value_stored`. "
+                        "`total_unit_price_available_sum` / `average_unit_price_available` are informational only. "
+                        "Permission `marketing.budgets.manage`. See `CalculateBudgetRequest`.",
                         verification="code-derived example — safe contract_id required for production",
                         body={
                             "contract_id": 0,
@@ -194,9 +194,9 @@ def main() -> None:
                         "Show developer plan",
                         "GET",
                         "marketing/developer-plans/{{contractId}}",
-                        desc="**Contract:** `pricing_basis`, `total_unit_price`, `commission_percent`, deprecated `average_unit_price`. "
-                        "**Plan:** serialized numeric plan (no duplicate `raw_plan`). **Totals:** `total_budget` (number), `total_budget_display` (string). "
-                        "**Counts:** `expected_impressions` / `expected_clicks` are integers; human text in `*_display_*` fields. `platforms` is always an array.",
+                        desc="**Contract:** `pricing_basis` uses full-project unit sum as commission base (`source` = `unit_prices_sum_all` when units exist). "
+                        "See `average_unit_price_all` vs `average_unit_price_available`. **Plan:** serialized numeric plan. "
+                        "**Totals:** `total_budget` (number), `total_budget_display` (string). `platforms` is always an array.",
                         verification="code-verified only (set baseUrl to live API host if apex /api returns 404)",
                     ),
                     req(
