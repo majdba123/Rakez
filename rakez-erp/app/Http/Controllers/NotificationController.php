@@ -12,6 +12,7 @@ use App\Http\Responses\ApiResponse;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Support\Carbon;
 
 class NotificationController extends Controller
 {
@@ -173,15 +174,40 @@ class NotificationController extends Controller
     }
 
     /**
-     * Mark specific notification as read
+     * Mark specific notification as read.
+     *
+     * Supports:
+     * - Integer ids: persisted {@see UserNotification} rows for the current user.
+     * - Client-only ids prefixed with `local-`: no DB row; returns 200 so SPA optimistic UI does not 404.
      */
-    public function userMarkAsRead(Request $request, int $id): JsonResponse
+    public function userMarkAsRead(Request $request, string $id): JsonResponse
     {
+        if (str_starts_with($id, 'local-')) {
+            $readAt = Carbon::now();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'تم تعليم الإشعار كمقروء',
+                'data' => [
+                    'id' => $id,
+                    'read_at' => $readAt->toIso8601String(),
+                    'client_only' => true,
+                ],
+            ]);
+        }
+
+        if (! ctype_digit($id)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'الإشعار غير موجود أو لا يخصك',
+            ], 404);
+        }
+
         $notification = UserNotification::where('user_id', $request->user()->id)
-            ->whereKey($id)
+            ->whereKey((int) $id)
             ->first();
 
-        if (!$notification) {
+        if (! $notification) {
             return response()->json([
                 'success' => false,
                 'message' => 'الإشعار غير موجود أو لا يخصك',
@@ -192,10 +218,18 @@ class NotificationController extends Controller
             $notification->update(['status' => 'read']);
         }
 
+        $fresh = $notification->fresh();
+
         return response()->json([
             'success' => true,
             'message' => 'تم تعليم الإشعار كمقروء',
-            'data' => new UserNotificationResource($notification->fresh()),
+            'data' => array_merge(
+                (new UserNotificationResource($fresh))->resolve(),
+                [
+                    'read_at' => ($fresh->updated_at ?? Carbon::now())->toIso8601String(),
+                    'client_only' => false,
+                ]
+            ),
         ]);
     }
 }
