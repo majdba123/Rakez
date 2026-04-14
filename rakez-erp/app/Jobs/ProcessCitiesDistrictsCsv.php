@@ -70,7 +70,7 @@ class ProcessCitiesDistrictsCsv implements ShouldQueue
                 if (isset($districtsByCityCode[$key][$districtName])) {
                     $firstRow = $districtsByCityCode[$key][$districtName];
                     $rowErrors["row_{$csvRowNumber}"] = [
-                        'district_name' => ["Duplicate district name within city (first seen at row {$firstRow})."],
+                        'district_name' => ["اسم الحي مكرر لنفس المدينة في الملف (أول ظهور في الصف {$firstRow})."],
                     ];
                 } else {
                     $districtsByCityCode[$key][$districtName] = $csvRowNumber;
@@ -82,9 +82,20 @@ class ProcessCitiesDistrictsCsv implements ShouldQueue
                 return !isset($rowErrors["row_" . ($index + 2)]);
             }, ARRAY_FILTER_USE_BOTH);
 
-            // Phase 2: insert
+            if (! empty($rowErrors)) {
+                $csvImport->markImportFailedWithRowErrors(
+                    'فشل استيراد الملف: توجد أخطاء تحقق من البيانات ولم يُستورد أي صف. راجع row_errors.',
+                    $rowErrors
+                );
+                Storage::disk('local')->delete($csvImport->file_path);
+                Log::info("Cities/Districts CSV import #{$this->csvImportId}: validation failed; no rows imported.");
+
+                return;
+            }
+
+            // Phase 2: insert only — existing cities/districts are not updated or removed
             $successful = 0;
-            $failed = count($rowErrors);
+            $failed = 0;
 
             if (!empty($validRows)) {
                 DB::beginTransaction();
@@ -92,9 +103,7 @@ class ProcessCitiesDistrictsCsv implements ShouldQueue
                     foreach ($validRows as $index => $row) {
                         $csvRowNumber = $index + 2;
                         try {
-                            // updateOrCreate: re-imports must apply changed city_name for an existing code
-                            // (firstOrCreate leaves name unchanged when the row matches by code only).
-                            $city = City::updateOrCreate(
+                            $city = City::firstOrCreate(
                                 ['code' => $row['city_code']],
                                 ['name' => $row['city_name']]
                             );

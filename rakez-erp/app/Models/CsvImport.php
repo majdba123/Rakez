@@ -118,6 +118,24 @@ class CsvImport extends Model
     }
 
     /**
+     * Preflight / validation failed: nothing is written to domain tables; status is failed with reasons in row_errors.
+     *
+     * @param  array<string, mixed>  $rowErrors
+     */
+    public function markImportFailedWithRowErrors(string $summaryMessage, array $rowErrors): void
+    {
+        $this->update([
+            'status' => self::STATUS_FAILED,
+            'error_message' => $summaryMessage,
+            'row_errors' => $rowErrors,
+            'successful_rows' => 0,
+            'failed_rows' => count($rowErrors),
+            'processed_rows' => 0,
+            'completed_at' => now(),
+        ]);
+    }
+
+    /**
      * After per-row validation and optional DB work: save counts, row_errors, optional Arabic summary in error_message, then completed / completed_with_errors.
      *
      * @param  array<string, mixed>|null  $rowErrors
@@ -150,12 +168,38 @@ class CsvImport extends Model
      */
     public function mistakesDescription(): ?string
     {
-        if ($this->status === self::STATUS_FAILED && filled($this->error_message)) {
-            return $this->error_message;
+        $rowErrors = is_array($this->row_errors) ? $this->row_errors : [];
+
+        $rowErrorsBody = null;
+        if ($rowErrors !== []) {
+            $parts = [];
+            $i = 0;
+            foreach ($rowErrors as $rowKey => $errs) {
+                if ($i >= 8) {
+                    $remaining = count($rowErrors) - 8;
+                    if ($remaining > 0) {
+                        $parts[] = sprintf('و%d صفاً إضافياً بأخطاء (راجع حقل row_errors)', $remaining);
+                    }
+                    break;
+                }
+                $label = match (true) {
+                    $rowKey === 'import' => 'حفظ البيانات',
+                    is_string($rowKey) && preg_match('/^row_(\d+)$/', $rowKey, $m) => 'الصف '.$m[1],
+                    default => (string) $rowKey,
+                };
+                $parts[] = $label.': '.$this->flattenErrorsToString($errs);
+                $i++;
+            }
+            $rowErrorsBody = implode(' — ', $parts);
         }
 
-        $rowErrors = $this->row_errors;
-        if (! is_array($rowErrors) || $rowErrors === []) {
+        if ($this->status === self::STATUS_FAILED && filled($this->error_message)) {
+            return $rowErrorsBody !== null
+                ? $this->error_message.' — '.$rowErrorsBody
+                : $this->error_message;
+        }
+
+        if ($rowErrorsBody === null) {
             if ((int) $this->failed_rows > 0 && filled($this->error_message)) {
                 return $this->error_message;
             }
@@ -163,32 +207,11 @@ class CsvImport extends Model
             return null;
         }
 
-        $parts = [];
-        $i = 0;
-        foreach ($rowErrors as $rowKey => $errs) {
-            if ($i >= 8) {
-                $remaining = count($rowErrors) - 8;
-                if ($remaining > 0) {
-                    $parts[] = sprintf('و%d صفاً إضافياً بأخطاء (راجع حقل row_errors)', $remaining);
-                }
-                break;
-            }
-            $label = match (true) {
-                $rowKey === 'import' => 'حفظ البيانات',
-                is_string($rowKey) && preg_match('/^row_(\d+)$/', $rowKey, $m) => 'الصف '.$m[1],
-                default => (string) $rowKey,
-            };
-            $parts[] = $label.': '.$this->flattenErrorsToString($errs);
-            $i++;
-        }
-
-        $body = implode(' — ', $parts);
-
         if (filled($this->error_message) && $this->status !== self::STATUS_FAILED) {
-            return $this->error_message.' — '.$body;
+            return $this->error_message.' — '.$rowErrorsBody;
         }
 
-        return $body;
+        return $rowErrorsBody;
     }
 
     private function flattenErrorsToString(mixed $errs): string
