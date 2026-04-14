@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Support\Facades\Storage;
 
 class Message extends Model
 {
@@ -13,7 +14,10 @@ class Message extends Model
     protected $fillable = [
         'conversation_id',
         'sender_id',
+        'type',
         'message',
+        'voice_path',
+        'voice_duration_seconds',
         'is_read',
         'read_at',
     ];
@@ -21,7 +25,30 @@ class Message extends Model
     protected $casts = [
         'is_read' => 'boolean',
         'read_at' => 'datetime',
+        'voice_duration_seconds' => 'integer',
     ];
+
+    protected $appends = [
+        'voice_url',
+    ];
+
+    protected $hidden = [
+        'voice_path',
+    ];
+
+    public function getVoiceUrlAttribute(): ?string
+    {
+        if (!$this->voice_path) {
+            return null;
+        }
+
+        return Storage::disk('public')->url($this->voice_path);
+    }
+
+    public function isVoice(): bool
+    {
+        return $this->type === 'voice';
+    }
 
     /**
      * Get the conversation this message belongs to.

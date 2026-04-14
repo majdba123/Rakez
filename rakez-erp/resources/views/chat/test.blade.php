@@ -253,8 +253,18 @@
                     placeholder="اكتب رسالتك هنا..."
                     onkeypress="handleKeyPress(event)"
                 >
-                <button onclick="sendMessage()" id="sendButton">إرسال</button>
+                <button type="button" onclick="sendMessage()" id="sendButton">إرسال</button>
             </div>
+            <div class="voice-row" style="margin-top:12px;display:flex;flex-wrap:wrap;align-items:center;gap:10px;">
+                <button type="button" id="voiceRecordBtn" onclick="toggleVoiceRecord()" style="background:#0d9488;color:#fff;border:none;padding:10px 16px;border-radius:8px;cursor:pointer;font-weight:600;">
+                    تسجيل صوتي (اضغط للبدء، ثم للإيقاف والإرسال)
+                </button>
+                <span id="voiceStatus" style="font-size:13px;color:#64748b;"></span>
+            </div>
+            <p style="margin-top:8px;font-size:12px;color:#94a3b8;line-height:1.5;">
+                الرسائل الصوتية: <code style="direction:ltr;">POST multipart/form-data</code> الحقل <code style="direction:ltr;">voice</code> (ملف صوت) واختياري <code style="direction:ltr;">message</code> كتعليق، و<code style="direction:ltr;">voice_duration_seconds</code>.
+                يتطلب <code style="direction:ltr;">php artisan storage:link</code> لتشغيل الملفات من <code style="direction:ltr;">/storage</code>.
+            </p>
         </div>
     </div>
 
@@ -265,6 +275,12 @@
         let subscribedConversationId = null;
         let authToken = localStorage.getItem('auth_token');
         const seenMessageIds = new Set();
+
+        let mediaRecorder = null;
+        let voiceChunks = [];
+        let voiceRecording = false;
+        let voiceStartedAt = null;
+        let voiceTickTimer = null;
 
         document.addEventListener('DOMContentLoaded', function() {
             authToken = localStorage.getItem('auth_token');
@@ -410,6 +426,135 @@
             console.log('Listening private conversation.' + convId);
         }
 
+        function getVoiceUploadHeaders() {
+            const headers = {
+                'Accept': 'application/json',
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || ''
+            };
+            if (authToken) {
+                headers['Authorization'] = 'Bearer ' + authToken;
+            }
+            return headers;
+        }
+
+        function pickVoiceMime() {
+            if (typeof MediaRecorder === 'undefined' || !MediaRecorder.isTypeSupported) {
+                return '';
+            }
+            const opts = ['audio/webm;codecs=opus', 'audio/webm', 'audio/mp4'];
+            for (let i = 0; i < opts.length; i++) {
+                if (MediaRecorder.isTypeSupported(opts[i])) return opts[i];
+            }
+            return '';
+        }
+
+        async function toggleVoiceRecord() {
+            const btn = document.getElementById('voiceRecordBtn');
+            const status = document.getElementById('voiceStatus');
+            if (!conversationId) {
+                alert('حدد محادثة أولاً (معرف المحادثة أو إنشاء مع مستخدم)');
+                return;
+            }
+            if (!navigator.mediaDevices?.getUserMedia) {
+                alert('المتصفح لا يدعم تسجيل الصوت من الميكروفون');
+                return;
+            }
+            if (!voiceRecording) {
+                try {
+                    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                    voiceChunks = [];
+                    const mime = pickVoiceMime();
+                    mediaRecorder = mime
+                        ? new MediaRecorder(stream, { mimeType: mime })
+                        : new MediaRecorder(stream);
+                    mediaRecorder.ondataavailable = (e) => {
+                        if (e.data && e.data.size > 0) voiceChunks.push(e.data);
+                    };
+                    mediaRecorder.start(200);
+                    voiceRecording = true;
+                    voiceStartedAt = Date.now();
+                    btn.textContent = 'إيقاف وإرسال';
+                    btn.style.background = '#dc2626';
+                    status.textContent = 'جاري التسجيل…';
+                    voiceTickTimer = setInterval(() => {
+                        const sec = Math.round((Date.now() - voiceStartedAt) / 1000);
+                        status.textContent = 'جاري التسجيل… ' + sec + ' ث';
+                    }, 500);
+                } catch (e) {
+                    console.error(e);
+                    alert('تعذر الوصول للميكروفون: ' + e.message);
+                }
+            } else {
+                clearInterval(voiceTickTimer);
+                voiceTickTimer = null;
+                voiceRecording = false;
+                btn.disabled = true;
+                btn.textContent = 'جاري الإرسال…';
+                const durationSec = voiceStartedAt
+                    ? Math.max(1, Math.round((Date.now() - voiceStartedAt) / 1000))
+                    : null;
+                voiceStartedAt = null;
+                status.textContent = 'معالجة الملف…';
+
+                const rec = mediaRecorder;
+                const mimeType = rec.mimeType || 'audio/webm';
+                rec.onstop = async () => {
+                    rec.stream.getTracks().forEach((t) => t.stop());
+                    const blob = new Blob(voiceChunks, { type: mimeType });
+                    voiceChunks = [];
+                    const ext = (blob.type || '').includes('mp4') ? 'm4a' : 'webm';
+                    await sendVoiceBlob(blob, durationSec, ext);
+                    btn.disabled = false;
+                    btn.textContent = 'تسجيل صوتي (اضغط للبدء، ثم للإيقاف والإرسال)';
+                    btn.style.background = '#0d9488';
+                    status.textContent = '';
+                    mediaRecorder = null;
+                };
+                rec.stop();
+            }
+        }
+
+        async function sendVoiceBlob(blob, durationSec, ext) {
+            if (!conversationId || !blob.size) {
+                alert('لا يوجد تسجيل صوتي');
+                return;
+            }
+            const caption = document.getElementById('messageInput').value.trim();
+            const formData = new FormData();
+            formData.append('voice', blob, 'voice.' + ext);
+            if (durationSec) {
+                formData.append('voice_duration_seconds', String(durationSec));
+            }
+            if (caption) {
+                formData.append('message', caption);
+            }
+            try {
+                const response = await fetch(
+                    API_BASE_URL + '/chat/conversations/' + conversationId + '/messages',
+                    {
+                        method: 'POST',
+                        headers: getVoiceUploadHeaders(),
+                        credentials: 'same-origin',
+                        body: formData
+                    }
+                );
+                if (!response.ok) {
+                    let msg = 'HTTP ' + response.status;
+                    try {
+                        const err = await response.json();
+                        msg = err.message || msg;
+                    } catch (_) {}
+                    throw new Error(msg);
+                }
+                const data = await response.json();
+                document.getElementById('messageInput').value = '';
+                addMessageToUI(data.data, false);
+            } catch (e) {
+                console.error(e);
+                alert('خطأ في إرسال الرسالة الصوتية: ' + e.message);
+            }
+        }
+
         // Send message
         async function sendMessage() {
             const input = document.getElementById('messageInput');
@@ -474,7 +619,30 @@
 
             const messageContent = document.createElement('div');
             messageContent.className = 'message-content';
-            messageContent.textContent = message.message;
+
+            const type = message.type || 'text';
+            if (type === 'voice' && message.voice_url) {
+                const cap = document.createElement('div');
+                cap.style.marginBottom = '8px';
+                cap.textContent = message.message || 'رسالة صوتية';
+                messageContent.appendChild(cap);
+                const audio = document.createElement('audio');
+                audio.controls = true;
+                audio.preload = 'metadata';
+                audio.style.maxWidth = '100%';
+                audio.src = message.voice_url;
+                messageContent.appendChild(audio);
+                if (message.voice_duration_seconds) {
+                    const dur = document.createElement('div');
+                    dur.style.fontSize = '11px';
+                    dur.style.opacity = '0.85';
+                    dur.style.marginTop = '4px';
+                    dur.textContent = 'المدة: ~' + message.voice_duration_seconds + ' ث';
+                    messageContent.appendChild(dur);
+                }
+            } else {
+                messageContent.textContent = message.message || '';
+            }
 
             const messageInfo = document.createElement('div');
             messageInfo.className = 'message-info';

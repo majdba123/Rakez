@@ -12,6 +12,7 @@ use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
 
 class ChatController extends Controller
@@ -96,7 +97,7 @@ class ChatController extends Controller
             // Get messages with pagination
             $perPage = ApiResponse::getPerPage($request, 50, 100);
             $messages = $conversation->messages()
-
+                ->with('sender')
                 ->orderBy('created_at', 'desc')
                 ->paginate($perPage);
 
@@ -117,10 +118,23 @@ class ChatController extends Controller
         try {
             $user = $request->user();
 
-            // Validate request
-            $validated = $request->validate([
-                'message' => 'required|string|max:5000',
-            ]);
+            $hasVoice = $request->hasFile('voice');
+            $rules = [
+                'voice_duration_seconds' => 'nullable|integer|min:1|max:600',
+            ];
+            if ($hasVoice) {
+                $rules['voice'] = [
+                    'required',
+                    'file',
+                    'max:10240',
+                    'mimetypes:audio/webm,audio/wav,audio/mpeg,audio/mp4,audio/x-m4a,audio/ogg,audio/x-ms-wma,video/webm,application/octet-stream',
+                ];
+                $rules['message'] = 'nullable|string|max:5000';
+            } else {
+                $rules['message'] = 'required|string|max:5000';
+            }
+
+            $validated = $request->validate($rules);
 
             // Find conversation and verify user has access
             $conversation = Conversation::find($conversationId);
@@ -132,12 +146,25 @@ class ChatController extends Controller
                 return ApiResponse::forbidden('ليس لديك صلاحية لإرسال رسالة في هذه المحادثة');
             }
 
-            // Create message
-            $message = Message::create([
+            $payload = [
                 'conversation_id' => $conversation->id,
                 'sender_id' => $user->id,
-                'message' => $validated['message'],
-            ]);
+                'type' => $hasVoice ? 'voice' : 'text',
+                'message' => $hasVoice
+                    ? ($validated['message'] ?? 'رسالة صوتية')
+                    : $validated['message'],
+            ];
+
+            if ($hasVoice) {
+                $payload['voice_path'] = $request->file('voice')->store(
+                    'chat/voice/'.$conversation->id,
+                    'public'
+                );
+                $payload['voice_duration_seconds'] = $validated['voice_duration_seconds'] ?? null;
+            }
+
+            // Create message
+            $message = Message::create($payload);
 
             // Update conversation's last_message_at
             $conversation->update([
@@ -238,6 +265,10 @@ class ChatController extends Controller
             $conversation = $message->conversation;
             if (!$conversation->hasUser($user->id)) {
                 return ApiResponse::forbidden('ليس لديك صلاحية للوصول إلى هذه المحادثة');
+            }
+
+            if ($message->voice_path) {
+                Storage::disk('public')->delete($message->voice_path);
             }
 
             // Delete message

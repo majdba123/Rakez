@@ -52,7 +52,10 @@ class MessageSent implements ShouldBroadcastNow
                 'name' => $this->message->sender->name,
                 'email' => $this->message->sender->email,
             ],
+            'type' => $this->message->type ?? 'text',
             'message' => $this->message->message,
+            'voice_url' => $this->message->voice_url,
+            'voice_duration_seconds' => $this->message->voice_duration_seconds,
             'is_read' => $this->message->is_read,
             'created_at' => $this->message->created_at->toISOString(),
         ];
