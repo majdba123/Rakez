@@ -191,6 +191,28 @@ class SalesDashboardService
     }
 
     /**
+     * Reservation list/index visibility for sales users (single source of truth with dashboard "team" KPI scope).
+     *
+     * - Non-sales and admins: no narrowing here (caller may apply `mine` or leave unscoped).
+     * - Regular sales: own reservations only.
+     * - Sales leaders: same team as {@see applyTeamScopeToReservationsQuery} (team members + contracts they lead as assignment leader + own).
+     */
+    public function applyReservationListVisibility($query, User $user): void
+    {
+        if ($user->type !== 'sales' || $user->hasRole('admin')) {
+            return;
+        }
+
+        if ($user->isSalesLeader()) {
+            $this->applyTeamScopeToReservationsQuery($query, $user);
+
+            return;
+        }
+
+        $query->where('marketing_employee_id', (int) $user->id);
+    }
+
+    /**
      * Team scope: members sharing team_id. For sales leaders, also rows on contracts they lead (اسناد مشروع).
      */
     protected function applyTeamScopeToReservationsQuery($query, User $user): void
