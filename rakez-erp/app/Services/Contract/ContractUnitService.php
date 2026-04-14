@@ -123,6 +123,7 @@ class ContractUnitService
                         case 'private_area_m2':
                             $unitData[$field] = (float) $value;
                             break;
+                        case 'floor':
                         case 'bedrooms':
                         case 'bathrooms':
                             $unitData[$field] = (int) $value;

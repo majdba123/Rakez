@@ -74,9 +74,9 @@ class ProcessContractUnitsCsv implements ShouldQueue
                 'floor' => ['floor', 'الطابق'],
                 'bedrooms' => ['bedrooms', 'غرف', 'عدد_الغرف'],
                 'bathrooms' => ['bathrooms', 'حمامات', 'عدد_الحمامات'],
-                'private_area_m2' => ['private_area_m2', 'المساحة_الخاصة', 'الشرفة'],
+                'private_area_m2' => ['private_area_m2', 'private_area', 'المساحة_الخاصة', 'الشرفة'],
                 'facade' => ['facade', 'view', 'الواجهة', 'الاتجاه'],
-                'description_en' => ['description_en', 'الوصف_انجليزي'],
+                'description_en' => ['description_en', 'description', 'desc', 'الوصف', 'ملاحظات', 'الوصف_انجليزي'],
                 'description_ar' => ['description_ar', 'الوصف_عربي'],
                 'diagrames' => ['diagrames', 'diagrams', 'المخططات'],
             ];
