@@ -16,7 +16,36 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        //
+        $this->configureWritableBladeCompiledPath();
+    }
+
+    /**
+     * Blade must compile to disk. If storage/framework/views is not writable (common on locked-down hosts),
+     * use the system temp dir so you do not need chmod/chown on the server.
+     */
+    protected function configureWritableBladeCompiledPath(): void
+    {
+        $preferred = env('VIEW_COMPILED_PATH', storage_path('framework/views'));
+
+        if (!is_dir($preferred)) {
+            @mkdir($preferred, 0755, true);
+        }
+
+        if (is_writable($preferred)) {
+            config(['view.compiled' => $preferred]);
+
+            return;
+        }
+
+        $fallback = sys_get_temp_dir() . DIRECTORY_SEPARATOR . 'rakez-blade-' . md5((string) base_path());
+
+        if (!is_dir($fallback)) {
+            @mkdir($fallback, 0755, true);
+        }
+
+        if (is_writable($fallback)) {
+            config(['view.compiled' => $fallback]);
+        }
     }
 
     /**
