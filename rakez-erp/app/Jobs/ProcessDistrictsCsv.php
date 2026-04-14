@@ -109,14 +109,11 @@ class ProcessDistrictsCsv implements ShouldQueue
                 }
             }
 
-            $csvImport->update([
-                'successful_rows' => $successful,
-                'failed_rows' => $failed,
-                'processed_rows' => $successful + $failed,
-                'row_errors' => !empty($rowErrors) ? $rowErrors : null,
-            ]);
-
-            $csvImport->markCompleted();
+            $csvImport->recordImportOutcome(
+                $successful,
+                $failed,
+                ! empty($rowErrors) ? $rowErrors : null
+            );
             Storage::disk('local')->delete($csvImport->file_path);
 
             Log::info("Districts CSV import #{$this->csvImportId} completed: {$successful} ok, {$failed} failed.");

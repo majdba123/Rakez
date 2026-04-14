@@ -118,6 +118,34 @@ class CsvImport extends Model
     }
 
     /**
+     * After per-row validation and optional DB work: save counts, row_errors, optional Arabic summary in error_message, then completed / completed_with_errors.
+     *
+     * @param  array<string, mixed>|null  $rowErrors
+     */
+    public function recordImportOutcome(int $successful, int $failed, ?array $rowErrors, ?int $processedRows = null): void
+    {
+        $processedRows ??= $successful + $failed;
+
+        $summary = null;
+        if ($failed > 0) {
+            $summary = $successful === 0
+                ? "لم يُستورد أي صف بنجاح ({$failed} صف بأخطاء). راجع الحقول row_errors و mistakes_description."
+                : "تم استيراد {$successful} صفاً بنجاح وفشل {$failed} صفاً. راجع row_errors و mistakes_description.";
+        }
+
+        $this->update([
+            'successful_rows' => $successful,
+            'failed_rows' => $failed,
+            'processed_rows' => $processedRows,
+            'row_errors' => ! empty($rowErrors) ? $rowErrors : null,
+            'error_message' => $summary,
+        ]);
+
+        $this->refresh();
+        $this->markCompleted();
+    }
+
+    /**
      * Human-readable summary of fatal errors and/or per-row validation failures (Arabic labels).
      */
     public function mistakesDescription(): ?string
@@ -145,16 +173,18 @@ class CsvImport extends Model
                 }
                 break;
             }
-            $label = is_string($rowKey) && preg_match('/^row_(\d+)$/', $rowKey, $m)
-                ? 'الصف '.$m[1]
-                : (string) $rowKey;
+            $label = match (true) {
+                $rowKey === 'import' => 'حفظ البيانات',
+                is_string($rowKey) && preg_match('/^row_(\d+)$/', $rowKey, $m) => 'الصف '.$m[1],
+                default => (string) $rowKey,
+            };
             $parts[] = $label.': '.$this->flattenErrorsToString($errs);
             $i++;
         }
 
         $body = implode(' — ', $parts);
 
-        if (filled($this->error_message)) {
+        if (filled($this->error_message) && $this->status !== self::STATUS_FAILED) {
             return $this->error_message.' — '.$body;
         }
 

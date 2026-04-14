@@ -52,53 +52,57 @@ class ProcessContractInfoCsv implements ShouldQueue
             $rows = $this->parseFile($csvImport->file_path);
             $csvImport->update(['total_rows' => count($rows)]);
 
-            // Merge all CSV rows into a single data array (first row wins per field)
+            // Validate each CSV row independently; reasons appear under row_N in csv_imports.row_errors
+            $rowErrors = [];
+            foreach ($rows as $index => $row) {
+                $row = $this->castRow($row);
+                $csvRowNumber = $index + 2;
+                $errors = $this->validateRow($row);
+                if (! empty($errors)) {
+                    $rowErrors["row_{$csvRowNumber}"] = $errors;
+                }
+            }
+
+            if (! empty($rowErrors)) {
+                $csvImport->recordImportOutcome(0, count($rowErrors), $rowErrors, count($rows));
+                Storage::disk('local')->delete($csvImport->file_path);
+                Log::info("ContractInfo CSV import #{$this->csvImportId}: validation failed on ".count($rowErrors).' row(s).');
+
+                return;
+            }
+
+            // Merge all rows (all valid): first non-null per field wins
             $merged = [];
             foreach ($rows as $row) {
                 $row = $this->castRow($row);
                 foreach ($row as $key => $value) {
-                    if ($value !== null && !isset($merged[$key])) {
+                    if ($value !== null && ! isset($merged[$key])) {
                         $merged[$key] = $value;
                     }
                 }
             }
 
-            // Validate the merged data
-            $rowErrors = [];
-            $errors = $this->validateRow($merged);
-            if (!empty($errors)) {
-                $rowErrors['row_2'] = $errors;
-            }
-
             $successful = 0;
-            $failed = count($rowErrors);
+            $failed = 0;
+            $finalRowErrors = [];
 
-            if (empty($rowErrors)) {
-                DB::beginTransaction();
-                try {
-                    $contract = Contract::with(['user', 'info'])->findOrFail($this->contractId);
-                    $service = app(ContractService::class);
+            DB::beginTransaction();
+            try {
+                $contract = Contract::with(['user', 'info'])->findOrFail($this->contractId);
+                $service = app(ContractService::class);
 
-                    $service->storeContractInfo($this->contractId, $merged, $contract);
-                    $contract->update(['status' => 'completed']);
+                $service->storeContractInfo($this->contractId, $merged, $contract);
+                $contract->update(['status' => 'completed']);
 
-                    $successful = 1;
-                    DB::commit();
-                } catch (Exception $e) {
-                    DB::rollBack();
-                    $rowErrors['contract'] = ['store' => [$e->getMessage()]];
-                    $failed = 1;
-                }
+                $successful = 1;
+                DB::commit();
+            } catch (Exception $e) {
+                DB::rollBack();
+                $finalRowErrors['import'] = ['store' => [$e->getMessage()]];
+                $failed = 1;
             }
 
-            $csvImport->update([
-                'successful_rows' => $successful,
-                'failed_rows' => $failed,
-                'processed_rows' => $successful + $failed,
-                'row_errors' => !empty($rowErrors) ? $rowErrors : null,
-            ]);
-
-            $csvImport->markCompleted();
+            $csvImport->recordImportOutcome($successful, $failed, $finalRowErrors ?: null, count($rows));
             Storage::disk('local')->delete($csvImport->file_path);
 
             Log::info("ContractInfo CSV import #{$this->csvImportId} completed: {$successful} ok, {$failed} failed.");

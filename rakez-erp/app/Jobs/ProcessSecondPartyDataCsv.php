@@ -51,56 +51,68 @@ class ProcessSecondPartyDataCsv implements ShouldQueue
             $rows = $this->parseFile($csvImport->file_path);
             $csvImport->update(['total_rows' => count($rows)]);
 
-            // Merge all CSV rows into one (first non-null value per field wins)
+            // Per-row validation (each line must pass URL / field rules)
+            $rowErrors = [];
+            foreach ($rows as $index => $row) {
+                $csvRowNumber = $index + 2;
+                $normalized = [];
+                foreach (self::ALLOWED_COLUMNS as $col) {
+                    $val = $row[$col] ?? '';
+                    $normalized[$col] = trim((string) $val);
+                }
+                $payload = [];
+                foreach (self::ALLOWED_COLUMNS as $col) {
+                    $payload[$col] = $normalized[$col] !== '' ? $normalized[$col] : null;
+                }
+
+                $errors = $this->validateRow($payload);
+                if (! empty($errors)) {
+                    $rowErrors["row_{$csvRowNumber}"] = $errors;
+                }
+            }
+
+            if (! empty($rowErrors)) {
+                $csvImport->recordImportOutcome(0, count($rowErrors), $rowErrors, count($rows));
+                Storage::disk('local')->delete($csvImport->file_path);
+                Log::info("SecondPartyData CSV import #{$this->csvImportId}: validation failed on ".count($rowErrors).' row(s).');
+
+                return;
+            }
+
+            // Merge: first non-empty per column
             $merged = [];
             foreach ($rows as $row) {
                 foreach ($row as $key => $value) {
-                    $value = trim($value);
-                    if ($value !== '' && !isset($merged[$key])) {
+                    $value = trim((string) $value);
+                    if ($value !== '' && ! isset($merged[$key])) {
                         $merged[$key] = $value;
                     }
                 }
             }
-
-            // Set nulls for empty fields
             foreach (self::ALLOWED_COLUMNS as $col) {
-                if (!isset($merged[$col])) {
+                if (! isset($merged[$col])) {
                     $merged[$col] = null;
                 }
             }
 
-            $rowErrors = [];
-            $errors = $this->validateRow($merged);
-            if (!empty($errors)) {
-                $rowErrors['row_2'] = $errors;
-            }
-
             $successful = 0;
-            $failed = count($rowErrors);
+            $failed = 0;
+            $finalRowErrors = [];
 
-            if (empty($rowErrors)) {
-                DB::beginTransaction();
-                try {
-                    $service = app(SecondPartyDataService::class);
-                    $service->store($this->contractId, $merged);
+            DB::beginTransaction();
+            try {
+                $service = app(SecondPartyDataService::class);
+                $service->store($this->contractId, $merged);
 
-                    $successful = 1;
-                    DB::commit();
-                } catch (Exception $e) {
-                    DB::rollBack();
-                    $rowErrors['contract'] = ['store' => [$e->getMessage()]];
-                    $failed = 1;
-                }
+                $successful = 1;
+                DB::commit();
+            } catch (Exception $e) {
+                DB::rollBack();
+                $finalRowErrors['import'] = ['store' => [$e->getMessage()]];
+                $failed = 1;
             }
 
-            $csvImport->update([
-                'successful_rows' => $successful,
-                'failed_rows' => $failed,
-                'processed_rows' => $successful + $failed,
-                'row_errors' => !empty($rowErrors) ? $rowErrors : null,
-            ]);
-
-            $csvImport->markCompleted();
+            $csvImport->recordImportOutcome($successful, $failed, $finalRowErrors ?: null, count($rows));
             Storage::disk('local')->delete($csvImport->file_path);
 
             Log::info("SecondPartyData CSV import #{$this->csvImportId} completed: {$successful} ok, {$failed} failed.");

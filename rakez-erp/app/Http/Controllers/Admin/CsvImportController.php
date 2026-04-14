@@ -74,6 +74,8 @@ class CsvImportController extends Controller
      */
     private function toListResource(CsvImport $import): array
     {
+        $mistakes = $import->mistakesDescription();
+
         return [
             'id' => $import->id,
             'type' => $import->type,
@@ -83,8 +85,10 @@ class CsvImportController extends Controller
             'processed_rows' => $import->processed_rows,
             'successful_rows' => $import->successful_rows,
             'failed_rows' => $import->failed_rows,
+            // error_message: short Arabic summary when rows failed; row_errors: structured; mistakes_description / failure_reason: full text
             'error_message' => $import->error_message,
-            'mistakes_description' => $import->mistakesDescription(),
+            'mistakes_description' => $mistakes,
+            'failure_reason' => $mistakes,
             'row_errors' => $import->row_errors,
             'completed_at' => $import->completed_at,
             'created_at' => $import->created_at,
