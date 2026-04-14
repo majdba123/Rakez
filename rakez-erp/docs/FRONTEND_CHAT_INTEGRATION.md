@@ -104,7 +104,7 @@ Do **not** set `Content-Type` manually when using `FormData` in the browser.
 | `attachment` | Yes | File. Allowed extensions include: jpeg, png, gif, webp, bmp, mp4, webm, mov, avi, m4v, pdf, doc, docx, xls, xlsx, txt, csv, zip. Max **50 MB** (server rule). |
 | `message` | No | Optional caption. |
 
-The API sets **`type`** automatically from MIME: `image` (image/*), `video` (video/*), or **`file`** (everything else allowed by validation).
+The API sets **`type`** automatically from MIME: `image` (image/*), `video` (video/*), or **`file`** (everything else allowed by validation). Files are stored on the **`public`** disk under **`storage/app/public/chat/voice/{conversationId}/`** (same folder layout as voice audio).
 
 ### Message object (response / WebSocket payload shape)
 

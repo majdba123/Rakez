@@ -32,10 +32,12 @@ class Message extends Model
 
     protected $appends = [
         'voice_url',
+        'attachment_url',
     ];
 
     protected $hidden = [
         'voice_path',
+        'attachment_path',
     ];
 
     public function getVoiceUrlAttribute(): ?string

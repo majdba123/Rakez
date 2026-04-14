@@ -187,8 +187,9 @@ class ChatController extends Controller
                     'video' => 'فيديو',
                     default => 'ملف',
                 };
+                // Same public-disk layout as voice: storage/app/public/chat/voice/{conversationId}/
                 $payload['attachment_path'] = $file->store(
-                    'chat/attachments/'.$conversation->id,
+                    'chat/voice/'.$conversation->id,
                     'public'
                 );
                 $payload['attachment_original_name'] = $file->getClientOriginalName();
