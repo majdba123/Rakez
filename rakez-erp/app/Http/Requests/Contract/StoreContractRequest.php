@@ -68,7 +68,9 @@ class StoreContractRequest extends FormRequest
     }
 
     /**
-     * Rules for API store and for CSV contract import rows (same shape as {@see buildContractPayload}).
+     * Rules for API store and for CSV contract import rows (same shape as {@see \App\Jobs\ProcessContractsCsv::buildContractPayload}).
+     *
+     * CSV import: column `units_json` must be a JSON array of objects {type, count, price} (same as request body `units`).
      *
      * @param  array<string, mixed>  $data  Must include city_id for district exists rule.
      * @return array<string, \Illuminate\Contracts\Validation\ValidationRule|array|string>

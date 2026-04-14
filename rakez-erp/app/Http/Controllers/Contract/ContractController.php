@@ -636,7 +636,7 @@ class ContractController extends Controller
         $requiredColumns = [
             'developer_name', 'developer_number',
             'city_id', 'district_id', 'project_name', 'developer_requiment',
-            'unit_type', 'unit_count', 'unit_price',
+            'units_json',
         ];
         $missing = array_diff($requiredColumns, $header);
 

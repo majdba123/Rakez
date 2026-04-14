@@ -29,7 +29,7 @@ class ProcessContractsCsv implements ShouldQueue
     private const REQUIRED_COLUMNS = [
         'developer_name', 'developer_number',
         'city_id', 'district_id', 'project_name', 'developer_requiment',
-        'unit_type', 'unit_count', 'unit_price',
+        'units_json',
     ];
 
     public function __construct(int $csvImportId, int $userId)
@@ -84,6 +84,7 @@ class ProcessContractsCsv implements ShouldQueue
                         $csvRowNumber = $index + 2;
                         try {
                             $contractData['user_id'] = $this->userId;
+                            unset($contractData['_units_json_error']);
                             $contract = $service->storeContract($contractData);
                             $contract->update(['status' => 'approved']);
                             $successful++;
@@ -224,25 +225,59 @@ class ProcessContractsCsv implements ShouldQueue
             'commission_from'    => $row['commission_from'] ?? null,
         ];
 
-        $contract['units'] = [
-            [
-                'type'  => trim((string) ($row['unit_type'] ?? '')),
-                'count' => (int) ($row['unit_count'] ?? 0),
-                'price' => (float) ($row['unit_price'] ?? 0),
-            ],
-        ];
+        $unitsJsonRaw = $row['units_json'] ?? null;
+        $unitsJson = ($unitsJsonRaw !== null && $unitsJsonRaw !== '')
+            ? trim((string) $unitsJsonRaw)
+            : '';
+
+        if ($unitsJson === '') {
+            $contract['units'] = [];
+            $contract['_units_json_error'] = 'حقل units_json مطلوب: مصفوفة JSON مثل [{"type":"apartment","count":10,"price":500000}]';
+        } else {
+            $decoded = json_decode($unitsJson, true);
+            if (! is_array($decoded)) {
+                $contract['units'] = [];
+                $contract['_units_json_error'] = 'حقل units_json يجب أن يكون مصفوفة JSON صالحة، مثل: [{"type":"apartment","count":10,"price":500000}]';
+            } else {
+                $normalized = [];
+                foreach ($decoded as $u) {
+                    if (! is_array($u)) {
+                        continue;
+                    }
+                    $normalized[] = [
+                        'type' => trim((string) ($u['type'] ?? '')),
+                        'count' => (int) ($u['count'] ?? 0),
+                        'price' => (float) ($u['price'] ?? 0),
+                    ];
+                }
+                $contract['units'] = $normalized;
+            }
+        }
 
         return $contract;
     }
 
     private function validateContract(array $data): array
     {
+        $jsonError = $data['_units_json_error'] ?? null;
+        $dataForRules = $data;
+        unset($dataForRules['_units_json_error']);
+
         $validator = Validator::make(
-            $data,
-            StoreContractRequest::contractImportRules($data),
+            $dataForRules,
+            StoreContractRequest::contractImportRules($dataForRules),
             StoreContractRequest::contractImportMessages()
         );
 
-        return $validator->fails() ? $validator->errors()->toArray() : [];
+        $errors = $validator->fails() ? $validator->errors()->toArray() : [];
+
+        if ($jsonError !== null && $jsonError !== '') {
+            $errors['units_json'] = array_values(array_merge(
+                $errors['units_json'] ?? [],
+                is_array($jsonError) ? $jsonError : [$jsonError]
+            ));
+        }
+
+        return $errors;
     }
 }

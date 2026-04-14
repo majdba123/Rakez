@@ -20,7 +20,9 @@ File list:
   districts_import.csv             — city_id, name
   teams_import.csv                 — name, code (optional), description (optional)
   employees_import.csv             — see header row
-  contracts_import.csv             — see header row (units columns required)
+  contracts_import.csv             — one row = one contract; required column units_json = JSON array for `units`
+                                    (objects with type, count, price). Quote the cell in CSV/Excel. After the contract
+                                    exists, extra inventory lines can use contract_units_import.csv.
   contract_info_import.csv         — optional contract / second-party fields
   second_party_data_import.csv     — URLs + advertiser_section_url (digits only)
   contract_units_import.csv        — per-contract units (API may differ from bulk csv_imports)
