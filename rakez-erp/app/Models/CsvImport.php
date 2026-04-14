@@ -149,8 +149,8 @@ class CsvImport extends Model
         $summary = null;
         if ($failed > 0) {
             $summary = $successful === 0
-                ? "لم يُستورد أي صف بنجاح ({$failed} صف بأخطاء). راجع الحقول row_errors و mistakes_description."
-                : "تم استيراد {$successful} صفاً بنجاح وفشل {$failed} صفاً. راجع row_errors و mistakes_description.";
+                ? "لم يُستورد أي صف بنجاح ({$failed} صف بأخطاء). راجع الحقلين row_errors (تفصيل لكل صف) و mistakes_description (نص موحّد)."
+                : "تم استيراد {$successful} صفاً بنجاح وفشل {$failed} صفاً. راجع row_errors لمعرفة الحقول الخاطئة في كل صف فاشل، و mistakes_description للملخص النصي.";
         }
 
         $this->update([
@@ -187,18 +187,18 @@ class CsvImport extends Model
                 }
                 $label = match (true) {
                     $rowKey === 'import' => 'حفظ البيانات',
-                    is_string($rowKey) && preg_match('/^row_(\d+)$/', $rowKey, $m) => 'الصف '.$m[1],
+                    is_string($rowKey) && preg_match('/^row_(\d+)$/', $rowKey, $m) => 'الصف '.$m[1].' (رقم السطر في ملف CSV)',
                     default => (string) $rowKey,
                 };
                 $parts[] = $label.': '.$this->flattenErrorsToString($errs);
                 $i++;
             }
-            $rowErrorsBody = implode(' — ', $parts);
+            $rowErrorsBody = implode("\n", $parts);
         }
 
         if ($this->status === self::STATUS_FAILED && filled($this->error_message)) {
             return $rowErrorsBody !== null
-                ? $this->error_message.' — '.$rowErrorsBody
+                ? $this->error_message."\n\n".'تفاصيل الأخطاء حسب الصف:'."\n".$rowErrorsBody
                 : $this->error_message;
         }
 
@@ -211,7 +211,7 @@ class CsvImport extends Model
         }
 
         if (filled($this->error_message) && $this->status !== self::STATUS_FAILED) {
-            return $this->error_message.' — '.$rowErrorsBody;
+            return $this->error_message."\n\n".'تفاصيل الأخطاء حسب الصف:'."\n".$rowErrorsBody;
         }
 
         return $rowErrorsBody;
@@ -230,7 +230,7 @@ class CsvImport extends Model
         foreach ($errs as $k => $v) {
             if (is_array($v)) {
                 $flat = array_filter(array_map('strval', Arr::flatten($v)));
-                $prefix = is_string($k) ? $k.': ' : '';
+                $prefix = is_string($k) ? $this->fieldLabelForRowError($k).': ' : '';
                 $out[] = $prefix.implode(', ', $flat);
             } else {
                 $out[] = (string) $v;
@@ -238,5 +238,24 @@ class CsvImport extends Model
         }
 
         return implode('; ', $out);
+    }
+
+    /**
+     * Short Arabic label for structured row_errors keys (improves mistakes_description readability).
+     */
+    private function fieldLabelForRowError(string $field): string
+    {
+        return match ($field) {
+            'city_id' => 'المدينة (city_id)',
+            'district_id' => 'الحي (district_id)',
+            'location' => 'الموقع (city_code / district_name)',
+            'units_json' => 'الوحدات (units_json)',
+            'store' => 'خطأ أثناء الحفظ',
+            'developer_name' => 'اسم المطور',
+            'developer_number' => 'رقم المطور',
+            'project_name' => 'اسم المشروع',
+            'developer_requiment' => 'متطلبات المطور',
+            default => $field,
+        };
     }
 }

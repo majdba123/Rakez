@@ -16,13 +16,15 @@ Rules that apply to API imports (summary):
 
 File list:
   cities_only_import.csv           — city_name, city_code
-  cities_with_districts_import.csv — city_name, city_code, district_name (optional)
+  cities_with_districts_import.csv — city_name, city_code, district_name (optional). Use before contracts_import when using city_code/district_name (sample codes RYD-IMP, JED-IMP).
   districts_import.csv             — city_id, name
   teams_import.csv                 — name, code (optional), description (optional)
   employees_import.csv             — see header row
-  contracts_import.csv             — one row = one contract; required column units_json = JSON array for `units`
-                                    (objects with type, count, price). Quote the cell in CSV/Excel. After the contract
-                                    exists, extra inventory lines can use contract_units_import.csv.
+  contracts_import.csv             — same fields as POST /contracts body: developer_*, city_id, district_id, side,
+                                    contract_type, project_*, developer_requiment, notes, commission_*. Column units_json
+                                    holds the same JSON array as body key `units` (type, count, price). Sample uses 1,1
+                                    and 2,2 after a fresh import of cities_with_districts_import.csv (otherwise set real IDs).
+                                    Alternative columns city_code + district_name are also supported by the importer.
   contract_info_import.csv         — optional contract / second-party fields
   second_party_data_import.csv     — URLs + advertiser_section_url (digits only)
   contract_units_import.csv        — per-contract units (API may differ from bulk csv_imports)

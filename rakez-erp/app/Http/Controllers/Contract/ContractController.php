@@ -635,7 +635,7 @@ class ContractController extends Controller
 
         $requiredColumns = [
             'developer_name', 'developer_number',
-            'city_id', 'district_id', 'project_name', 'developer_requiment',
+            'project_name', 'developer_requiment',
             'units_json',
         ];
         $missing = array_diff($requiredColumns, $header);
@@ -645,6 +645,15 @@ class ContractController extends Controller
                 'success' => false,
                 'message' => 'CSV is missing required columns.',
                 'missing_columns' => array_values($missing),
+            ], 422);
+        }
+
+        $hasIds = in_array('city_id', $header, true) && in_array('district_id', $header, true);
+        $hasCode = in_array('city_code', $header, true) && in_array('district_name', $header, true);
+        if (! $hasIds && ! $hasCode) {
+            return response()->json([
+                'success' => false,
+                'message' => 'CSV must include either (city_id and district_id) or (city_code and district_name) columns.',
             ], 422);
         }
 

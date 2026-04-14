@@ -70,7 +70,8 @@ class StoreContractRequest extends FormRequest
     /**
      * Rules for API store and for CSV contract import rows (same shape as {@see \App\Jobs\ProcessContractsCsv::buildContractPayload}).
      *
-     * CSV import: column `units_json` must be a JSON array of objects {type, count, price} (same as request body `units`).
+     * CSV import: `units_json` = JSON array of {type, count, price}. Location: either `city_id`+`district_id`
+     * or `city_code`+`district_name` (resolved against DB; import cities/districts first).
      *
      * @param  array<string, mixed>  $data  Must include city_id for district exists rule.
      * @return array<string, \Illuminate\Contracts\Validation\ValidationRule|array|string>
@@ -126,10 +127,10 @@ class StoreContractRequest extends FormRequest
             'developer_requiment.string' => 'متطلبات المطور يجب أن يكون نصًا',
             'project_name.string' => 'اسم المشروع يجب أن يكون نصًا',
             'project_name.max' => 'اسم المشروع لا يجب أن يتجاوز 255 حرف',
-            'city_id.required' => 'المدينة مطلوبة',
-            'city_id.exists' => 'المدينة غير موجودة',
-            'district_id.required' => 'الحي مطلوب',
-            'district_id.exists' => 'الحي غير موجود أو لا يتبع المدينة المختارة',
+            'city_id.required' => 'المدينة مطلوبة: عيّن city_id صالحاً أو املأ city_code مع district_name ليُحلّ الموقع تلقائياً',
+            'city_id.exists' => 'رقم المدينة (city_id) غير موجود في النظام. استخدم معرفاً من قائمة المدن الفعلية، أو استورد المدن أولاً، أو استخدم city_code مع district_name بعد التأكد من استيراد المدينة والحي',
+            'district_id.required' => 'الحي مطلوب: عيّن district_id صالحاً أو املأ district_name مع city_code الصحيح',
+            'district_id.exists' => 'رقم الحي (district_id) غير موجود أو لا ينتمي إلى المدينة المحددة في نفس الصف. راجع أن الحي تابع لنفس city_id، أو استخدم district_name مع city_code المطابق في قاعدة البيانات',
             'units.required' => 'يجب إضافة وحدة واحدة على الأقل',
             'units.array' => 'الوحدات يجب أن تكون مصفوفة',
             'units.min' => 'يجب إضافة وحدة واحدة على الأقل',

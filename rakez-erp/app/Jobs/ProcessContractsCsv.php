@@ -3,7 +3,9 @@
 namespace App\Jobs;
 
 use App\Http\Requests\Contract\StoreContractRequest;
+use App\Models\City;
 use App\Models\CsvImport;
+use App\Models\District;
 use App\Services\Contract\ContractService;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -28,7 +30,7 @@ class ProcessContractsCsv implements ShouldQueue
 
     private const REQUIRED_COLUMNS = [
         'developer_name', 'developer_number',
-        'city_id', 'district_id', 'project_name', 'developer_requiment',
+        'project_name', 'developer_requiment',
         'units_json',
     ];
 
@@ -64,7 +66,9 @@ class ProcessContractsCsv implements ShouldQueue
 
             if (! empty($rowErrors)) {
                 $csvImport->markImportFailedWithRowErrors(
-                    'فشل استيراد الملف: توجد أخطاء تحقق من البيانات ولم يُستورد أي صف. راجع row_errors.',
+                    'لم يُحفظ أي عقد: فشل التحقق من صحة بيانات الملف قبل الحفظ، ولم يُجرَ أي تعديل على قاعدة البيانات. '
+                    .'رقم الصف في row_errors يطابق رقم السطر في ملف CSV (الصف 2 = أول سطر بيانات بعد العناوين). '
+                    .'إن ظهرت أخطاء على المدينة أو الحي: تأكد أن city_id و district_id تطابقان سجلاتاً موجودة فعلياً في النظام، أو استورد ملف المدن والأحياء أولاً ثم استخدم أعمدة city_code و district_name في ملف العقود.',
                     $rowErrors
                 );
                 Storage::disk('local')->delete($csvImport->file_path);
@@ -84,7 +88,7 @@ class ProcessContractsCsv implements ShouldQueue
                         $csvRowNumber = $index + 2;
                         try {
                             $contractData['user_id'] = $this->userId;
-                            unset($contractData['_units_json_error']);
+                            unset($contractData['_units_json_error'], $contractData['_location_error']);
                             $contract = $service->storeContract($contractData);
                             $contract->update(['status' => 'approved']);
                             $successful++;
@@ -98,7 +102,8 @@ class ProcessContractsCsv implements ShouldQueue
                     if (! empty($insertErrors)) {
                         DB::rollBack();
                         $csvImport->markImportFailedWithRowErrors(
-                            'فشل الاستيراد أثناء الحفظ: لم يُستورد أي صف. راجع row_errors.',
+                            'تعذّر إكمال الحفظ: اجتازت البيانات التحقق لكن حدث خطأ أثناء التسجيل، فتم التراجع عن العملية ولم يُحفظ أي عقد. '
+                            .'تفاصيل كل صف موجودة في row_errors. إن لم تكن الرسالة واضحة، راجع قيود النظام أو سجلات الخادم.',
                             $insertErrors
                         );
                         Storage::disk('local')->delete($csvImport->file_path);
@@ -181,6 +186,13 @@ class ProcessContractsCsv implements ShouldQueue
             throw new Exception('CSV is missing required columns: ' . implode(', ', $missing));
         }
 
+        $hasIds = in_array('city_id', $header, true) && in_array('district_id', $header, true);
+        $hasCode = in_array('city_code', $header, true) && in_array('district_name', $header, true);
+        if (! $hasIds && ! $hasCode) {
+            fclose($handle);
+            throw new Exception('CSV must include either (city_id and district_id) or (city_code and district_name) columns.');
+        }
+
         $rows = [];
         $lineNumber = 1;
 
@@ -210,11 +222,42 @@ class ProcessContractsCsv implements ShouldQueue
             }
         }
 
+        $cityCode = isset($row['city_code']) && $row['city_code'] !== null ? trim((string) $row['city_code']) : '';
+        $districtName = isset($row['district_name']) && $row['district_name'] !== null ? trim((string) $row['district_name']) : '';
+        $hasCodePair = $cityCode !== '' && $districtName !== '';
+
+        $cityId = null;
+        $districtId = null;
+        $locationError = null;
+
+        if ($hasCodePair) {
+            $city = City::query()->where('code', $cityCode)->first();
+            $cityId = $city?->id;
+            if ($city === null) {
+                $locationError = "لم يُعثر على مدينة بالرمز «{$cityCode}». استورد المدن أولاً أو راجع city_code.";
+            } else {
+                $districtId = District::query()
+                    ->where('city_id', $city->id)
+                    ->where('name', $districtName)
+                    ->value('id');
+                if ($districtId === null) {
+                    $locationError = "لم يُعثر على حي «{$districtName}» للمدينة ذات الرمز «{$cityCode}». راجع district_name أو استورد الأحياء.";
+                }
+            }
+        } else {
+            if (isset($row['city_id']) && $row['city_id'] !== null && $row['city_id'] !== '') {
+                $cityId = (int) $row['city_id'];
+            }
+            if (isset($row['district_id']) && $row['district_id'] !== null && $row['district_id'] !== '') {
+                $districtId = (int) $row['district_id'];
+            }
+        }
+
         $contract = [
             'developer_name'     => $row['developer_name'] ?? null,
             'developer_number'   => $row['developer_number'] ?? null,
-            'city_id'            => isset($row['city_id']) ? (int) $row['city_id'] : null,
-            'district_id'        => isset($row['district_id']) ? (int) $row['district_id'] : null,
+            'city_id'            => $cityId,
+            'district_id'        => $districtId,
             'side'               => isset($row['side']) ? strtoupper($row['side']) : null,
             'contract_type'      => $row['contract_type'] ?? null,
             'project_name'       => $row['project_name'] ?? null,
@@ -254,14 +297,19 @@ class ProcessContractsCsv implements ShouldQueue
             }
         }
 
+        if ($locationError !== null) {
+            $contract['_location_error'] = $locationError;
+        }
+
         return $contract;
     }
 
     private function validateContract(array $data): array
     {
+        $locationError = $data['_location_error'] ?? null;
         $jsonError = $data['_units_json_error'] ?? null;
         $dataForRules = $data;
-        unset($dataForRules['_units_json_error']);
+        unset($dataForRules['_units_json_error'], $dataForRules['_location_error']);
 
         $validator = Validator::make(
             $dataForRules,
@@ -270,6 +318,11 @@ class ProcessContractsCsv implements ShouldQueue
         );
 
         $errors = $validator->fails() ? $validator->errors()->toArray() : [];
+
+        if ($locationError !== null && $locationError !== '') {
+            unset($errors['city_id'], $errors['district_id']);
+            $errors['location'] = array_merge($errors['location'] ?? [], [$locationError]);
+        }
 
         if ($jsonError !== null && $jsonError !== '') {
             $errors['units_json'] = array_values(array_merge(
