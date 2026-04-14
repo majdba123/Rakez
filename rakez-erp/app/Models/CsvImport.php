@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Support\Arr;
 
 class CsvImport extends Model
 {
@@ -114,5 +115,72 @@ class CsvImport extends Model
             'error_message' => $message,
             'completed_at' => now(),
         ]);
+    }
+
+    /**
+     * Human-readable summary of fatal errors and/or per-row validation failures (Arabic labels).
+     */
+    public function mistakesDescription(): ?string
+    {
+        if ($this->status === self::STATUS_FAILED && filled($this->error_message)) {
+            return $this->error_message;
+        }
+
+        $rowErrors = $this->row_errors;
+        if (! is_array($rowErrors) || $rowErrors === []) {
+            if ((int) $this->failed_rows > 0 && filled($this->error_message)) {
+                return $this->error_message;
+            }
+
+            return null;
+        }
+
+        $parts = [];
+        $i = 0;
+        foreach ($rowErrors as $rowKey => $errs) {
+            if ($i >= 8) {
+                $remaining = count($rowErrors) - 8;
+                if ($remaining > 0) {
+                    $parts[] = sprintf('و%d صفاً إضافياً بأخطاء (راجع حقل row_errors)', $remaining);
+                }
+                break;
+            }
+            $label = is_string($rowKey) && preg_match('/^row_(\d+)$/', $rowKey, $m)
+                ? 'الصف '.$m[1]
+                : (string) $rowKey;
+            $parts[] = $label.': '.$this->flattenErrorsToString($errs);
+            $i++;
+        }
+
+        $body = implode(' — ', $parts);
+
+        if (filled($this->error_message)) {
+            return $this->error_message.' — '.$body;
+        }
+
+        return $body;
+    }
+
+    private function flattenErrorsToString(mixed $errs): string
+    {
+        if (is_string($errs)) {
+            return $errs;
+        }
+        if (! is_array($errs)) {
+            return '';
+        }
+
+        $out = [];
+        foreach ($errs as $k => $v) {
+            if (is_array($v)) {
+                $flat = array_filter(array_map('strval', Arr::flatten($v)));
+                $prefix = is_string($k) ? $k.': ' : '';
+                $out[] = $prefix.implode(', ', $flat);
+            } else {
+                $out[] = (string) $v;
+            }
+        }
+
+        return implode('; ', $out);
     }
 }

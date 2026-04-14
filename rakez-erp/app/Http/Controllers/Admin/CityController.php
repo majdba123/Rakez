@@ -204,17 +204,4 @@ class CityController extends Controller
 
         return $this->jsonResponseForCsvImportFinished($csvImport);
     }
-
-    /**
-     * Poll the status of a CSV cities/districts import.
-     */
-    public function import_status(int $id): JsonResponse
-    {
-        $csvImport = CsvImport::where('id', $id)
-            ->where('uploaded_by', Auth::id())
-            ->where('type', CsvImport::TYPE_CITIES_DISTRICTS)
-            ->firstOrFail();
-
-        return ApiResponse::success($this->csvImportResultPayload($csvImport));
-    }
 }

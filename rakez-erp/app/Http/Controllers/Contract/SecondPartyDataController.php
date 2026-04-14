@@ -203,26 +203,5 @@ class SecondPartyDataController extends Controller
             'status' => $csvImport->status,
         ], 202);
     }
-
-    public function import_csv_status(int $id): JsonResponse
-    {
-        $csvImport = CsvImport::where('id', $id)
-            ->where('uploaded_by', Auth::id())
-            ->where('type', CsvImport::TYPE_SECOND_PARTY_DATA)
-            ->firstOrFail();
-
-        return response()->json([
-            'success' => true,
-            'import_id' => $csvImport->id,
-            'status' => $csvImport->status,
-            'total_rows' => $csvImport->total_rows,
-            'processed_rows' => $csvImport->processed_rows,
-            'successful_rows' => $csvImport->successful_rows,
-            'failed_rows' => $csvImport->failed_rows,
-            'row_errors' => $csvImport->row_errors,
-            'error_message' => $csvImport->error_message,
-            'completed_at' => $csvImport->completed_at,
-        ]);
-    }
 }
 

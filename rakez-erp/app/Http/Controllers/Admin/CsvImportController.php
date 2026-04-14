@@ -12,11 +12,13 @@ use Illuminate\Validation\Rule;
 class CsvImportController extends Controller
 {
     /**
-     * Paginated list of all CSV imports (newest first). Filter by type, status, uploader.
+     * Paginated list of all CSV imports (newest first): type, status, counts, row_errors, mistakes_description.
+     * Filter by type, status, uploader. Replaces per-import GET …/import_status endpoints.
      */
     public function index(Request $request): JsonResponse
     {
         $request->validate([
+            'import_id' => ['nullable', 'integer', 'min:1'],
             'type' => ['nullable', 'string', Rule::in(CsvImport::allTypes())],
             'status' => ['nullable', 'string', Rule::in([
                 CsvImport::STATUS_PENDING,
@@ -35,6 +37,10 @@ class CsvImportController extends Controller
             ->with(['uploader:id,name,email'])
             ->orderByDesc('created_at');
 
+        if ($request->filled('import_id')) {
+            $query->where('id', (int) $request->input('import_id'));
+        }
+
         if ($request->filled('type')) {
             $query->where('type', (string) $request->input('type'));
         }
@@ -51,22 +57,6 @@ class CsvImportController extends Controller
         $paginated->getCollection()->transform(fn (CsvImport $import) => $this->toListResource($import));
 
         return ApiResponse::paginated($paginated, 'تم جلب سجل استيرادات CSV بنجاح');
-    }
-
-    /**
-     * Single import with full row_errors (for admin troubleshooting).
-     */
-    public function show(int $id): JsonResponse
-    {
-        $import = CsvImport::query()
-            ->with(['uploader:id,name,email'])
-            ->find($id);
-
-        if (!$import) {
-            return ApiResponse::notFound('سجل الاستيراد غير موجود');
-        }
-
-        return ApiResponse::success($this->toDetailResource($import), 'تم جلب سجل الاستيراد بنجاح');
     }
 
     /**
@@ -94,6 +84,8 @@ class CsvImportController extends Controller
             'successful_rows' => $import->successful_rows,
             'failed_rows' => $import->failed_rows,
             'error_message' => $import->error_message,
+            'mistakes_description' => $import->mistakesDescription(),
+            'row_errors' => $import->row_errors,
             'completed_at' => $import->completed_at,
             'created_at' => $import->created_at,
             'updated_at' => $import->updated_at,
@@ -103,16 +95,6 @@ class CsvImportController extends Controller
                 'name' => $import->uploader->name,
                 'email' => $import->uploader->email,
             ] : null,
-        ];
-    }
-
-    /**
-     * @return array<string, mixed>
-     */
-    private function toDetailResource(CsvImport $import): array
-    {
-        return $this->toListResource($import) + [
-            'row_errors' => $import->row_errors,
         ];
     }
 }

@@ -188,19 +188,6 @@ class DistrictController extends Controller
     }
 
     /**
-     * Poll the status of a CSV district import.
-     */
-    public function import_status(int $id): JsonResponse
-    {
-        $csvImport = CsvImport::where('id', $id)
-            ->where('uploaded_by', Auth::id())
-            ->where('type', CsvImport::TYPE_DISTRICTS)
-            ->firstOrFail();
-
-        return ApiResponse::success($this->csvImportResultPayload($csvImport));
-    }
-
-    /**
      * @return array<string, mixed>
      */
     private function toArray(District $district): array

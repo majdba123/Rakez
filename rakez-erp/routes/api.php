@@ -158,8 +158,6 @@ use Illuminate\Support\Facades\File;  // أضف هذا السطر في الأع�
         Route::middleware('auth:sanctum')->group(function () {
             Route::get('/contracts/index', [ContractController::class, 'index']);
             Route::post('/contracts/store', [ContractController::class, 'store']);
-            Route::post('/contracts/import_csv', [ContractController::class, 'import_contracts_csv'])->middleware('role:admin');
-            Route::get('/contracts/import_status/{id}', [ContractController::class, 'import_contracts_status'])->middleware('role:admin');
             Route::get('/contracts/show/{id}', [ContractController::class, 'show']);
             Route::get('/contracts/show/{id}/pdf', [ContractController::class, 'showPdf'])->whereNumber('id');
             Route::get('/contracts/{id}/fill-data', [ContractController::class, 'fillData']);
@@ -169,8 +167,6 @@ use Illuminate\Support\Facades\File;  // أضف هذا السطر في الأع�
             Route::delete('/contracts/{id}', [ContractController::class, 'destroy']);
 
             Route::post('/contracts/store/info/{id}', [ContractInfoController::class, 'store']);
-            Route::post('/contracts/import_info_csv/{contractId}', [ContractInfoController::class, 'import_csv'])->middleware('role:admin');
-            Route::get('/contracts/import_info_status/{id}', [ContractInfoController::class, 'import_csv_status'])->middleware('role:admin');
             Route::put('/contracts/update/info/{id}', [ContractInfoController::class, 'update']);
             Route::get('/contracts/info/{contractId}/pdf', [ContractInfoController::class, 'downloadPdf'])->whereNumber('contractId');
 
@@ -223,8 +219,6 @@ use Illuminate\Support\Facades\File;  // أضف هذا السطر في الأع�
             Route::prefix('second-party-data')->group(function () {
                 // GET show/{id} is only on the auth-only group above (line ~127) so sales/sales_leader can use it; controller authorizes via ContractPolicy
                 Route::post('store/{id}', [SecondPartyDataController::class, 'store'])->middleware('permission:second_party.edit');
-                Route::post('import_csv/{contractId}', [SecondPartyDataController::class, 'import_csv'])->middleware('role:admin');
-                Route::get('import_status/{id}', [SecondPartyDataController::class, 'import_csv_status'])->middleware('role:admin');
                 Route::put('update/{id}', [SecondPartyDataController::class, 'update'])->middleware('permission:second_party.edit');
             });
 
@@ -269,8 +263,6 @@ use Illuminate\Support\Facades\File;  // أضف هذا السطر في الأع�
 
                             Route::get('/index', [TeamController::class, 'index']);
                             Route::post('/store', [TeamController::class, 'store']);
-                            Route::post('/import_csv', [TeamController::class, 'import_csv'])->middleware('role:admin');
-                            Route::get('/import_status/{id}', [TeamController::class, 'import_status'])->middleware('role:admin');
                             Route::put('/update/{id}', [TeamController::class, 'update']);
                             Route::delete('/delete/{id}', [TeamController::class, 'destroy']);
                             Route::get('/show/{id}', [TeamController::class, 'show']);
@@ -459,8 +451,6 @@ use Illuminate\Support\Facades\File;  // أضف هذا السطر في الأع�
                 Route::prefix('employees')->group(function () {
                     Route::get('/roles', [RegisterController::class, 'list_roles'])->middleware('permission:employees.manage');
                     Route::post('/add_employee', [RegisterController::class, 'add_employee'])->middleware('permission:employees.manage');
-                    Route::post('/import_employees_csv', [RegisterController::class, 'import_employees_csv'])->middleware('permission:employees.manage');
-                    Route::get('/import_status/{id}', [RegisterController::class, 'import_status'])->middleware('permission:employees.manage');
                         Route::get('/list_employees', [RegisterController::class, 'list_employees'])->middleware('permission:employees.manage');
                         Route::get('/show_employee/{id}', [RegisterController::class, 'show_employee'])->middleware('permission:employees.manage');
                         Route::put('/update_employee/{id}', [RegisterController::class, 'update_employee'])->middleware('permission:employees.manage');
@@ -491,19 +481,30 @@ use Illuminate\Support\Facades\File;  // أضف هذا السطر في الأع�
                     Route::post('project-assignments', [SalesProjectController::class, 'assignProject'])->middleware('permission:sales.team.manage');
                 });
 
-                // All CSV import audit trail (admin only)
-                Route::prefix('csv-imports')->group(function () {
-                    Route::get('/types', [CsvImportController::class, 'types']);
-                    Route::get('/', [CsvImportController::class, 'index']);
-                    Route::get('/{id}', [CsvImportController::class, 'show'])->whereNumber('id');
+                // CSV: list all imports + types (admin). Upload endpoints return import_id; poll via GET …/csv/imports.
+                Route::prefix('csv')->group(function () {
+                    Route::get('types', [CsvImportController::class, 'types']);
+                    Route::get('imports', [CsvImportController::class, 'index']);
+
+                    Route::post('contracts/import_csv', [ContractController::class, 'import_contracts_csv']);
+
+                    Route::post('contracts/import_info_csv/{contractId}', [ContractInfoController::class, 'import_csv'])->whereNumber('contractId');
+
+                    Route::post('second-party-data/import_csv/{contractId}', [SecondPartyDataController::class, 'import_csv'])->whereNumber('contractId');
+
+                    Route::post('teams/import_csv', [TeamController::class, 'import_csv']);
+
+                    Route::post('employees/import_employees_csv', [RegisterController::class, 'import_employees_csv'])->middleware('permission:employees.manage');
+
+                    Route::post('cities/import_csv', [CityController::class, 'import_csv']);
+
+                    Route::post('districts/import_csv', [DistrictController::class, 'import_csv']);
                 });
 
                 // Cities reference data (admin only)
                 Route::prefix('cities')->group(function () {
                     Route::get('/', [CityController::class, 'index']);
                     Route::post('/', [CityController::class, 'store']);
-                    Route::post('/import_csv', [CityController::class, 'import_csv']);
-                    Route::get('/import_status/{id}', [CityController::class, 'import_status']);
                     Route::get('/{id}', [CityController::class, 'show'])->whereNumber('id');
                     Route::put('/{id}', [CityController::class, 'update'])->whereNumber('id');
                     Route::patch('/{id}', [CityController::class, 'update'])->whereNumber('id');
@@ -514,8 +515,6 @@ use Illuminate\Support\Facades\File;  // أضف هذا السطر في الأع�
                 Route::prefix('districts')->group(function () {
                     Route::get('/', [DistrictController::class, 'index']);
                     Route::post('/', [DistrictController::class, 'store']);
-                    Route::post('/import_csv', [DistrictController::class, 'import_csv']);
-                    Route::get('/import_status/{id}', [DistrictController::class, 'import_status']);
                     Route::get('/{id}', [DistrictController::class, 'show'])->whereNumber('id');
                     Route::put('/{id}', [DistrictController::class, 'update'])->whereNumber('id');
                     Route::patch('/{id}', [DistrictController::class, 'update'])->whereNumber('id');
