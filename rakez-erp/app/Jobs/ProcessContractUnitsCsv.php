@@ -62,6 +62,7 @@ class ProcessContractUnitsCsv implements ShouldQueue
                 return strtolower(trim($col));
             }, $header);
 
+            // Keys must match ContractUnit::$fillable (use facade for orientation; DB column is facade).
             $columnMap = [
                 'unit_type' => ['unit_type', 'type', 'نوع_الوحدة', 'نوع'],
                 'unit_number' => ['unit_number', 'number', 'رقم_الوحدة', 'رقم'],
@@ -70,7 +71,14 @@ class ProcessContractUnitsCsv implements ShouldQueue
                 'price' => ['price', 'unit_price', 'السعر', 'سعر_الوحدة'],
                 'total_price' => ['total_price', 'total', 'السعر_الإجمالي', 'الإجمالي'],
                 'area' => ['area', 'size', 'المساحة'],
-                'description' => ['description', 'desc', 'الوصف', 'ملاحظات'],
+                'floor' => ['floor', 'الطابق'],
+                'bedrooms' => ['bedrooms', 'غرف', 'عدد_الغرف'],
+                'bathrooms' => ['bathrooms', 'حمامات', 'عدد_الحمامات'],
+                'private_area_m2' => ['private_area_m2', 'المساحة_الخاصة', 'الشرفة'],
+                'facade' => ['facade', 'view', 'الواجهة', 'الاتجاه'],
+                'description_en' => ['description_en', 'الوصف_انجليزي'],
+                'description_ar' => ['description_ar', 'الوصف_عربي'],
+                'diagrames' => ['diagrames', 'diagrams', 'المخططات'],
             ];
 
             $columnIndices = [];
@@ -106,17 +114,28 @@ class ProcessContractUnitsCsv implements ShouldQueue
 
                             switch ($field) {
                                 case 'count':
+                                case 'floor':
+                                case 'bedrooms':
+                                case 'bathrooms':
                                     $unitData[$field] = (int) $value;
                                     break;
                                 case 'price':
                                 case 'total_price':
-                                case 'area':
+                                case 'private_area_m2':
                                     $unitData[$field] = (float) $value;
+                                    break;
+                                case 'area':
+                                    // Stored as string in schema; keep numeric string for consistency
+                                    $unitData[$field] = $value;
                                     break;
                                 default:
                                     $unitData[$field] = $value;
                             }
                         }
+                    }
+
+                    if (empty($unitData['unit_type']) || empty($unitData['unit_number']) || ! array_key_exists('price', $unitData)) {
+                        throw new Exception('يتطلب الأعمدة unit_type و unit_number و price');
                     }
 
                     ContractUnit::create($unitData);

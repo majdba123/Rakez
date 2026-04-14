@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Contract;
 
+use App\Http\Controllers\Concerns\RespondsWithCsvImportUpload;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Contract\StoreSecondPartyDataRequest;
 use App\Http\Requests\Contract\UpdateSecondPartyDataRequest;
@@ -21,6 +22,8 @@ use Exception;
 
 class SecondPartyDataController extends Controller
 {
+    use RespondsWithCsvImportUpload;
+
     protected SecondPartyDataService $secondPartyDataService;
 
     public function __construct(
@@ -194,14 +197,11 @@ class SecondPartyDataController extends Controller
             'status' => CsvImport::STATUS_PENDING,
         ]);
 
-        ProcessSecondPartyDataCsv::dispatch($csvImport->id, Auth::id(), $contractId);
-
-        return response()->json([
-            'success' => true,
-            'message' => 'CSV uploaded successfully. Import is being processed.',
-            'import_id' => $csvImport->id,
-            'status' => $csvImport->status,
-        ], 202);
+        return $this->runCsvImport(
+            $csvImport,
+            fn () => ProcessSecondPartyDataCsv::dispatchSync($csvImport->id, Auth::id(), $contractId),
+            fn () => ProcessSecondPartyDataCsv::dispatch($csvImport->id, Auth::id(), $contractId)
+        );
     }
 }
 

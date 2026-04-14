@@ -15,9 +15,9 @@ Rules that apply to API imports (summary):
   • Re-uploading rows that already exist in the database may show successful_rows=0 and skipped_rows>0 (no overwrite).
 
 File list:
-  cities_only_import.csv           — city_name, city_code
-  cities_with_districts_import.csv — city_name, city_code, district_name (optional). Use before contracts_import when using city_code/district_name (sample codes RYD-IMP, JED-IMP).
-  districts_import.csv             — city_id, name
+  cities_only_import.csv           — city_name, city_code only (same API as cities_with_districts; omit district_name column).
+  cities_with_districts_import.csv — city_name, city_code, district_name (optional). Sample codes RYD-IMP / JED-IMP pair with contracts_import when using city_code+district_name.
+  districts_import.csv             — city_id, name — replace city_id with a real cities.id from your DB (sample uses 1).
   teams_import.csv                 — name, code (optional), description (optional)
   employees_import.csv             — see header row
   contracts_import.csv             — same fields as POST /contracts body: developer_*, city_id, district_id, side,
@@ -27,4 +27,6 @@ File list:
                                     Alternative columns city_code + district_name are also supported by the importer.
   contract_info_import.csv         — optional contract / second-party fields
   second_party_data_import.csv     — URLs + advertiser_section_url (digits only)
-  contract_units_import.csv        — per-contract units (API may differ from bulk csv_imports)
+  contract_units_import.csv        — POST …/contracts/units/upload-csv/{contractId}; field csv_file. Headers: unit_type,
+                                    unit_number, price (required); optional status, area, floor, bedrooms, bathrooms,
+                                    private_area_m2, view (stored as facade), description_en/ar, diagrames.

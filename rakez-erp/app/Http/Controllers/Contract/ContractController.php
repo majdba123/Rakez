@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Contract;
 
+use App\Http\Controllers\Concerns\RespondsWithCsvImportUpload;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Contract\StoreContractRequest;
 use App\Http\Requests\Contract\UpdateContractRequest;
@@ -26,6 +27,8 @@ use Exception;
 
 class ContractController extends Controller
 {
+    use RespondsWithCsvImportUpload;
+
     public function __construct(
         protected ContractService $contractService,
         protected InventoryAgencyOverviewService $inventoryAgencyOverviewService,
@@ -666,60 +669,10 @@ class ContractController extends Controller
             'status' => CsvImport::STATUS_PENDING,
         ]);
 
-        $runSync = (bool) config('queue.contract_csv_dispatch_sync', true);
-
-        try {
-            if ($runSync) {
-                ProcessContractsCsv::dispatchSync($csvImport->id, Auth::id());
-            } else {
-                ProcessContractsCsv::dispatch($csvImport->id, Auth::id());
-            }
-        } catch (Exception $e) {
-            $csvImport->refresh();
-
-            if (! $runSync) {
-                throw $e;
-            }
-
-            return response()->json([
-                'success' => false,
-                'message' => $csvImport->error_message ?? $e->getMessage(),
-                'import_id' => $csvImport->id,
-                'status' => $csvImport->status,
-                'total_rows' => $csvImport->total_rows,
-                'row_errors' => $csvImport->row_errors,
-            ], 500);
-        }
-
-        if ($runSync) {
-            $csvImport->refresh();
-            $failed = $csvImport->status === CsvImport::STATUS_FAILED;
-            $mistakes = $csvImport->mistakesDescription();
-
-            return response()->json([
-                'success' => ! $failed,
-                'message' => $failed
-                    ? ($csvImport->error_message ?? 'فشل استيراد العقود')
-                    : 'تم استيراد ملف العقود بنجاح',
-                'import_id' => $csvImport->id,
-                'status' => $csvImport->status,
-                'total_rows' => $csvImport->total_rows,
-                'processed_rows' => $csvImport->processed_rows,
-                'successful_rows' => $csvImport->successful_rows,
-                'failed_rows' => $csvImport->failed_rows,
-                'error_message' => $csvImport->error_message,
-                'mistakes_description' => $mistakes,
-                'failure_reason' => $mistakes,
-                'row_errors' => $csvImport->row_errors,
-                'completed_at' => $csvImport->completed_at,
-            ], $failed ? 422 : 200);
-        }
-
-        return response()->json([
-            'success' => true,
-            'message' => 'CSV uploaded successfully. Import is being processed. Run a queue worker or set CONTRACT_CSV_DISPATCH_SYNC=true.',
-            'import_id' => $csvImport->id,
-            'status' => $csvImport->status,
-        ], 202);
+        return $this->runCsvImport(
+            $csvImport,
+            fn () => ProcessContractsCsv::dispatchSync($csvImport->id, Auth::id()),
+            fn () => ProcessContractsCsv::dispatch($csvImport->id, Auth::id())
+        );
     }
 }

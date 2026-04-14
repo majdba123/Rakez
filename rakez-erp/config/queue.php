@@ -128,16 +128,23 @@ return [
 
     /*
     |--------------------------------------------------------------------------
-    | Contract CSV bulk import
+    | CSV bulk imports (contracts, teams, employees, contract info, …)
     |--------------------------------------------------------------------------
     |
-    | When true (default), imports run with dispatchSync() in the same request,
-    | so status is no longer stuck on "pending" if queue workers are not running.
-    | Set CONTRACT_CSV_DISPATCH_SYNC=false and run `php artisan queue:work` for
-    | very large files to avoid HTTP timeouts.
+    | When true (default), import jobs use dispatchSync() in the HTTP request.
+    | Set CSV_IMPORT_DISPATCH_SYNC=false and run `php artisan queue:work` for
+    | large files / long-running imports. CONTRACT_CSV_DISPATCH_SYNC is a legacy alias.
     |
     */
 
-    'contract_csv_dispatch_sync' => env('CONTRACT_CSV_DISPATCH_SYNC', true),
+    /*
+     * true = all bulk CSV imports run in the HTTP request (fast, no worker needed).
+     * Set CSV_IMPORT_DISPATCH_SYNC=false only for very large files + a running queue worker.
+     */
+    'csv_import_dispatch_sync' => filter_var(
+        env('CSV_IMPORT_DISPATCH_SYNC', env('CONTRACT_CSV_DISPATCH_SYNC', true)),
+        FILTER_VALIDATE_BOOLEAN,
+        FILTER_NULL_ON_FAILURE
+    ) ?? true,
 
 ];

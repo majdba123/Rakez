@@ -113,7 +113,6 @@ class ProcessCitiesDistrictsCsv implements ShouldQueue
             // Phase 2: insert only — existing cities/districts are not updated or removed
             $successful = 0;
             $skipped = 0;
-            $failed = 0;
 
             if (!empty($validRows)) {
                 DB::beginTransaction();
@@ -125,18 +124,31 @@ class ProcessCitiesDistrictsCsv implements ShouldQueue
                         unset($rowForDb['_line']);
 
                         try {
-                            $city = City::firstOrCreate(
-                                ['code' => $rowForDb['city_code']],
-                                ['name' => $rowForDb['city_name']]
-                            );
+                            // Same persistence as HTTP store: City::create / District::create (skip row if already exists)
+                            $city = City::query()->where('code', $rowForDb['city_code'])->first();
+                            $addedSomething = false;
 
-                            $addedSomething = $city->wasRecentlyCreated;
+                            if ($city === null) {
+                                $city = City::create([
+                                    'name' => $rowForDb['city_name'],
+                                    'code' => $rowForDb['city_code'],
+                                ]);
+                                $addedSomething = true;
+                            }
 
-                            if (!empty($rowForDb['district_name'])) {
-                                $district = District::firstOrCreate(
-                                    ['city_id' => $city->id, 'name' => $rowForDb['district_name']],
-                                );
-                                $addedSomething = $addedSomething || $district->wasRecentlyCreated;
+                            if (! empty($rowForDb['district_name'])) {
+                                $districtExists = District::query()
+                                    ->where('city_id', $city->id)
+                                    ->where('name', $rowForDb['district_name'])
+                                    ->exists();
+
+                                if (! $districtExists) {
+                                    District::create([
+                                        'city_id' => $city->id,
+                                        'name' => $rowForDb['district_name'],
+                                    ]);
+                                    $addedSomething = true;
+                                }
                             }
 
                             if ($addedSomething) {

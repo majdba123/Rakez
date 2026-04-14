@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Controllers\Concerns\RespondsWithCsvImportUpload;
 use App\Http\Requests\Team\AssignSalesTeamMemberRequest;
 use App\Http\Requests\Team\ImportTeamsCsv;
 use App\Http\Requests\Team\TeamContractsRequest;
@@ -24,6 +25,8 @@ use Exception;
 
 class TeamController extends Controller
 {
+    use RespondsWithCsvImportUpload;
+
     protected TeamService $teamService;
     protected ContractService $contractService;
 
@@ -423,15 +426,10 @@ class TeamController extends Controller
             'status'      => CsvImport::STATUS_PENDING,
         ]);
 
-        ProcessTeamsCsv::dispatch($csvImport->id, Auth::id());
-
-        return response()->json([
-            'success' => true,
-            'message' => 'تم رفع الملف وبدأ الاستيراد.',
-            'data'    => [
-                'import_id' => $csvImport->id,
-                'status'    => $csvImport->status,
-            ],
-        ], 202);
+        return $this->runCsvImport(
+            $csvImport,
+            fn () => ProcessTeamsCsv::dispatchSync($csvImport->id, Auth::id()),
+            fn () => ProcessTeamsCsv::dispatch($csvImport->id, Auth::id())
+        );
     }
 }

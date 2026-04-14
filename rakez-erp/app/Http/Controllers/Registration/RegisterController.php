@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Registration;
 
 use Illuminate\Http\Request;
+use App\Http\Controllers\Concerns\RespondsWithCsvImportUpload;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\registartion\RegisterUser;
 use App\Http\Requests\registartion\UpdateUser;
@@ -18,6 +19,8 @@ use App\Http\Resources\UserResource;
 
 class RegisterController extends Controller
 {
+    use RespondsWithCsvImportUpload;
+
     protected $userService;
 
     public function __construct(register $userService)
@@ -84,13 +87,11 @@ class RegisterController extends Controller
             'status' => CsvImport::STATUS_PENDING,
         ]);
 
-        ProcessEmployeesCsv::dispatch($csvImport->id);
-
-        return response()->json([
-            'message' => 'CSV uploaded successfully. Import is being processed.',
-            'import_id' => $csvImport->id,
-            'status' => $csvImport->status,
-        ], 202);
+        return $this->runCsvImport(
+            $csvImport,
+            fn () => ProcessEmployeesCsv::dispatchSync($csvImport->id),
+            fn () => ProcessEmployeesCsv::dispatch($csvImport->id)
+        );
     }
 
     /**

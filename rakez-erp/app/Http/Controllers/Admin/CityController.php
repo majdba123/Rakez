@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers\Admin;
 
-use App\Http\Controllers\Admin\Concerns\RespondsWithCsvImportUpload;
+use App\Http\Controllers\Concerns\RespondsWithCsvImportUpload;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\StoreCityRequest;
 use App\Http\Requests\Admin\UpdateCityRequest;
@@ -14,7 +14,6 @@ use App\Models\CsvImport;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Throwable;
 
 class CityController extends Controller
 {
@@ -189,19 +188,11 @@ class CityController extends Controller
             'status' => CsvImport::STATUS_PENDING,
         ]);
 
-        try {
-            ProcessCitiesDistrictsCsv::dispatchSync($csvImport->id);
-        } catch (Throwable $e) {
-            $csvImport->refresh();
-            if ($csvImport->status !== CsvImport::STATUS_FAILED) {
-                return ApiResponse::serverError($e->getMessage());
-            }
-
-            return $this->jsonResponseForCsvImportFinished($csvImport);
-        }
-
-        $csvImport->refresh();
-
-        return $this->jsonResponseForCsvImportFinished($csvImport);
+        return $this->runCsvImport(
+            $csvImport,
+            fn () => ProcessCitiesDistrictsCsv::dispatchSync($csvImport->id),
+            fn () => ProcessCitiesDistrictsCsv::dispatch($csvImport->id),
+            true
+        );
     }
 }

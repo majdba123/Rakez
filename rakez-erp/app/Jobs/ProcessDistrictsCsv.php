@@ -101,13 +101,19 @@ class ProcessDistrictsCsv implements ShouldQueue
                         unset($rowForDb['_line']);
 
                         try {
-                            $district = District::firstOrCreate(
-                                ['city_id' => $rowForDb['city_id'], 'name' => $rowForDb['name']],
-                            );
-                            if ($district->wasRecentlyCreated) {
-                                $successful++;
-                            } else {
+                            $exists = District::query()
+                                ->where('city_id', $rowForDb['city_id'])
+                                ->where('name', $rowForDb['name'])
+                                ->exists();
+
+                            if ($exists) {
                                 $skipped++;
+                            } else {
+                                District::create([
+                                    'city_id' => $rowForDb['city_id'],
+                                    'name' => $rowForDb['name'],
+                                ]);
+                                $successful++;
                             }
                         } catch (Exception $e) {
                             $insertErrors["row_{$csvRowNumber}"] = ['insert' => [$e->getMessage()]];
