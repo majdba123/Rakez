@@ -261,9 +261,14 @@
                 </button>
                 <span id="voiceStatus" style="font-size:13px;color:#64748b;"></span>
             </div>
+            <div class="attach-row" style="margin-top:12px;display:flex;flex-direction:column;gap:8px;align-items:flex-start;">
+                <label style="font-size:13px;color:#64748b;">صورة / فيديو / ملف (حتى ~50 ميجا)</label>
+                <input type="file" id="attachmentInput" accept="image/*,video/*,.pdf,.doc,.docx,.xls,.xlsx,.txt,.csv,.zip" style="max-width:100%;font-size:13px;">
+                <button type="button" onclick="sendAttachment()" style="padding:8px 14px;border-radius:8px;border:none;background:#2563eb;color:#fff;cursor:pointer;font-weight:600;">إرسال المرفق</button>
+            </div>
             <p style="margin-top:8px;font-size:12px;color:#94a3b8;line-height:1.5;">
-                الرسائل الصوتية: <code style="direction:ltr;">POST multipart/form-data</code> الحقل <code style="direction:ltr;">voice</code> (ملف صوت) واختياري <code style="direction:ltr;">message</code> كتعليق، و<code style="direction:ltr;">voice_duration_seconds</code>.
-                يتطلب <code style="direction:ltr;">php artisan storage:link</code> لتشغيل الملفات من <code style="direction:ltr;">/storage</code>.
+                صوت: حقل <code style="direction:ltr;">voice</code> — مرفق: حقل <code style="direction:ltr;">attachment</code> (يُشتق النوع <code style="direction:ltr;">image|video|file</code> من MIME). لا ترسل الصوت والمرفق معاً.
+                <code style="direction:ltr;">php artisan storage:link</code> مطلوب لعرض الملفات.
             </p>
         </div>
     </div>
@@ -639,6 +644,35 @@
                     dur.style.marginTop = '4px';
                     dur.textContent = 'المدة: ~' + message.voice_duration_seconds + ' ث';
                     messageContent.appendChild(dur);
+                }
+            } else if ((type === 'image' || type === 'video' || type === 'file') && message.attachment_url) {
+                const cap = document.createElement('div');
+                cap.style.marginBottom = '8px';
+                cap.textContent = message.message || '';
+                messageContent.appendChild(cap);
+                if (type === 'image') {
+                    const img = document.createElement('img');
+                    img.src = message.attachment_url;
+                    img.alt = message.attachment_original_name || '';
+                    img.style.maxWidth = '100%';
+                    img.style.borderRadius = '8px';
+                    messageContent.appendChild(img);
+                } else if (type === 'video') {
+                    const vid = document.createElement('video');
+                    vid.controls = true;
+                    vid.preload = 'metadata';
+                    vid.style.maxWidth = '100%';
+                    vid.style.borderRadius = '8px';
+                    vid.src = message.attachment_url;
+                    messageContent.appendChild(vid);
+                } else {
+                    const link = document.createElement('a');
+                    link.href = message.attachment_url;
+                    link.target = '_blank';
+                    link.rel = 'noopener noreferrer';
+                    link.textContent = message.attachment_original_name || 'تحميل الملف';
+                    link.style.wordBreak = 'break-all';
+                    messageContent.appendChild(link);
                 }
             } else {
                 messageContent.textContent = message.message || '';

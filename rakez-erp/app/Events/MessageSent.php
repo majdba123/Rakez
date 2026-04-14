@@ -56,6 +56,8 @@ class MessageSent implements ShouldBroadcastNow
             'message' => $this->message->message,
             'voice_url' => $this->message->voice_url,
             'voice_duration_seconds' => $this->message->voice_duration_seconds,
+            'attachment_url' => $this->message->attachment_url,
+            'attachment_original_name' => $this->message->attachment_original_name,
             'is_read' => $this->message->is_read,
             'created_at' => $this->message->created_at->toISOString(),
         ];

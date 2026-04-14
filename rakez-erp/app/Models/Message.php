@@ -18,6 +18,8 @@ class Message extends Model
         'message',
         'voice_path',
         'voice_duration_seconds',
+        'attachment_path',
+        'attachment_original_name',
         'is_read',
         'read_at',
     ];
@@ -48,6 +50,35 @@ class Message extends Model
     public function isVoice(): bool
     {
         return $this->type === 'voice';
+    }
+
+    public function isImage(): bool
+    {
+        return $this->type === 'image';
+    }
+
+    public function isVideo(): bool
+    {
+        return $this->type === 'video';
+    }
+
+    public function isFile(): bool
+    {
+        return $this->type === 'file';
+    }
+
+    public function hasAttachment(): bool
+    {
+        return $this->isImage() || $this->isVideo() || $this->isFile();
+    }
+
+    public function getAttachmentUrlAttribute(): ?string
+    {
+        if (!$this->attachment_path) {
+            return null;
+        }
+
+        return Storage::disk('public')->url($this->attachment_path);
     }
 
     /**

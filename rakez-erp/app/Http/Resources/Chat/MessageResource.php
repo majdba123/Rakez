@@ -24,6 +24,11 @@ class MessageResource extends JsonResource
             'message' => $this->message,
             'voice_url' => $this->when($this->resource->isVoice(), $this->voice_url),
             'voice_duration_seconds' => $this->when($this->resource->isVoice(), $this->voice_duration_seconds),
+            'attachment_url' => $this->when($this->resource->hasAttachment(), $this->attachment_url),
+            'attachment_original_name' => $this->when(
+                $this->resource->hasAttachment(),
+                $this->attachment_original_name
+            ),
             'is_read' => $this->is_read,
             'read_at' => $this->read_at?->toISOString(),
             'created_at' => $this->created_at?->toISOString(),

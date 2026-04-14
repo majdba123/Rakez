@@ -11,6 +11,7 @@ use App\Models\Message;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
@@ -119,15 +120,32 @@ class ChatController extends Controller
             $user = $request->user();
 
             $hasVoice = $request->hasFile('voice');
+            $hasAttachment = $request->hasFile('attachment');
+
+            if ($hasVoice && $hasAttachment) {
+                throw ValidationException::withMessages([
+                    'voice' => ['لا يمكن إرسال ملف صوتي ومرفق (صورة/فيديو/ملف) في نفس الطلب.'],
+                ]);
+            }
+
             $rules = [
                 'voice_duration_seconds' => 'nullable|integer|min:1|max:600',
             ];
+
             if ($hasVoice) {
                 $rules['voice'] = [
                     'required',
                     'file',
                     'max:10240',
                     'mimetypes:audio/webm,audio/wav,audio/mpeg,audio/mp4,audio/x-m4a,audio/ogg,audio/x-ms-wma,video/webm,application/octet-stream',
+                ];
+                $rules['message'] = 'nullable|string|max:5000';
+            } elseif ($hasAttachment) {
+                $rules['attachment'] = [
+                    'required',
+                    'file',
+                    'max:51200',
+                    'mimes:jpeg,jpg,png,gif,webp,bmp,mp4,webm,mov,avi,m4v,pdf,doc,docx,xls,xlsx,txt,csv,zip',
                 ];
                 $rules['message'] = 'nullable|string|max:5000';
             } else {
@@ -149,18 +167,34 @@ class ChatController extends Controller
             $payload = [
                 'conversation_id' => $conversation->id,
                 'sender_id' => $user->id,
-                'type' => $hasVoice ? 'voice' : 'text',
-                'message' => $hasVoice
-                    ? ($validated['message'] ?? 'رسالة صوتية')
-                    : $validated['message'],
             ];
 
             if ($hasVoice) {
+                $payload['type'] = 'voice';
+                $payload['message'] = $validated['message'] ?? 'رسالة صوتية';
                 $payload['voice_path'] = $request->file('voice')->store(
                     'chat/voice/'.$conversation->id,
                     'public'
                 );
                 $payload['voice_duration_seconds'] = $validated['voice_duration_seconds'] ?? null;
+            } elseif ($hasAttachment) {
+                /** @var UploadedFile $file */
+                $file = $request->file('attachment');
+                $attachmentType = $this->inferAttachmentType($file);
+                $payload['type'] = $attachmentType;
+                $payload['message'] = $validated['message'] ?? match ($attachmentType) {
+                    'image' => 'صورة',
+                    'video' => 'فيديو',
+                    default => 'ملف',
+                };
+                $payload['attachment_path'] = $file->store(
+                    'chat/attachments/'.$conversation->id,
+                    'public'
+                );
+                $payload['attachment_original_name'] = $file->getClientOriginalName();
+            } else {
+                $payload['type'] = 'text';
+                $payload['message'] = $validated['message'];
             }
 
             // Create message
@@ -270,6 +304,9 @@ class ChatController extends Controller
             if ($message->voice_path) {
                 Storage::disk('public')->delete($message->voice_path);
             }
+            if ($message->attachment_path) {
+                Storage::disk('public')->delete($message->attachment_path);
+            }
 
             // Delete message
             $message->delete();
@@ -278,6 +315,24 @@ class ChatController extends Controller
         } catch (\Exception $e) {
             return ApiResponse::serverError('حدث خطأ أثناء حذف الرسالة: ' . $e->getMessage());
         }
+    }
+
+    /**
+     * @return 'image'|'video'|'file'
+     */
+    private function inferAttachmentType(UploadedFile $file): string
+    {
+        $mime = strtolower((string) $file->getMimeType());
+
+        if (str_starts_with($mime, 'image/')) {
+            return 'image';
+        }
+
+        if (str_starts_with($mime, 'video/')) {
+            return 'video';
+        }
+
+        return 'file';
     }
 }
 
