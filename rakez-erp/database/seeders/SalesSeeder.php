@@ -105,14 +105,16 @@ class SalesSeeder extends Seeder
                 $firstUnitId = Arr::random($unitIds);
                 $selectedUnitIds = [$firstUnitId];
             }
-            $target = SalesTarget::factory()->create([
+            $sumPrices = (float) ContractUnit::query()->whereIn('id', $selectedUnitIds)->sum('price');
+            SalesTarget::factory()->create([
                 'leader_id' => Arr::random($salesLeaders),
                 'marketer_id' => Arr::random($salesUsers),
                 'contract_id' => $contractId,
-                'contract_unit_id' => $firstUnitId,
+                'contract_unit_id' => null,
+                'must_sell_units_count' => count($selectedUnitIds),
+                'assigned_target_value' => $sumPrices > 0 ? $sumPrices : count($selectedUnitIds) * 100000,
                 'status' => $i % 3 === 0 ? 'completed' : ($i % 2 === 0 ? 'in_progress' : 'new'),
             ]);
-            $target->contractUnits()->sync($selectedUnitIds);
         }
 
         for ($i = 0; $i < $counts['attendance_schedules']; $i++) {

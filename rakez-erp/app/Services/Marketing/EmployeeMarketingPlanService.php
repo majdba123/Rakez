@@ -5,11 +5,12 @@ namespace App\Services\Marketing;
 use App\Models\EmployeeMarketingPlan;
 use App\Models\MarketingProject;
 use App\Models\MarketingCampaign;
-use App\Models\ContractUnit;
-use App\Models\ContractInfo;
-
 class EmployeeMarketingPlanService
 {
+    public function __construct(
+        private ContractPricingBasisService $pricingBasisService
+    ) {}
+
     public const PLATFORMS = [
         'TikTok',
         'Meta',
@@ -28,17 +29,17 @@ class EmployeeMarketingPlanService
 
     public function createPlan($marketingProjectId, $userId, $inputs)
     {
-        $project = MarketingProject::with('contract.info')->findOrFail($marketingProjectId);
+        $project = MarketingProject::with(['contract.info', 'contract.contractUnits'])->findOrFail($marketingProjectId);
         $contract = $project->contract;
 
         $commissionValue = $inputs['commission_value'] ?? null;
 
         if ($commissionValue === null) {
-            $availableUnitsValue = ContractUnit::where('contract_id', $contract->id)
-                ->where('status', 'available')
-                ->sum('price');
+            $contract->loadMissing(['info', 'contractUnits']);
+            $basis = $this->pricingBasisService->resolve($contract, []);
+            $projectWideBase = (float) $basis['commission_base_amount'];
             $commissionPercent = $contract->getEffectiveCommissionPercent();
-            $commissionValue = $this->calculateCommissionValue($availableUnitsValue, $commissionPercent);
+            $commissionValue = $this->calculateCommissionValue($projectWideBase, $commissionPercent);
         }
 
         $marketingPercent = $inputs['marketing_percent'] ?? 10;
@@ -107,9 +108,12 @@ class EmployeeMarketingPlanService
         return $derived;
     }
 
-    public function calculateCommissionValue($availableUnitsValue, $commissionPercent)
+    /**
+     * @param  float  $commissionBaseAmount  Project-wide commission base (typically sum of all unit prices × commission %).
+     */
+    public function calculateCommissionValue($commissionBaseAmount, $commissionPercent)
     {
-        return $availableUnitsValue * ($commissionPercent / 100);
+        return $commissionBaseAmount * ($commissionPercent / 100);
     }
 
     public function calculateMarketingValue($commissionValue, $marketingPercent)
@@ -128,16 +132,14 @@ class EmployeeMarketingPlanService
 
     public function autoGeneratePlan($marketingProjectId, $userId, $marketingPercent = null, $strategy = 'ai')
     {
-        $project = MarketingProject::with('contract.info')->findOrFail($marketingProjectId);
+        $project = MarketingProject::with(['contract.info', 'contract.contractUnits'])->findOrFail($marketingProjectId);
         $contract = $project->contract;
-        
-        // Use ContractUnit status 'available' to calculate potential commission
-        $availableUnitsValue = ContractUnit::where('contract_id', $contract->id)
-            ->where('status', 'available')
-            ->sum('price');
-            
+        $contract->loadMissing(['info', 'contractUnits']);
+        $basis = $this->pricingBasisService->resolve($contract, []);
+        $projectWideBase = (float) $basis['commission_base_amount'];
+
         $commissionPercent = $contract->getEffectiveCommissionPercent() ?: 2.5;
-        $commissionValue = $this->calculateCommissionValue($availableUnitsValue, $commissionPercent);
+        $commissionValue = $this->calculateCommissionValue($projectWideBase, $commissionPercent);
         
         $marketingPercent = $marketingPercent ?? 10;
         $marketingValue = $this->calculateMarketingValue($commissionValue, $marketingPercent);

@@ -56,20 +56,9 @@ class MarketingProjectController extends Controller
             'data' => array_merge($details->toArray(), $detailEnrichment, [
                 'duration_status' => $durationStatus,
                 'responsible_sales_teams' => $responsibleSalesTeams,
+                /** Canonical contract/pricing source — no campaign budget math (use POST …/developer-plans/calculate-budget). */
+                'pricing_source' => $this->projectService->buildPricingSourceForContract($details),
             ]),
-        ]);
-    }
-
-    public function calculateBudget(\App\Http\Requests\Marketing\CalculateBudgetRequest $request): JsonResponse
-    {
-        $validated = $request->validated();
-
-        return response()->json([
-            'success' => true,
-            'data' => $this->projectService->calculateCampaignBudget(
-                $validated['contract_id'],
-                $validated
-            )
         ]);
     }
 }

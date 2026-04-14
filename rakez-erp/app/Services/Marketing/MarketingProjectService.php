@@ -16,7 +16,9 @@ class MarketingProjectService
 {
     public function __construct(
         private MarketingProjectBootstrapService $bootstrapService,
-        private SalesTeamService $salesTeamService
+        private SalesTeamService $salesTeamService,
+        private ContractPricingBasisService $pricingBasisService,
+        private MarketingBudgetCalculationService $budgetCalculationService,
     ) {}
 
     /**
@@ -321,46 +323,33 @@ class MarketingProjectService
         ];
     }
 
-    public function calculateCampaignBudget($contractId, $inputs)
+    /**
+     * Financial source for marketing project screens — no marketing % / campaign preview (use POST developer-plans/calculate-budget).
+     *
+     * @return array<string, mixed>
+     */
+    public function buildPricingSourceForContract(Contract $contract): array
     {
-        $contract = Contract::with('info')->findOrFail($contractId);
-
-        if ($contract->status === ContractWorkflowStatus::Completed->value) {
-            $this->bootstrapService->ensureForCompletedContract($contract);
-        }
-
+        $contract->loadMissing(['info', 'contractUnits']);
         $info = $contract->info;
-
-        $unitPrice = $inputs['unit_price'] ?? ($info->avg_property_value ?? 0);
-        $commissionPercent = $contract->getEffectiveCommissionPercent();
-
-        $commissionValue = $unitPrice * ($commissionPercent / 100);
-
-        // Get marketing percent from inputs, or fallback to 10%
-        $marketingPercent = isset($inputs['marketing_percent']) ? (float) $inputs['marketing_percent'] : 10;
-        $marketingValue = $commissionValue * ($marketingPercent / 100);
-
-        $durationDays = (int) ($info->agreement_duration_days ?? 30);
-        $durationMonths = $this->resolveDurationMonths($info, $durationDays);
+        $pricingBasis = $this->pricingBasisService->resolve($contract, []);
+        $commissionValue = $this->budgetCalculationService->commissionValueFromPricingBasis($contract, $pricingBasis);
 
         return [
-            'commission_percent' => $commissionPercent,
+            'contract_id' => (int) $contract->id,
+            'contract_number' => $info?->contract_number,
+            'project_name' => $contract->project_name,
+            'commission_percent' => (float) $contract->getEffectiveCommissionPercent(),
             'commission_value' => $commissionValue,
-            'marketing_percent' => $marketingPercent,
-            'marketing_value' => $marketingValue,
-            'daily_budget' => $this->calculateDailyBudget($marketingValue, $durationDays),
-            'monthly_budget' => $this->calculateMonthlyBudget($marketingValue, $durationMonths),
+            'total_unit_price' => (float) $pricingBasis[ContractPricingBasisService::COMMISSION_BASE_KEY],
+            /** Canonical UI average = full-project mean */
+            'average_unit_price' => (float) ($pricingBasis['average_unit_price_all'] ?? 0),
+            'average_unit_price_all' => (float) ($pricingBasis['average_unit_price_all'] ?? 0),
+            'average_unit_price_available' => (float) ($pricingBasis['average_unit_price_available'] ?? 0),
+            'pricing_basis' => $pricingBasis,
+            'agreement_duration_days' => $info ? (int) ($info->agreement_duration_days ?? 0) : null,
+            'agreement_duration_months' => $info ? (int) ($info->agreement_duration_months ?? 0) : null,
         ];
-    }
-
-    public function calculateDailyBudget($marketingValue, $durationDays)
-    {
-        return $durationDays > 0 ? $marketingValue / $durationDays : 0;
-    }
-
-    public function calculateMonthlyBudget($marketingValue, $durationMonths)
-    {
-        return $durationMonths > 0 ? $marketingValue / $durationMonths : 0;
     }
 
     public function getContractDurationStatus($contractId)
@@ -395,18 +384,5 @@ class MarketingProjectService
                 'days' => $remainingDays
             ];
         }
-    }
-
-    private function resolveDurationMonths(?ContractInfo $info, int $durationDays): int
-    {
-        if ($info && !empty($info->agreement_duration_months)) {
-            return max(1, (int) $info->agreement_duration_months);
-        }
-
-        if ($durationDays <= 0) {
-            return 1;
-        }
-
-        return (int) ceil($durationDays / 30);
     }
 }

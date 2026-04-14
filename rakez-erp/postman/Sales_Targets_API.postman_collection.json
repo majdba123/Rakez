@@ -692,7 +692,7 @@
                                                                                "targets"
                                                                            ]
                                                               },
-                                                      "description":  "Creates a target for one sales marketer in the same team on one unit. The selected project must belong to the leader team via contract_team.",
+                                                      "description":  "Creates a **performance target** (must_sell_units_count + assigned_target_value). Does not assign inventory. Optional explicit assigned_target_value; otherwise derived from unit prices in the project. Legacy: contract_unit_id may still be sent to derive must_sell_units_count only.",
                                                       "method":  "POST",
                                                       "header":  [
                                                                      {
@@ -707,7 +707,7 @@
                                                                      }
                                                                  ],
                                                       "body":  {
-                                                                  "raw":  "{\n  \"marketer_id\": {{assignee_marketer_id}},\n  \"contract_id\": {{contract_id}},\n  \"contract_unit_id\": {{unit_id}},\n  \"target_type\": \"reservation\",\n  \"start_date\": \"{{from_date}}\",\n  \"end_date\": \"{{to_date}}\",\n  \"leader_notes\": \"Postman test target for single unit\"\n}",
+                                                                  "raw":  "{\n  \"marketer_id\": {{assignee_marketer_id}},\n  \"contract_id\": {{contract_id}},\n  \"must_sell_units_count\": 1,\n  \"assigned_target_value\": 500000,\n  \"target_type\": \"reservation\",\n  \"start_date\": \"{{from_date}}\",\n  \"end_date\": \"{{to_date}}\",\n  \"leader_notes\": \"Postman test performance target\"\n}",
                                                                    "options":  {
                                                                                    "raw":  {
                                                                                                "language":  "json"
@@ -766,7 +766,7 @@
                                                                                "targets"
                                                                            ]
                                                               },
-                                                      "description":  "Creates a project-level target without units. The selected project must belong to the leader team via contract_team, and the assignee must be a same-team sales marketer.",
+                                                      "description":  "Project-level performance target: set must_sell_units_count (no concrete unit assignment). Response includes project_location.",
                                                       "method":  "POST",
                                                       "header":  [
                                                                      {
@@ -781,7 +781,7 @@
                                                                      }
                                                                  ],
                                                       "body":  {
-                                                                  "raw":  "{\n  \"marketer_id\": {{assignee_marketer_id}},\n  \"contract_id\": {{contract_id}},\n  \"target_type\": \"negotiation\",\n  \"start_date\": \"{{from_date}}\",\n  \"end_date\": \"{{to_date}}\",\n  \"leader_notes\": \"Postman test target without unit\"\n}",
+                                                                  "raw":  "{\n  \"marketer_id\": {{assignee_marketer_id}},\n  \"contract_id\": {{contract_id}},\n  \"must_sell_units_count\": 3,\n  \"target_type\": \"negotiation\",\n  \"start_date\": \"{{from_date}}\",\n  \"end_date\": \"{{to_date}}\",\n  \"leader_notes\": \"Postman test project-level target\"\n}",
                                                                    "options":  {
                                                                                    "raw":  {
                                                                                                "language":  "json"
@@ -837,7 +837,7 @@
                                                                                "targets"
                                                                            ]
                                                               },
-                                                      "description":  "Creates a multi-unit target. All selected units must belong to the same PM-linked team project, and the assignee must be a same-team sales marketer.",
+                                                      "description":  "Performance target for N units of sales (must_sell_units_count). Legacy body may send contract_unit_ids to derive count only — backend does not attach inventory.",
                                                       "method":  "POST",
                                                       "header":  [
                                                                      {
@@ -852,7 +852,7 @@
                                                                      }
                                                                  ],
                                                       "body":  {
-                                                                  "raw":  "{\n  \"marketer_id\": {{assignee_marketer_id}},\n  \"contract_id\": {{contract_id}},\n  \"contract_unit_ids\": [{{unit_id}}],\n  \"target_type\": \"closing\",\n  \"start_date\": \"{{from_date}}\",\n  \"end_date\": \"{{to_date}}\",\n  \"leader_notes\": \"Postman test target for multiple units\"\n}",
+                                                                  "raw":  "{\n  \"marketer_id\": {{assignee_marketer_id}},\n  \"contract_id\": {{contract_id}},\n  \"must_sell_units_count\": 2,\n  \"target_type\": \"closing\",\n  \"start_date\": \"{{from_date}}\",\n  \"end_date\": \"{{to_date}}\",\n  \"leader_notes\": \"Postman test multi-unit count target\"\n}",
                                                                    "options":  {
                                                                                    "raw":  {
                                                                                                "language":  "json"

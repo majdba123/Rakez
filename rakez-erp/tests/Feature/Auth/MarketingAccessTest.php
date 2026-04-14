@@ -100,31 +100,30 @@ class MarketingAccessTest extends BasePermissionTestCase
     }
 
     #[Test]
-    public function calculate_budget_accessible_by_marketing_staff()
+    public function developer_plan_calculate_budget_accessible_by_marketing_staff()
     {
         $marketing = $this->createMarketingStaff();
-        
+
         $response = $this->actingAs($marketing, 'sanctum')
-            ->postJson('/api/marketing/projects/calculate-budget', [
+            ->postJson('/api/marketing/developer-plans/calculate-budget', [
                 'contract_id' => $this->contract->id,
-                'duration_months' => 6,
-                'budget_percentage' => 5,
+                'marketing_percent' => 8,
             ]);
-        
+
         $this->assertNotEquals(403, $response->status());
     }
 
     #[Test]
-    public function calculate_budget_forbidden_for_non_marketing_users()
+    public function developer_plan_calculate_budget_forbidden_for_non_marketing_users()
     {
         $sales = $this->createSalesStaff();
-        
+
         $response = $this->actingAs($sales, 'sanctum')
-            ->postJson('/api/marketing/projects/calculate-budget', [
+            ->postJson('/api/marketing/developer-plans/calculate-budget', [
                 'contract_id' => $this->contract->id,
-                'duration_months' => 6,
+                'marketing_percent' => 8,
             ]);
-        
+
         $response->assertStatus(403);
     }
 

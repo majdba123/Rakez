@@ -19,8 +19,10 @@ class SalesReservationService
 {
     protected ReservationVoucherService $voucherService;
 
-    public function __construct(ReservationVoucherService $voucherService)
-    {
+    public function __construct(
+        ReservationVoucherService $voucherService,
+        protected SalesDashboardService $salesDashboardService,
+    ) {
         $this->voucherService = $voucherService;
     }
 
@@ -247,13 +249,16 @@ class SalesReservationService
     {
         $query = SalesReservation::with(['contract', 'contractUnit', 'marketingEmployee']);
 
-        // Auto-filter for sales users: show only their own reservations
-        // Admins and managers can see all reservations (unless mine filter is explicitly set)
+        // Visibility: sales reps see own rows; sales leaders see team + led-project rows (see SalesDashboardService).
+        // `mine=1` limits to own reservations for any sales user (including leaders).
         if ($user->type === 'sales' && !$user->hasRole('admin')) {
-            $query->where('marketing_employee_id', $user->id);
+            if (!empty($filters['mine'])) {
+                $query->where('marketing_employee_id', (int) $user->id);
+            } else {
+                $this->salesDashboardService->applyReservationListVisibility($query, $user);
+            }
         } elseif (!empty($filters['mine'])) {
-            // For other users, apply mine filter if provided
-            $query->where('marketing_employee_id', $user->id);
+            $query->where('marketing_employee_id', (int) $user->id);
         }
 
         // Include cancelled or not

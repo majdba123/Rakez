@@ -31,7 +31,7 @@ class SalesTargetService
         }
 
         $query = SalesTarget::query()
-            ->with(['contract', 'contractUnit', 'contractUnits', 'leader', 'marketer'])
+            ->with(['contract.city', 'contract.district', 'contractUnit', 'contractUnits', 'leader', 'marketer'])
             ->where('marketer_id', $user->id);
 
         if (!empty($filters['status'])) {
@@ -67,6 +67,8 @@ class SalesTargetService
             ->where('contracts.status', 'completed')
             ->with([
                 'teams' => fn ($q) => $q->where('teams.id', $leader->team_id),
+                'city',
+                'district',
             ]);
 
         if (!empty($filters['from'])) {
@@ -90,7 +92,7 @@ class SalesTargetService
         }
 
         $query = SalesTarget::where('contract_id', $contractId)
-            ->with(['contract', 'contractUnit', 'contractUnits', 'leader', 'marketer']);
+            ->with(['contract.city', 'contract.district', 'contractUnit', 'contractUnits', 'leader', 'marketer']);
 
         if ($user->hasRole('admin')) {
             return $query->orderBy('start_date', 'desc')->get();
@@ -130,7 +132,8 @@ class SalesTargetService
     }
 
     /**
-     * Create a target (leader only).
+     * Create a sales performance target (leader only).
+     * Does not assign inventory: {@see SalesTarget::$must_sell_units_count} and {@see SalesTarget::$assigned_target_value} capture the goal.
      */
     public function createTarget(array $data, User $leader): SalesTarget
     {
@@ -152,37 +155,66 @@ class SalesTargetService
             throw new \Exception('Marketer must be in the same team as leader');
         }
 
-        // Normalize unit ids: support contract_unit_ids (array) or contract_unit_id (single)
-        $unitIds = $data['contract_unit_ids'] ?? null;
-        if ($unitIds === null && !empty($data['contract_unit_id'])) {
-            $unitIds = [(int) $data['contract_unit_id']];
+        $contractId = (int) $data['contract_id'];
+        $mustSellUnits = (int) $data['must_sell_units_count'];
+        if ($mustSellUnits < 1) {
+            throw new \Exception('must_sell_units_count must be at least 1');
         }
-        $unitIds = is_array($unitIds) ? array_values(array_unique(array_filter(array_map('intval', $unitIds)))) : [];
 
-        // Validate each unit belongs to the selected project
-        foreach ($unitIds as $unitId) {
-            $unit = ContractUnit::with('contract')->find($unitId);
-            if (!$unit || (int) $unit->contract_id !== (int) $data['contract_id']) {
-                throw new \Exception('Unit does not belong to the selected project');
-            }
-        }
+        // Optional explicit monetary target; otherwise derived from project unit pricing.
+        $explicitValue = array_key_exists('assigned_target_value', $data) && $data['assigned_target_value'] !== null && $data['assigned_target_value'] !== ''
+            ? (float) $data['assigned_target_value']
+            : null;
+
+        $assignedValue = $this->resolveAssignedTargetValue($contractId, $mustSellUnits, $explicitValue);
 
         $target = SalesTarget::create([
             'leader_id' => $leader->id,
             'marketer_id' => $data['marketer_id'],
-            'contract_id' => $data['contract_id'],
-            'contract_unit_id' => $unitIds[0] ?? null,
+            'contract_id' => $contractId,
+            'contract_unit_id' => null,
+            'must_sell_units_count' => $mustSellUnits,
+            'assigned_target_value' => $assignedValue,
             'target_type' => $data['target_type'],
             'start_date' => $data['start_date'],
             'end_date' => $data['end_date'],
             'leader_notes' => $data['leader_notes'] ?? null,
         ]);
 
-        if (!empty($unitIds)) {
-            $target->contractUnits()->sync($unitIds);
+        // Performance targets do not sync sales_target_units (no inventory assignment).
+
+        return $target->fresh([
+            'contract.city',
+            'contract.district',
+            'contractUnit',
+            'contractUnits',
+            'leader',
+            'marketer',
+        ]);
+    }
+
+    /**
+     * Monetary target: explicit leader value, else sum of cheapest N unit prices in the project (or avg price × N).
+     */
+    public function resolveAssignedTargetValue(int $contractId, int $mustSellUnits, ?float $explicit): float
+    {
+        if ($explicit !== null && $explicit >= 0) {
+            return round($explicit, 2);
         }
 
-        return $target->fresh(['contract', 'contractUnit', 'contractUnits', 'leader', 'marketer']);
+        $units = ContractUnit::query()
+            ->where('contract_id', $contractId)
+            ->orderBy('price')
+            ->limit($mustSellUnits)
+            ->get(['price']);
+
+        if ($units->count() >= $mustSellUnits) {
+            return round((float) $units->take($mustSellUnits)->sum('price'), 2);
+        }
+
+        $avg = (float) (ContractUnit::query()->where('contract_id', $contractId)->avg('price') ?? 0);
+
+        return round($avg * $mustSellUnits, 2);
     }
 
     /**
@@ -199,7 +231,14 @@ class SalesTargetService
 
         $target->update(['status' => $status]);
 
-        return $target->fresh();
+        return $target->fresh([
+            'contract.city',
+            'contract.district',
+            'contractUnit',
+            'contractUnits',
+            'leader',
+            'marketer',
+        ]);
     }
 
     /**

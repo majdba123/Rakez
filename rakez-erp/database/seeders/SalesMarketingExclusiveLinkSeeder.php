@@ -127,20 +127,23 @@ class SalesMarketingExclusiveLinkSeeder extends Seeder
             return;
         }
 
-        $target = SalesTarget::query()->updateOrCreate(
+        $unitPrice = (float) ($unit->price ?? 0);
+        SalesTarget::query()->updateOrCreate(
             [
                 'leader_id' => $leader->id,
                 'marketer_id' => $salesStaff->id,
                 'contract_id' => $contract->id,
             ],
             [
-                'contract_unit_id' => $unit->id,
+                'contract_unit_id' => null,
+                'must_sell_units_count' => 1,
+                'assigned_target_value' => $unitPrice > 0 ? round($unitPrice, 2) : 0,
+                'target_type' => 'reservation',
                 'status' => 'in_progress',
                 'start_date' => now()->subDays(14)->toDateString(),
                 'end_date' => now()->addMonths(3)->toDateString(),
             ]
         );
-        $target->contractUnits()->sync([$unit->id]);
 
         if ($marketingStaff) {
             Lead::query()->firstOrCreate(

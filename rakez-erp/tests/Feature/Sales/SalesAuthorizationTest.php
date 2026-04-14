@@ -171,7 +171,7 @@ class SalesAuthorizationTest extends TestCase
         $data = [
             'marketer_id' => $this->salesEmployee->id,
             'contract_id' => $this->contract->id,
-            'contract_unit_id' => $this->unit->id,
+            'must_sell_units_count' => 1,
             'target_type' => 'reservation',
             'start_date' => '2025-01-20',
             'end_date' => '2025-01-30',
@@ -188,6 +188,7 @@ class SalesAuthorizationTest extends TestCase
         $data = [
             'marketer_id' => $this->salesEmployee->id,
             'contract_id' => $this->contract->id,
+            'must_sell_units_count' => 1,
             'target_type' => 'reservation',
             'start_date' => '2025-01-20',
             'end_date' => '2025-01-30',

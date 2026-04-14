@@ -4,11 +4,11 @@ namespace App\Http\Controllers\Marketing;
 
 use App\Http\Controllers\Controller;
 use App\Models\Contract;
+use App\Http\Requests\Marketing\DeveloperPlanCalculateBudgetRequest;
 use App\Services\Marketing\DeveloperMarketingPlanService;
-use App\Services\Marketing\MarketingProjectService;
+use App\Services\Marketing\MarketingBudgetCalculationService;
 use App\Services\Pdf\PdfFactory;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Http\Request;
 use Mpdf\MpdfException;
 use Symfony\Component\HttpFoundation\Response;
 
@@ -16,7 +16,7 @@ class DeveloperMarketingPlanController extends Controller
 {
     public function __construct(
         private DeveloperMarketingPlanService $planService,
-        private MarketingProjectService $projectService
+        private MarketingBudgetCalculationService $budgetCalculationService,
     ) {}
 
     public function show(int $contractId): JsonResponse
@@ -35,7 +35,7 @@ class DeveloperMarketingPlanController extends Controller
     {
         try {
             $planData = $this->planService->getPlanForDeveloper($contractId);
-            if (empty($planData['raw_plan']) || empty($planData['plan'])) {
+            if (empty($planData['plan'])) {
                 return response()->json([
                     'success' => false,
                     'message' => 'لم يتم العثور على خطة تسويق المطور لهذا العقد',
@@ -80,24 +80,44 @@ class DeveloperMarketingPlanController extends Controller
             return response()->json(['success' => false, 'message' => 'Contract or plan not found'], 404);
         }
         $contract = $planData['contract'] ?? [];
-        $plan = $planData['raw_plan'] ?? $planData['plan'] ?? null;
+        $plan = $planData['plan'] ?? null;
+        $basis = $contract['pricing_basis'] ?? [];
+
+        $calc = $planData['calculated_contract_budget'] ?? null;
 
         $sections = [];
         $sections[] = [
             'sectionTitle' => 'بيانات العقد',
             'infoRows' => [
                 ['نسبة السعي %', (string) ($contract['commission_percent'] ?? '')],
-                ['متوسط سعر الوحدة', (string) ($contract['average_unit_price'] ?? '')],
+                ['أساس التسعير (المصدر)', (string) ($basis['source'] ?? '')],
+                ['إجمالي سعر الوحدات (أساس العمولة)', (string) ($basis['total_unit_price'] ?? '')],
+                ['وحدات متاحة / إجمالي', ($basis['available_units_count'] ?? '') . ' / ' . ($basis['all_units_count'] ?? '')],
+                ['متوسط سعر الوحدة (كل الوحدات)', (string) ($basis['average_unit_price_all'] ?? '')],
+                ['متوسط سعر الوحدة (متاح فقط)', (string) ($basis['average_unit_price_available'] ?? '')],
+                ['avg_property_value (مخزن)', (string) ($basis['avg_property_value_stored'] ?? '')],
             ],
         ];
+        if ($calc) {
+            $sections[] = [
+                'sectionTitle' => 'الحسابات (العمولة والتسويق)',
+                'infoRows' => [
+                    ['إجمالي العمولة (محسوبة)', (string) ($calc['commission_value'] ?? '')],
+                    ['قيمة التسويق / ميزانية الحملة (محسوبة)', (string) ($calc['marketing_value'] ?? '')],
+                    ['نسبة التسويق % (مستخدمة في الحساب)', (string) ($calc['marketing_percent'] ?? '')],
+                ],
+            ];
+        }
         if ($plan) {
+            $mv = is_array($plan) ? ($plan['marketing_value'] ?? null) : ($plan->marketing_value ?? null);
             $sections[] = [
                 'sectionTitle' => 'خطة التسويق',
                 'infoRows' => [
-                    ['ميزانية التسويق', $planData['total_budget'] ?? (string) ($plan->marketing_value ?? '')],
+                    ['ميزانية التسويق (محسوبة — للعرض)', (string) ($planData['total_budget_display'] ?? $planData['total_budget'] ?? '')],
+                    ['ميزانية مخزنة في الخطة (آخر حفظ)', (string) ($planData['stored_marketing_value_display'] ?? $mv ?? '')],
                     ['مدة التسويق', $planData['marketing_duration_ar'] ?? ''],
-                    ['الظهور المتوقع', $planData['expected_impressions_ar'] ?? ''],
-                    ['النقرات المتوقعة', $planData['expected_clicks_ar'] ?? ''],
+                    ['الظهور المتوقع', $planData['expected_impressions_display_ar'] ?? ''],
+                    ['النقرات المتوقعة', $planData['expected_clicks_display_ar'] ?? ''],
                 ],
             ];
         }
@@ -112,24 +132,20 @@ class DeveloperMarketingPlanController extends Controller
     }
 
     /**
-     * حساب ميزانية الحملة: عمولة = نسبة السعي في العقد × متوسط سعر الوحدات، ميزانية الحملة = عمولة × نسبة التسويق (6%-10%).
+     * Canonical budget preview for developer plans (only official calculator for campaign math).
      */
-    public function calculateBudget(Request $request): JsonResponse
+    public function calculateBudget(DeveloperPlanCalculateBudgetRequest $request): JsonResponse
     {
-        $request->validate([
-            'contract_id' => 'required|exists:contracts,id',
-            'marketing_percent' => 'required|numeric|min:6|max:10',
-            'unit_price' => 'nullable|numeric|min:0',
-        ]);
+        $validated = $request->validated();
 
-        $data = $this->projectService->calculateCampaignBudget(
-            (int) $request->input('contract_id'),
-            $request->only(['marketing_percent', 'unit_price'])
+        $data = $this->budgetCalculationService->calculateCampaignBudget(
+            (int) $validated['contract_id'],
+            $validated
         );
 
         return response()->json([
             'success' => true,
-            'data' => $data
+            'data' => $data,
         ]);
     }
 
