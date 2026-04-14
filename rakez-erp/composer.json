@@ -17,6 +17,7 @@
         "maatwebsite/excel": "^3.1.63",
         "mpdf/mpdf": "^8.2",
         "openai-php/laravel": "^0.18.0",
+        "predis/predis": "^2.0",
         "promopult/tiktok-marketing-api": "3.1",
         "smalot/pdfparser": "^2.0",
         "spatie/laravel-permission": "^6.24",
