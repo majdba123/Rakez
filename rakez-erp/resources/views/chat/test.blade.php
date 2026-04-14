@@ -217,10 +217,19 @@
 
         <div class="config-panel">
             <label>معرف المحادثة (Conversation ID):</label>
-            <input type="number" id="conversationId" value="" placeholder="سيتم إنشاؤها تلقائياً">
-            <label style="margin-top: 10px;">معرف المستخدم للدردشة (Target User ID):</label>
-            <input type="number" id="targetUserId" value="1" placeholder="معرف المستخدم">
-            <button onclick="loadConversation()">تحميل/إنشاء المحادثة</button>
+            <input type="number" id="conversationId" value="" placeholder="مثال: 5">
+            <div style="display:flex; flex-wrap:wrap; gap:8px; margin-top:10px;">
+                <button type="button" onclick="subscribeRealtimeOnly()" style="background:#2563eb;">① اشترك في البث المباشر</button>
+                <button type="button" onclick="loadHistory()" style="background:#64748b;">② تحميل الرسائل (اختياري)</button>
+            </div>
+            <p style="margin-top:10px; font-size:12px; color:#64748b; line-height:1.5;">
+                لاختبار Postman: أرسل <span style="font-family:monospace;">POST /api/chat/conversations/{id}/messages</span> مع مستخدم مشارك في نفس المحادثة (Bearer token).
+                المستخدم المسجّل هنا في المتصفح يجب أن يكون أحد طرفي المحادثة حتى يُسمح بقناة <span style="font-family:monospace;">private-conversation.*</span>.
+            </p>
+            <hr style="margin:14px 0; border:none; border-top:1px solid #e5e7eb;">
+            <label>إنشاء/فتح محادثة مع مستخدم (اختياري):</label>
+            <input type="number" id="targetUserId" value="1" placeholder="معرف المستخدم الآخر">
+            <button type="button" onclick="loadOrCreateWithUser()">تحميل أو إنشاء المحادثة</button>
             <div style="margin-top: 10px; font-size: 12px; color: #6b7280;">
                 المستخدم الحالي: <strong>{{ auth()->user()?->name ?? 'غير مسجل' }}</strong> (ID: {{ auth()->id() ?? 'N/A' }})
             </div>
@@ -250,159 +259,155 @@
     </div>
 
     <script>
-        // Configuration
         const API_BASE_URL = '{{ url("/api") }}';
-        const CURRENT_USER_ID = {{ auth()->id() ?? 1 }};
-        const TARGET_USER_ID = 1; // User ID to chat with
+        const CURRENT_USER_ID = {{ (int) (auth()->id() ?? 0) }};
         let conversationId = null;
-        let echo = null;
-        let channel = null;
-        let authToken = null;
+        let subscribedConversationId = null;
+        let authToken = localStorage.getItem('auth_token');
+        const seenMessageIds = new Set();
 
-        // Initialize when page loads
         document.addEventListener('DOMContentLoaded', function() {
-            // Try to get token from localStorage first
             authToken = localStorage.getItem('auth_token');
-
-            // If no token, try to create one via API (for authenticated users)
-            if (!authToken && {{ auth()->check() ? 'true' : 'false' }}) {
-                createAuthToken();
-            } else {
-                initializeEcho();
-                loadConversation();
-            }
-        });
-
-        // Create auth token for current user
-        async function createAuthToken() {
-            try {
-                // Use session-based auth for web routes
-                // For API calls, we'll use CSRF token
-                initializeEcho();
-                loadConversation();
-            } catch (error) {
-                console.error('Error creating auth token:', error);
-                alert('خطأ في المصادقة. يرجى تسجيل الدخول أولاً.');
-            }
-        }
-
-        // Initialize Laravel Echo
-        function initializeEcho() {
-            if (typeof Echo === 'undefined') {
-                console.error('Echo is not defined. Make sure Laravel Echo is loaded.');
-                updateConnectionStatus(false);
+            if (typeof window.Echo === 'undefined') {
+                updateConnectionStatus(false, 'Echo غير محمّل — نفّذ npm run build وشغّل Vite');
                 return;
             }
-
-            // For session-based auth, Echo will use cookies automatically
-            // But we can also set auth headers if token is available
-            if (authToken && Echo.connector && Echo.connector.options) {
-                if (!Echo.connector.options.auth) {
-                    Echo.connector.options.auth = {};
-                }
-                if (!Echo.connector.options.auth.headers) {
-                    Echo.connector.options.auth.headers = {};
-                }
-                Echo.connector.options.auth.headers['Authorization'] = `Bearer ${authToken}`;
+            if (authToken && window.Echo?.connector?.options) {
+                window.Echo.connector.options.auth = window.Echo.connector.options.auth || {};
+                window.Echo.connector.options.auth.headers = Object.assign(
+                    {},
+                    window.Echo.connector.options.auth.headers,
+                    { Authorization: 'Bearer ' + authToken }
+                );
             }
+            wirePusherConnectionStatus();
+        });
 
-            updateConnectionStatus(true);
-            console.log('Echo initialized');
-        }
-
-        // Load or create conversation
-        async function loadConversation() {
-            const inputConversationId = document.getElementById('conversationId').value;
-            const targetUserId = parseInt(document.getElementById('targetUserId').value) || TARGET_USER_ID;
-
+        function wirePusherConnectionStatus() {
             try {
-                // If conversation ID is provided, use it; otherwise create/get conversation
-                if (inputConversationId) {
-                    conversationId = parseInt(inputConversationId);
-                    await loadMessages(conversationId);
-                    listenToConversation(conversationId);
-                } else {
-                    // Get or create conversation with target user
-                    const response = await fetch(`${API_BASE_URL}/chat/conversations/${targetUserId}`, {
-                        headers: getAuthHeaders(),
-                        credentials: 'same-origin'
-                    });
-
-                    if (!response.ok) {
-                        throw new Error('Failed to get conversation');
-                    }
-
-                    const data = await response.json();
-                    conversationId = data.data.id;
-                    document.getElementById('conversationId').value = conversationId;
-
-                    await loadMessages(conversationId);
-                    listenToConversation(conversationId);
-                }
-            } catch (error) {
-                console.error('Error loading conversation:', error);
-                alert('خطأ في تحميل المحادثة: ' + error.message);
+                const pusher = window.Echo?.connector?.pusher;
+                if (!pusher?.connection) return;
+                pusher.connection.bind('connected', () => updateConnectionStatus(true, 'WebSocket متصل (Reverb)'));
+                pusher.connection.bind('disconnected', () => updateConnectionStatus(false, 'WebSocket غير متصل'));
+                pusher.connection.bind('error', () => updateConnectionStatus(false, 'خطأ WebSocket'));
+            } catch (e) {
+                console.warn(e);
             }
         }
 
-        // Load messages
+        /** اشترك فقط بالقناة — مناسب عند إرسال الرسائل من Postman */
+        function subscribeRealtimeOnly() {
+            const raw = document.getElementById('conversationId').value.trim();
+            if (!raw) {
+                alert('أدخل Conversation ID أولاً');
+                return;
+            }
+            const id = parseInt(raw, 10);
+            if (!id) {
+                alert('معرف غير صالح');
+                return;
+            }
+            conversationId = id;
+            listenToConversation(id);
+        }
+
+        async function loadHistory() {
+            const raw = document.getElementById('conversationId').value.trim();
+            if (!raw) {
+                alert('أدخل Conversation ID');
+                return;
+            }
+            const id = parseInt(raw, 10);
+            if (!id) return;
+            conversationId = id;
+            await loadMessages(id);
+            listenToConversation(id);
+        }
+
+        async function loadOrCreateWithUser() {
+            const targetUserId = parseInt(document.getElementById('targetUserId').value, 10);
+            if (!targetUserId) {
+                alert('أدخل معرف المستخدم');
+                return;
+            }
+            try {
+                const response = await fetch(`${API_BASE_URL}/chat/conversations/${targetUserId}`, {
+                    headers: getAuthHeaders(),
+                    credentials: 'same-origin',
+                });
+                if (!response.ok) {
+                    const t = await response.text();
+                    throw new Error(t || 'فشل جلب المحادثة');
+                }
+                const json = await response.json();
+                conversationId = json.data.id;
+                document.getElementById('conversationId').value = conversationId;
+                await loadMessages(conversationId);
+                listenToConversation(conversationId);
+            } catch (e) {
+                console.error(e);
+                alert('خطأ: ' + e.message);
+            }
+        }
+
         async function loadMessages(convId) {
             try {
                 const response = await fetch(`${API_BASE_URL}/chat/conversations/${convId}/messages?per_page=50`, {
                     headers: getAuthHeaders(),
-                    credentials: 'same-origin'
+                    credentials: 'same-origin',
                 });
-
                 if (!response.ok) {
-                    throw new Error('Failed to load messages');
+                    throw new Error('HTTP ' + response.status);
                 }
-
-                const data = await response.json();
+                const json = await response.json();
+                const list = Array.isArray(json.data) ? json.data : [];
                 const messagesContainer = document.getElementById('messagesContainer');
                 messagesContainer.innerHTML = '';
+                seenMessageIds.clear();
 
-                if (data.data && data.data.length > 0) {
-                    data.data.forEach(message => {
-                        addMessageToUI(message, false);
-                    });
+                if (list.length > 0) {
+                    list.slice().reverse().forEach((message) => addMessageToUI(message, false));
                 } else {
-                    messagesContainer.innerHTML = '<div class="empty-state"><p>لا توجد رسائل بعد. ابدأ المحادثة!</p></div>';
+                    messagesContainer.innerHTML = '<div class="empty-state"><p>لا توجد رسائل بعد.</p></div>';
                 }
-
                 scrollToBottom();
             } catch (error) {
-                console.error('Error loading messages:', error);
+                console.error('loadMessages', error);
+                alert('تعذر تحميل الرسائل (تأكد أنك طرف في المحادثة): ' + error.message);
             }
         }
 
-        // Listen to conversation channel
         function listenToConversation(convId) {
-            if (!Echo) {
-                console.error('Echo is not available');
+            if (typeof window.Echo === 'undefined') {
+                alert('Echo غير متوفر');
                 return;
             }
 
-            // Leave previous channel if exists
-            if (channel) {
-                Echo.leave(`conversation.${channel}`);
+            if (subscribedConversationId !== null) {
+                try {
+                    window.Echo.leave('conversation.' + subscribedConversationId);
+                } catch (e) {
+                    console.warn('leave channel', e);
+                }
             }
 
-            // Listen to new conversation channel
-            channel = convId;
-            const conversationChannel = Echo.private(`conversation.${convId}`);
+            subscribedConversationId = convId;
+            const conversationChannel = window.Echo.private('conversation.' + convId);
 
             conversationChannel
+                .subscribed(() => {
+                    updateConnectionStatus(true, 'مشترك في المحادثة #' + convId + ' — جاهز للبث');
+                })
                 .listen('.message.sent', (e) => {
-                    console.log('Message received via WebSocket:', e);
+                    console.log('message.sent', e);
                     addMessageToUI(e, true);
                 })
-                .error((error) => {
-                    console.error('Channel error:', error);
-                    updateConnectionStatus(false);
+                .listen('pusher:subscription_error', (status) => {
+                    console.error('pusher:subscription_error', status);
+                    updateConnectionStatus(false, 'فشل الاشتراك — تحقق أنك طرف في المحادثة و /api/broadcasting/auth');
                 });
 
-            updateConnectionStatus(true);
-            console.log(`Listening to conversation.${convId}`);
+            console.log('Listening private conversation.' + convId);
         }
 
         // Send message
@@ -451,18 +456,21 @@
             }
         }
 
-        // Add message to UI
-        function addMessageToUI(message, isReceived) {
-            const messagesContainer = document.getElementById('messagesContainer');
-
-            // Remove empty state if exists
-            const emptyState = messagesContainer.querySelector('.empty-state');
-            if (emptyState) {
-                emptyState.remove();
+        function addMessageToUI(message, fromRealtime) {
+            if (message.id != null && seenMessageIds.has(message.id)) {
+                return;
+            }
+            if (message.id != null) {
+                seenMessageIds.add(message.id);
             }
 
+            const messagesContainer = document.getElementById('messagesContainer');
+            const emptyState = messagesContainer.querySelector('.empty-state');
+            if (emptyState) emptyState.remove();
+
+            const senderName = message.sender?.name || message.sender?.data?.name || 'مستخدم';
             const messageDiv = document.createElement('div');
-            messageDiv.className = `message ${message.sender_id === CURRENT_USER_ID ? 'sent' : 'received'}`;
+            messageDiv.className = 'message ' + (message.sender_id === CURRENT_USER_ID ? 'sent' : 'received');
 
             const messageContent = document.createElement('div');
             messageContent.className = 'message-content';
@@ -471,12 +479,11 @@
             const messageInfo = document.createElement('div');
             messageInfo.className = 'message-info';
             const date = new Date(message.created_at);
-            messageInfo.textContent = `${message.sender?.name || 'مستخدم'} - ${date.toLocaleTimeString('ar-SA')}`;
+            messageInfo.textContent = senderName + ' — ' + date.toLocaleTimeString('ar-SA') + (fromRealtime ? ' (مباشر)' : '');
 
             messageContent.appendChild(messageInfo);
             messageDiv.appendChild(messageContent);
             messagesContainer.appendChild(messageDiv);
-
             scrollToBottom();
         }
 
@@ -493,14 +500,12 @@
             messagesContainer.scrollTop = messagesContainer.scrollHeight;
         }
 
-        // Update connection status
-        function updateConnectionStatus(connected) {
+        function updateConnectionStatus(connected, detail) {
             const statusElement = document.getElementById('connectionStatus');
-            if (connected) {
-                statusElement.innerHTML = '<span class="status-connected">● متصل</span>';
-            } else {
-                statusElement.innerHTML = '<span class="status-disconnected">● غير متصل</span>';
-            }
+            const cls = connected ? 'status-connected' : 'status-disconnected';
+            const dot = connected ? '● متصل' : '● غير متصل';
+            const extra = detail ? ' — ' + detail : '';
+            statusElement.innerHTML = '<span class="' + cls + '">' + dot + extra + '</span>';
         }
 
         // Get auth token
