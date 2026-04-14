@@ -9,6 +9,7 @@ use App\Models\SecondPartyData;
 use App\Models\Team;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Tests\TestCase;
 
 class SalesTargetTest extends TestCase
@@ -62,7 +63,8 @@ class SalesTargetTest extends TestCase
         $data = [
             'marketer_id' => $this->marketer->id,
             'contract_id' => $this->contract->id,
-            'contract_unit_id' => $this->unit->id,
+            'must_sell_units_count' => 1,
+            'assigned_target_value' => 500000,
             'target_type' => 'reservation',
             'start_date' => '2025-01-20',
             'end_date' => '2025-01-30',
@@ -73,7 +75,16 @@ class SalesTargetTest extends TestCase
             ->postJson('/api/sales/targets', $data);
 
         $response->assertStatus(201)
-            ->assertJson(['success' => true]);
+            ->assertJson(['success' => true])
+            ->assertJsonPath('data.must_sell_units_count', 1);
+        $this->assertEqualsWithDelta(
+            500000.0,
+            (float) $response->json('data.assigned_target_value'),
+            0.01
+        );
+
+        $tid = $response->json('data.target_id');
+        $this->assertSame(0, (int) DB::table('sales_target_units')->where('sales_target_id', $tid)->count());
 
         $this->assertDatabaseHas('sales_targets', [
             'leader_id' => $this->leader->id,
@@ -81,6 +92,7 @@ class SalesTargetTest extends TestCase
             'contract_id' => $this->contract->id,
             'target_type' => 'reservation',
             'status' => 'new',
+            'must_sell_units_count' => 1,
         ]);
     }
 
@@ -89,7 +101,7 @@ class SalesTargetTest extends TestCase
         $data = [
             'marketer_id' => $this->marketer->id,
             'contract_id' => $this->contract->id,
-            'contract_unit_id' => $this->unit->id,
+            'must_sell_units_count' => 1,
             'target_type' => 'reservation',
             'start_date' => '2025-01-20',
             'end_date' => '2025-01-30',
@@ -249,6 +261,48 @@ class SalesTargetTest extends TestCase
         $this->assertSame(null, $first['assignment_id']);
         $this->assertSame('Project Management', $first['assigned_by']);
         $this->assertArrayHasKey('project_name', $first);
+        $this->assertArrayHasKey('project_location', $first);
+        $this->assertArrayHasKey('city_name', $first['project_location'] ?? []);
+    }
+
+    public function test_target_json_includes_project_location_for_marketer()
+    {
+        $target = SalesTarget::factory()->create([
+            'leader_id' => $this->leader->id,
+            'marketer_id' => $this->marketer->id,
+            'contract_id' => $this->contract->id,
+        ]);
+
+        $response = $this->actingAs($this->marketer, 'sanctum')
+            ->getJson('/api/sales/targets/my');
+
+        $response->assertStatus(200);
+        $row = $response->json('data.0');
+        $this->assertArrayHasKey('project_location', $row);
+        $this->assertArrayHasKey('must_sell_units_count', $row);
+        $this->assertArrayHasKey('assigned_target_value', $row);
+        $this->assertSame($target->id, $row['target_id']);
+    }
+
+    public function test_store_derives_must_sell_units_count_from_legacy_contract_unit_ids()
+    {
+        $secondUnit = ContractUnit::factory()->create([
+            'contract_id' => $this->contract->id,
+            'price' => 300000,
+        ]);
+
+        $response = $this->actingAs($this->leader, 'sanctum')
+            ->postJson('/api/sales/targets', [
+                'marketer_id' => $this->marketer->id,
+                'contract_id' => $this->contract->id,
+                'contract_unit_ids' => [$this->unit->id, $secondUnit->id],
+                'target_type' => 'reservation',
+                'start_date' => '2025-01-20',
+                'end_date' => '2025-01-30',
+            ]);
+
+        $response->assertStatus(201)
+            ->assertJsonPath('data.must_sell_units_count', 2);
     }
 
     public function test_target_can_be_project_level_without_unit()
@@ -256,7 +310,7 @@ class SalesTargetTest extends TestCase
         $data = [
             'marketer_id' => $this->marketer->id,
             'contract_id' => $this->contract->id,
-            'contract_unit_id' => null,
+            'must_sell_units_count' => 3,
             'target_type' => 'negotiation',
             'start_date' => '2025-01-20',
             'end_date' => '2025-01-30',
@@ -266,19 +320,21 @@ class SalesTargetTest extends TestCase
         $response = $this->actingAs($this->leader, 'sanctum')
             ->postJson('/api/sales/targets', $data);
 
-        $response->assertStatus(201);
+        $response->assertStatus(201)
+            ->assertJsonPath('data.must_sell_units_count', 3);
 
         $this->assertDatabaseHas('sales_targets', [
             'contract_id' => $this->contract->id,
             'contract_unit_id' => null,
             'target_type' => 'negotiation',
+            'must_sell_units_count' => 3,
         ]);
     }
 
     public function test_leader_can_create_target_for_multiple_units()
     {
-        $secondUnit = ContractUnit::factory()->create([
-            'second_party_data_id' => $this->unit->secondPartyData->id,
+        ContractUnit::factory()->create([
+            'contract_id' => $this->contract->id,
             'price' => 650000,
         ]);
 
@@ -286,14 +342,18 @@ class SalesTargetTest extends TestCase
             ->postJson('/api/sales/targets', [
                 'marketer_id' => $this->marketer->id,
                 'contract_id' => $this->contract->id,
-                'contract_unit_ids' => [$this->unit->id, $secondUnit->id],
+                'must_sell_units_count' => 2,
                 'target_type' => 'closing',
                 'start_date' => '2025-01-20',
                 'end_date' => '2025-01-30',
             ]);
 
         $response->assertStatus(201)
-            ->assertJsonPath('data.contract_unit_ids', [$this->unit->id, $secondUnit->id]);
+            ->assertJsonPath('data.must_sell_units_count', 2)
+            ->assertJsonPath('data.contract_unit_ids', []);
+
+        $tid = $response->json('data.target_id');
+        $this->assertSame(0, (int) DB::table('sales_target_units')->where('sales_target_id', $tid)->count());
     }
 
     public function test_leader_cannot_create_target_for_project_outside_team()
@@ -305,6 +365,7 @@ class SalesTargetTest extends TestCase
             ->postJson('/api/sales/targets', [
                 'marketer_id' => $this->marketer->id,
                 'contract_id' => $otherContract->id,
+                'must_sell_units_count' => 1,
                 'target_type' => 'reservation',
                 'start_date' => '2025-01-20',
                 'end_date' => '2025-01-30',
@@ -328,6 +389,7 @@ class SalesTargetTest extends TestCase
             ->postJson('/api/sales/targets', [
                 'marketer_id' => $otherMarketer->id,
                 'contract_id' => $this->contract->id,
+                'must_sell_units_count' => 1,
                 'target_type' => 'reservation',
                 'start_date' => '2025-01-20',
                 'end_date' => '2025-01-30',
@@ -351,6 +413,7 @@ class SalesTargetTest extends TestCase
             ->postJson('/api/sales/targets', [
                 'marketer_id' => $otherLeader->id,
                 'contract_id' => $this->contract->id,
+                'must_sell_units_count' => 1,
                 'target_type' => 'reservation',
                 'start_date' => '2025-01-20',
                 'end_date' => '2025-01-30',

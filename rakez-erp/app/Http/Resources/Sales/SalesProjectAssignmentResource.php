@@ -14,6 +14,7 @@ class SalesProjectAssignmentResource extends JsonResource
     public function toArray(Request $request): array
     {
         $contract = $this->relationLoaded('contract') ? $this->contract : null;
+        $contract?->loadMissing(['city', 'district']);
         $assignedBy = $this->relationLoaded('assignedBy') ? $this->assignedBy : null;
 
         return [
@@ -22,6 +23,14 @@ class SalesProjectAssignmentResource extends JsonResource
             'target_id' => null,
             'contract_id' => $this->contract_id,
             'project_name' => $contract->project_name ?? 'N/A',
+            'project_location' => [
+                'city_id' => $contract?->city_id,
+                'city_name' => $contract?->city?->name,
+                'district_id' => $contract?->district_id,
+                'district_name' => $contract?->district?->name,
+            ],
+            'must_sell_units_count' => null,
+            'assigned_target_value' => null,
             'unit_number' => null,
             'contract_unit_ids' => [],
             'units' => [],

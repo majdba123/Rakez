@@ -22,6 +22,8 @@ class StoreTargetRequest extends FormRequest
             'contractId' => 'contract_id',
             'contractUnitId' => 'contract_unit_id',
             'contractUnitIds' => 'contract_unit_ids',
+            'mustSellUnitsCount' => 'must_sell_units_count',
+            'assignedTargetValue' => 'assigned_target_value',
             'targetType' => 'target_type',
             'startDate' => 'start_date',
             'endDate' => 'end_date',
@@ -38,6 +40,16 @@ class StoreTargetRequest extends FormRequest
         if ($merge !== []) {
             $this->merge($merge);
         }
+
+        // Backward compatibility: derive performance unit count from legacy unit selection (no inventory sync).
+        if (! $this->filled('must_sell_units_count')) {
+            $ids = $this->input('contract_unit_ids');
+            if (is_array($ids) && count($ids) > 0) {
+                $this->merge(['must_sell_units_count' => count(array_unique(array_map('intval', $ids)))]);
+            } elseif ($this->filled('contract_unit_id')) {
+                $this->merge(['must_sell_units_count' => 1]);
+            }
+        }
     }
 
     public function rules(): array
@@ -45,6 +57,8 @@ class StoreTargetRequest extends FormRequest
         return [
             'marketer_id' => 'required|exists:users,id',
             'contract_id' => 'required|exists:contracts,id',
+            'must_sell_units_count' => 'required|integer|min:1',
+            'assigned_target_value' => 'nullable|numeric|min:0',
             'contract_unit_id' => 'nullable|exists:contract_units,id',
             'contract_unit_ids' => 'nullable|array',
             'contract_unit_ids.*' => 'integer|exists:contract_units,id',

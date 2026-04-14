@@ -14,6 +14,8 @@ class SalesTarget extends Model
         'marketer_id',
         'contract_id',
         'contract_unit_id',
+        'must_sell_units_count',
+        'assigned_target_value',
         'target_type',
         'start_date',
         'end_date',
@@ -24,6 +26,8 @@ class SalesTarget extends Model
     protected $casts = [
         'start_date' => 'date',
         'end_date' => 'date',
+        'must_sell_units_count' => 'integer',
+        'assigned_target_value' => 'decimal:2',
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
     ];
@@ -61,7 +65,7 @@ class SalesTarget extends Model
     }
 
     /**
-     * Get all contract units assigned to this target (multiple units per target).
+     * Legacy pivot: historical rows may still list units; new targets do not sync inventory here.
      */
     public function contractUnits()
     {

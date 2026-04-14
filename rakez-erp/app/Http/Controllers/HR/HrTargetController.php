@@ -18,7 +18,7 @@ class HrTargetController extends Controller
     public function index(Request $request): JsonResponse
     {
         try {
-            $query = SalesTarget::with(['leader', 'marketer', 'contract', 'contractUnit', 'contractUnits']);
+            $query = SalesTarget::with(['leader', 'marketer', 'contract.city', 'contract.district', 'contractUnit', 'contractUnits']);
 
             if ($request->filled('status')) {
                 $query->where('status', $request->input('status'));

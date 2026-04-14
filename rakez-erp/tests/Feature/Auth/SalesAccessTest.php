@@ -299,7 +299,10 @@ class SalesAccessTest extends BasePermissionTestCase
             ->postJson('/api/sales/targets', [
                 'marketer_id' => $salesStaff->id,
                 'contract_id' => $this->contract->id,
-                'target_units' => 5,
+                'must_sell_units_count' => 5,
+                'target_type' => 'reservation',
+                'start_date' => now()->toDateString(),
+                'end_date' => now()->addMonth()->toDateString(),
             ]);
         
         $response->assertStatus(403);
@@ -315,7 +318,8 @@ class SalesAccessTest extends BasePermissionTestCase
             ->postJson('/api/sales/targets', [
                 'marketer_id' => $salesStaff->id,
                 'contract_id' => $this->contract->id,
-                'target_units' => 5,
+                'must_sell_units_count' => 5,
+                'target_type' => 'reservation',
                 'start_date' => now()->toDateString(),
                 'end_date' => now()->addMonth()->toDateString(),
             ]);
