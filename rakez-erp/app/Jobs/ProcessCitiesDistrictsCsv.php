@@ -45,7 +45,6 @@ class ProcessCitiesDistrictsCsv implements ShouldQueue
             // Phase 1: validate all rows
             $rowErrors = [];
             $validRows = [];
-            $seenCityCodes = [];
 
             foreach ($rows as $index => $row) {
                 $csvRowNumber = $index + 2;
@@ -55,7 +54,6 @@ class ProcessCitiesDistrictsCsv implements ShouldQueue
                     $rowErrors["row_{$csvRowNumber}"] = $errors;
                 } else {
                     $validRows[] = $row;
-                    $seenCityCodes[strtolower($row['city_code'])] = $csvRowNumber;
                 }
             }
 
@@ -91,22 +89,15 @@ class ProcessCitiesDistrictsCsv implements ShouldQueue
             if (!empty($validRows)) {
                 DB::beginTransaction();
                 try {
-                    $cityCache = [];
-
                     foreach ($validRows as $index => $row) {
                         $csvRowNumber = $index + 2;
                         try {
-                            $codeKey = strtolower($row['city_code']);
-
-                            if (!isset($cityCache[$codeKey])) {
-                                $city = City::firstOrCreate(
-                                    ['code' => $row['city_code']],
-                                    ['name' => $row['city_name']]
-                                );
-                                $cityCache[$codeKey] = $city;
-                            }
-
-                            $city = $cityCache[$codeKey];
+                            // updateOrCreate: re-imports must apply changed city_name for an existing code
+                            // (firstOrCreate leaves name unchanged when the row matches by code only).
+                            $city = City::updateOrCreate(
+                                ['code' => $row['city_code']],
+                                ['name' => $row['city_name']]
+                            );
 
                             if (!empty($row['district_name'])) {
                                 District::firstOrCreate(
