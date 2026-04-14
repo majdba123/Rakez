@@ -14,7 +14,6 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
-use Illuminate\Validation\Rule;
 use App\Support\TabularImportReader;
 use Exception;
 
@@ -77,32 +76,50 @@ class ProcessTeamsCsv implements ShouldQueue
                 $validRows[$index] = $row;
             }
 
-            // Phase 2: insert
+            if (! empty($rowErrors)) {
+                $csvImport->markImportFailedWithRowErrors(
+                    'فشل استيراد الملف: توجد أخطاء تحقق من البيانات ولم يُستورد أي صف. راجع row_errors.',
+                    $rowErrors
+                );
+                Storage::disk('local')->delete($csvImport->file_path);
+                Log::info("Teams CSV import #{$this->csvImportId}: validation failed; no rows imported.");
+
+                return;
+            }
+
+            // Phase 2: insert (all-or-nothing on store errors)
             $service = app(TeamService::class);
             $successful = 0;
-            $failed = count($rowErrors);
 
             if (!empty($validRows)) {
                 DB::beginTransaction();
                 try {
+                    $insertErrors = [];
                     foreach ($validRows as $index => $row) {
                         $csvRowNumber = $index + 2;
                         try {
                             $service->storeTeam($row, $this->userId);
                             $successful++;
                         } catch (Exception $e) {
-                            $rowErrors["row_{$csvRowNumber}"] = ['store' => [$e->getMessage()]];
-                            $failed++;
+                            $insertErrors["row_{$csvRowNumber}"] = ['store' => [$e->getMessage()]];
                         }
 
-                        $csvImport->update(['processed_rows' => $successful + $failed]);
+                        $csvImport->update(['processed_rows' => $successful + count($insertErrors)]);
                     }
 
-                    if ($successful > 0) {
-                        DB::commit();
-                    } else {
+                    if (! empty($insertErrors)) {
                         DB::rollBack();
+                        $csvImport->markImportFailedWithRowErrors(
+                            'فشل الاستيراد أثناء الحفظ: لم يُستورد أي صف. راجع row_errors.',
+                            $insertErrors
+                        );
+                        Storage::disk('local')->delete($csvImport->file_path);
+                        Log::info("Teams CSV import #{$this->csvImportId}: store rolled back; no rows imported.");
+
+                        return;
                     }
+
+                    DB::commit();
                 } catch (Exception $e) {
                     DB::rollBack();
                     throw $e;
@@ -110,13 +127,15 @@ class ProcessTeamsCsv implements ShouldQueue
             }
 
             $csvImport->recordImportOutcome(
-                $successful,
-                $failed,
-                ! empty($rowErrors) ? $rowErrors : null
+                successful: $successful,
+                failed: 0,
+                rowErrors: null,
+                processedRows: $successful,
+                skippedRows: 0
             );
             Storage::disk('local')->delete($csvImport->file_path);
 
-            Log::info("Teams CSV import #{$this->csvImportId} completed: {$successful} ok, {$failed} failed.");
+            Log::info("Teams CSV import #{$this->csvImportId} completed: {$successful} ok.");
 
         } catch (Exception $e) {
             $csvImport->markFailed($e->getMessage());

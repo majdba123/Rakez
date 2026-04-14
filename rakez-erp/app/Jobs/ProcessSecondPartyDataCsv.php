@@ -74,7 +74,10 @@ class ProcessSecondPartyDataCsv implements ShouldQueue
             }
 
             if (! empty($rowErrors)) {
-                $csvImport->recordImportOutcome(0, count($rowErrors), $rowErrors, count($rows));
+                $csvImport->markImportFailedWithRowErrors(
+                    'فشل استيراد الملف: توجد أخطاء تحقق من البيانات ولم يُحفظ شيء. راجع row_errors.',
+                    $rowErrors
+                );
                 Storage::disk('local')->delete($csvImport->file_path);
                 Log::info("SecondPartyData CSV import #{$this->csvImportId}: validation failed on ".count($rowErrors).' row(s).');
 
@@ -98,8 +101,6 @@ class ProcessSecondPartyDataCsv implements ShouldQueue
             }
 
             $successful = 0;
-            $failed = 0;
-            $finalRowErrors = [];
 
             DB::beginTransaction();
             try {
@@ -110,14 +111,26 @@ class ProcessSecondPartyDataCsv implements ShouldQueue
                 DB::commit();
             } catch (Exception $e) {
                 DB::rollBack();
-                $finalRowErrors['import'] = ['store' => [$e->getMessage()]];
-                $failed = 1;
+                $csvImport->markImportFailedWithRowErrors(
+                    'فشل الاستيراد أثناء الحفظ: لم يُحفظ أي بيانات. راجع row_errors.',
+                    ['import' => ['store' => [$e->getMessage()]]]
+                );
+                Storage::disk('local')->delete($csvImport->file_path);
+                Log::info("SecondPartyData CSV import #{$this->csvImportId}: store failed; nothing saved.");
+
+                return;
             }
 
-            $csvImport->recordImportOutcome($successful, $failed, $finalRowErrors ?: null, count($rows));
+            $csvImport->recordImportOutcome(
+                successful: $successful,
+                failed: 0,
+                rowErrors: null,
+                processedRows: count($rows),
+                skippedRows: 0
+            );
             Storage::disk('local')->delete($csvImport->file_path);
 
-            Log::info("SecondPartyData CSV import #{$this->csvImportId} completed: {$successful} ok, {$failed} failed.");
+            Log::info("SecondPartyData CSV import #{$this->csvImportId} completed: {$successful} ok.");
 
         } catch (Exception $e) {
             $csvImport->markFailed($e->getMessage());

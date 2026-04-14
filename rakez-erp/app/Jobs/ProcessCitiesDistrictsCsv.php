@@ -118,6 +118,7 @@ class ProcessCitiesDistrictsCsv implements ShouldQueue
             if (!empty($validRows)) {
                 DB::beginTransaction();
                 try {
+                    $insertErrors = [];
                     foreach ($validRows as $row) {
                         $csvRowNumber = $row['_line'];
                         $rowForDb = $row;
@@ -144,18 +145,25 @@ class ProcessCitiesDistrictsCsv implements ShouldQueue
                                 $skipped++;
                             }
                         } catch (Exception $e) {
-                            $rowErrors["row_{$csvRowNumber}"] = ['insert' => [$e->getMessage()]];
-                            $failed++;
+                            $insertErrors["row_{$csvRowNumber}"] = ['insert' => [$e->getMessage()]];
                         }
 
-                        $csvImport->update(['processed_rows' => $successful + $skipped + $failed]);
+                        $csvImport->update(['processed_rows' => $successful + $skipped + count($insertErrors)]);
                     }
 
-                    if ($successful > 0) {
-                        DB::commit();
-                    } else {
+                    if (! empty($insertErrors)) {
                         DB::rollBack();
+                        $csvImport->markImportFailedWithRowErrors(
+                            'فشل الاستيراد أثناء الحفظ: لم يُستورد أي صف. راجع row_errors.',
+                            $insertErrors
+                        );
+                        Storage::disk('local')->delete($csvImport->file_path);
+                        Log::info("Cities/Districts CSV import #{$this->csvImportId}: insert rolled back; no rows imported.");
+
+                        return;
                     }
+
+                    DB::commit();
                 } catch (Exception $e) {
                     DB::rollBack();
                     throw $e;
@@ -164,14 +172,14 @@ class ProcessCitiesDistrictsCsv implements ShouldQueue
 
             $csvImport->recordImportOutcome(
                 successful: $successful,
-                failed: $failed,
-                rowErrors: ! empty($rowErrors) ? $rowErrors : null,
-                processedRows: $successful + $skipped + $failed,
+                failed: 0,
+                rowErrors: null,
+                processedRows: $successful + $skipped,
                 skippedRows: $skipped
             );
             Storage::disk('local')->delete($csvImport->file_path);
 
-            Log::info("Cities/Districts CSV import #{$this->csvImportId} completed: {$successful} new, {$skipped} unchanged, {$failed} failed.");
+            Log::info("Cities/Districts CSV import #{$this->csvImportId} completed: {$successful} new, {$skipped} unchanged.");
 
         } catch (Exception $e) {
             $csvImport->markFailed($e->getMessage());

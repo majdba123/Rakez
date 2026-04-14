@@ -48,10 +48,10 @@ trait RespondsWithCsvImportUpload
 
         $message = match (true) {
             $csvImport->status === CsvImport::STATUS_COMPLETED_WITH_ERRORS => 'تم الاستيراد مع وجود أخطاء في بعض الصفوف',
-            $csvImport->type === CsvImport::TYPE_CITIES_DISTRICTS
+            in_array($csvImport->type, [CsvImport::TYPE_CITIES_DISTRICTS, CsvImport::TYPE_DISTRICTS], true)
                 && $successful === 0 && $failed === 0 && $skipped > 0
                 => 'تمت معالجة الملف دون إضافة بيانات جديدة (جميع الصفوف موجودة مسبقاً).',
-            $csvImport->type === CsvImport::TYPE_CITIES_DISTRICTS
+            in_array($csvImport->type, [CsvImport::TYPE_CITIES_DISTRICTS, CsvImport::TYPE_DISTRICTS], true)
                 && $skipped > 0 && $successful > 0
                 => "تم استيراد {$successful} صفاً ببيانات جديدة، و{$skipped} صفاً لم يتغير (موجود مسبقاً).",
             default => 'تم استيراد الملف بنجاح',

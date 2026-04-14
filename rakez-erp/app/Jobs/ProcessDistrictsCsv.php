@@ -14,7 +14,6 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
-use Illuminate\Validation\Rule;
 use Exception;
 
 class ProcessDistrictsCsv implements ShouldQueue
@@ -73,36 +72,63 @@ class ProcessDistrictsCsv implements ShouldQueue
                 }
 
                 $seenPairs[$pairKey] = $csvRowNumber;
-                $validRows[$index] = $row;
+                $row['_line'] = $csvRowNumber;
+                $validRows[] = $row;
             }
 
-            // Phase 2: insert
+            if (! empty($rowErrors)) {
+                $csvImport->markImportFailedWithRowErrors(
+                    'فشل استيراد الملف: توجد أخطاء تحقق من البيانات ولم يُستورد أي صف. راجع row_errors.',
+                    $rowErrors
+                );
+                Storage::disk('local')->delete($csvImport->file_path);
+                Log::info("Districts CSV import #{$this->csvImportId}: validation failed; no rows imported.");
+
+                return;
+            }
+
+            // Phase 2: insert only (existing districts unchanged; all-or-nothing on errors)
             $successful = 0;
-            $failed = count($rowErrors);
+            $skipped = 0;
 
             if (!empty($validRows)) {
                 DB::beginTransaction();
                 try {
-                    foreach ($validRows as $index => $row) {
-                        $csvRowNumber = $index + 2;
+                    $insertErrors = [];
+                    foreach ($validRows as $row) {
+                        $csvRowNumber = $row['_line'];
+                        $rowForDb = $row;
+                        unset($rowForDb['_line']);
+
                         try {
-                            District::firstOrCreate(
-                                ['city_id' => $row['city_id'], 'name' => $row['name']],
+                            $district = District::firstOrCreate(
+                                ['city_id' => $rowForDb['city_id'], 'name' => $rowForDb['name']],
                             );
-                            $successful++;
+                            if ($district->wasRecentlyCreated) {
+                                $successful++;
+                            } else {
+                                $skipped++;
+                            }
                         } catch (Exception $e) {
-                            $rowErrors["row_{$csvRowNumber}"] = ['insert' => [$e->getMessage()]];
-                            $failed++;
+                            $insertErrors["row_{$csvRowNumber}"] = ['insert' => [$e->getMessage()]];
                         }
 
-                        $csvImport->update(['processed_rows' => $successful + $failed]);
+                        $csvImport->update(['processed_rows' => $successful + $skipped + count($insertErrors)]);
                     }
 
-                    if ($successful > 0) {
-                        DB::commit();
-                    } else {
+                    if (! empty($insertErrors)) {
                         DB::rollBack();
+                        $csvImport->markImportFailedWithRowErrors(
+                            'فشل الاستيراد أثناء الحفظ: لم يُستورد أي صف. راجع row_errors.',
+                            $insertErrors
+                        );
+                        Storage::disk('local')->delete($csvImport->file_path);
+                        Log::info("Districts CSV import #{$this->csvImportId}: insert rolled back; no rows imported.");
+
+                        return;
                     }
+
+                    DB::commit();
                 } catch (Exception $e) {
                     DB::rollBack();
                     throw $e;
@@ -110,13 +136,15 @@ class ProcessDistrictsCsv implements ShouldQueue
             }
 
             $csvImport->recordImportOutcome(
-                $successful,
-                $failed,
-                ! empty($rowErrors) ? $rowErrors : null
+                successful: $successful,
+                failed: 0,
+                rowErrors: null,
+                processedRows: $successful + $skipped,
+                skippedRows: $skipped
             );
             Storage::disk('local')->delete($csvImport->file_path);
 
-            Log::info("Districts CSV import #{$this->csvImportId} completed: {$successful} ok, {$failed} failed.");
+            Log::info("Districts CSV import #{$this->csvImportId} completed: {$successful} new, {$skipped} unchanged.");
 
         } catch (Exception $e) {
             $csvImport->markFailed($e->getMessage());
