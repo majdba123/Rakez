@@ -5,7 +5,7 @@ namespace App\Services\Marketing;
 use App\Models\Contract;
 
 /**
- * Resolves canonical commission-base pricing for marketing APIs (calculate-budget, developer plan contract block).
+ * Resolves canonical commission-base pricing for marketing APIs (project `pricing_source`, developer plan show, budget calculator inputs).
  *
  * Canonical commission base = **full project inventory value** (sum of all contract unit prices), not available-only.
  *

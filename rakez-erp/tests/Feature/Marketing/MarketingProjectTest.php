@@ -247,53 +247,22 @@ class MarketingProjectTest extends TestCase
     }
 
     #[Test]
-    public function it_can_calculate_campaign_budget()
+    public function project_show_includes_pricing_source_without_campaign_calculator_payload(): void
     {
         $contract = Contract::factory()->create([
+            'status' => 'completed',
             'commission_percent' => 2.5,
         ]);
         ContractInfo::factory()->create([
             'contract_id' => $contract->id,
+            'contract_number' => 'CNT-100',
             'agreement_duration_days' => 30,
-            'agreement_duration_months' => 1,
             'avg_property_value' => 1000000,
         ]);
-
-        $response = $this->actingAs($this->marketingUser, 'sanctum')
-            ->postJson('/api/marketing/projects/calculate-budget', [
-                'contract_id' => $contract->id,
-                'unit_price' => 1000000
-            ]);
-
-        $response->assertStatus(200)
-            ->assertJsonPath('success', true)
-            ->assertJsonPath('data.commission_value', 25000)
-            ->assertJsonPath('data.marketing_value', 2500)
-            ->assertJsonPath('data.pricing_basis.source', 'total_unit_price_override')
-            ->assertJsonPath('data.pricing_basis.total_unit_price', 1000000);
-    }
-
-    #[Test]
-    public function calculate_budget_uses_sum_of_all_unit_prices_when_no_override()
-    {
-        $contract = Contract::factory()->create([
-            'commission_percent' => 2.5,
-        ]);
-        ContractInfo::factory()->create([
-            'contract_id' => $contract->id,
-            'agreement_duration_days' => 30,
-            'agreement_duration_months' => 1,
-            'avg_property_value' => 999999,
-        ]);
         ContractUnit::factory()->create([
             'contract_id' => $contract->id,
             'status' => 'available',
-            'price' => 400000,
-        ]);
-        ContractUnit::factory()->create([
-            'contract_id' => $contract->id,
-            'status' => 'available',
-            'price' => 600000,
+            'price' => 500000,
         ]);
         ContractUnit::factory()->create([
             'contract_id' => $contract->id,
@@ -302,40 +271,15 @@ class MarketingProjectTest extends TestCase
         ]);
 
         $response = $this->actingAs($this->marketingUser, 'sanctum')
-            ->postJson('/api/marketing/projects/calculate-budget', [
-                'contract_id' => $contract->id,
-            ]);
+            ->getJson("/api/marketing/projects/{$contract->id}");
 
         $response->assertStatus(200)
-            ->assertJsonPath('data.pricing_basis.source', 'unit_prices_sum_all')
-            ->assertJsonPath('data.pricing_basis.total_unit_price', 1500000)
-            ->assertJsonPath('data.pricing_basis.total_unit_price_available_sum', 1000000)
-            ->assertJsonPath('data.commission_value', 37500)
-            ->assertJsonPath('data.marketing_value', 3750)
-            ->assertJsonPath('data.calculated_contract_budget.commission_value', 37500)
-            ->assertJsonPath('data.calculated_contract_budget.marketing_value', 3750);
-    }
+            ->assertJsonPath('data.pricing_source.contract_number', 'CNT-100')
+            ->assertJsonPath('data.pricing_source.commission_value', 25000)
+            ->assertJsonPath('data.pricing_source.pricing_basis.source', 'unit_prices_sum_all');
 
-    #[Test]
-    public function it_uses_contract_duration_months_for_monthly_budget_when_available()
-    {
-        $contract = Contract::factory()->create([
-            'commission_percent' => 2.5,
-        ]);
-        ContractInfo::factory()->create([
-            'contract_id' => $contract->id,
-            'agreement_duration_days' => 60,
-            'agreement_duration_months' => 2,
-            'avg_property_value' => 1000000,
-        ]);
-
-        $response = $this->actingAs($this->marketingUser, 'sanctum')
-            ->postJson('/api/marketing/projects/calculate-budget', [
-                'contract_id' => $contract->id,
-                'unit_price' => 1000000
-            ]);
-
-        $response->assertStatus(200)
-            ->assertJsonPath('data.monthly_budget', 1250);
+        $payload = $response->json('data');
+        $this->assertArrayNotHasKey('marketing_value', $payload['pricing_source']);
+        $this->assertArrayNotHasKey('daily_budget', $payload['pricing_source']);
     }
 }

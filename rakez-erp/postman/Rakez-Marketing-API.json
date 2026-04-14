@@ -221,7 +221,7 @@
       ]
     },
     {
-      "name": "Marketing — Projects & budget",
+      "name": "Marketing — Projects",
       "item": [
         {
           "name": "List marketing projects",
@@ -291,7 +291,7 @@
                 "{{contractId}}"
               ]
             },
-            "description": "Details for one contract's marketing project. Replace `contractId` (contracts.id).\n\n**Verification:** code-verified only",
+            "description": "Contract/project + relations. **`pricing_source`** = canonical commission base (full project) + `commission_value` (no marketing %). Campaign budget math is **not** here — use `POST …/developer-plans/calculate-budget` only.\n\n**Verification:** code-verified only",
             "auth": {
               "type": "bearer",
               "bearer": [
@@ -301,62 +301,6 @@
                   "type": "string"
                 }
               ]
-            }
-          },
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "pm.test(\"Status 2xx or auth error\", function () { pm.expect([200,201,204,401,403,422]).to.include(pm.response.code); });",
-                  "pm.test(\"Response time < 30s\", function () { pm.expect(pm.response.responseTime).to.be.below(30000); });"
-                ],
-                "type": "text/javascript"
-              }
-            }
-          ]
-        },
-        {
-          "name": "Calculate project budget (preview)",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Accept",
-                "value": "application/json",
-                "type": "text"
-              },
-              {
-                "key": "Content-Type",
-                "value": "application/json",
-                "type": "text"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/marketing/projects/calculate-budget",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "marketing",
-                "projects",
-                "calculate-budget"
-              ]
-            },
-            "description": "**Formulas:** `commission_value` = `pricing_basis.commission_base_amount` × `commission_percent`/100 (full project sum by default). `marketing_value` = `commission_value` × `marketing_percent`/100. **Response:** root `commission_value`, `marketing_value`, `commission_value_total`, `calculated_contract_budget` (same numbers + `average_unit_price_all`), `daily_budget`, `monthly_budget`, `pricing_basis`. Canonical base is **`unit_prices_sum_all`** unless `total_unit_price_override`, else `avg_property_value_stored`. Available-only sums are informational. Permission `marketing.budgets.manage`. See `CalculateBudgetRequest`.\n\n**Verification:** code-derived example — safe contract_id required for production",
-            "auth": {
-              "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "{{token}}",
-                  "type": "string"
-                }
-              ]
-            },
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"contract_id\": 0,\n  \"marketing_percent\": 5,\n  \"marketing_value\": null,\n  \"average_cpm\": 10,\n  \"average_cpc\": 2,\n  \"conversion_rate\": 2.5,\n  \"total_unit_price_override\": null\n}"
             }
           },
           "event": [
@@ -548,7 +492,7 @@
                 "calculate-budget"
               ]
             },
-            "description": "Same financial engine as project calculate-budget: full-project commission base → `commission_value` → `marketing_value`. Body requires `marketing_percent` (6–10) per controller validation.\n\n**Verification:** code-derived example — not executed on production",
+            "description": "**Only** official budget calculator. `commission_value` = full-project base × commission%; `marketing_value` = commission × `marketing_percent`/100; `expected_impressions`/`expected_clicks` from CPM/CPC; `daily_budget`/`monthly_budget` from duration. Optional `average_cpm`, `average_cpc`, `total_unit_price_override`. `DeveloperPlanCalculateBudgetRequest`; permission `marketing.plans.create`.\n\n**Verification:** code-derived example — not executed on production",
             "auth": {
               "type": "bearer",
               "bearer": [
@@ -561,7 +505,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"contract_id\": 0,\n  \"marketing_percent\": 8\n}"
+              "raw": "{\n  \"contract_id\": 0,\n  \"marketing_percent\": 8,\n  \"average_cpm\": 25,\n  \"average_cpc\": 2.5\n}"
             }
           },
           "event": [

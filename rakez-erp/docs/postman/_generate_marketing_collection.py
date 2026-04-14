@@ -149,7 +149,7 @@ def main() -> None:
                 ],
             ),
             folder(
-                "Marketing — Projects & budget",
+                "Marketing — Projects",
                 [
                     req(
                         "List marketing projects",
@@ -162,30 +162,9 @@ def main() -> None:
                         "Show project by contract",
                         "GET",
                         "marketing/projects/{{contractId}}",
-                        desc="Details for one contract's marketing project. Replace `contractId` (contracts.id).",
+                        desc="Contract/project + relations. **`pricing_source`** = canonical commission base (full project) + `commission_value` (no marketing %). "
+                        "Campaign budget math is **not** here — use `POST …/developer-plans/calculate-budget` only.",
                         verification="code-verified only",
-                    ),
-                    req(
-                        "Calculate project budget (preview)",
-                        "POST",
-                        "marketing/projects/calculate-budget",
-                        desc="**Formulas:** `commission_value` = `pricing_basis.commission_base_amount` × `commission_percent`/100 (full project sum by default). "
-                        "`marketing_value` = `commission_value` × `marketing_percent`/100. "
-                        "**Response:** root `commission_value`, `marketing_value`, `commission_value_total`, `calculated_contract_budget` (same numbers + `average_unit_price_all`), "
-                        "`daily_budget`, `monthly_budget`, `pricing_basis`. "
-                        "Canonical base is **`unit_prices_sum_all`** unless `total_unit_price_override`, else `avg_property_value_stored`. "
-                        "Available-only sums are informational. Permission `marketing.budgets.manage`. See `CalculateBudgetRequest`.",
-                        verification="code-derived example — safe contract_id required for production",
-                        body={
-                            "contract_id": 0,
-                            "marketing_percent": 5,
-                            "marketing_value": None,
-                            "average_cpm": 10,
-                            "average_cpc": 2,
-                            "conversion_rate": 2.5,
-                            "total_unit_price_override": None,
-                        },
-                        test=TEST_JSON_SOFT,
                     ),
                 ],
             ),
@@ -222,10 +201,17 @@ def main() -> None:
                         "Calculate developer plan budget",
                         "POST",
                         "marketing/developer-plans/calculate-budget",
-                        desc="Same financial engine as project calculate-budget: full-project commission base → `commission_value` → `marketing_value`. "
-                        "Body requires `marketing_percent` (6–10) per controller validation.",
+                        desc="**Only** official budget calculator. `commission_value` = full-project base × commission%; "
+                        "`marketing_value` = commission × `marketing_percent`/100; `expected_impressions`/`expected_clicks` from CPM/CPC; "
+                        "`daily_budget`/`monthly_budget` from duration. Optional `average_cpm`, `average_cpc`, `total_unit_price_override`. "
+                        "`DeveloperPlanCalculateBudgetRequest`; permission `marketing.plans.create`.",
                         verification="code-derived example — not executed on production",
-                        body={"contract_id": 0, "marketing_percent": 8},
+                        body={
+                            "contract_id": 0,
+                            "marketing_percent": 8,
+                            "average_cpm": 25,
+                            "average_cpc": 2.5,
+                        },
                         test=TEST_JSON_SOFT,
                     ),
                     req(

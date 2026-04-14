@@ -4,11 +4,15 @@ namespace App\Http\Requests\Marketing;
 
 use Illuminate\Foundation\Http\FormRequest;
 
-class CalculateBudgetRequest extends FormRequest
+/**
+ * Validates {@see \App\Http\Controllers\Marketing\DeveloperMarketingPlanController::calculateBudget} only.
+ * Canonical budget preview: POST /marketing/developer-plans/calculate-budget.
+ */
+class DeveloperPlanCalculateBudgetRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return $this->user()->can('marketing.budgets.manage');
+        return $this->user()->can('marketing.plans.create');
     }
 
     protected function prepareForValidation(): void
@@ -22,11 +26,9 @@ class CalculateBudgetRequest extends FormRequest
     {
         return [
             'contract_id' => 'required|exists:contracts,id',
-            'marketing_percent' => 'nullable|numeric|min:0|max:100',
-            'marketing_value' => 'nullable|numeric|min:0',
+            'marketing_percent' => 'required|numeric|min:0|max:100',
             'average_cpm' => 'nullable|numeric|min:0',
             'average_cpc' => 'nullable|numeric|min:0',
-            'conversion_rate' => 'nullable|numeric|min:0|max:100',
             /** Explicit SAR override for commission base (audited in pricing_basis.source). */
             'total_unit_price_override' => 'nullable|numeric|min:0',
             /** @deprecated Use total_unit_price_override */

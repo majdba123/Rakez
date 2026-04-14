@@ -9,7 +9,8 @@ use App\Models\MarketingSetting;
 class DeveloperMarketingPlanService
 {
     public function __construct(
-        private ContractPricingBasisService $pricingBasisService
+        private ContractPricingBasisService $pricingBasisService,
+        private MarketingBudgetCalculationService $budgetCalculationService,
     ) {}
 
     public function createOrUpdatePlan($contractId, $data)
@@ -57,30 +58,6 @@ class DeveloperMarketingPlanService
     }
 
     /**
-     * Contract formulas (UI): total commission = sum(all unit prices)×commission%; marketing money = commission×marketing%.
-     *
-     * @return array<string, float|int>
-     */
-    public function buildCalculatedContractBudget(Contract $contract, array $pricingBasis, float $marketingPercent): array
-    {
-        $commissionPercent = (float) $contract->getEffectiveCommissionPercent();
-        $base = (float) $pricingBasis['commission_base_amount'];
-        $commissionValue = round($base * ($commissionPercent / 100), 2);
-        $marketingValue = round($commissionValue * ($marketingPercent / 100), 2);
-
-        return [
-            'total_unit_price_all_sum' => (float) ($pricingBasis['total_unit_price_all_sum'] ?? 0),
-            'all_units_count' => (int) ($pricingBasis['all_units_count'] ?? 0),
-            'average_unit_price_all' => (float) ($pricingBasis['average_unit_price_all'] ?? 0),
-            'commission_percent' => $commissionPercent,
-            'commission_value' => $commissionValue,
-            'commission_value_total' => $commissionValue,
-            'marketing_percent' => $marketingPercent,
-            'marketing_value' => $marketingValue,
-        ];
-    }
-
-    /**
      * Developer plan payload for API / PDF. Numeric money/count fields are JSON numbers; human copy is *_display_*.
      *
      * `total_budget` / `total_budget_display` follow the **calculated** marketing money (قيمة التسويق المحسوبة).
@@ -110,7 +87,9 @@ class DeveloperMarketingPlanService
 
         $plan = DeveloperMarketingPlan::where('contract_id', $contractId)->first();
         if (!$plan) {
-            $calculated = $this->buildCalculatedContractBudget($contract, $pricingBasis, $defaultMarketingPercent);
+            $calculated = $this->budgetCalculationService->calculateCampaignBudget((int) $contractId, [
+                'marketing_percent' => $defaultMarketingPercent,
+            ])['calculated_contract_budget'];
 
             return [
                 'contract' => $contractData,
@@ -134,7 +113,9 @@ class DeveloperMarketingPlanService
         }
 
         $mktPct = $plan->marketing_percent !== null ? (float) $plan->marketing_percent : $defaultMarketingPercent;
-        $calculatedContractBudget = $this->buildCalculatedContractBudget($contract, $pricingBasis, $mktPct);
+        $calculatedContractBudget = $this->budgetCalculationService->calculateCampaignBudget((int) $contractId, [
+            'marketing_percent' => $mktPct,
+        ])['calculated_contract_budget'];
         $planPayload = $this->serializeDeveloperPlan($plan);
 
         $durationDays = (int) ($info->agreement_duration_days ?? 0);
