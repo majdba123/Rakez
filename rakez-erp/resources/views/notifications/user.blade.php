@@ -55,7 +55,7 @@
 
     @php
         $reverb = config('broadcasting.connections.reverb');
-        $reverbOpts = $reverb['options'] ?? [];
+        $reverbOpts = $reverb['frontend'] ?? $reverb['options'] ?? [];
     @endphp
     <script>
         const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');

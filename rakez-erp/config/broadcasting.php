@@ -35,9 +35,24 @@ return [
             'key' => env('REVERB_APP_KEY'),
             'secret' => env('REVERB_APP_SECRET'),
             'app_id' => env('REVERB_APP_ID'),
+            /*
+            | Server-side publishing (MessageSent, etc.): PHP → Reverb HTTP API.
+            | Must use the host/port where Reverb actually listens (usually loopback + http).
+            | Do not use the public API domain here — https://api.example:8080 often has no TLS and times out (cURL 28).
+            | Override with REVERB_INTERNAL_HOST, REVERB_INTERNAL_PORT, REVERB_INTERNAL_SCHEME if needed (e.g. Docker service name).
+            */
             'options' => [
-                'host' => env('REVERB_HOST'),
-                'port' => env('REVERB_PORT', 443),
+                'host' => env('REVERB_INTERNAL_HOST', '127.0.0.1'),
+                'port' => (int) env('REVERB_INTERNAL_PORT', env('REVERB_SERVER_PORT', 8080)),
+                'scheme' => env('REVERB_INTERNAL_SCHEME', 'http'),
+                'useTLS' => env('REVERB_INTERNAL_SCHEME', 'http') === 'https',
+            ],
+            /*
+            | Browser WebSocket settings for Blade demos (notifications, etc.). Echo/Vite should keep using VITE_REVERB_*.
+            */
+            'frontend' => [
+                'host' => env('REVERB_HOST', 'localhost'),
+                'port' => (int) env('REVERB_PORT', 443),
                 'scheme' => env('REVERB_SCHEME', 'https'),
                 'useTLS' => env('REVERB_SCHEME', 'https') === 'https',
             ],
