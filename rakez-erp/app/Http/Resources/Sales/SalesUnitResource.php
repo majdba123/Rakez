@@ -41,6 +41,8 @@ class SalesUnitResource extends JsonResource
             'view' => $this->facade ?? null,
             'orientation' => $this->facade ?? null,
             'description' => $this->description ?? null,
+            'description_en' => $this->description_en ?? null,
+            'description_ar' => $this->description_ar ?? null,
             'unit_status' => $this->status,
             'status' => $this->status,
             'computed_availability' => $this->computed_availability ?? $this->status,
