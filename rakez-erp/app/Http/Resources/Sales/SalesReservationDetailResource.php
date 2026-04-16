@@ -35,7 +35,9 @@ class SalesReservationDetailResource extends JsonResource
             'evacuation_date' => $this->evacuation_date?->format('Y-m-d'),
             'voucher_url' => $this->voucher_pdf_path ? "/api/sales/reservations/{$this->id}/voucher" : null,
             'receipt_voucher_path' => $this->receipt_voucher_path,
-            'receipt_voucher_url' => $this->receipt_voucher_path ? Storage::url($this->receipt_voucher_path) : null,
+            'receipt_voucher_url' => $this->receipt_voucher_path
+                ? Storage::disk('public')->url($this->receipt_voucher_path)
+                : null,
             'confirmed_at' => $this->confirmed_at?->toIso8601String(),
             'cancelled_at' => $this->cancelled_at?->toIso8601String(),
             'created_at' => $this->created_at?->toIso8601String(),
