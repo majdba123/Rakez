@@ -33,6 +33,7 @@ class SalesUnitResource extends JsonResource
             'floor' => $this->floor ?? null,
             'private_area' => $this->private_area_m2 ?? null,
             'private_area_m2' => $this->private_area_m2 ?? null,
+            'street_width' => $this->street_width !== null ? (float) $this->street_width : null,
             'balcony_area' => $this->private_area_m2 ?? null,
             'total_area' => $totalArea,
             'total_area_m2' => $this->total_area_m2 ?? null,

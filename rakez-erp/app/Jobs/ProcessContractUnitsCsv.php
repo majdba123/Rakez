@@ -75,6 +75,7 @@ class ProcessContractUnitsCsv implements ShouldQueue
                 'bedrooms' => ['bedrooms', 'غرف', 'عدد_الغرف'],
                 'bathrooms' => ['bathrooms', 'حمامات', 'عدد_الحمامات'],
                 'private_area_m2' => ['private_area_m2', 'private_area', 'المساحة_الخاصة', 'الشرفة'],
+                'street_width' => ['street_width', 'street width', 'width_street', 'width street', 'عرض_الشارع', 'عرض الشارع'],
                 'facade' => ['facade', 'view', 'الواجهة', 'الاتجاه'],
                 'description_en' => ['description_en', 'description', 'desc', 'الوصف', 'ملاحظات', 'الوصف_انجليزي'],
                 'description_ar' => ['description_ar', 'الوصف_عربي'],
@@ -122,6 +123,7 @@ class ProcessContractUnitsCsv implements ShouldQueue
                                 case 'price':
                                 case 'total_price':
                                 case 'private_area_m2':
+                                case 'street_width':
                                     $unitData[$field] = (float) $value;
                                     break;
                                 case 'area':

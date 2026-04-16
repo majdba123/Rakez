@@ -27,6 +27,7 @@ class ContractUnitFactory extends Factory
             'bedrooms' => $bedrooms,
             'bathrooms' => $bathrooms,
             'private_area_m2' => $privateArea,
+            'street_width' => $this->faker->randomFloat(2, 10, 40),
             // total_area_m2 set by ContractUnit model (area + private_area_m2)
             'facade' => $this->faker->randomElement(['شمال', 'جنوب', 'شرق', 'غرب', 'شمال شرق', 'شمال غرب']),
             'status' => 'available',

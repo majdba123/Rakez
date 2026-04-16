@@ -53,6 +53,10 @@
             <td>{{ $unit->private_area_m2 !== null && $unit->private_area_m2 !== '' ? $unit->private_area_m2 : '—' }}</td>
         </tr>
         <tr>
+            <td>عرض الشارع (م)</td>
+            <td>{{ $unit->street_width !== null && $unit->street_width !== '' ? $unit->street_width : '—' }}</td>
+        </tr>
+        <tr>
             <td>إجمالي المساحة (م²)</td>
             <td>{{ $unit->total_area_m2 !== null && $unit->total_area_m2 !== '' ? $unit->total_area_m2 : '—' }}</td>
         </tr>

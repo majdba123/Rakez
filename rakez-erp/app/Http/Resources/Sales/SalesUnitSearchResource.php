@@ -21,6 +21,7 @@ class SalesUnitSearchResource extends JsonResource
             'area'        => $this->total_area_m2 ? (float) $this->total_area_m2 : $area,
             'bedrooms'    => $this->bedrooms,
             'floor'       => $this->floor,
+            'street_width' => $this->street_width !== null ? (float) $this->street_width : null,
             'description' => $this->description,
             'project'     => [
                 'id'             => $contract?->id,

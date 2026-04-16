@@ -170,6 +170,7 @@ class SalesProjectController extends Controller
                     'floor' => $unit->floor !== null ? (int) $unit->floor : 0,
                     'area' => $unit->area !== null ? (float) $unit->area : 0,
                     'private_area' => $unit->private_area_m2 !== null ? (float) $unit->private_area_m2 : 0,
+                    'street_width' => $unit->street_width !== null ? (float) $unit->street_width : 0,
                     'total_area' => $totalArea,
                     'bedrooms' => $unit->bedrooms !== null ? (int) $unit->bedrooms : 0,
                     'rooms' => ($unit->bedrooms ?? 0) + ($unit->bathrooms ?? 0),

@@ -58,8 +58,9 @@ class ContractUnitApiTest extends TestCase
             'unit_number' => '101',
             'price' => 500000,
             'area' => '150',
+            'street_width' => 24,
             'status' => 'available',
-            'description' => 'Luxury apartment'
+            'description_en' => 'Luxury apartment'
         ];
 
         $response = $this->actingAs($user)->postJson("/api/contracts/units/store/{$contract->id}", $data);
@@ -69,7 +70,14 @@ class ContractUnitApiTest extends TestCase
         }
 
         $response->assertStatus(201)
-            ->assertJsonPath('data.unit_number', '101');
+            ->assertJsonPath('data.unit_number', '101')
+            ->assertJsonPath('data.street_width', 24);
+
+        $this->assertDatabaseHas('contract_units', [
+            'contract_id' => $contract->id,
+            'unit_number' => '101',
+            'street_width' => 24,
+        ]);
     }
 
     public function test_can_upload_csv_units()
@@ -90,9 +98,9 @@ class ContractUnitApiTest extends TestCase
         SecondPartyData::factory()->create(['contract_id' => $contract->id]);
 
         // Create a mock CSV file
-        $header = "unit_type,unit_number,price,area,status,description";
-        $row1 = "Villa,V1,1000000,300,available,Big Villa";
-        $row2 = "Apartment,A1,500000,150,sold,Nice Apt";
+        $header = "unit_type,unit_number,price,area,street_width,status,description";
+        $row1 = "Villa,V1,1000000,300,30,available,Big Villa";
+        $row2 = "Apartment,A1,500000,150,18,sold,Nice Apt";
         $content = implode("\n", [$header, $row1, $row2]);
 
         $file = UploadedFile::fake()->createWithContent('units.csv', $content);
@@ -112,8 +120,8 @@ class ContractUnitApiTest extends TestCase
         $response->assertStatus(201)
             ->assertJsonPath('data.units_created', 2);
             
-        $this->assertDatabaseHas('contract_units', ['unit_number' => 'V1']);
-        $this->assertDatabaseHas('contract_units', ['unit_number' => 'A1']);
+        $this->assertDatabaseHas('contract_units', ['unit_number' => 'V1', 'street_width' => 30]);
+        $this->assertDatabaseHas('contract_units', ['unit_number' => 'A1', 'street_width' => 18]);
     }
 
     public function test_can_upload_csv_units_without_second_party_data()
@@ -126,9 +134,9 @@ class ContractUnitApiTest extends TestCase
         // Intentionally do not create SecondPartyData for this contract.
 
         $content = implode("\n", [
-            "unit_type,unit_number,price,area,status,description",
-            "Villa,V2,1100000,320,available,Big Villa 2",
-            "Apartment,A2,510000,151,sold,Nice Apt 2",
+            "unit_type,unit_number,price,area,street_width,status,description",
+            "Villa,V2,1100000,320,32,available,Big Villa 2",
+            "Apartment,A2,510000,151,20,sold,Nice Apt 2",
         ]);
 
         $file = UploadedFile::fake()->createWithContent('units.csv', $content);
@@ -141,8 +149,8 @@ class ContractUnitApiTest extends TestCase
             ->assertJsonPath('data.contract_id', $contract->id)
             ->assertJsonPath('data.units_created', 2);
 
-        $this->assertDatabaseHas('contract_units', ['contract_id' => $contract->id, 'unit_number' => 'V2']);
-        $this->assertDatabaseHas('contract_units', ['contract_id' => $contract->id, 'unit_number' => 'A2']);
+        $this->assertDatabaseHas('contract_units', ['contract_id' => $contract->id, 'unit_number' => 'V2', 'street_width' => 32]);
+        $this->assertDatabaseHas('contract_units', ['contract_id' => $contract->id, 'unit_number' => 'A2', 'street_width' => 20]);
     }
 
     public function test_cannot_modify_units_without_permission()
