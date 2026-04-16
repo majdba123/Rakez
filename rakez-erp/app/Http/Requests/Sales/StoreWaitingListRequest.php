@@ -19,7 +19,6 @@ class StoreWaitingListRequest extends FormRequest
             'client_name' => 'required|string|max:255',
             'client_mobile' => 'required|string|max:50',
             'client_email' => 'nullable|email|max:255',
-            'priority' => 'nullable|integer|min:1|max:10',
             'notes' => 'nullable|string|max:1000',
         ];
     }
@@ -34,9 +33,6 @@ class StoreWaitingListRequest extends FormRequest
             'client_name.required' => 'Client name is required',
             'client_mobile.required' => 'Client mobile is required',
             'client_email.email' => 'Invalid email format',
-            'priority.integer' => 'Priority must be a number',
-            'priority.min' => 'Priority must be at least 1',
-            'priority.max' => 'Priority cannot exceed 10',
         ];
     }
 }
