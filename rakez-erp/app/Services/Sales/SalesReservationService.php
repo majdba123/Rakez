@@ -121,6 +121,7 @@ class SalesReservationService
                 'down_payment_amount' => $data['down_payment_amount'],
                 'down_payment_status' => $data['down_payment_status'],
                 'purchase_mechanism' => $data['purchase_mechanism'],
+                'receipt_voucher_path' => $data['receipt_voucher_path'] ?? null,
                 'snapshot' => $snapshot,
                 'confirmed_at' => $status === 'confirmed' ? now() : null,
             ]);

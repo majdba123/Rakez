@@ -39,6 +39,7 @@ class SalesReservation extends Model
         'credit_status',
         'purchase_mechanism',
         'voucher_pdf_path',
+        'receipt_voucher_path',
         'snapshot',
         'confirmed_at',
         'cancelled_at',

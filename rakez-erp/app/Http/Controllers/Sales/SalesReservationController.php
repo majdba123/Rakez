@@ -54,8 +54,14 @@ class SalesReservationController extends Controller
     public function store(StoreReservationRequest $request): JsonResponse
     {
         try {
+            $data = $request->validated();
+
+            if ($request->hasFile('receipt_voucher')) {
+                $data['receipt_voucher_path'] = $request->file('receipt_voucher')->store('reservations/receipts', 'public');
+            }
+
             $reservation = $this->reservationService->createReservation(
-                $request->validated(),
+                $data,
                 $request->user()
             );
 

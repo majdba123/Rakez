@@ -42,6 +42,7 @@ class SalesReservationFactory extends Factory
             'credit_status' => 'pending',
             'purchase_mechanism' => 'cash',
             'voucher_pdf_path' => null,
+            'receipt_voucher_path' => null,
             'snapshot' => [
                 'project' => ['name' => 'Test Project'],
                 'unit' => ['number' => 'A-101'],

@@ -8,6 +8,7 @@ use App\Models\SalesReservation;
 use App\Models\SecondPartyData;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
@@ -99,7 +100,24 @@ class SalesReservationTest extends TestCase
         $this->assertNotNull($reservation->voucher_pdf_path);
         
         // Verify PDF file exists
-        Storage::disk('public')->assertExists($reservation->voucher_pdf_path);
+        $this->assertTrue(Storage::disk('public')->exists($reservation->voucher_pdf_path));
+    }
+
+    public function test_create_reservation_can_upload_receipt_voucher()
+    {
+        $data = $this->getValidReservationData();
+        $data['receipt_voucher'] = UploadedFile::fake()->image('receipt-voucher.jpg');
+
+        $response = $this->actingAs($this->salesUser, 'sanctum')
+            ->post('/api/sales/reservations', $data);
+
+        $response->assertStatus(201)
+            ->assertJsonPath('data.receipt_voucher_path', fn ($path) => is_string($path) && str_starts_with($path, 'reservations/receipts/'))
+            ->assertJsonPath('data.receipt_voucher_url', fn ($url) => is_string($url) && str_contains($url, 'reservations/receipts/'));
+
+        $reservation = SalesReservation::first();
+        $this->assertNotNull($reservation->receipt_voucher_path);
+        $this->assertTrue(Storage::disk('public')->exists($reservation->receipt_voucher_path));
     }
 
     public function test_create_reservation_stores_snapshot()
