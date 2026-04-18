@@ -46,7 +46,7 @@ class AccountingDepositService
             'contract',
             'contractUnit',
         ])
-            ->where('status', 'pending');
+            ->whereIn('status', ['pending', 'received', 'confirmed']);
 
         // Apply filters
         if (isset($filters['project_id'])) {

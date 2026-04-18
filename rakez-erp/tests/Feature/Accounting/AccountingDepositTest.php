@@ -41,8 +41,24 @@ class AccountingDepositTest extends TestCase
         $contract = Contract::factory()->create();
         $secondPartyData = SecondPartyData::factory()->create(['contract_id' => $contract->id]);
         $unit = ContractUnit::factory()->create(['contract_id' => $secondPartyData->contract_id]);
-        $deposit = Deposit::factory()->create([
+        $pendingDeposit = Deposit::factory()->create([
             'status' => 'pending',
+            'contract_id' => $contract->id,
+            'contract_unit_id' => $unit->id,
+        ]);
+        $receivedDeposit = Deposit::factory()->create([
+            'status' => 'received',
+            'contract_id' => $contract->id,
+            'contract_unit_id' => $unit->id,
+        ]);
+        $confirmedDeposit = Deposit::factory()->create([
+            'status' => 'confirmed',
+            'contract_id' => $contract->id,
+            'contract_unit_id' => $unit->id,
+        ]);
+        Deposit::factory()->create([
+            'status' => 'refunded',
+            'commission_source' => 'owner',
             'contract_id' => $contract->id,
             'contract_unit_id' => $unit->id,
         ]);
@@ -56,9 +72,17 @@ class AccountingDepositTest extends TestCase
                 'data',
                 'meta',
             ])
-            ->assertJsonPath('data.0.deposit_id', $deposit->id)
-            ->assertJsonPath('data.0.reservation_id', $deposit->sales_reservation_id)
-            ->assertJsonPath('data.0.row_entity', 'deposit');
+            ->assertJsonPath('meta.total', 3);
+
+        $depositIds = collect($response->json('data'))->pluck('deposit_id')->all();
+        $statuses = collect($response->json('data'))->pluck('status')->all();
+
+        $this->assertEqualsCanonicalizing(
+            [$pendingDeposit->id, $receivedDeposit->id, $confirmedDeposit->id],
+            $depositIds
+        );
+        $this->assertEqualsCanonicalizing(['pending', 'received', 'confirmed'], $statuses);
+        $this->assertNotContains('refunded', $statuses);
     }
 
     /** @test */
