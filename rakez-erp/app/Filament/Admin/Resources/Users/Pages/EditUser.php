@@ -4,9 +4,9 @@ namespace App\Filament\Admin\Resources\Users\Pages;
 
 use App\Filament\Admin\Resources\Users\UserResource;
 use App\Models\User;
+use App\Services\Governance\GovernanceCatalog;
 use App\Services\Governance\UserGovernanceService;
 use Filament\Actions\DeleteAction;
-use Filament\Actions\RestoreAction;
 use Filament\Resources\Pages\EditRecord;
 use Illuminate\Database\Eloquent\Model;
 
@@ -18,10 +18,17 @@ class EditUser extends EditRecord
     {
         /** @var User $record */
         $record = $this->getRecord();
+        $catalog = app(GovernanceCatalog::class);
 
         $data['governance_roles'] = $record->roles
             ->pluck('name')
-            ->intersect(config('governance.managed_panel_roles'))
+            ->intersect(config('governance.managed_governance_roles'))
+            ->values()
+            ->all();
+
+        $data['additional_roles'] = $record->roles
+            ->pluck('name')
+            ->filter(fn (string $role): bool => $catalog->isSupplementalOperationalRole($role))
             ->values()
             ->all();
 
@@ -44,8 +51,11 @@ class EditUser extends EditRecord
     protected function getHeaderActions(): array
     {
         return [
-            DeleteAction::make(),
-            RestoreAction::make(),
+            DeleteAction::make('deleteUser')
+                ->visible(fn (User $record): bool => UserResource::canDelete($record))
+                ->action(function (User $record): void {
+                    app(UserGovernanceService::class)->delete($record);
+                }),
         ];
     }
 }

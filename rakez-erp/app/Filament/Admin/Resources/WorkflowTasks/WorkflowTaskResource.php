@@ -47,25 +47,25 @@ class WorkflowTaskResource extends Resource
             ->modifyQueryUsing(fn (Builder $query): Builder => $query->with(['team', 'assignee', 'creator'])->latest())
             ->columns([
                 TextColumn::make('id')->sortable(),
-                TextColumn::make('task_name')->label('Task')->searchable(),
+                TextColumn::make('task_name')->label(__('filament-admin.resources.workflow_tasks.columns.task'))->searchable(),
                 TextColumn::make('section')->badge()->placeholder('-'),
-                TextColumn::make('team.name')->label('Team')->placeholder('-'),
-                TextColumn::make('assignee.name')->label('Assignee')->placeholder('-'),
+                TextColumn::make('team.name')->label(__('filament-admin.resources.workflow_tasks.columns.team'))->placeholder('-'),
+                TextColumn::make('assignee.name')->label(__('filament-admin.resources.workflow_tasks.columns.assignee'))->placeholder('-'),
                 TextColumn::make('status')->badge(),
                 TextColumn::make('due_at')->dateTime()->placeholder('-'),
-                TextColumn::make('creator.name')->label('Created By')->placeholder('-'),
+                TextColumn::make('creator.name')->label(__('filament-admin.resources.workflow_tasks.columns.created_by'))->placeholder('-'),
             ])
             ->filters([
                 SelectFilter::make('status')
                     ->options([
-                        Task::STATUS_IN_PROGRESS => 'In Progress',
-                        Task::STATUS_COMPLETED => 'Completed',
-                        Task::STATUS_COULD_NOT_COMPLETE => 'Could Not Complete',
+                        Task::STATUS_IN_PROGRESS => __('filament-admin.resources.workflow_tasks.status.in_progress'),
+                        Task::STATUS_COMPLETED => __('filament-admin.resources.workflow_tasks.status.completed'),
+                        Task::STATUS_COULD_NOT_COMPLETE => __('filament-admin.resources.workflow_tasks.status.could_not_complete'),
                     ]),
             ])
             ->actions([
                 Action::make('markInProgress')
-                    ->label('Mark In Progress')
+                    ->label(__('filament-admin.resources.workflow_tasks.actions.mark_in_progress'))
                     ->icon(Heroicon::OutlinedArrowPath)
                     ->color('info')
                     ->visible(fn (Task $record): bool => static::canGovernanceMutation('tasks.create') && $record->status !== Task::STATUS_IN_PROGRESS)
@@ -87,11 +87,11 @@ class WorkflowTaskResource extends Resource
 
                         Notification::make()
                             ->success()
-                            ->title('Task moved back to in progress.')
+                            ->title(__('filament-admin.resources.workflow_tasks.notifications.moved_in_progress'))
                             ->send();
                     }),
                 Action::make('markCompleted')
-                    ->label('Mark Completed')
+                    ->label(__('filament-admin.resources.workflow_tasks.actions.mark_completed'))
                     ->icon(Heroicon::OutlinedCheckCircle)
                     ->color('success')
                     ->visible(fn (Task $record): bool => static::canGovernanceMutation('tasks.create') && $record->status !== Task::STATUS_COMPLETED)
@@ -113,16 +113,16 @@ class WorkflowTaskResource extends Resource
 
                         Notification::make()
                             ->success()
-                            ->title('Task marked as completed.')
+                            ->title(__('filament-admin.resources.workflow_tasks.notifications.marked_completed'))
                             ->send();
                     }),
                 Action::make('markCouldNotComplete')
-                    ->label('Could Not Complete')
+                    ->label(__('filament-admin.resources.workflow_tasks.actions.could_not_complete'))
                     ->icon(Heroicon::OutlinedExclamationTriangle)
                     ->color('warning')
                     ->schema([
                         Textarea::make('cannot_complete_reason')
-                            ->label('Reason')
+                            ->label(__('filament-admin.resources.workflow_tasks.fields.reason'))
                             ->required()
                             ->rows(4)
                             ->maxLength(1000),
@@ -150,7 +150,7 @@ class WorkflowTaskResource extends Resource
 
                         Notification::make()
                             ->success()
-                            ->title('Task marked as not completable.')
+                            ->title(__('filament-admin.resources.workflow_tasks.notifications.marked_not_completable'))
                             ->send();
                     }),
             ]);
@@ -161,6 +161,11 @@ class WorkflowTaskResource extends Resource
         return [
             'index' => ListWorkflowTasks::route('/'),
         ];
+    }
+
+    public static function getNavigationLabel(): string
+    {
+        return __('filament-admin.resources.workflow_tasks.navigation_label');
     }
 
     public static function canViewAny(): bool

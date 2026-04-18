@@ -22,7 +22,7 @@ class AiCallStatusTool implements ToolContract
         return match ($action) {
             'lead_calls' => $this->getLeadCalls($user, $args),
             'call_details' => $this->getCallDetails($user, $args),
-            'call_stats' => $this->getCallStats(),
+            'call_stats' => $this->getCallStats($user),
             default => ToolResponse::unsupportedOperation(
                 "Unsupported action '{$action}'. Allowed: lead_calls, call_details, call_stats."
             ),
@@ -123,15 +123,23 @@ class AiCallStatusTool implements ToolContract
         ], [['type' => 'record', 'title' => "AI Call #{$callId}", 'ref' => "ai_call:{$callId}"]]);
     }
 
-    private function getCallStats(): array
+    private function getCallStats(User $user): array
     {
         $inputs = ['action' => 'call_stats'];
 
-        $total = AiCall::count();
-        $completed = AiCall::where('status', 'completed')->count();
-        $failed = AiCall::where('status', 'failed')->count();
-        $noAnswer = AiCall::where('status', 'no_answer')->count();
-        $avgDuration = AiCall::where('status', 'completed')->avg('duration_seconds');
+        $baseQuery = AiCall::query();
+        if (! $user->can('ai-calls.view_all')) {
+            $leadIds = Lead::query()
+                ->where('assigned_to', $user->id)
+                ->pluck('id');
+            $baseQuery->whereIn('lead_id', $leadIds);
+        }
+
+        $total = (clone $baseQuery)->count();
+        $completed = (clone $baseQuery)->where('status', 'completed')->count();
+        $failed = (clone $baseQuery)->where('status', 'failed')->count();
+        $noAnswer = (clone $baseQuery)->where('status', 'no_answer')->count();
+        $avgDuration = (clone $baseQuery)->where('status', 'completed')->avg('duration_seconds');
 
         return ToolResponse::success('tool_ai_call_status', $inputs, [
             'total_calls' => $total,

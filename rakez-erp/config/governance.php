@@ -3,10 +3,30 @@
 return [
     'panel_id' => 'admin',
     'panel_path' => 'admin',
+    'panel_locale' => env('GOVERNANCE_PANEL_LOCALE', 'ar'),
 
     'panel_access_permission' => 'admin.panel.access',
     'super_admin_role' => 'super_admin',
-    'managed_panel_roles' => [
+    /*
+    | Role slug aliases for business-facing semantics.
+    | Internal DB/security checks keep using canonical slugs.
+    */
+    'role_slug_aliases' => [
+        'super_admin' => 'admin',
+        'admin' => 'legacy_admin',
+    ],
+    /*
+    | Filament panel entry authority.
+    | Only these roles can enter /admin.
+    */
+    'panel_authority_roles' => [
+        'super_admin',
+    ],
+    /*
+    | Governance roles managed by Access Governance services.
+    | These may power API/service authorization without panel entry authority.
+    */
+    'managed_governance_roles' => [
         'admin',
         'erp_admin',
         'super_admin',
@@ -20,6 +40,12 @@ return [
         'inventory_admin',
         'ai_admin',
         'workflow_admin',
+    ],
+    /*
+    | Deprecated alias kept for legacy callers.
+    */
+    'managed_panel_roles' => [
+        'super_admin',
     ],
     'future_section_roles' => [
     ],

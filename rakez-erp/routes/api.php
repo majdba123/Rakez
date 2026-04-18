@@ -92,6 +92,7 @@ use App\Http\Controllers\TaskMetaController;
 use App\Http\Controllers\Admin\CityController;
 use App\Http\Controllers\Admin\DistrictController;
 use App\Http\Controllers\Access\AccessProfileController;
+use App\Http\Controllers\Auth\CurrentUserController;
 
 use Illuminate\Support\Facades\File;  // أضف هذا السطر في الأعلى
 
@@ -107,11 +108,9 @@ Route::get('/csrf-token', function () {
     return response()->json(['token' => csrf_token()]);
 });
 
-// Protected routes (auth required)
-Route::middleware('auth:sanctum')->group(function () {
-    Route::get('/user', function (Request $request) {
-        return $request->user();
-    });
+// Protected routes (auth required + block deactivated users)
+Route::middleware(['auth:sanctum', 'check_status'])->group(function () {
+    Route::get('/user', [CurrentUserController::class, 'show']);
     Route::get('/access/profile', [AccessProfileController::class, 'show']);
 
     Route::post('/logout', [LoginController::class, 'logout']);
@@ -144,7 +143,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/voice/chat', [VoiceAssistantController::class, 'chat']);
         Route::prefix('realtime')->group(function () {
             Route::post('/sessions', [RealtimeSessionController::class, 'create'])->middleware('throttle:ai-realtime-create');
-            Route::get('/sessions/{session}', [RealtimeSessionController::class, 'show']);
+            Route::get('/sessions/{session}', [RealtimeSessionController::class, 'show'])->middleware('throttle:ai-realtime-control');
             Route::post('/sessions/{session}/start', [RealtimeSessionController::class, 'start'])->middleware('throttle:ai-realtime-control');
             Route::post('/sessions/{session}/heartbeat', [RealtimeSessionController::class, 'heartbeat'])->middleware('throttle:ai-realtime-control');
             Route::post('/sessions/{session}/listening', [RealtimeSessionController::class, 'listening'])->middleware('throttle:ai-realtime-control');
@@ -616,7 +615,7 @@ Route::middleware('auth:sanctum')->group(function () {
     });
 
 
-    Route::prefix('hr')->middleware(['auth:sanctum', 'hr'])->group(function () {
+    Route::prefix('hr')->middleware(['auth:sanctum', 'check_status', 'hr'])->group(function () {
         Route::post('/add_employee', [RegisterController::class, 'add_employee']);
         Route::get('/list_employees', [RegisterController::class, 'list_employees']);
         Route::get('/show_employee/{id}', [RegisterController::class, 'show_employee']);
@@ -684,7 +683,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
 
 
-    Route::prefix('inventory')->middleware(['auth:sanctum', 'inventory'])->group(function () {
+    Route::prefix('inventory')->middleware(['auth:sanctum', 'check_status', 'inventory'])->group(function () {
 
             // Contracts
             Route::prefix('contracts')->group(function () {
@@ -711,7 +710,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
 
         // My tasks (system-wide tasks assigned to current user) and task metadata
-    Route::middleware('auth:sanctum')->group(function () {
+    Route::middleware(['auth:sanctum', 'check_status'])->group(function () {
             Route::get('/my-tasks', [MyTasksController::class, 'index']);
             Route::get('/requested-tasks', [MyTasksController::class, 'requestedTasks']);
             Route::patch('/my-tasks/{id}/status', [MyTasksController::class, 'updateStatus'])->whereNumber('id');
@@ -723,7 +722,7 @@ Route::middleware('auth:sanctum')->group(function () {
         });
 
                 // Chat Routes
-        Route::prefix('chat')->middleware(['auth:sanctum'])->group(function () {
+        Route::prefix('chat')->middleware(['auth:sanctum', 'check_status'])->group(function () {
             Route::get('/conversations', [ChatController::class, 'index']);
             Route::get('/conversations/{userId}', [ChatController::class, 'getOrCreateConversation']);
             Route::get('/conversations/{conversationId}/messages', [ChatController::class, 'getMessages']);
@@ -737,7 +736,7 @@ Route::middleware('auth:sanctum')->group(function () {
         });
 
 
-    Route::prefix('teams')->middleware(['auth:sanctum'])->group(function () {
+    Route::prefix('teams')->middleware(['auth:sanctum', 'check_status'])->group(function () {
 
             Route::get('/index', [TeamController::class, 'index']);
             Route::get('/show/{id}', [TeamController::class, 'show']);
@@ -745,7 +744,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
 // ==========================================
 // ACCOUNTING DEPARTMENT ROUTES
-Route::prefix('accounting')->middleware(['auth:sanctum', 'role:accounting|admin'])->group(function () {
+Route::prefix('accounting')->middleware(['auth:sanctum', 'check_status', 'role:accounting|admin'])->group(function () {
 
     Route::get('dashboard', [AccountingDashboardController::class, 'index'])->middleware('permission:accounting.dashboard.view');
 
@@ -800,7 +799,7 @@ Route::prefix('accounting')->middleware(['auth:sanctum', 'role:accounting|admin'
 
 // ==========================================
 // CREDIT DEPARTMENT ROUTES
-Route::prefix('credit')->middleware(['auth:sanctum', 'role:credit|admin'])->group(function () {
+Route::prefix('credit')->middleware(['auth:sanctum', 'check_status', 'role:credit|admin'])->group(function () {
 
     // Dashboard
     Route::get('dashboard', [CreditDashboardController::class, 'index'])->middleware('permission:credit.dashboard.view');
@@ -858,7 +857,7 @@ Route::prefix('credit')->middleware(['auth:sanctum', 'role:credit|admin'])->grou
 
 // ==========================================
 // AI CALLING ROUTES
-Route::prefix('ai/calls')->middleware(['auth:sanctum', 'role:admin|sales|sales_leader|marketing'])->group(function () {
+Route::prefix('ai/calls')->middleware(['auth:sanctum', 'check_status', 'role:admin|sales|sales_leader|marketing'])->group(function () {
     Route::get('/', [AiCallController::class, 'index'])->middleware('permission:ai-calls.manage');
     Route::get('/analytics', [AiCallController::class, 'analytics'])->middleware('permission:ai-calls.manage');
     Route::get('/scripts', [AiCallController::class, 'scripts'])->middleware('permission:ai-calls.manage');
@@ -874,7 +873,7 @@ Route::prefix('ai/calls')->middleware(['auth:sanctum', 'role:admin|sales|sales_l
 
 // ==========================================
 // ASSISTANT KNOWLEDGE BASE (Admin only)
-Route::prefix('ai/knowledge')->middleware(['auth:sanctum', 'role:admin'])->group(function () {
+Route::prefix('ai/knowledge')->middleware(['auth:sanctum', 'check_status', 'role:admin'])->group(function () {
     Route::get('/', [AssistantKnowledgeController::class, 'index']);
     Route::post('/', [AssistantKnowledgeController::class, 'store']);
     Route::put('/{id}', [AssistantKnowledgeController::class, 'update']);
@@ -883,7 +882,7 @@ Route::prefix('ai/knowledge')->middleware(['auth:sanctum', 'role:admin'])->group
 
 // Assistant Chat shares the same AI access controls as the main assistant.
 Route::post('/ai/assistant/chat', [AssistantChatController::class, 'chat'])
-    ->middleware(['auth:sanctum', 'throttle:ai-assistant', 'ai.assistant', 'ai.redact']);
+    ->middleware(['auth:sanctum', 'check_status', 'throttle:ai-assistant', 'ai.assistant', 'ai.redact']);
 
 // ==========================================
 // TWILIO WEBHOOKS (Signed by Twilio - no user auth)
@@ -896,7 +895,7 @@ Route::prefix('webhooks/twilio')->middleware([\App\Http\Middleware\ValidateTwili
 
 // ==========================================
 // ADS PLATFORM ROUTES
-Route::prefix('ads')->middleware(['auth:sanctum', 'role:admin|marketing'])->group(function () {
+Route::prefix('ads')->middleware(['auth:sanctum', 'check_status', 'role:admin|marketing'])->group(function () {
     Route::get('accounts', [AdsInsightsController::class, 'accounts'])->middleware('permission:marketing.ads.view');
     Route::post('accounts', [AdsAccountsController::class, 'upsert'])->middleware('permission:marketing.ads.manage');
     Route::patch('accounts/{id}', [AdsAccountsController::class, 'update'])->middleware('permission:marketing.ads.manage')->whereNumber('id');
@@ -930,7 +929,7 @@ Route::prefix('ads')->middleware(['auth:sanctum', 'role:admin|marketing'])->grou
 
 // ==========================================
 // SALES - Negotiation & Payment Plans
-Route::prefix('sales')->middleware(['auth:sanctum', 'role:sales|sales_leader|admin'])->group(function () {
+Route::prefix('sales')->middleware(['auth:sanctum', 'check_status', 'role:sales|sales_leader|admin'])->group(function () {
 
     // Negotiation Approvals
     Route::get('negotiations/pending', [NegotiationApprovalController::class, 'index'])->middleware('permission:sales.negotiation.approve');

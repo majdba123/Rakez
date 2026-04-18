@@ -27,15 +27,10 @@ class GovernanceAccessService
             return false;
         }
 
-        if ($user->hasRole(config('governance.super_admin_role'))) {
-            return true;
-        }
+        $superAdminRole = config('governance.super_admin_role', 'super_admin');
+        $panelAuthorityRoles = config('governance.panel_authority_roles', [$superAdminRole]);
 
-        if (! $user->hasAnyRole(config('governance.managed_panel_roles', []))) {
-            return false;
-        }
-
-        return $this->hasPermission($user, config('governance.panel_access_permission'));
+        return $user->hasAnyRole($panelAuthorityRoles);
     }
 
     public function allows(?User $user, string $permission): bool

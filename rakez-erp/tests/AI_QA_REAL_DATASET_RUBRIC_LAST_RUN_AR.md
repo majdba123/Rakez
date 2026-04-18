@@ -1,6 +1,6 @@
 # تقرير Rubric Dataset (Real API)
 
-**التاريخ:** 2026-04-12 02:09:36
+**التاريخ:** 2026-04-15 10:57:50
   
 **endpoint focus:** `/api/ai/tools/chat` و `/api/ai/ask`
   

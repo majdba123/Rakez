@@ -143,14 +143,13 @@ class Phase1GovernanceHardeningTest extends BasePermissionTestCase
 
         $this->actingAs($user);
 
-        // admin role has admin.panel.access via Spatie (seeder gives all permissions),
-        // and admin is now an allowed managed panel role.
-        // Gate::before no longer short-circuits admin.* — it returns null, letting Spatie decide.
+        // Gate::before no longer short-circuits admin.* and panel authority is restricted
+        // to top-authority roles only.
         $access = app(GovernanceAccessService::class);
 
-        $this->assertTrue(
+        $this->assertFalse(
             $access->canAccessPanel($user),
-            'Admin role should access the panel when it carries admin.panel.access via Spatie.',
+            'Legacy admin role must not access the panel without top-authority role.',
         );
     }
 

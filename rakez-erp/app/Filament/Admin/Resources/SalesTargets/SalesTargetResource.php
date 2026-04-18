@@ -9,6 +9,7 @@ use App\Filament\Admin\Resources\SalesTargets\Pages\ListSalesTargets;
 use App\Models\SalesTarget;
 use App\Models\User;
 use App\Services\Sales\SalesTargetService;
+use App\Support\Governance\GovernanceStatusCatalog;
 use Filament\Actions\Action;
 use Filament\Forms\Components\Select;
 use Filament\Notifications\Notification;
@@ -56,26 +57,18 @@ class SalesTargetResource extends Resource
             ])
             ->filters([
                 SelectFilter::make('status')
-                    ->options([
-                        'new' => 'New',
-                        'in_progress' => 'In Progress',
-                        'completed' => 'Completed',
-                    ]),
+                    ->options(GovernanceStatusCatalog::salesTargetStatusOptions()),
             ])
             ->actions([
                 Action::make('updateTargetStatus')
-                    ->label('Set Status')
+                    ->label(__('filament-admin.resources.sales_targets.actions.set_status'))
                     ->icon(Heroicon::OutlinedArrowPath)
                     ->visible(fn (SalesTarget $record): bool => static::canGovernanceMutation('sales.targets.update'))
                     ->schema([
                         Select::make('status')
-                            ->label('Status')
+                            ->label(__('filament-admin.resources.sales_targets.fields.status'))
                             ->required()
-                            ->options([
-                                'new' => 'New',
-                                'in_progress' => 'In Progress',
-                                'completed' => 'Completed',
-                            ])
+                            ->options(GovernanceStatusCatalog::salesTargetStatusOptions())
                             ->default(fn (SalesTarget $record): string => $record->status),
                     ])
                     ->action(function (SalesTarget $record, array $data): void {
@@ -93,7 +86,7 @@ class SalesTargetResource extends Resource
 
                         Notification::make()
                             ->success()
-                            ->title('Target status updated.')
+                            ->title(__('filament-admin.resources.sales_targets.notifications.status_updated'))
                             ->send();
                     }),
             ]);

@@ -91,7 +91,19 @@ class RolesAndPermissionsSeeder extends Seeder
 
         if ($seededAdmin = User::where('email', 'admin@rakez.com')->first()) {
             if (Role::where('name', 'admin')->exists()) {
-                $seededAdmin->syncRoles(['admin']);
+                // Preserve super_admin role if already assigned (e.g. by AdminUserSeeder),
+                // and also ensure the operational 'admin' role is present for API middleware
+                // (role:admin checks). syncRoles replaces all roles, so we collect both.
+                $superAdminRole = config('governance.super_admin_role', 'super_admin');
+                $existingRoles = $seededAdmin->roles->pluck('name')->all();
+                $rolesToSync = array_unique(array_merge($existingRoles, ['admin']));
+
+                // Always guarantee super_admin is in the list for Filament panel bypass.
+                if (! in_array($superAdminRole, $rolesToSync, true)) {
+                    $rolesToSync[] = $superAdminRole;
+                }
+
+                $seededAdmin->syncRoles($rolesToSync);
             }
         }
 

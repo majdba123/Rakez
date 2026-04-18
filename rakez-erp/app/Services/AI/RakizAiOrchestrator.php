@@ -44,7 +44,7 @@ class RakizAiOrchestrator
      */
     public function chat(User $user, string $message, ?string $sessionId = null, array $pageContext = []): array
     {
-        $requestId = uniqid('rakiz_', true);
+        $requestId = 'rakiz_' . (string) Str::uuid();
         $start = microtime(true);
         $toolCallCount = 0;
         $hadDeniedRequest = false;
@@ -186,7 +186,7 @@ class RakizAiOrchestrator
                 }
 
                 $toolCallCount += count($toolCalls);
-                if ($toolCallCount > $maxToolCalls) {
+                if ($toolCallCount >= $maxToolCalls) {
                     Log::warning('Rakiz AI: max tool calls exceeded', ['request_id' => $requestId, 'user_id' => $user->id]);
 
                     return $this->withExecutionMeta(
@@ -366,7 +366,7 @@ class RakizAiOrchestrator
                 }
 
                 $toolCallCount += count($toolUses);
-                if ($toolCallCount > $maxToolCalls) {
+                if ($toolCallCount >= $maxToolCalls) {
                     Log::warning('Rakiz AI: max tool calls exceeded', ['request_id' => $requestId, 'user_id' => $user->id]);
 
                     return $this->withExecutionMeta(
@@ -492,10 +492,12 @@ class RakizAiOrchestrator
 - مكالمات AI أو نتيجة مكالمة أو سجل مكالمات ليد → tool_ai_call_status
 TEXT;
 
-        $permissions = $user->getAllPermissions()->pluck('name')->values()->all();
         $roles = $user->getRoleNames()->toArray();
-        $pageContextJson = json_encode($pageContext);
-        $developer = "صلاحيات المستخدم: " . json_encode($permissions) . ". الأدوار: " . json_encode($roles) . ". سياق الصفحة: {$pageContextJson}.";
+        // Only send role names to the LLM — permission enforcement happens server-side
+        // in the tool registry. Raw permission arrays must not be sent externally.
+        $safePageContext = array_diff_key($pageContext, array_flip(['policy_snapshot']));
+        $pageContextJson = json_encode($safePageContext, JSON_UNESCAPED_UNICODE);
+        $developer = "أدوار المستخدم: " . json_encode($roles) . ". سياق الصفحة: {$pageContextJson}.";
         $snapshot = $pageContext['policy_snapshot'] ?? null;
         $snapshotHint = '';
         if (is_array($snapshot)) {

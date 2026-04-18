@@ -62,6 +62,12 @@ class GovernanceTemporaryPermissionService
             );
         }
 
+        if (! in_array($permission, $this->catalog->activeDatabasePermissionNames(), true)) {
+            throw new \InvalidArgumentException(
+                'Cannot grant a permission that does not exist in database permissions table: '.$permission
+            );
+        }
+
         $row = GovernanceTemporaryPermission::query()->create([
             'user_id' => $subject->getKey(),
             'permission' => $permission,

@@ -15,6 +15,7 @@ use Carbon\Carbon;
 use Generator;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Arr;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
@@ -393,14 +394,20 @@ class AIAssistantService
             yield 'data: '.json_encode(['chunk' => $fullAnswer], JSON_UNESCAPED_UNICODE)."\n\n";
         }
 
+        // Mark truncated responses so they are not treated as complete messages
+        $wasTruncated = $streamed && isset($streamException);
+
         $assistantMsg = AIConversation::query()->create([
             'user_id' => $user->id,
             'session_id' => $sessionId,
             'role' => 'assistant',
-            'message' => $fullAnswer,
+            'message' => $wasTruncated
+                ? $fullAnswer."\n\n[response truncated — streaming interrupted]"
+                : $fullAnswer,
             'section' => $sectionKey,
             'metadata' => [
                 'streamed' => $streamed,
+                'truncated' => $wasTruncated,
                 'provider' => $this->textClient->resolveProvider($provider),
                 'correlation_id' => $runtime['correlation_id'] ?? null,
             ],
@@ -663,7 +670,7 @@ class AIAssistantService
     {
         $correlationId = $response->correlationId ?? $fallbackCorrelationId;
 
-        return AIConversation::query()->create([
+        $record = AIConversation::query()->create([
             'user_id' => $user->id,
             'session_id' => $sessionId,
             'role' => 'assistant',
@@ -681,6 +688,10 @@ class AIAssistantService
             'latency_ms' => $response->latencyMs,
             'request_id' => $response->requestId,
         ]);
+
+        $this->incrementBudgetCache($user, $response->totalTokens);
+
+        return $record;
     }
 
     private function logResponse(User $user, ?string $sectionKey, string $sessionId, AIConversation $assistantMessage): void
@@ -798,15 +809,43 @@ class AIAssistantService
             return;
         }
 
-        $start = Carbon::now()->startOfDay();
-        $used = (int) AIConversation::query()
-            ->where('user_id', $user->id)
-            ->whereNotNull('total_tokens')
-            ->where('created_at', '>=', $start)
-            ->sum('total_tokens');
+        $cacheKey = "ai_budget:{$user->id}:" . Carbon::now()->format('Y-m-d');
+        $used = Cache::get($cacheKey);
 
-        if ($used >= $limit) {
-            throw new AiBudgetExceededException($limit, $used);
+        if ($used === null) {
+            // Cold start: seed from DB, cache until end of day
+            $start = Carbon::now()->startOfDay();
+            $used = (int) AIConversation::query()
+                ->where('user_id', $user->id)
+                ->whereNotNull('total_tokens')
+                ->where('created_at', '>=', $start)
+                ->sum('total_tokens');
+
+            $ttl = max(Carbon::now()->endOfDay()->diffInSeconds(Carbon::now()), 60);
+            Cache::put($cacheKey, $used, $ttl);
+        }
+
+        if ((int) $used >= $limit) {
+            throw new AiBudgetExceededException($limit, (int) $used);
+        }
+    }
+
+    /**
+     * Increment the cached budget counter after storing an assistant message.
+     */
+    private function incrementBudgetCache(User $user, int $tokens): void
+    {
+        if ($tokens <= 0) {
+            return;
+        }
+
+        $cacheKey = "ai_budget:{$user->id}:" . Carbon::now()->format('Y-m-d');
+
+        if (Cache::has($cacheKey)) {
+            Cache::increment($cacheKey, $tokens);
+        } else {
+            $ttl = max(Carbon::now()->endOfDay()->diffInSeconds(Carbon::now()), 60);
+            Cache::put($cacheKey, $tokens, $ttl);
         }
     }
 

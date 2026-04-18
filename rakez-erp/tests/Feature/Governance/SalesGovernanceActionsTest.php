@@ -26,7 +26,7 @@ class SalesGovernanceActionsTest extends BasePermissionTestCase
     }
 
     #[Test]
-    public function sales_admin_can_update_target_status_from_governance_filament(): void
+    public function top_authority_can_update_target_status_from_governance_filament(): void
     {
         $salesAdmin = $this->createGovernanceUser('sales_admin');
 
@@ -53,7 +53,7 @@ class SalesGovernanceActionsTest extends BasePermissionTestCase
     }
 
     #[Test]
-    public function sales_admin_can_delete_attendance_schedule_from_governance_filament(): void
+    public function top_authority_can_delete_attendance_schedule_from_governance_filament(): void
     {
         $salesAdmin = $this->createGovernanceUser('sales_admin');
 
@@ -77,9 +77,23 @@ class SalesGovernanceActionsTest extends BasePermissionTestCase
         ]);
     }
 
+    #[Test]
+    public function section_role_without_top_authority_cannot_access_sales_filament_pages(): void
+    {
+        $salesAdmin = $this->createDefaultUser([
+            'is_active' => true,
+            'email' => 'sales-admin-no-panel@example.com',
+        ]);
+        $salesAdmin->assignRole('sales_admin');
+
+        $this->actingAs($salesAdmin)->get('/admin/sales-overview')->assertForbidden();
+        $this->actingAs($salesAdmin)->get('/admin/sales-targets')->assertForbidden();
+        $this->actingAs($salesAdmin)->get('/admin/sales-attendance-schedules')->assertForbidden();
+    }
+
     protected function createGovernanceUser(string $role): User
     {
-        $user = $this->createDefaultUser([
+        $user = $this->createSuperAdmin([
             'is_active' => true,
             'email' => "{$role}-" . uniqid() . '@example.com',
         ]);

@@ -21,6 +21,10 @@ class FilamentNavigationPolicy
             return false;
         }
 
+        if (! $this->access->canAccessPanel($user)) {
+            return false;
+        }
+
         $label = $this->normalizeGroupLabel($group);
 
         if ($label === null) {

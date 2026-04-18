@@ -62,8 +62,12 @@ class SalesAdvisorTool implements ToolContract
             return ToolResponse::denied('sales.dashboard.view');
         }
 
-        $dateFrom = isset($args['date_from']) ? Carbon::parse($args['date_from']) : null;
-        $dateTo = isset($args['date_to']) ? Carbon::parse($args['date_to']) : now();
+        try {
+            $dateFrom = isset($args['date_from']) ? Carbon::parse($args['date_from']) : null;
+            $dateTo = isset($args['date_to']) ? Carbon::parse($args['date_to']) : now();
+        } catch (\Exception) {
+            return ToolResponse::invalidArguments('date_from or date_to is not a valid date.');
+        }
         $contractId = isset($args['contract_id']) ? (int) $args['contract_id'] : null;
 
         if ($contractId) {

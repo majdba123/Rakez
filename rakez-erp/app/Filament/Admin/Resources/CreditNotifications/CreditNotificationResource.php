@@ -7,7 +7,7 @@ use App\Filament\Admin\Concerns\HasGovernanceAuthorization;
 use App\Filament\Admin\Resources\CreditNotifications\Pages\ListCreditNotifications;
 use App\Filament\Admin\Resources\CreditNotifications\Pages\ViewCreditNotification;
 use App\Models\UserNotification;
-use App\Services\Notification\NotificationAdminService;
+use App\Services\Credit\CreditNotificationService;
 use Filament\Actions\Action;
 use Filament\Notifications\Notification;
 use Filament\Actions\ViewAction;
@@ -48,32 +48,32 @@ class CreditNotificationResource extends Resource
                 ->whereHas('user', fn (Builder $userQuery): Builder => $userQuery->where('type', 'credit'))
                 ->latest())
             ->columns([
-                TextColumn::make('user.name')->label('Recipient')->placeholder('-'),
+                TextColumn::make('user.name')->label(__('filament-admin.resources.credit_notifications.columns.recipient'))->placeholder('-'),
                 TextColumn::make('status')->badge(),
-                TextColumn::make('event_type')->label('Event')->placeholder('-')->badge(),
+                TextColumn::make('event_type')->label(__('filament-admin.resources.credit_notifications.columns.event'))->placeholder('-')->badge(),
                 TextColumn::make('message')->wrap()->searchable(),
                 TextColumn::make('created_at')->dateTime()->sortable(),
             ])
             ->filters([
                 SelectFilter::make('status')
                     ->options([
-                        'pending' => 'Pending',
-                        'read' => 'Read',
+                        'pending' => __('filament-admin.resources.credit_notifications.status.pending'),
+                        'read' => __('filament-admin.resources.credit_notifications.status.read'),
                     ]),
             ])
             ->actions([
                 ViewAction::make(),
                 Action::make('markRead')
-                    ->label('Mark Read')
+                    ->label(__('filament-admin.resources.credit_notifications.actions.mark_read'))
                     ->icon(Heroicon::OutlinedCheckCircle)
                     ->color('success')
-                    ->visible(fn (UserNotification $record): bool => static::canGovernanceMutation('notifications.manage') && $record->status !== 'read')
+                    ->visible(fn (UserNotification $record): bool => static::canManageNotifications() && $record->status !== 'read')
                     ->action(function (UserNotification $record): void {
-                        app(NotificationAdminService::class)->markUserNotificationAsRead($record);
+                        app(CreditNotificationService::class)->markDepartmentNotificationAsRead('credit', $record->id);
 
                         Notification::make()
                             ->success()
-                            ->title('Credit notification marked as read.')
+                            ->title(__('filament-admin.resources.credit_notifications.notifications.marked_read'))
                             ->send();
                     }),
             ]);
@@ -82,16 +82,16 @@ class CreditNotificationResource extends Resource
     public static function infolist(Schema $schema): Schema
     {
         return $schema->components([
-            Section::make('Notification Review')
+            Section::make(__('filament-admin.resources.credit_notifications.sections.review'))
                 ->schema([
-                    TextEntry::make('user.name')->label('Recipient')->placeholder('-'),
+                    TextEntry::make('user.name')->label(__('filament-admin.resources.credit_notifications.columns.recipient'))->placeholder('-'),
                     TextEntry::make('status')->badge(),
-                    TextEntry::make('event_type')->label('Event')->badge()->placeholder('-'),
+                    TextEntry::make('event_type')->label(__('filament-admin.resources.credit_notifications.columns.event'))->badge()->placeholder('-'),
                     TextEntry::make('created_at')->dateTime(),
                     TextEntry::make('message')->columnSpanFull(),
                 ])
                 ->columns(2),
-            Section::make('Context')
+            Section::make(__('filament-admin.resources.credit_notifications.sections.context'))
                 ->schema([
                     KeyValueEntry::make('context')
                         ->state(fn (UserNotification $record): array => static::contextState($record))
@@ -106,6 +106,11 @@ class CreditNotificationResource extends Resource
             'index' => ListCreditNotifications::route('/'),
             'view' => ViewCreditNotification::route('/{record}'),
         ];
+    }
+
+    public static function getNavigationLabel(): string
+    {
+        return __('filament-admin.resources.credit_notifications.navigation_label');
     }
 
     public static function canViewAny(): bool
@@ -146,6 +151,11 @@ class CreditNotificationResource extends Resource
     public static function canRestore(Model $record): bool
     {
         return false;
+    }
+
+    public static function canManageNotifications(): bool
+    {
+        return static::canGovernanceMutation('notifications.manage');
     }
 
     protected static function contextState(UserNotification $record): array

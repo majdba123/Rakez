@@ -37,38 +37,39 @@ class RoleResource extends Resource
     {
         return $schema->components([
             TextInput::make('name')
+                ->label(__('filament-admin.resources.roles.fields.name'))
                 ->disabled()
                 ->dehydrated(false),
             Placeholder::make('role_category')
-                ->label('Category')
+                ->label(__('filament-admin.resources.roles.fields.category'))
                 ->content(function (?Role $record): string {
                     if (! $record) {
-                        return 'Governance';
+                        return __('filament-admin.resources.roles.category.governance');
                     }
 
                     $catalog = app(GovernanceCatalog::class);
 
                     if ($catalog->isOperationalRole($record->name)) {
-                        return 'Legacy operational role';
+                        return __('filament-admin.resources.roles.category.legacy_operational');
                     }
 
                     if ($catalog->isManagedGovernanceRole($record->name)) {
-                        return 'Governance overlay role';
+                        return __('filament-admin.resources.roles.category.governance_overlay');
                     }
 
                     if (in_array($record->name, config('governance.future_section_roles'), true)) {
-                        return 'Future section governance role';
+                        return __('filament-admin.resources.roles.category.future_section');
                     }
 
-                    return 'System role';
+                    return __('filament-admin.resources.roles.category.system');
                 }),
             Select::make('permissions')
-                ->label('Permissions')
+                ->label(__('filament-admin.resources.roles.fields.permissions'))
                 ->multiple()
                 ->searchable()
                 ->preload()
                 ->options(app(GovernanceCatalog::class)->groupedPermissionOptions())
-                ->helperText('Permissions come from the frozen dictionary only.'),
+                ->helperText(__('filament-admin.resources.roles.helper.permissions')),
         ])->columns(1);
     }
 
@@ -78,32 +79,34 @@ class RoleResource extends Resource
             ->modifyQueryUsing(fn (Builder $query): Builder => $query->withCount(['users', 'permissions']))
             ->columns([
                 TextColumn::make('name')
+                    ->label(__('filament-admin.resources.roles.columns.name'))
+                    ->state(fn (Role $record): string => app(GovernanceCatalog::class)->displayRoleLabel($record->name))
                     ->searchable()
                     ->sortable(),
                 TextColumn::make('users_count')
-                    ->label('Users')
+                    ->label(__('filament-admin.resources.roles.columns.users'))
                     ->sortable(),
                 TextColumn::make('permissions_count')
-                    ->label('Permissions')
+                    ->label(__('filament-admin.resources.roles.columns.permissions'))
                     ->sortable(),
                 TextColumn::make('role_category')
-                    ->label('Category')
+                    ->label(__('filament-admin.resources.roles.columns.category'))
                     ->state(function (Role $record): string {
                         $catalog = app(GovernanceCatalog::class);
 
                         if ($catalog->isOperationalRole($record->name)) {
-                            return 'Legacy';
+                            return __('filament-admin.resources.roles.category.legacy');
                         }
 
                         if ($catalog->isManagedGovernanceRole($record->name)) {
-                            return 'Governance';
+                            return __('filament-admin.resources.roles.category.governance');
                         }
 
                         if (in_array($record->name, config('governance.future_section_roles'), true)) {
-                            return 'Future Section';
+                            return __('filament-admin.resources.roles.category.future_section_short');
                         }
 
-                        return 'System';
+                        return __('filament-admin.resources.roles.category.system_short');
                     }),
             ])
             ->actions([
@@ -117,6 +120,11 @@ class RoleResource extends Resource
             'index' => ListRoles::route('/'),
             'edit' => EditRole::route('/{record}/edit'),
         ];
+    }
+
+    public static function getNavigationLabel(): string
+    {
+        return __('filament-admin.resources.roles.navigation_label');
     }
 
     public static function canAccess(): bool
@@ -159,4 +167,3 @@ class RoleResource extends Resource
         return false;
     }
 }
-

@@ -31,8 +31,12 @@ class MarketingAnalyticsTool implements ToolContract
             );
         }
 
-        $dateFrom = isset($args['date_from']) ? Carbon::parse($args['date_from']) : now()->subDays(30);
-        $dateTo = isset($args['date_to']) ? Carbon::parse($args['date_to']) : now();
+        try {
+            $dateFrom = isset($args['date_from']) ? Carbon::parse($args['date_from']) : now()->subDays(30);
+            $dateTo = isset($args['date_to']) ? Carbon::parse($args['date_to']) : now();
+        } catch (\Exception) {
+            return ToolResponse::invalidArguments('date_from or date_to is not a valid date.');
+        }
 
         $data = match ($reportType) {
             self::REPORT_OVERVIEW => $this->overview($dateFrom, $dateTo),
@@ -128,12 +132,12 @@ class MarketingAnalyticsTool implements ToolContract
 
         $byScore = (clone $leads)->selectRaw("
             CASE
-                WHEN lead_score >= {$hot} THEN 'hot'
-                WHEN lead_score >= {$warm} THEN 'warm'
+                WHEN lead_score >= ? THEN 'hot'
+                WHEN lead_score >= ? THEN 'warm'
                 ELSE 'cold'
             END as quality,
             COUNT(*) as count
-        ")->groupBy('quality')->pluck('count', 'quality')->toArray();
+        ", [$hot, $warm])->groupBy('quality')->pluck('count', 'quality')->toArray();
 
         return [
             'by_status' => $byStatus,

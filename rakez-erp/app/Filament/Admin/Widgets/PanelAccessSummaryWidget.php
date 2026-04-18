@@ -20,10 +20,10 @@ class PanelAccessSummaryWidget extends StatsOverviewWidget
 
     protected function getStats(): array
     {
-        $managedRoles = config('governance.managed_panel_roles', []);
+        $panelAuthorityRoles = config('governance.panel_authority_roles', [config('governance.super_admin_role', 'super_admin')]);
         $stats = [];
 
-        foreach ($managedRoles as $role) {
+        foreach ($panelAuthorityRoles as $role) {
             $count = User::role($role)->where('is_active', true)->count();
             if ($count > 0) {
                 $stats[] = Stat::make(
@@ -33,10 +33,10 @@ class PanelAccessSummaryWidget extends StatsOverviewWidget
             }
         }
 
-        $inactiveGov = User::role($managedRoles)->where('is_active', false)->count();
+        $inactiveGov = User::role($panelAuthorityRoles)->where('is_active', false)->count();
         if ($inactiveGov > 0) {
-            $stats[] = Stat::make('Inactive Governance', (string) $inactiveGov)
-                ->description('Deactivated panel users')
+            $stats[] = Stat::make('Inactive Panel Authority', (string) $inactiveGov)
+                ->description('Deactivated top-level admin users')
                 ->color('danger');
         }
 

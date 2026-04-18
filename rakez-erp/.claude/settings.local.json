@@ -4,7 +4,14 @@
       "Bash(xargs grep:*)",
       "Bash(find /c/Users/Yusuf/OneDrive/Desktop/Rakez/rakez-erp/app/Models -type f -name *AI* -o -name *Conversation* -o -name *Assistant* -o -name *Knowledge*)",
       "Bash(php artisan:*)",
-      "Bash(composer show:*)"
+      "Bash(composer show:*)",
+      "Bash(xargs ls:*)",
+      "Bash(grep -n 'return $request->user\\(\\)' /c/Users/Yusuf/OneDrive/Desktop/Rakez/rakez-erp/routes/api.php)",
+      "Bash(grep -v \"#\\\\|//\")",
+      "Bash(ls /c/Users/Yusuf/OneDrive/Desktop/Rakez/rakez-erp/app/Http/Middleware/Admin*)",
+      "Bash(timeout 30 tail -n 20 \"C:\\\\Users\\\\Yusuf\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\C--Users-Yusuf-OneDrive-Desktop-Rakez-rakez-erp\\\\e35bed35-0c87-48bb-83b6-959bd3b76e75\\\\tasks\\\\bsi8pemag.output\")",
+      "Bash(timeout 120 bash -c 'while ! grep -q \"Tests:\" \"C:\\\\Users\\\\Yusuf\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\C--Users-Yusuf-OneDrive-Desktop-Rakez-rakez-erp\\\\e35bed35-0c87-48bb-83b6-959bd3b76e75\\\\tasks\\\\bsi8pemag.output\" 2>/dev/null; do sleep 5; done && grep \"Tests:\" \"C:\\\\Users\\\\Yusuf\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\C--Users-Yusuf-OneDrive-Desktop-Rakez-rakez-erp\\\\e35bed35-0c87-48bb-83b6-959bd3b76e75\\\\tasks\\\\bsi8pemag.output\"')",
+      "Bash(grep -n \"fine.tun\\\\|fine_tun\\\\|finetun\\\\|FineTun\" app/Services/AI/*.php config/*.php)"
     ]
   }
 }

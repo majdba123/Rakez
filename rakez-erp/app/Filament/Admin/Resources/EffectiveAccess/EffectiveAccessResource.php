@@ -59,7 +59,9 @@ class EffectiveAccessResource extends Resource
                     ->badge(),
                 TextColumn::make('governance_roles')
                     ->label('Governance Roles')
-                    ->state(fn (User $record): string => $record->roles->pluck('name')->intersect($catalog->allGovernanceRoles())->implode(', ') ?: '-')
+                    ->state(fn (User $record): string => implode(', ', $catalog->displayRoleLabels(
+                        $record->roles->pluck('name')->intersect($catalog->allGovernanceRoles())->values()->all()
+                    )) ?: '-')
                     ->wrap(),
                 TextColumn::make('permissions_count')
                     ->label('Direct Permissions')
@@ -145,13 +147,17 @@ class EffectiveAccessResource extends Resource
                 ->schema([
                     TextEntry::make('legacy_roles')
                         ->label('Legacy Roles')
-                        ->state(fn (User $record): array => app(EffectiveAccessSnapshotService::class)->forUser($record)['legacy_roles'])
+                        ->state(fn (User $record): array => app(GovernanceCatalog::class)->displayRoleLabels(
+                            app(EffectiveAccessSnapshotService::class)->forUser($record)['legacy_roles']
+                        ))
                         ->listWithLineBreaks()
                         ->placeholder('None')
                         ->columnSpanFull(),
                     TextEntry::make('governance_roles')
                         ->label('Governance Roles')
-                        ->state(fn (User $record): array => app(EffectiveAccessSnapshotService::class)->forUser($record)['governance_roles'])
+                        ->state(fn (User $record): array => app(GovernanceCatalog::class)->displayRoleLabels(
+                            app(EffectiveAccessSnapshotService::class)->forUser($record)['governance_roles']
+                        ))
                         ->listWithLineBreaks()
                         ->placeholder('None')
                         ->columnSpanFull(),
@@ -258,19 +264,12 @@ class EffectiveAccessResource extends Resource
 
     public static function applyPanelEligibleFilter(Builder $query): Builder
     {
-        $managedRoles = config('governance.managed_panel_roles', []);
-        $superAdminRole = config('governance.super_admin_role');
-        $panelPermission = config('governance.panel_access_permission');
+        $superAdminRole = config('governance.super_admin_role', 'super_admin');
 
         return $query
             ->where('is_active', true)
             ->whereNull('deleted_at')
-            ->whereHas('roles', fn (Builder $q) => $q->whereIn('name', $managedRoles))
-            ->where(function (Builder $q) use ($superAdminRole, $panelPermission): void {
-                $q->whereHas('roles', fn (Builder $r) => $r->where('name', $superAdminRole))
-                    ->orWhereHas('permissions', fn (Builder $p) => $p->where('name', $panelPermission))
-                    ->orWhereHas('roles.permissions', fn (Builder $p) => $p->where('name', $panelPermission));
-            });
+            ->whereHas('roles', fn (Builder $q) => $q->where('name', $superAdminRole));
     }
 
     public static function applyPanelIneligibleFilter(Builder $query): Builder
@@ -278,12 +277,7 @@ class EffectiveAccessResource extends Resource
         return $query->where(function (Builder $q): void {
             $q->where('is_active', false)
                 ->orWhereNotNull('deleted_at')
-                ->orWhereDoesntHave('roles', fn (Builder $r) => $r->whereIn('name', config('governance.managed_panel_roles', [])))
-                ->orWhere(function (Builder $inner): void {
-                    $inner->whereDoesntHave('roles', fn (Builder $r) => $r->where('name', config('governance.super_admin_role')))
-                        ->whereDoesntHave('permissions', fn (Builder $p) => $p->where('name', config('governance.panel_access_permission')))
-                        ->whereDoesntHave('roles.permissions', fn (Builder $p) => $p->where('name', config('governance.panel_access_permission')));
-                });
+                ->orWhereDoesntHave('roles', fn (Builder $r) => $r->where('name', config('governance.super_admin_role', 'super_admin')));
         });
     }
 

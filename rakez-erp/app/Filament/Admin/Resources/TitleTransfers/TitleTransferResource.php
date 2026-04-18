@@ -8,6 +8,8 @@ use App\Filament\Admin\Resources\TitleTransfers\Pages\ListTitleTransfers;
 use App\Filament\Admin\Resources\TitleTransfers\Pages\ViewTitleTransfer;
 use App\Models\TitleTransfer;
 use App\Models\User;
+use App\Support\Credit\CreditProcessStepBuilder;
+use App\Support\Filament\ProcessStepper;
 use App\Services\Credit\TitleTransferService;
 use App\Services\Governance\GovernanceAuditLogger;
 use Filament\Actions\Action;
@@ -49,30 +51,30 @@ class TitleTransferResource extends Resource
             ->modifyQueryUsing(fn (Builder $query): Builder => $query->with(['reservation.contract', 'reservation.contractUnit', 'processedBy'])->latest())
             ->columns([
                 TextColumn::make('id')->sortable(),
-                TextColumn::make('reservation.id')->label('Booking')->sortable(),
+                TextColumn::make('reservation.id')->label(__('filament-admin.resources.title_transfers.columns.booking'))->sortable(),
                 TextColumn::make('project_name')
-                    ->label('Project')
+                    ->label(__('filament-admin.resources.title_transfers.columns.project'))
                     ->state(fn (TitleTransfer $record): string => $record->reservation?->contract?->project_name ?? '-'),
                 TextColumn::make('reservation.contractUnit.unit_number')
-                    ->label('Unit')
+                    ->label(__('filament-admin.resources.title_transfers.columns.unit'))
                     ->placeholder('-'),
                 TextColumn::make('processedBy.name')
-                    ->label('Processed By')
+                    ->label(__('filament-admin.resources.title_transfers.columns.processed_by'))
                     ->placeholder('-'),
                 TextColumn::make('status')->badge(),
                 TextColumn::make('scheduled_date')->date()->placeholder('-'),
                 TextColumn::make('completed_date')->date()->placeholder('-'),
-                TextColumn::make('created_at')->label('Created')->dateTime()->sortable()->toggleable(isToggledHiddenByDefault: true),
+                TextColumn::make('created_at')->label(__('filament-admin.resources.title_transfers.columns.created'))->dateTime()->sortable()->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
                 SelectFilter::make('status')
                     ->options([
-                        'preparation' => 'Preparation',
-                        'scheduled' => 'Scheduled',
-                        'completed' => 'Completed',
+                        'preparation' => __('filament-admin.resources.title_transfers.status.preparation'),
+                        'scheduled' => __('filament-admin.resources.title_transfers.status.scheduled'),
+                        'completed' => __('filament-admin.resources.title_transfers.status.completed'),
                     ]),
                 SelectFilter::make('processed_by')
-                    ->label('Processed By')
+                    ->label(__('filament-admin.resources.title_transfers.columns.processed_by'))
                     ->relationship('processedBy', 'name')
                     ->searchable()
                     ->preload(),
@@ -80,7 +82,7 @@ class TitleTransferResource extends Resource
             ->actions([
                 ViewAction::make(),
                 Action::make('scheduleTransfer')
-                    ->label('Schedule')
+                    ->label(__('filament-admin.resources.title_transfers.actions.schedule'))
                     ->icon(Heroicon::OutlinedCalendarDays)
                     ->color('info')
                     ->schema([
@@ -111,11 +113,11 @@ class TitleTransferResource extends Resource
 
                         Notification::make()
                             ->success()
-                            ->title('Title transfer scheduled.')
+                            ->title(__('filament-admin.resources.title_transfers.notifications.scheduled'))
                             ->send();
                     }),
                 Action::make('unscheduleTransfer')
-                    ->label('Clear Schedule')
+                    ->label(__('filament-admin.resources.title_transfers.actions.clear_schedule'))
                     ->icon(Heroicon::OutlinedArrowUturnLeft)
                     ->color('warning')
                     ->requiresConfirmation()
@@ -140,11 +142,11 @@ class TitleTransferResource extends Resource
 
                         Notification::make()
                             ->success()
-                            ->title('Title transfer schedule cleared.')
+                            ->title(__('filament-admin.resources.title_transfers.notifications.cleared'))
                             ->send();
                     }),
                 Action::make('completeTransfer')
-                    ->label('Complete')
+                    ->label(__('filament-admin.resources.title_transfers.actions.complete'))
                     ->icon(Heroicon::OutlinedCheckCircle)
                     ->color('success')
                     ->requiresConfirmation()
@@ -166,7 +168,7 @@ class TitleTransferResource extends Resource
 
                         Notification::make()
                             ->success()
-                            ->title('Title transfer completed.')
+                            ->title(__('filament-admin.resources.title_transfers.notifications.completed'))
                             ->send();
                     }),
             ]);
@@ -175,7 +177,15 @@ class TitleTransferResource extends Resource
     public static function infolist(Schema $schema): Schema
     {
         return $schema->components([
-            Section::make('Transfer Review')
+            Section::make(__('filament-admin.resources.title_transfers.sections.stepper'))
+                ->schema([
+                    TextEntry::make('transfer_stepper')
+                        ->label(__('filament-admin.resources.title_transfers.stepper.title'))
+                        ->state(fn (TitleTransfer $record) => static::transferStepper($record))
+                        ->html()
+                        ->columnSpanFull(),
+                ]),
+            Section::make(__('filament-admin.resources.title_transfers.sections.review'))
                 ->schema([
                     TextEntry::make('id'),
                     TextEntry::make('status')->badge(),
@@ -184,14 +194,14 @@ class TitleTransferResource extends Resource
                     TextEntry::make('notes')->placeholder('-')->columnSpanFull(),
                 ])
                 ->columns(2),
-            Section::make('Reservation')
+            Section::make(__('filament-admin.resources.title_transfers.sections.reservation'))
                 ->schema([
-                    TextEntry::make('reservation.id')->label('Booking ID'),
-                    TextEntry::make('reservation.client_name')->label('Client')->placeholder('-'),
-                    TextEntry::make('reservation.contract.project_name')->label('Project')->placeholder('-'),
-                    TextEntry::make('reservation.contractUnit.unit_number')->label('Unit')->placeholder('-'),
-                    TextEntry::make('processedBy.name')->label('Processed By')->placeholder('-'),
-                    TextEntry::make('reservation.credit_status')->label('Credit Status')->badge(),
+                    TextEntry::make('reservation.id')->label(__('filament-admin.resources.title_transfers.entries.booking_id')),
+                    TextEntry::make('reservation.client_name')->label(__('filament-admin.resources.title_transfers.entries.client'))->placeholder('-'),
+                    TextEntry::make('reservation.contract.project_name')->label(__('filament-admin.resources.title_transfers.columns.project'))->placeholder('-'),
+                    TextEntry::make('reservation.contractUnit.unit_number')->label(__('filament-admin.resources.title_transfers.columns.unit'))->placeholder('-'),
+                    TextEntry::make('processedBy.name')->label(__('filament-admin.resources.title_transfers.columns.processed_by'))->placeholder('-'),
+                    TextEntry::make('reservation.credit_status')->label(__('filament-admin.resources.title_transfers.entries.credit_status'))->badge(),
                 ])
                 ->columns(2),
         ]);
@@ -203,6 +213,11 @@ class TitleTransferResource extends Resource
             'index' => ListTitleTransfers::route('/'),
             'view' => ViewTitleTransfer::route('/{record}'),
         ];
+    }
+
+    public static function getNavigationLabel(): string
+    {
+        return __('filament-admin.resources.title_transfers.navigation_label');
     }
 
     public static function canViewAny(): bool
@@ -243,5 +258,28 @@ class TitleTransferResource extends Resource
     public static function canRestore(Model $record): bool
     {
         return false;
+    }
+
+    protected static function transferStepper(TitleTransfer $record): \Illuminate\Support\HtmlString
+    {
+        $steps = collect(app(CreditProcessStepBuilder::class)->titleTransferSteps($record))
+            ->map(function (array $step): array {
+                $label = match ($step['key']) {
+                    'preparation' => __('filament-admin.resources.title_transfers.stepper.steps.preparation'),
+                    'scheduled' => __('filament-admin.resources.title_transfers.stepper.steps.scheduled'),
+                    'completed' => __('filament-admin.resources.title_transfers.stepper.steps.completed'),
+                    'not_started' => __('filament-admin.resources.credit_bookings.stepper.transfer_not_started'),
+                    default => $step['key'],
+                };
+
+                return [
+                    'label' => $label,
+                    'state' => $step['state'],
+                ];
+            })
+            ->values()
+            ->all();
+
+        return ProcessStepper::render($steps);
     }
 }

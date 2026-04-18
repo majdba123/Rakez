@@ -98,7 +98,7 @@ class AiV2Controller extends Controller
      * POST /api/ai/tools/stream (preferred). Alias: POST /api/ai/v2/stream.
      * SSE wrapper (single payload) for clients expecting event-stream.
      */
-    public function stream(Request $request): StreamedResponse
+    public function stream(Request $request): StreamedResponse|JsonResponse
     {
         $request->validate([
             'message' => 'required_without:skill_key|string|max:16000',
@@ -110,22 +110,21 @@ class AiV2Controller extends Controller
         ]);
 
         $user = $request->user();
+
+        // Auth check BEFORE creating StreamedResponse — denied access must return
+        // a real HTTP 403, not an SSE error chunk after 200 headers are sent.
+        if (! $user->can('use-ai-assistant')) {
+            return response()->json([
+                'success' => false,
+                'message' => 'You do not have permission to use the AI assistant.',
+            ], 403);
+        }
+
         $this->assistantService->ensureBudgetAvailable($user);
 
         $skillKey = (string) $request->input('skill_key', '');
         if ($skillKey !== '') {
             return new StreamedResponse(function () use ($request, $user, $skillKey) {
-                if (! $user->can('use-ai-assistant')) {
-                    echo 'data: '.json_encode([
-                        'error' => true,
-                        'message' => 'You do not have permission to use the AI assistant.',
-                    ])."\n\n";
-                    echo "data: [DONE]\n\n";
-                    flush();
-
-                    return;
-                }
-
                 try {
                     $result = $this->skillRuntime->execute(
                         $user,
@@ -169,17 +168,6 @@ class AiV2Controller extends Controller
         ['message' => $message, 'section' => $section, 'policy_snapshot' => $policySnapshot] = $this->preparePolicyContext($request, $user);
 
         return new StreamedResponse(function () use ($request, $user, $message, $section, $policySnapshot) {
-            if (! $user->can('use-ai-assistant')) {
-                echo 'data: '.json_encode([
-                    'error' => true,
-                    'message' => 'You do not have permission to use the AI assistant.',
-                ])."\n\n";
-                echo "data: [DONE]\n\n";
-                flush();
-
-                return;
-            }
-
             $early = $this->policyContext->earlyPolicyGateResponse($user, $message, $section, $policySnapshot);
             if ($early !== null) {
                 echo 'data: '.json_encode(['chunk' => $early], JSON_UNESCAPED_UNICODE)."\n\n";

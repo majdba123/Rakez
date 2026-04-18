@@ -98,6 +98,8 @@ class GovernanceEscalationGuardTest extends BasePermissionTestCase
 
         $this->assertArrayHasKey('super_admin', $options);
         $this->assertArrayHasKey('erp_admin', $options);
+        $this->assertSame(__('filament-admin.role_aliases.admin'), $options['super_admin']);
+        $this->assertSame(__('filament-admin.role_aliases.legacy_admin'), $options['admin']);
     }
 
     #[Test]
@@ -196,7 +198,7 @@ class GovernanceEscalationGuardTest extends BasePermissionTestCase
         $service = app(UserGovernanceService::class);
 
         $this->expectException(\DomainException::class);
-        $this->expectExceptionMessage('Only a super_admin can modify or delete another super_admin user.');
+        $this->expectExceptionMessage('Only admin can modify or delete another top-level admin user.');
 
         $service->restore(User::withTrashed()->findOrFail($target->id));
     }

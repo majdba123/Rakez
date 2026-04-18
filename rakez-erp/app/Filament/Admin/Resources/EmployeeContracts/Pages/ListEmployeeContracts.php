@@ -19,12 +19,12 @@ class ListEmployeeContracts extends ListRecords
     {
         return [
             Action::make('createContract')
-                ->label('Create Contract')
+                ->label(__('filament-admin.resources.employee_contracts.actions.create'))
                 ->icon('heroicon-o-document-plus')
                 ->visible(fn (): bool => EmployeeContractResource::canCreate())
                 ->form([
                     Select::make('user_id')
-                        ->label('Employee')
+                        ->label(__('filament-admin.resources.employee_contracts.columns.employee'))
                         ->required()
                         ->searchable()
                         ->preload()
@@ -51,7 +51,7 @@ class ListEmployeeContracts extends ListRecords
 
                     Notification::make()
                         ->success()
-                        ->title('Employee contract created.')
+                        ->title(__('filament-admin.resources.employee_contracts.notifications.created'))
                         ->send();
                 }),
         ];

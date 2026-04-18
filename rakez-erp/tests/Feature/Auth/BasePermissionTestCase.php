@@ -42,16 +42,56 @@ abstract class BasePermissionTestCase extends TestCase
     {
         // Create all permissions from config
         $definitions = config('ai_capabilities.definitions', []);
-        foreach ($definitions as $name => $description) {
-            Permission::firstOrCreate(['name' => $name, 'guard_name' => 'web']);
-        }
+        Permission::query()->upsert(
+            collect($definitions)
+                ->keys()
+                ->map(fn (string $name): array => ['name' => $name, 'guard_name' => 'web'])
+                ->values()
+                ->all(),
+            ['name', 'guard_name'],
+            [],
+        );
 
         // Create roles with their permissions
         $roleMap = config('ai_capabilities.bootstrap_role_map', []);
         $roleMap['admin'] = array_keys($definitions);
+        Role::query()->upsert(
+            collect(array_keys($roleMap))
+                ->map(fn (string $roleName): array => ['name' => $roleName, 'guard_name' => 'web'])
+                ->values()
+                ->all(),
+            ['name', 'guard_name'],
+            [],
+        );
+
         foreach ($roleMap as $roleName => $permissions) {
-            $role = Role::firstOrCreate(['name' => $roleName, 'guard_name' => 'web']);
-            $role->syncPermissions($permissions);
+            $role = Role::query()->where([
+                'name' => $roleName,
+                'guard_name' => 'web',
+            ])->firstOrFail();
+
+            $retries = 3;
+            while ($retries > 0) {
+                try {
+                    \DB::transaction(function () use ($role, $permissions): void {
+                        \DB::table('role_has_permissions')
+                            ->where('role_id', $role->id)
+                            ->delete();
+
+                        $role->syncPermissions($permissions);
+                    });
+
+                    break;
+                } catch (\Illuminate\Database\QueryException $exception) {
+                    $retries--;
+
+                    if ($retries === 0) {
+                        throw $exception;
+                    }
+
+                    usleep(50000);
+                }
+            }
         }
     }
 
@@ -76,6 +116,17 @@ abstract class BasePermissionTestCase extends TestCase
     protected function createAdmin(array $attributes = []): User
     {
         return $this->createUserWithType('admin', false, $attributes);
+    }
+
+    /**
+     * Create a super_admin user for Filament governance tests.
+     */
+    protected function createSuperAdmin(array $attributes = []): User
+    {
+        $user = $this->createDefaultUser($attributes);
+        $user->assignRole('super_admin');
+
+        return $user->fresh();
     }
 
     /**
@@ -389,6 +440,3 @@ abstract class BasePermissionTestCase extends TestCase
         $this->assertContains($response->status(), [200, 201]);
     }
 }
-
-
-

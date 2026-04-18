@@ -21,6 +21,9 @@ use Throwable;
  */
 class AiOpenAiGateway
 {
+    /** @var array<int, User|null> */
+    private array $userCache = [];
+
     public function __construct(
         private readonly ?CircuitBreaker $circuitBreaker = null,
         private readonly ?SmartRateLimiter $smartRateLimiter = null,
@@ -290,7 +293,11 @@ class AiOpenAiGateway
             return null;
         }
 
-        return User::query()->find($userId);
+        if (array_key_exists($userId, $this->userCache)) {
+            return $this->userCache[$userId];
+        }
+
+        return $this->userCache[$userId] = User::query()->find($userId);
     }
 
     /**

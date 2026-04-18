@@ -7,6 +7,7 @@ use App\Models\User;
 use App\Services\AI\Rag\EmbeddingService;
 use App\Services\AI\Rag\VectorSearchService;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Log;
 use Throwable;
 
 /**
@@ -30,7 +31,7 @@ class RagSearchTool implements ToolContract
             return ToolResponse::invalidArguments('نص البحث مطلوب لأداة البحث في المستندات.');
         }
 
-        $limit = $args['limit'] ?? (int) config('ai_assistant.rag.search_limit', 5);
+        $limit = min((int) ($args['limit'] ?? config('ai_assistant.rag.search_limit', 5)), 20);
         $minSimilarity = (float) config('ai_assistant.rag.min_similarity', 0.7);
         $filters = $args['filters'] ?? null;
         $documentId = is_array($filters) ? ($filters['document_id'] ?? null) : null;
@@ -38,7 +39,7 @@ class RagSearchTool implements ToolContract
         try {
             $queryEmbedding = $this->embeddingService->embed($query);
 
-            $allowAll = $user->hasRole('admin');
+            $allowAll = $user->can('ai-documents.view_all');
 
             $results = $this->vectorSearchService->search(
                 queryEmbedding: $queryEmbedding,
@@ -95,7 +96,9 @@ class RagSearchTool implements ToolContract
                 'total_found' => count($matches),
             ], $sourceRefs, [], 'vector_index');
         } catch (Throwable $e) {
-            return ToolResponse::error('RAG search failed: '.$e->getMessage());
+            Log::error('RAG search failed', ['error' => $e->getMessage(), 'user_id' => $user->id]);
+
+            return ToolResponse::error('حدث خطأ أثناء البحث في المستندات. يرجى المحاولة لاحقاً.');
         }
     }
 

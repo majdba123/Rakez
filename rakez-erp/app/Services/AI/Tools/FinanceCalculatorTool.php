@@ -74,12 +74,28 @@ class FinanceCalculatorTool implements ToolContract
         return $response;
     }
 
+    private function validateNumeric(array $args, array $keys): ?array
+    {
+        foreach ($keys as $key) {
+            if (isset($args[$key]) && ! is_numeric($args[$key])) {
+                return ToolResponse::invalidArguments("{$key} must be a valid number.");
+            }
+        }
+
+        return null;
+    }
+
     private function calculateMortgage(array $args): array
     {
-        $price = $args['unit_price'] ?? 0;
-        $downPaymentPercent = $args['down_payment_percent'] ?? 10;
-        $annualRate = $args['annual_rate'] ?? 5.5;
-        $years = $args['years'] ?? 25;
+        $err = $this->validateNumeric($args, ['unit_price', 'down_payment_percent', 'annual_rate', 'years']);
+        if ($err) {
+            return $err;
+        }
+
+        $price = (float) ($args['unit_price'] ?? 0);
+        $downPaymentPercent = (float) ($args['down_payment_percent'] ?? 10);
+        $annualRate = (float) ($args['annual_rate'] ?? 5.5);
+        $years = (int) ($args['years'] ?? 25);
 
         $downPayment = $price * ($downPaymentPercent / 100);
         $loanAmount = $price - $downPayment;
@@ -111,10 +127,15 @@ class FinanceCalculatorTool implements ToolContract
 
     private function calculateCommission(array $args): array
     {
-        $salePrice = $args['sale_price'] ?? 0;
-        $commissionRate = $args['commission_rate'] ?? 2.5;
-        $agentCount = $args['agent_count'] ?? 1;
-        $leaderSharePercent = $args['leader_share_percent'] ?? 0;
+        $err = $this->validateNumeric($args, ['sale_price', 'commission_rate', 'agent_count', 'leader_share_percent']);
+        if ($err) {
+            return $err;
+        }
+
+        $salePrice = (float) ($args['sale_price'] ?? 0);
+        $commissionRate = (float) ($args['commission_rate'] ?? 2.5);
+        $agentCount = (int) ($args['agent_count'] ?? 1);
+        $leaderSharePercent = (float) ($args['leader_share_percent'] ?? 0);
 
         $totalCommission = $salePrice * ($commissionRate / 100);
         $leaderShare = $totalCommission * ($leaderSharePercent / 100);
@@ -133,10 +154,15 @@ class FinanceCalculatorTool implements ToolContract
 
     private function calculateRomi(array $args): array
     {
-        $marketingSpend = $args['marketing_spend'] ?? 0;
-        $soldUnits = $args['sold_units'] ?? 0;
-        $avgUnitPrice = $args['avg_unit_price'] ?? 0;
-        $commissionRate = $args['commission_rate'] ?? 2.5;
+        $err = $this->validateNumeric($args, ['marketing_spend', 'sold_units', 'avg_unit_price', 'commission_rate']);
+        if ($err) {
+            return $err;
+        }
+
+        $marketingSpend = (float) ($args['marketing_spend'] ?? 0);
+        $soldUnits = (int) ($args['sold_units'] ?? 0);
+        $avgUnitPrice = (float) ($args['avg_unit_price'] ?? 0);
+        $commissionRate = (float) ($args['commission_rate'] ?? 2.5);
 
         $revenue = $soldUnits * $avgUnitPrice * ($commissionRate / 100);
         $romi = $marketingSpend > 0 ? (($revenue - $marketingSpend) / $marketingSpend) * 100 : 0;
@@ -152,12 +178,17 @@ class FinanceCalculatorTool implements ToolContract
 
     private function calculateProjectRoi(array $args): array
     {
-        $totalUnits = $args['total_units'] ?? 0;
-        $avgUnitPrice = $args['avg_unit_price'] ?? 0;
-        $soldUnits = $args['sold_units'] ?? 0;
-        $marketingSpend = $args['marketing_spend'] ?? 0;
-        $operationalCost = $args['operational_cost'] ?? 0;
-        $commissionRate = $args['commission_rate'] ?? 2.5;
+        $err = $this->validateNumeric($args, ['total_units', 'avg_unit_price', 'sold_units', 'marketing_spend', 'operational_cost', 'commission_rate']);
+        if ($err) {
+            return $err;
+        }
+
+        $totalUnits = (int) ($args['total_units'] ?? 0);
+        $avgUnitPrice = (float) ($args['avg_unit_price'] ?? 0);
+        $soldUnits = (int) ($args['sold_units'] ?? 0);
+        $marketingSpend = (float) ($args['marketing_spend'] ?? 0);
+        $operationalCost = (float) ($args['operational_cost'] ?? 0);
+        $commissionRate = (float) ($args['commission_rate'] ?? 2.5);
 
         $totalRevenue = $soldUnits * $avgUnitPrice;
         $totalCommission = $totalRevenue * ($commissionRate / 100);
@@ -181,10 +212,15 @@ class FinanceCalculatorTool implements ToolContract
 
     private function calculatePaymentPlan(array $args): array
     {
-        $price = $args['unit_price'] ?? 0;
-        $downPaymentPercent = $args['down_payment_percent'] ?? 10;
-        $installments = $args['installments'] ?? 12;
-        $gracePeriod = $args['grace_period'] ?? false;
+        $err = $this->validateNumeric($args, ['unit_price', 'down_payment_percent', 'installments']);
+        if ($err) {
+            return $err;
+        }
+
+        $price = (float) ($args['unit_price'] ?? 0);
+        $downPaymentPercent = (float) ($args['down_payment_percent'] ?? 10);
+        $installments = (int) ($args['installments'] ?? 12);
+        $gracePeriod = (bool) ($args['grace_period'] ?? false);
 
         $downPayment = $price * ($downPaymentPercent / 100);
         $remaining = $price - $downPayment;

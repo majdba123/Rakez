@@ -162,14 +162,14 @@ class GovernanceSecurityHardeningTest extends BasePermissionTestCase
     }
 
     #[Test]
-    public function governance_access_service_rejects_unknown_permissions(): void
+    public function governance_access_service_rejects_unknown_permissions_and_non_panel_users(): void
     {
         $user = $this->makeGovernanceUser('erp_admin');
         $access = app(GovernanceAccessService::class);
 
-        $this->assertTrue($access->allows($user, 'admin.panel.access'));
-        $this->assertTrue($access->allows($user, 'admin.dashboard.view'));
-        $this->assertTrue($access->allows($user, 'admin.temp_permissions.view'));
+        $this->assertFalse($access->allows($user, 'admin.panel.access'));
+        $this->assertFalse($access->allows($user, 'admin.dashboard.view'));
+        $this->assertFalse($access->allows($user, 'admin.temp_permissions.view'));
 
         $this->assertFalse(
             $access->allows($user, 'fabricated.permission.xyz'),

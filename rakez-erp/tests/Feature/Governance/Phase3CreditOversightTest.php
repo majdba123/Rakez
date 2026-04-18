@@ -64,9 +64,13 @@ class Phase3CreditOversightTest extends BasePermissionTestCase
     }
 
     #[Test]
-    public function erp_admin_sees_title_transfers_as_read_only(): void
+    public function erp_admin_cannot_access_title_transfers_without_top_authority(): void
     {
-        $erpAdmin = $this->createGovernanceUser('erp_admin');
+        $erpAdmin = $this->createDefaultUser([
+            'is_active' => true,
+            'email' => 'phase3-erp-title-transfer@example.com',
+        ]);
+        $erpAdmin->assignRole('erp_admin');
 
         $reservation = $this->createCreditReservation([
             'purchase_mechanism' => 'cash',
@@ -79,14 +83,7 @@ class Phase3CreditOversightTest extends BasePermissionTestCase
             'status' => 'preparation',
         ]);
 
-        $this->actingAs($erpAdmin)->get('/admin/title-transfers')->assertOk();
-
-        Livewire::test(ListTitleTransfers::class)
-            ->assertCanSeeTableRecords([$transfer])
-            ->assertTableActionHidden('scheduleTransfer', $transfer->getKey())
-            ->assertTableActionHidden('unscheduleTransfer', $transfer->getKey())
-            ->assertTableActionHidden('completeTransfer', $transfer->getKey())
-            ->assertTableActionVisible('view', $transfer->getKey());
+        $this->actingAs($erpAdmin)->get('/admin/title-transfers')->assertForbidden();
     }
 
     #[Test]
@@ -285,34 +282,16 @@ class Phase3CreditOversightTest extends BasePermissionTestCase
     }
 
     #[Test]
-    public function erp_admin_can_view_but_cannot_execute_credit_actions_because_they_no_longer_exist(): void
+    public function erp_admin_cannot_access_credit_bookings_without_top_authority(): void
     {
-        $erpAdmin = $this->createGovernanceUser('erp_admin');
-
-        $financingReservation = $this->createCreditReservation([
-            'purchase_mechanism' => 'supported_bank',
-            'credit_status' => 'in_progress',
+        $erpAdmin = $this->createDefaultUser([
+            'is_active' => true,
+            'email' => 'phase3-erp-credit-bookings@example.com',
         ]);
-
-        CreditFinancingTracker::factory()->create([
-            'sales_reservation_id' => $financingReservation->id,
-            'overall_status' => 'in_progress',
-            'stage_1_status' => 'in_progress',
-        ]);
-
-        $soldReservation = $this->createCreditReservation([
-            'purchase_mechanism' => 'cash',
-            'credit_status' => 'sold',
-        ]);
+        $erpAdmin->assignRole('erp_admin');
 
         $this->actingAs($erpAdmin);
-
-        Livewire::test(ListCreditBookings::class)
-            ->assertCanSeeTableRecords([$financingReservation, $soldReservation])
-            ->assertTableActionDoesNotExist('initializeFinancing')
-            ->assertTableActionHidden('advanceFinancing', $financingReservation->getKey())
-            ->assertTableActionHidden('rejectFinancing', $financingReservation->getKey())
-            ->assertTableActionHidden('generateClaimFile', $soldReservation->getKey());
+        $this->get('/admin/credit-bookings')->assertForbidden();
     }
 
     #[Test]
@@ -339,10 +318,15 @@ class Phase3CreditOversightTest extends BasePermissionTestCase
 
     protected function createGovernanceUser(string $role): User
     {
-        $user = $this->createDefaultUser([
-            'is_active' => true,
-            'email' => "{$role}-" . uniqid() . '@example.com',
-        ]);
+        $user = $role === 'auditor_readonly'
+            ? $this->createDefaultUser([
+                'is_active' => true,
+                'email' => "{$role}-" . uniqid() . '@example.com',
+            ])
+            : $this->createSuperAdmin([
+                'is_active' => true,
+                'email' => "{$role}-" . uniqid() . '@example.com',
+            ]);
         $user->assignRole($role);
 
         return $user;

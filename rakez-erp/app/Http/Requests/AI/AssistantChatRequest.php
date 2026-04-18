@@ -19,7 +19,12 @@ class AssistantChatRequest extends FormRequest
             'module' => ['nullable', 'string', 'max:120'],
             'page_key' => ['nullable', 'string', 'max:180'],
             'language' => ['nullable', 'string', 'max:10', Rule::in(['ar', 'en'])],
-            'conversation_id' => ['nullable', 'integer', 'exists:assistant_conversations,id'],
+            'conversation_id' => [
+                'nullable',
+                'integer',
+                Rule::exists('assistant_conversations', 'id')
+                    ->where('user_id', $this->user()?->id),
+            ],
         ];
     }
 

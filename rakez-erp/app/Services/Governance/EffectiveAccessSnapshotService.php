@@ -37,17 +37,24 @@ class EffectiveAccessSnapshotService
         $snapshot = $this->forUser($user);
 
         return collect([
-            'Legacy roles: ' . $this->implode($snapshot['legacy_roles']),
-            'Governance roles: ' . $this->implode($snapshot['governance_roles']),
-            'Direct permissions: ' . count($snapshot['direct_permissions']),
-            'Inherited permissions: ' . count($snapshot['inherited_permissions']),
-            'Dynamic permissions: ' . count($snapshot['dynamic_permissions']),
-            'Panel eligible: ' . ($snapshot['panel_eligible'] ? 'yes' : 'no'),
+            __('filament-admin.resources.effective_access.summary.legacy_roles') . ': ' . $this->implode($this->catalog->displayRoleLabels($snapshot['legacy_roles'])),
+            __('filament-admin.resources.effective_access.summary.governance_roles') . ': ' . $this->implode($this->catalog->displayRoleLabels($snapshot['governance_roles'])),
+            __('filament-admin.resources.effective_access.summary.direct_permissions') . ': ' . count($snapshot['direct_permissions']),
+            __('filament-admin.resources.effective_access.summary.inherited_permissions') . ': ' . count($snapshot['inherited_permissions']),
+            __('filament-admin.resources.effective_access.summary.temporary_permissions') . ': ' . count($snapshot['temporary_permissions']),
+            __('filament-admin.resources.effective_access.summary.dynamic_permissions') . ': ' . count($snapshot['dynamic_permissions']),
+            __('filament-admin.resources.effective_access.summary.panel_eligible') . ': ' . (
+                $snapshot['panel_eligible']
+                    ? __('filament-admin.resources.effective_access.summary.yes')
+                    : __('filament-admin.resources.effective_access.summary.no')
+            ),
         ])->implode(PHP_EOL);
     }
 
     protected function implode(array $values): string
     {
-        return blank($values) ? 'none' : Collection::make($values)->implode(', ');
+        return blank($values)
+            ? __('filament-admin.resources.effective_access.summary.none')
+            : Collection::make($values)->implode(', ');
     }
 }

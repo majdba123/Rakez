@@ -164,7 +164,8 @@ class SkillRuntimeTest extends TestCase
         ]);
 
         $this->assertSame('ok', $result['skill']['status']);
-        $this->assertSame('[REDACTED]', $result['data']['contact_info']);
+        // contact_info is stripped at source (not sent to AI) for PII safety
+        $this->assertArrayNotHasKey('contact_info', $result['data']);
     }
 
     public function test_lead_analysis_skill_is_denied_when_lead_is_outside_scope(): void

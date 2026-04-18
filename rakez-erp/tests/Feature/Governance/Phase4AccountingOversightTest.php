@@ -184,10 +184,15 @@ class Phase4AccountingOversightTest extends BasePermissionTestCase
 
     protected function createGovernanceUser(string $role): User
     {
-        $user = $this->createDefaultUser([
-            'is_active' => true,
-            'email' => "{$role}-" . uniqid() . '@example.com',
-        ]);
+        $user = $role === 'auditor_readonly'
+            ? $this->createDefaultUser([
+                'is_active' => true,
+                'email' => "{$role}-" . uniqid() . '@example.com',
+            ])
+            : $this->createSuperAdmin([
+                'is_active' => true,
+                'email' => "{$role}-" . uniqid() . '@example.com',
+            ]);
         $user->assignRole($role);
 
         return $user;

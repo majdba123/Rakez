@@ -21,9 +21,11 @@ class GovernanceOverviewWidget extends StatsOverviewWidget
 
     protected function getStats(): array
     {
-        $managedRoles = config('governance.managed_panel_roles', []);
-        $totalGovUsers = User::role($managedRoles)->count();
-        $activeGovUsers = User::role($managedRoles)->where('is_active', true)->count();
+        $governanceRoles = config('governance.managed_governance_roles', []);
+        $panelAuthorityRoles = config('governance.panel_authority_roles', [config('governance.super_admin_role', 'super_admin')]);
+        $totalGovUsers = User::role($governanceRoles)->count();
+        $activeGovUsers = User::role($governanceRoles)->where('is_active', true)->count();
+        $panelAuthorityUsers = User::role($panelAuthorityRoles)->where('is_active', true)->count();
 
         $auditLast24h = GovernanceAuditLog::where('created_at', '>=', now()->subDay())->count();
         $auditTotal = GovernanceAuditLog::count();
@@ -32,7 +34,9 @@ class GovernanceOverviewWidget extends StatsOverviewWidget
 
         return [
             Stat::make('Governance Users', "{$activeGovUsers} / {$totalGovUsers}")
-                ->description('Active / Total with panel roles'),
+                ->description('Active / Total with governance roles'),
+            Stat::make('Panel Authority', (string) $panelAuthorityUsers)
+                ->description('Active top-level admin users'),
             Stat::make('Roles', (string) Role::count())
                 ->description('Legacy and governance roles'),
             Stat::make('Permissions', (string) Permission::count())

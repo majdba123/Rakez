@@ -136,7 +136,7 @@ class AIAssistantController extends Controller
     {
         try {
             $user = $request->user();
-            $perPage = (int) $request->query('per_page', 20);
+            $perPage = min((int) $request->query('per_page', 20), 100);
             $section = $request->query('section');
 
             $sessions = $this->assistantService->listSessions($user, $section, $perPage);

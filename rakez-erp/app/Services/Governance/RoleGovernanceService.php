@@ -4,6 +4,7 @@ namespace App\Services\Governance;
 
 use Illuminate\Support\Facades\DB;
 use Spatie\Permission\Models\Role;
+use Spatie\Permission\PermissionRegistrar;
 
 class RoleGovernanceService
 {
@@ -27,7 +28,7 @@ class RoleGovernanceService
                     'role' => $role->name,
                 ], $actor instanceof \App\Models\User ? $actor : null);
 
-                throw new \DomainException("Only a super_admin can modify the [{$superAdminRole}] role permissions.");
+                throw new \DomainException("Only admin can modify the [{$superAdminRole}] role permissions.");
             }
         }
 
@@ -41,9 +42,11 @@ class RoleGovernanceService
         return DB::transaction(function () use ($role, $permissions): Role {
             $before = $role->permissions()->pluck('name')->sort()->values()->all();
 
-            $filtered = array_values(array_intersect($permissions, $this->catalog->activePanelPermissionNames()));
+            $filtered = array_values(array_intersect($permissions, $this->catalog->activeDatabasePermissionNames()));
 
             $role->syncPermissions($filtered);
+
+            app()[PermissionRegistrar::class]->forgetCachedPermissions();
 
             $this->audit->log('governance.role.permissions_synced', $role, [
                 'before' => $before,

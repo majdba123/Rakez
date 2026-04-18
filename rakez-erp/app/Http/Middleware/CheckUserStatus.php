@@ -16,9 +16,16 @@ class CheckUserStatus
      */
     public function handle(Request $request, Closure $next): Response
     {
-        if (Auth::user() && Auth::user()->status == 'pand') {
-             return response()->json(['error' => 'Your account is suspended. Please contact support'], 401);
+        $user = Auth::user();
+
+        if ($user && method_exists($user, 'trashed') && $user->trashed()) {
+            return response()->json(['error' => 'Your account is no longer available. Please contact support.'], 403);
         }
-            return $next($request);
+
+        if ($user && ! $user->is_active) {
+            return response()->json(['error' => 'Your account is deactivated. Please contact support.'], 403);
+        }
+
+        return $next($request);
     }
 }

@@ -21,12 +21,11 @@ class CreditGovernanceAccessTest extends BasePermissionTestCase
     }
 
     #[Test]
-    public function erp_admin_can_access_credit_oversight_pages(): void
+    public function super_admin_can_access_credit_oversight_pages(): void
     {
-        $user = $this->createDefaultUser([
+        $user = $this->createSuperAdmin([
             'is_active' => true,
         ]);
-        $user->assignRole('erp_admin');
 
         $this->actingAs($user)->get('/admin/credit-overview')->assertOk();
         $this->actingAs($user)->get('/admin/credit-bookings')->assertOk();
@@ -36,7 +35,7 @@ class CreditGovernanceAccessTest extends BasePermissionTestCase
     }
 
     #[Test]
-    public function credit_admin_can_access_credit_pages_but_auditor_cannot(): void
+    public function section_governance_roles_cannot_access_credit_pages_without_top_authority(): void
     {
         $creditAdmin = $this->createDefaultUser([
             'is_active' => true,
@@ -57,7 +56,7 @@ class CreditGovernanceAccessTest extends BasePermissionTestCase
         ];
 
         foreach ($paths as $path) {
-            $this->actingAs($creditAdmin)->get($path)->assertOk();
+            $this->actingAs($creditAdmin)->get($path)->assertForbidden();
             $this->actingAs($auditor)->get($path)->assertForbidden();
         }
     }

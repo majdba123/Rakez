@@ -3,18 +3,21 @@
 namespace App\Http\Controllers\Credit;
 
 use App\Http\Controllers\Controller;
-use App\Models\UserNotification;
+use App\Models\User;
+use App\Services\Credit\CreditNotificationService;
+use Exception;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Exception;
 
 /**
- * Tab 2: Credit Notifications (استقبال إشعارات)
- * Receives: new negotiation, price approval/rejection, down payment confirm,
- * reservation confirmed, deadline expired, evacuation complete.
+ * Tab 2: Credit Notifications
  */
 class CreditNotificationController extends Controller
 {
+    public function __construct(
+        protected CreditNotificationService $notifications,
+    ) {}
+
     /**
      * Get credit user's notifications.
      * GET /credit/notifications
@@ -29,24 +32,25 @@ class CreditNotificationController extends Controller
                 'per_page' => 'nullable|integer|min:1|max:100',
             ]);
 
-            $query = UserNotification::where('user_id', $request->user()->id);
+            $user = $request->user();
 
-            if ($request->has('from_date')) {
-                $query->whereDate('created_at', '>=', $request->input('from_date'));
-            }
-            if ($request->has('to_date')) {
-                $query->whereDate('created_at', '<=', $request->input('to_date'));
-            }
-            if ($request->has('status')) {
-                $query->where('status', $request->input('status'));
+            if (! $user instanceof User) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Unauthenticated.',
+                ], 401);
             }
 
             $perPage = min((int) $request->input('per_page', 15), 100);
-            $notifications = $query->orderBy('created_at', 'desc')->paginate($perPage);
+            $notifications = $this->notifications->listForUser(
+                $user,
+                $request->only(['from_date', 'to_date', 'status']),
+                $perPage,
+            );
 
             return response()->json([
                 'success' => true,
-                'message' => 'تم جلب الإشعارات بنجاح',
+                'message' => 'Notifications retrieved successfully.',
                 'data' => $notifications->items(),
                 'meta' => [
                     'total' => $notifications->total(),
@@ -70,15 +74,24 @@ class CreditNotificationController extends Controller
     public function markAsRead(Request $request, int $id): JsonResponse
     {
         try {
-            $notification = UserNotification::where('user_id', $request->user()->id)->findOrFail($id);
-            $notification->update(['status' => 'read']);
+            $user = $request->user();
+
+            if (! $user instanceof User) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Unauthenticated.',
+                ], 401);
+            }
+
+            $this->notifications->markAsReadForUser($user, $id);
 
             return response()->json([
                 'success' => true,
-                'message' => 'تم تحديث حالة الإشعار بنجاح',
+                'message' => 'Notification status updated successfully.',
             ], 200);
         } catch (Exception $e) {
             $statusCode = str_contains($e->getMessage(), 'No query results') ? 404 : 500;
+
             return response()->json([
                 'success' => false,
                 'message' => $e->getMessage(),
@@ -93,13 +106,20 @@ class CreditNotificationController extends Controller
     public function markAllAsRead(Request $request): JsonResponse
     {
         try {
-            UserNotification::where('user_id', $request->user()->id)
-                ->where('status', 'pending')
-                ->update(['status' => 'read']);
+            $user = $request->user();
+
+            if (! $user instanceof User) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Unauthenticated.',
+                ], 401);
+            }
+
+            $this->notifications->markAllAsReadForUser($user);
 
             return response()->json([
                 'success' => true,
-                'message' => 'تم تحديث جميع الإشعارات بنجاح',
+                'message' => 'All notifications updated successfully.',
             ], 200);
         } catch (Exception $e) {
             return response()->json([

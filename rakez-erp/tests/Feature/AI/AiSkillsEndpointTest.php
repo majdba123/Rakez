@@ -199,7 +199,7 @@ class AiSkillsEndpointTest extends TestCase
         $response->assertOk()
             ->assertJsonPath('success', true)
             ->assertJsonPath('data.skill.status', 'ok')
-            ->assertJsonPath('data.data.contact_info', '[REDACTED]');
+            ->assertJsonMissing(['contact_info' => '+966512345678']);
     }
 
     public function test_tools_chat_executes_sales_reservation_summary_with_redacted_output(): void

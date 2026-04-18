@@ -28,12 +28,11 @@ class BusinessSectionsGovernanceAccessTest extends BasePermissionTestCase
     }
 
     #[Test]
-    public function erp_admin_can_access_all_business_section_indexes_and_overviews(): void
+    public function top_authority_can_access_all_business_section_indexes_and_overviews(): void
     {
-        $user = $this->createDefaultUser([
+        $user = $this->createSuperAdmin([
             'is_active' => true,
         ]);
-        $user->assignRole('erp_admin');
 
         $paths = [
             '/admin/accounting-overview',
@@ -79,11 +78,11 @@ class BusinessSectionsGovernanceAccessTest extends BasePermissionTestCase
     }
 
     #[Test]
-    public function section_admin_overlay_roles_can_access_their_sections_but_not_unrelated_sections(): void
+    public function section_admin_overlay_roles_cannot_access_business_sections_without_top_authority(): void
     {
         $matrix = [
             'accounting_admin' => [
-                'allow' => [
+                'blocked' => [
                     '/admin/accounting-overview',
                     '/admin/accounting-deposits',
                     '/admin/accounting-sold-units',
@@ -91,35 +90,27 @@ class BusinessSectionsGovernanceAccessTest extends BasePermissionTestCase
                     '/admin/commission-distributions',
                     '/admin/salary-distributions',
                 ],
-                'deny' => ['/admin/sales-overview'],
             ],
             'projects_admin' => [
-                'allow' => ['/admin/projects-overview', '/admin/contracts', '/admin/exclusive-project-requests'],
-                'deny' => ['/admin/accounting-overview'],
+                'blocked' => ['/admin/projects-overview', '/admin/contracts', '/admin/exclusive-project-requests'],
             ],
             'sales_admin' => [
-                'allow' => ['/admin/sales-overview', '/admin/sales-reservations'],
-                'deny' => ['/admin/hr-overview'],
+                'blocked' => ['/admin/sales-overview', '/admin/sales-reservations'],
             ],
             'hr_admin' => [
-                'allow' => ['/admin/hr-overview', '/admin/hr-teams'],
-                'deny' => ['/admin/marketing-overview'],
+                'blocked' => ['/admin/hr-overview', '/admin/hr-teams'],
             ],
             'marketing_admin' => [
-                'allow' => ['/admin/marketing-overview', '/admin/marketing-projects-admin'],
-                'deny' => ['/admin/workflow-overview'],
+                'blocked' => ['/admin/marketing-overview', '/admin/marketing-projects-admin'],
             ],
             'inventory_admin' => [
-                'allow' => ['/admin/inventory-overview', '/admin/inventory-units'],
-                'deny' => ['/admin/hr-overview'],
+                'blocked' => ['/admin/inventory-overview', '/admin/inventory-units'],
             ],
             'ai_admin' => [
-                'allow' => ['/admin/ai-overview', '/admin/assistant-knowledge-entries', '/admin/ai-interaction-logs'],
-                'deny' => ['/admin/sales-overview'],
+                'blocked' => ['/admin/ai-overview', '/admin/assistant-knowledge-entries', '/admin/ai-interaction-logs'],
             ],
             'workflow_admin' => [
-                'allow' => ['/admin/workflow-overview', '/admin/admin-notifications', '/admin/workflow-tasks'],
-                'deny' => ['/admin/inventory-overview'],
+                'blocked' => ['/admin/workflow-overview', '/admin/admin-notifications', '/admin/workflow-tasks'],
             ],
         ];
 
@@ -132,11 +123,7 @@ class BusinessSectionsGovernanceAccessTest extends BasePermissionTestCase
             ]);
             $user->assignRole($role);
 
-            foreach ($expectations['allow'] as $path) {
-                $this->actingAs($user)->get($path)->assertOk();
-            }
-
-            foreach ($expectations['deny'] as $path) {
+            foreach ($expectations['blocked'] as $path) {
                 $this->actingAs($user)->get($path)->assertForbidden();
             }
         }

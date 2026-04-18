@@ -40,7 +40,11 @@ class Phase5OversightRolloutTest extends BasePermissionTestCase
     {
         $workflowAdmin = $this->createGovernanceUser('workflow_admin');
         $erpAdmin = $this->createGovernanceUser('erp_admin');
-        $auditor = $this->createGovernanceUser('auditor_readonly');
+        $auditor = $this->createDefaultUser([
+            'is_active' => true,
+            'email' => 'auditor-no-panel-approvals@example.com',
+        ]);
+        $auditor->assignRole('auditor_readonly');
         $team = Team::create([
             'code' => 'P5-WF-' . random_int(1000, 9999),
             'name' => 'Phase 5 Workflow Team',
@@ -78,7 +82,11 @@ class Phase5OversightRolloutTest extends BasePermissionTestCase
     #[Test]
     public function workflow_admin_cannot_access_contracts_projects_request_review_pages(): void
     {
-        $workflowAdmin = $this->createGovernanceUser('workflow_admin');
+        $workflowAdmin = $this->createDefaultUser([
+            'is_active' => true,
+            'email' => 'workflow-no-panel@example.com',
+        ]);
+        $workflowAdmin->assignRole('workflow_admin');
 
         $request = ExclusiveProjectRequest::factory()->create([
             'status' => 'pending',
@@ -93,7 +101,11 @@ class Phase5OversightRolloutTest extends BasePermissionTestCase
     public function project_media_is_exposed_as_read_only_image_review(): void
     {
         $projectsAdmin = $this->createGovernanceUser('projects_admin');
-        $salesAdmin = $this->createGovernanceUser('sales_admin');
+        $salesAdmin = $this->createDefaultUser([
+            'is_active' => true,
+            'email' => 'sales-no-panel-media@example.com',
+        ]);
+        $salesAdmin->assignRole('sales_admin');
 
         $contract = Contract::factory()->create([
             'project_name' => 'Phase 5 Media Project',
@@ -152,7 +164,11 @@ class Phase5OversightRolloutTest extends BasePermissionTestCase
     {
         $aiAdmin = $this->createGovernanceUser('ai_admin');
         $erpAdmin = $this->createGovernanceUser('erp_admin');
-        $workflowAdmin = $this->createGovernanceUser('workflow_admin');
+        $workflowAdmin = $this->createDefaultUser([
+            'is_active' => true,
+            'email' => 'workflow-no-panel-ai@example.com',
+        ]);
+        $workflowAdmin->assignRole('workflow_admin');
 
         $entry = AssistantKnowledgeEntry::create([
             'module' => 'assistant',
@@ -234,7 +250,7 @@ class Phase5OversightRolloutTest extends BasePermissionTestCase
 
     protected function createGovernanceUser(string $role): User
     {
-        $user = $this->createDefaultUser([
+        $user = $this->createSuperAdmin([
             'is_active' => true,
             'email' => "{$role}-" . uniqid() . '@example.com',
         ]);

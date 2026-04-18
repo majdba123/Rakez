@@ -77,11 +77,8 @@ class GovernanceTemporaryPermissionTest extends BasePermissionTestCase
     {
         config(['governance.temporary_permissions.enabled' => true]);
 
-        $subject = User::factory()->create(['type' => 'default', 'is_active' => true]);
-        $subject->assignRole('inventory_admin');
-
-        $actor = User::factory()->create(['type' => 'default', 'is_active' => true]);
-        $actor->assignRole('erp_admin');
+        $subject = $this->createSuperAdmin(['is_active' => true]);
+        $actor = $this->createSuperAdmin(['is_active' => true]);
 
         GovernanceAuditLog::query()->delete();
 
@@ -103,6 +100,7 @@ class GovernanceTemporaryPermissionTest extends BasePermissionTestCase
 
         $access = app(GovernanceAccessService::class);
         $this->assertTrue($access->allows($subject, 'credit.dashboard.view'));
+        $this->assertTrue($service->userHasActiveTemporary($subject, 'credit.dashboard.view'));
 
         $service->revoke($row, $actor);
 
@@ -112,16 +110,16 @@ class GovernanceTemporaryPermissionTest extends BasePermissionTestCase
         ]);
 
         $this->assertNotNull($row->fresh()->revoked_at);
-        $this->assertFalse($access->allows($subject->fresh(), 'credit.dashboard.view'));
+        $this->assertFalse($service->userHasActiveTemporary($subject->fresh(), 'credit.dashboard.view'));
+        $this->assertTrue($access->allows($subject->fresh(), 'credit.dashboard.view'));
     }
 
     #[Test]
-    public function filament_temporary_permissions_routes_follow_rollout_and_permissions(): void
+    public function filament_temporary_permissions_routes_follow_rollout_and_top_authority_policy(): void
     {
         config(['governance.temporary_permissions.enabled' => true]);
 
-        $erp = User::factory()->create(['type' => 'default', 'is_active' => true]);
-        $erp->assignRole('erp_admin');
+        $erp = $this->createSuperAdmin(['is_active' => true]);
 
         $auditor = User::factory()->create(['type' => 'default', 'is_active' => true]);
         $auditor->assignRole('auditor_readonly');
@@ -129,17 +127,16 @@ class GovernanceTemporaryPermissionTest extends BasePermissionTestCase
         $this->actingAs($erp)->get('/admin/governance-temporary-permissions')->assertOk();
         $this->actingAs($erp)->get('/admin/governance-temporary-permissions/create')->assertOk();
 
-        $this->actingAs($auditor)->get('/admin/governance-temporary-permissions')->assertOk();
+        $this->actingAs($auditor)->get('/admin/governance-temporary-permissions')->assertForbidden();
         $this->actingAs($auditor)->get('/admin/governance-temporary-permissions/create')->assertForbidden();
     }
 
     #[Test]
-    public function resource_static_gates_reflect_rollout_and_mutation_permissions(): void
+    public function resource_static_gates_reflect_rollout_and_top_authority_policy(): void
     {
         config(['governance.temporary_permissions.enabled' => true]);
 
-        $erp = User::factory()->create(['type' => 'default', 'is_active' => true]);
-        $erp->assignRole('erp_admin');
+        $erp = $this->createSuperAdmin(['is_active' => true]);
 
         $auditor = User::factory()->create(['type' => 'default', 'is_active' => true]);
         $auditor->assignRole('auditor_readonly');
@@ -149,10 +146,10 @@ class GovernanceTemporaryPermissionTest extends BasePermissionTestCase
         $this->assertTrue(GovernanceTemporaryPermissionResource::canCreate());
 
         $this->actingAs($auditor);
-        $this->assertTrue(GovernanceTemporaryPermissionResource::canViewAny());
+        $this->assertFalse(GovernanceTemporaryPermissionResource::canViewAny());
         $this->assertFalse(
             GovernanceTemporaryPermissionResource::canCreate(),
-            'auditor_readonly must not mutate via canCreate even when view is granted',
+            'auditor_readonly must not mutate via canCreate',
         );
 
         $this->actingAs($erp);
@@ -183,8 +180,7 @@ class GovernanceTemporaryPermissionTest extends BasePermissionTestCase
         $subject = User::factory()->create(['type' => 'default', 'is_active' => true]);
         $subject->assignRole('inventory_admin');
 
-        $erp = User::factory()->create(['type' => 'default', 'is_active' => true]);
-        $erp->assignRole('erp_admin');
+        $erp = $this->createSuperAdmin(['is_active' => true]);
 
         $auditor = User::factory()->create(['type' => 'default', 'is_active' => true]);
         $auditor->assignRole('auditor_readonly');
@@ -202,10 +198,9 @@ class GovernanceTemporaryPermissionTest extends BasePermissionTestCase
             ->assertCanSeeTableRecords([$row])
             ->assertTableActionVisible('revoke', $row->getKey());
 
-        $this->actingAs($auditor);
-        Livewire::test(ListGovernanceTemporaryPermissions::class)
-            ->assertCanSeeTableRecords([$row])
-            ->assertTableActionHidden('revoke', $row->getKey());
+        $this->actingAs($auditor)
+            ->get('/admin/governance-temporary-permissions')
+            ->assertForbidden();
     }
 
     #[Test]
@@ -216,8 +211,7 @@ class GovernanceTemporaryPermissionTest extends BasePermissionTestCase
         $subject = User::factory()->create(['type' => 'default', 'is_active' => true]);
         $subject->assignRole('inventory_admin');
 
-        $erp = User::factory()->create(['type' => 'default', 'is_active' => true]);
-        $erp->assignRole('erp_admin');
+        $erp = $this->createSuperAdmin(['is_active' => true]);
 
         $row = GovernanceTemporaryPermission::query()->create([
             'user_id' => $subject->id,
@@ -250,8 +244,7 @@ class GovernanceTemporaryPermissionTest extends BasePermissionTestCase
         config(['governance.temporary_permissions.enabled' => true]);
 
         $subject = User::factory()->create(['type' => 'default', 'is_active' => true]);
-        $actor = User::factory()->create(['type' => 'default', 'is_active' => true]);
-        $actor->assignRole('erp_admin');
+        $actor = $this->createSuperAdmin(['is_active' => true]);
 
         $service = app(GovernanceTemporaryPermissionService::class);
 
@@ -273,8 +266,7 @@ class GovernanceTemporaryPermissionTest extends BasePermissionTestCase
         config(['governance.temporary_permissions.enabled' => true]);
 
         $subject = User::factory()->create(['type' => 'default', 'is_active' => true]);
-        $actor = User::factory()->create(['type' => 'default', 'is_active' => true]);
-        $actor->assignRole('erp_admin');
+        $actor = $this->createSuperAdmin(['is_active' => true]);
 
         GovernanceTemporaryPermission::query()->create([
             'user_id' => $subject->id,
@@ -298,8 +290,7 @@ class GovernanceTemporaryPermissionTest extends BasePermissionTestCase
     {
         config(['governance.temporary_permissions.enabled' => true]);
 
-        $erp = User::factory()->create(['type' => 'default', 'is_active' => true]);
-        $erp->assignRole('erp_admin');
+        $erp = $this->createSuperAdmin(['is_active' => true]);
 
         $row = GovernanceTemporaryPermission::query()->create([
             'user_id' => $erp->id,

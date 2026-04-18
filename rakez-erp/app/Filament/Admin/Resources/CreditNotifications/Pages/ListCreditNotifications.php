@@ -3,7 +3,7 @@
 namespace App\Filament\Admin\Resources\CreditNotifications\Pages;
 
 use App\Filament\Admin\Resources\CreditNotifications\CreditNotificationResource;
-use App\Models\UserNotification;
+use App\Services\Credit\CreditNotificationService;
 use Filament\Actions\Action;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\ListRecords;
@@ -16,18 +16,15 @@ class ListCreditNotifications extends ListRecords
     {
         return [
             Action::make('markAllRead')
-                ->label('Mark All Read')
+                ->label(__('filament-admin.resources.credit_notifications.actions.mark_all_read'))
                 ->icon('heroicon-o-check-badge')
-                ->visible(fn (): bool => CreditNotificationResource::canAccessGovernancePage('Credit Oversight', 'credit.dashboard.view'))
+                ->visible(fn (): bool => CreditNotificationResource::canManageNotifications())
                 ->action(function (): void {
-                    UserNotification::query()
-                        ->where('status', 'pending')
-                        ->whereHas('user', fn ($query) => $query->where('type', 'credit'))
-                        ->update(['status' => 'read']);
+                    app(CreditNotificationService::class)->markAllDepartmentNotificationsAsRead('credit');
 
                     Notification::make()
                         ->success()
-                        ->title('All credit notifications marked as read.')
+                        ->title(__('filament-admin.resources.credit_notifications.notifications.all_marked_read'))
                         ->send();
                 }),
         ];

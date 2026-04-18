@@ -5,9 +5,52 @@ namespace App\Services\Governance;
 use App\Models\User;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Str;
+use Spatie\Permission\Models\Permission;
 
 class GovernanceCatalog
 {
+    public function displayRoleSlug(string $role): string
+    {
+        return config('governance.role_slug_aliases', [])[$role] ?? $role;
+    }
+
+    /**
+     * @param  string[]  $roles
+     * @return string[]
+     */
+    public function displayRoles(array $roles): array
+    {
+        return collect($roles)
+            ->filter(fn (mixed $role): bool => is_string($role) && $role !== '')
+            ->map(fn (string $role): string => $this->displayRoleSlug($role))
+            ->unique()
+            ->values()
+            ->all();
+    }
+
+    /**
+     * @param  string[]  $roles
+     * @return string[]
+     */
+    public function displayRoleLabels(array $roles): array
+    {
+        return collect($roles)
+            ->map(fn (string $role): string => $this->displayRoleLabel($role))
+            ->values()
+            ->all();
+    }
+
+    public function displayRoleLabel(string $role): string
+    {
+        $displaySlug = $this->displayRoleSlug($role);
+
+        return match ($displaySlug) {
+            'admin' => __('filament-admin.role_aliases.admin'),
+            'legacy_admin' => __('filament-admin.role_aliases.legacy_admin'),
+            default => $this->label($displaySlug),
+        };
+    }
+
     /**
      * Postponed permissions remain in the frozen dictionary, but must stay out of
      * active panel-facing governance surfaces until their rollout phase opens.
@@ -49,7 +92,7 @@ class GovernanceCatalog
 
     public function permissionOptions(): array
     {
-        return collect(array_keys($this->panelPermissionDefinitions()))
+        return collect($this->activeDatabasePermissionNames())
             ->sort()
             ->mapWithKeys(fn (string $permission): array => [$permission => $permission])
             ->all();
@@ -69,7 +112,7 @@ class GovernanceCatalog
                     ->replace(['_', '-'], ' ')
                     ->title()
                     ->toString();
-            })
+            }, true)
             ->map(fn ($permissions) => $permissions->all())
             ->sortKeys()
             ->all();
@@ -78,14 +121,21 @@ class GovernanceCatalog
     public function userTypeOptions(): array
     {
         return collect(config('user_types.all', []))
-            ->mapWithKeys(fn (string $type): array => [$type => $this->label($type)])
+            ->mapWithKeys(fn (string $type): array => [$type => $type === 'admin' ? __('filament-admin.role_aliases.legacy_admin') : $this->label($type)])
+            ->all();
+    }
+
+    public function assignableUserTypeOptions(?string $currentType = null): array
+    {
+        return collect($this->userTypeOptions())
+            ->reject(fn (string $label, string $type): bool => $type === 'admin' && $currentType !== 'admin')
             ->all();
     }
 
     public function governanceRoleOptions(): array
     {
-        return collect(config('governance.managed_panel_roles', []))
-            ->mapWithKeys(fn (string $role): array => [$role => $this->label($role)])
+        return collect(config('governance.managed_governance_roles', []))
+            ->mapWithKeys(fn (string $role): array => [$role => $this->displayRoleLabel($role)])
             ->all();
     }
 
@@ -98,9 +148,9 @@ class GovernanceCatalog
         $superAdminRole = config('governance.super_admin_role', 'super_admin');
         $actorIsSuperAdmin = $actor && $actor->hasRole($superAdminRole);
 
-        return collect(config('governance.managed_panel_roles', []))
+        return collect(config('governance.managed_governance_roles', []))
             ->reject(fn (string $role): bool => $role === $superAdminRole && ! $actorIsSuperAdmin)
-            ->mapWithKeys(fn (string $role): array => [$role => $this->label($role)])
+            ->mapWithKeys(fn (string $role): array => [$role => $this->displayRoleLabel($role)])
             ->all();
     }
 
@@ -113,7 +163,7 @@ class GovernanceCatalog
     public function allGovernanceRoles(): array
     {
         return array_values(array_unique([
-            ...config('governance.managed_panel_roles', []),
+            ...config('governance.managed_governance_roles', []),
             ...config('governance.future_section_roles', []),
         ]));
     }
@@ -123,9 +173,23 @@ class GovernanceCatalog
         return in_array($role, config('governance.operational_roles', []), true);
     }
 
+    public function assignableOperationalRoleOptions(): array
+    {
+        return collect(config('governance.operational_roles', []))
+            ->reject(fn (string $role): bool => in_array($role, $this->protectedOperationalRoles(), true))
+            ->mapWithKeys(fn (string $role): array => [$role => $this->label($role)])
+            ->all();
+    }
+
     public function isManagedGovernanceRole(string $role): bool
     {
-        return in_array($role, config('governance.managed_panel_roles', []), true);
+        return in_array($role, config('governance.managed_governance_roles', []), true);
+    }
+
+    public function isSupplementalOperationalRole(string $role): bool
+    {
+        return $this->isOperationalRole($role)
+            && ! in_array($role, $this->protectedOperationalRoles(), true);
     }
 
     public function isKnownPermission(string $permission): bool
@@ -136,6 +200,27 @@ class GovernanceCatalog
     public function isActivePanelPermission(string $permission): bool
     {
         return Arr::exists($this->panelPermissionDefinitions(), $permission);
+    }
+
+    /**
+     * @return string[]
+     */
+    public function activeDatabasePermissionNames(): array
+    {
+        $known = $this->activePanelPermissionNames();
+
+        if ($known === []) {
+            return [];
+        }
+
+        $dbNames = Permission::query()
+            ->whereIn('name', $known)
+            ->pluck('name')
+            ->all();
+
+        // During early bootstrap/test setup, permissions table may be empty.
+        // Fallback to dictionary keys so setup screens remain usable.
+        return $dbNames === [] ? $known : $dbNames;
     }
 
     public function permissionDescription(string $permission): ?string
@@ -149,5 +234,18 @@ class GovernanceCatalog
             ->replace(['_', '-'], ' ')
             ->title()
             ->toString();
+    }
+
+    /**
+     * Legacy operational roles that remain in the repository for compatibility
+     * but must not be newly assigned from Filament.
+     *
+     * @return string[]
+     */
+    protected function protectedOperationalRoles(): array
+    {
+        return [
+            'admin',
+        ];
     }
 }

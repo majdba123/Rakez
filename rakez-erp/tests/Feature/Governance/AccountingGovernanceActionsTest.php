@@ -35,7 +35,7 @@ class AccountingGovernanceActionsTest extends BasePermissionTestCase
     #[Test]
     public function accounting_admin_can_confirm_deposit_receipt_from_filament(): void
     {
-        $accountingAdmin = $this->createDefaultUser([
+        $accountingAdmin = $this->createSuperAdmin([
             'is_active' => true,
             'email' => 'accounting-actions@example.com',
         ]);
@@ -68,7 +68,7 @@ class AccountingGovernanceActionsTest extends BasePermissionTestCase
     #[Test]
     public function accounting_admin_can_approve_and_reject_commission_distributions_from_filament(): void
     {
-        $accountingAdmin = $this->createDefaultUser([
+        $accountingAdmin = $this->createSuperAdmin([
             'is_active' => true,
             'email' => 'commission-actions@example.com',
         ]);
@@ -126,7 +126,7 @@ class AccountingGovernanceActionsTest extends BasePermissionTestCase
     #[Test]
     public function accounting_admin_can_mark_commission_distribution_paid_from_filament(): void
     {
-        $accountingAdmin = $this->createDefaultUser([
+        $accountingAdmin = $this->createSuperAdmin([
             'is_active' => true,
             'email' => 'commission-paid-actions@example.com',
         ]);
@@ -161,7 +161,7 @@ class AccountingGovernanceActionsTest extends BasePermissionTestCase
     #[Test]
     public function accounting_admin_can_approve_and_pay_salary_distributions_from_filament(): void
     {
-        $accountingAdmin = $this->createDefaultUser([
+        $accountingAdmin = $this->createSuperAdmin([
             'is_active' => true,
             'email' => 'salary-actions@example.com',
         ]);
@@ -204,7 +204,7 @@ class AccountingGovernanceActionsTest extends BasePermissionTestCase
     #[Test]
     public function accounting_admin_can_process_owner_deposit_refund_from_filament(): void
     {
-        $accountingAdmin = $this->createDefaultUser([
+        $accountingAdmin = $this->createSuperAdmin([
             'is_active' => true,
             'email' => 'accounting-refund@example.com',
         ]);
@@ -243,7 +243,7 @@ class AccountingGovernanceActionsTest extends BasePermissionTestCase
     #[Test]
     public function accounting_admin_can_mark_accounting_notifications_read_from_filament(): void
     {
-        $accountingAdmin = $this->createDefaultUser([
+        $accountingAdmin = $this->createSuperAdmin([
             'is_active' => true,
             'email' => 'accounting-notif-read@example.com',
         ]);
@@ -275,7 +275,7 @@ class AccountingGovernanceActionsTest extends BasePermissionTestCase
     #[Test]
     public function accounting_sold_unit_view_page_renders_in_filament(): void
     {
-        $accountingAdmin = $this->createDefaultUser([
+        $accountingAdmin = $this->createSuperAdmin([
             'is_active' => true,
             'email' => 'accounting-sold-view@example.com',
         ]);
@@ -294,7 +294,7 @@ class AccountingGovernanceActionsTest extends BasePermissionTestCase
     }
 
     #[Test]
-    public function erp_admin_can_view_finance_sections_but_cannot_execute_financial_actions(): void
+    public function erp_admin_cannot_access_finance_sections_in_filament_panel(): void
     {
         $erpAdmin = $this->createDefaultUser([
             'is_active' => true,
@@ -302,30 +302,10 @@ class AccountingGovernanceActionsTest extends BasePermissionTestCase
         ]);
         $erpAdmin->assignRole('erp_admin');
 
-        $deposit = Deposit::factory()->create([
-            'status' => 'pending',
-        ]);
-        $commissionDistribution = CommissionDistribution::factory()->create([
-            'status' => 'pending',
-        ]);
-        $salaryDistribution = AccountingSalaryDistribution::factory()->pending()->create();
-
         $this->actingAs($erpAdmin);
 
-        Livewire::test(ListAccountingDeposits::class)
-            ->assertCanSeeTableRecords([$deposit])
-            ->assertTableActionHidden('confirmDeposit', $deposit->getKey())
-            ->assertTableActionHidden('processRefund', $deposit->getKey());
-
-        Livewire::test(ListCommissionDistributions::class)
-            ->assertCanSeeTableRecords([$commissionDistribution])
-            ->assertTableActionHidden('approveDistribution', $commissionDistribution->getKey())
-            ->assertTableActionHidden('rejectDistribution', $commissionDistribution->getKey())
-            ->assertTableActionHidden('markPaid', $commissionDistribution->getKey());
-
-        Livewire::test(ListSalaryDistributions::class)
-            ->assertCanSeeTableRecords([$salaryDistribution])
-            ->assertTableActionHidden('approveSalary', $salaryDistribution->getKey())
-            ->assertTableActionHidden('markSalaryPaid', $salaryDistribution->getKey());
+        $this->get('/admin/accounting-deposits')->assertForbidden();
+        $this->get('/admin/commission-distributions')->assertForbidden();
+        $this->get('/admin/salary-distributions')->assertForbidden();
     }
 }

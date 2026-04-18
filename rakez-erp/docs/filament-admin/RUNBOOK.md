@@ -3,7 +3,8 @@
 ## Access model
 
 - Panel path: `config('governance.panel_path')` (default `admin`).
-- Users need a **managed governance role** (`config('governance.managed_panel_roles')`), active account, and **`admin.panel.access`** (except `super_admin`, who bypasses permission checks inside `GovernanceAccessService`).
+- Users need a **panel authority role** (`config('governance.panel_authority_roles')`), active account, and **`admin.panel.access`** (except `super_admin`, who bypasses permission checks inside `GovernanceAccessService`).
+- Section governance roles remain assignable through `config('governance.managed_governance_roles')` for service/API governance, but do not grant Filament entry by themselves.
 - **Operational** Laravel roles (`config('governance.operational_roles')`) alone do **not** grant panel access.
 
 ## Navigation and sections
@@ -32,7 +33,7 @@
 2. Run `RolesAndPermissionsSeeder` (or equivalent) so new permission names exist in Spatie.
 3. Assign governance overlay roles only to intended operators; keep `super_admin` minimal.
 4. Verify scheduler runs `governance:expire-temporary-permissions` in production.
-5. Smoke-test: login as `erp_admin`, `workflow_admin`, and a section admin; confirm navigation matches role permissions.
+5. Smoke-test: login as `super_admin` for panel entry and with a section-governance role for API/service governance paths.
 
 ## Stability notes
 

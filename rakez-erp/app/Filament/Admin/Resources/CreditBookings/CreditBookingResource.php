@@ -8,6 +8,8 @@ use App\Filament\Admin\Resources\CreditBookings\Pages\ListCreditBookings;
 use App\Filament\Admin\Resources\CreditBookings\Pages\ViewCreditBooking;
 use App\Models\SalesReservation;
 use App\Models\User;
+use App\Support\Credit\CreditProcessStepBuilder;
+use App\Support\Filament\ProcessStepper;
 use App\Services\Credit\ClaimFileService;
 use App\Services\Credit\CreditFinancingService;
 use App\Services\Governance\GovernanceAuditLogger;
@@ -57,76 +59,84 @@ class CreditBookingResource extends Resource
             ->columns([
                 TextColumn::make('id')->sortable()->searchable(),
                 TextColumn::make('project_name')
-                    ->label('Project')
+                    ->label(__('filament-admin.resources.credit_bookings.columns.project'))
                     ->state(fn (SalesReservation $record): string => static::projectName($record))
-                    ->searchable(),
+                    ->searchable(
+                        query: function (Builder $query, string $search): Builder {
+                            return $query->whereHas('contract', function (Builder $contractQuery) use ($search): void {
+                                $contractQuery
+                                    ->where('project_name', 'like', "%{$search}%")
+                                    ->orWhereHas('info', fn (Builder $infoQuery): Builder => $infoQuery->where('project_name', 'like', "%{$search}%"));
+                            });
+                        },
+                    ),
                 TextColumn::make('contractUnit.unit_number')
-                    ->label('Unit')
+                    ->label(__('filament-admin.resources.credit_bookings.columns.unit'))
                     ->placeholder('-'),
                 TextColumn::make('client_name')
-                    ->label('Client')
+                    ->label(__('filament-admin.resources.credit_bookings.columns.client'))
                     ->placeholder('-')
                     ->searchable(),
                 TextColumn::make('status')->badge(),
-                TextColumn::make('credit_status')->label('Credit Status')->badge(),
+                TextColumn::make('credit_status')->label(__('filament-admin.resources.credit_bookings.columns.credit_status'))->badge(),
                 TextColumn::make('purchase_mechanism')
-                    ->label('Purchase')
+                    ->label(__('filament-admin.resources.credit_bookings.columns.purchase'))
                     ->state(fn (SalesReservation $record): string => static::purchaseMechanismLabel($record->purchase_mechanism)),
                 IconColumn::make('down_payment_confirmed')
-                    ->label('Deposit Confirmed')
+                    ->label(__('filament-admin.resources.credit_bookings.columns.deposit_confirmed'))
                     ->boolean(),
                 TextColumn::make('financingTracker.overall_status')
-                    ->label('Financing')
+                    ->label(__('filament-admin.resources.credit_bookings.columns.financing'))
                     ->badge()
                     ->placeholder('-'),
                 TextColumn::make('titleTransfer.status')
-                    ->label('Title Transfer')
+                    ->label(__('filament-admin.resources.credit_bookings.columns.title_transfer'))
                     ->badge()
                     ->placeholder('-'),
                 IconColumn::make('has_claim_file')
-                    ->label('Claim File')
+                    ->label(__('filament-admin.resources.credit_bookings.columns.claim_file'))
                     ->boolean()
                     ->state(fn (SalesReservation $record): bool => $record->claimFile !== null),
             ])
             ->filters([
                 SelectFilter::make('status')
                     ->options([
-                        'confirmed' => 'Confirmed',
-                        'under_negotiation' => 'Under Negotiation',
-                        'cancelled' => 'Cancelled',
+                        'confirmed' => __('filament-admin.resources.credit_bookings.status.confirmed'),
+                        'under_negotiation' => __('filament-admin.resources.credit_bookings.status.under_negotiation'),
+                        'cancelled' => __('filament-admin.resources.credit_bookings.status.cancelled'),
                     ]),
                 SelectFilter::make('credit_status')
                     ->options([
-                        'pending' => 'Pending',
-                        'in_progress' => 'In Progress',
-                        'title_transfer' => 'Title Transfer',
-                        'sold' => 'Sold',
-                        'rejected' => 'Rejected',
+                        'pending' => __('filament-admin.resources.credit_bookings.credit_status.pending'),
+                        'in_progress' => __('filament-admin.resources.credit_bookings.credit_status.in_progress'),
+                        'title_transfer' => __('filament-admin.resources.credit_bookings.credit_status.title_transfer'),
+                        'sold' => __('filament-admin.resources.credit_bookings.credit_status.sold'),
+                        'rejected' => __('filament-admin.resources.credit_bookings.credit_status.rejected'),
                     ]),
                 SelectFilter::make('purchase_mechanism')
                     ->options([
-                        'cash' => 'Cash',
-                        'supported_bank' => 'Supported Bank',
-                        'unsupported_bank' => 'Unsupported Bank',
+                        'cash' => __('filament-admin.resources.credit_bookings.purchase.cash'),
+                        'supported_bank' => __('filament-admin.resources.credit_bookings.purchase.supported_bank'),
+                        'unsupported_bank' => __('filament-admin.resources.credit_bookings.purchase.unsupported_bank'),
                     ]),
                 SelectFilter::make('financing_status')
-                    ->label('Financing Status')
+                    ->label(__('filament-admin.resources.credit_bookings.filters.financing_status'))
                     ->options([
-                        'in_progress' => 'In Progress',
-                        'completed' => 'Completed',
-                        'rejected' => 'Rejected',
+                        'in_progress' => __('filament-admin.resources.credit_bookings.credit_status.in_progress'),
+                        'completed' => __('filament-admin.resources.credit_bookings.financing_status.completed'),
+                        'rejected' => __('filament-admin.resources.credit_bookings.credit_status.rejected'),
                     ])
                     ->query(fn (Builder $query, array $data): Builder => filled($data['value'])
                         ? $query->whereHas('financingTracker', fn (Builder $q) => $q->where('overall_status', $data['value']))
                         : $query),
                 TernaryFilter::make('has_title_transfer')
-                    ->label('Has Title Transfer')
+                    ->label(__('filament-admin.resources.credit_bookings.filters.has_title_transfer'))
                     ->queries(
                         true: fn (Builder $query): Builder => $query->whereHas('titleTransfer'),
                         false: fn (Builder $query): Builder => $query->whereDoesntHave('titleTransfer'),
                     ),
                 TernaryFilter::make('has_claim_file')
-                    ->label('Has Claim File')
+                    ->label(__('filament-admin.resources.credit_bookings.filters.has_claim_file'))
                     ->queries(
                         true: fn (Builder $query): Builder => $query->whereHas('claimFile'),
                         false: fn (Builder $query): Builder => $query->whereDoesntHave('claimFile'),
@@ -135,7 +145,7 @@ class CreditBookingResource extends Resource
             ->actions([
                 ViewAction::make(),
                 Action::make('editClient')
-                    ->label('Edit Client')
+                    ->label(__('filament-admin.resources.credit_bookings.actions.edit_client'))
                     ->icon(Heroicon::OutlinedPencilSquare)
                     ->visible(fn (SalesReservation $record): bool => static::canGovernanceMutation('credit.bookings.manage') && $record->status !== 'cancelled')
                     ->fillForm(fn (SalesReservation $record): array => [
@@ -176,11 +186,11 @@ class CreditBookingResource extends Resource
 
                         Notification::make()
                             ->success()
-                            ->title('Booking client details updated.')
+                            ->title(__('filament-admin.resources.credit_bookings.notifications.client_updated'))
                             ->send();
                     }),
                 Action::make('logClientContact')
-                    ->label('Log Contact')
+                    ->label(__('filament-admin.resources.credit_bookings.actions.log_contact'))
                     ->icon(Heroicon::OutlinedChatBubbleLeftRight)
                     ->visible(fn (SalesReservation $record): bool => static::canGovernanceMutation('credit.bookings.manage') && $record->status !== 'cancelled')
                     ->form([
@@ -203,11 +213,11 @@ class CreditBookingResource extends Resource
 
                         Notification::make()
                             ->success()
-                            ->title('Credit client contact logged.')
+                            ->title(__('filament-admin.resources.credit_bookings.notifications.contact_logged'))
                             ->send();
                     }),
                 Action::make('cancelBooking')
-                    ->label('Cancel')
+                    ->label(__('filament-admin.resources.credit_bookings.actions.cancel'))
                     ->icon(Heroicon::OutlinedXCircle)
                     ->color('danger')
                     ->requiresConfirmation()
@@ -236,19 +246,19 @@ class CreditBookingResource extends Resource
 
                         Notification::make()
                             ->success()
-                            ->title('Booking cancelled.')
+                            ->title(__('filament-admin.resources.credit_bookings.notifications.cancelled'))
                             ->send();
                     }),
                 Action::make('advanceFinancing')
-                    ->label('Advance Financing')
+                    ->label(__('filament-admin.resources.credit_bookings.actions.advance_financing'))
                     ->icon(Heroicon::OutlinedArrowRightCircle)
                     ->visible(fn (SalesReservation $record): bool => static::canGovernanceMutation('credit.financing.manage') && $record->isBankFinancing() && ! in_array($record->credit_status, ['sold', 'rejected'], true))
                     ->form([
                         TextInput::make('bank_name')->maxLength(100),
                         TextInput::make('client_salary')->numeric()->minValue(0),
                         Select::make('employment_type')->options([
-                            'government' => 'Government',
-                            'private' => 'Private',
+                            'government' => __('filament-admin.resources.credit_bookings.employment.government'),
+                            'private' => __('filament-admin.resources.credit_bookings.employment.private'),
                         ]),
                         TextInput::make('appraiser_name')->maxLength(255),
                     ])
@@ -269,11 +279,11 @@ class CreditBookingResource extends Resource
 
                         Notification::make()
                             ->success()
-                            ->title('Financing workflow advanced.')
+                            ->title(__('filament-admin.resources.credit_bookings.notifications.financing_advanced'))
                             ->send();
                     }),
                 Action::make('rejectFinancing')
-                    ->label('Reject Financing')
+                    ->label(__('filament-admin.resources.credit_bookings.actions.reject_financing'))
                     ->icon(Heroicon::OutlinedNoSymbol)
                     ->color('danger')
                     ->requiresConfirmation()
@@ -304,11 +314,11 @@ class CreditBookingResource extends Resource
 
                         Notification::make()
                             ->success()
-                            ->title('Financing request rejected.')
+                            ->title(__('filament-admin.resources.credit_bookings.notifications.financing_rejected'))
                             ->send();
                     }),
                 Action::make('generateClaimFile')
-                    ->label('Generate Claim File')
+                    ->label(__('filament-admin.resources.credit_bookings.actions.generate_claim_file'))
                     ->icon(Heroicon::OutlinedFolderPlus)
                     ->visible(fn (SalesReservation $record): bool => static::canGovernanceMutation('credit.claim_files.manage') && $record->credit_status === 'sold' && $record->claimFile === null)
                     ->action(function (SalesReservation $record): void {
@@ -325,11 +335,11 @@ class CreditBookingResource extends Resource
 
                         Notification::make()
                             ->success()
-                            ->title('Claim file generated.')
+                            ->title(__('filament-admin.resources.credit_bookings.notifications.claim_file_generated'))
                             ->send();
                     }),
                 Action::make('generateClaimPdf')
-                    ->label('Generate Claim PDF')
+                    ->label(__('filament-admin.resources.credit_bookings.actions.generate_claim_pdf'))
                     ->icon(Heroicon::OutlinedDocumentArrowDown)
                     ->visible(fn (SalesReservation $record): bool => static::canGovernanceMutation('credit.claim_files.manage') && $record->credit_status === 'sold')
                     ->action(function (SalesReservation $record): void {
@@ -346,7 +356,7 @@ class CreditBookingResource extends Resource
 
                         Notification::make()
                             ->success()
-                            ->title('Claim file PDF ready.')
+                            ->title(__('filament-admin.resources.credit_bookings.notifications.claim_pdf_ready'))
                             ->send();
                     }),
             ]);
@@ -355,70 +365,88 @@ class CreditBookingResource extends Resource
     public static function infolist(Schema $schema): Schema
     {
         return $schema->components([
-            Section::make('Reservation')
+            Section::make(__('filament-admin.resources.credit_bookings.sections.process_progress'))
                 ->schema([
-                    TextEntry::make('id')->label('Booking ID'),
+                    TextEntry::make('reservation_process_stepper')
+                        ->label(__('filament-admin.resources.credit_bookings.stepper.reservation_title'))
+                        ->state(fn (SalesReservation $record) => static::reservationProcessStepper($record))
+                        ->html()
+                        ->columnSpanFull(),
+                    TextEntry::make('financing_stepper')
+                        ->label(__('filament-admin.resources.credit_bookings.stepper.financing_title'))
+                        ->state(fn (SalesReservation $record) => static::financingStepper($record))
+                        ->html()
+                        ->columnSpanFull(),
+                    TextEntry::make('title_transfer_stepper')
+                        ->label(__('filament-admin.resources.credit_bookings.stepper.transfer_title'))
+                        ->state(fn (SalesReservation $record) => static::titleTransferStepper($record))
+                        ->html()
+                        ->columnSpanFull(),
+                ]),
+            Section::make(__('filament-admin.resources.credit_bookings.sections.reservation'))
+                ->schema([
+                    TextEntry::make('id')->label(__('filament-admin.resources.credit_bookings.entries.booking_id')),
                     TextEntry::make('project_name')
-                        ->label('Project')
+                        ->label(__('filament-admin.resources.credit_bookings.columns.project'))
                         ->state(fn (SalesReservation $record): string => static::projectName($record)),
-                    TextEntry::make('contractUnit.unit_number')->label('Unit')->placeholder('-'),
+                    TextEntry::make('contractUnit.unit_number')->label(__('filament-admin.resources.credit_bookings.columns.unit'))->placeholder('-'),
                     TextEntry::make('status')->badge(),
-                    TextEntry::make('credit_status')->label('Credit Status')->badge(),
+                    TextEntry::make('credit_status')->label(__('filament-admin.resources.credit_bookings.columns.credit_status'))->badge(),
                     TextEntry::make('purchase_mechanism')
-                        ->label('Purchase')
+                        ->label(__('filament-admin.resources.credit_bookings.columns.purchase'))
                         ->state(fn (SalesReservation $record): string => static::purchaseMechanismLabel($record->purchase_mechanism)),
-                    IconEntry::make('down_payment_confirmed')->label('Deposit Confirmed')->boolean(),
-                    TextEntry::make('confirmed_at')->label('Confirmed At')->dateTime()->placeholder('-'),
+                    IconEntry::make('down_payment_confirmed')->label(__('filament-admin.resources.credit_bookings.columns.deposit_confirmed'))->boolean(),
+                    TextEntry::make('confirmed_at')->label(__('filament-admin.resources.credit_bookings.entries.confirmed_at'))->dateTime()->placeholder('-'),
                 ])
                 ->columns(2),
-            Section::make('Client and Financials')
+            Section::make(__('filament-admin.resources.credit_bookings.sections.client_financial'))
                 ->schema([
-                    TextEntry::make('client_name')->label('Client')->placeholder('-'),
-                    TextEntry::make('client_mobile')->label('Mobile')->placeholder('-'),
-                    TextEntry::make('client_nationality')->label('Nationality')->placeholder('-'),
-                    TextEntry::make('client_iban')->label('IBAN')->placeholder('-'),
-                    TextEntry::make('down_payment_amount')->label('Down Payment')->money('AED')->placeholder('-'),
+                    TextEntry::make('client_name')->label(__('filament-admin.resources.credit_bookings.columns.client'))->placeholder('-'),
+                    TextEntry::make('client_mobile')->label(__('filament-admin.resources.credit_bookings.entries.mobile'))->placeholder('-'),
+                    TextEntry::make('client_nationality')->label(__('filament-admin.resources.credit_bookings.entries.nationality'))->placeholder('-'),
+                    TextEntry::make('client_iban')->label(__('filament-admin.resources.credit_bookings.entries.iban'))->placeholder('-'),
+                    TextEntry::make('down_payment_amount')->label(__('filament-admin.resources.credit_bookings.entries.down_payment'))->money('AED')->placeholder('-'),
                     TextEntry::make('payment_installments_count')
-                        ->label('Installments')
+                        ->label(__('filament-admin.resources.credit_bookings.entries.installments'))
                         ->state(fn (SalesReservation $record): string => (string) $record->paymentInstallments()->count()),
                     TextEntry::make('remaining_payment_plan')
-                        ->label('Remaining Payment Plan')
+                        ->label(__('filament-admin.resources.credit_bookings.entries.remaining_payment_plan'))
                         ->state(fn (SalesReservation $record): string => number_format($record->getPaymentPlanRemaining(), 2) . ' AED'),
                     IconEntry::make('requires_accounting_confirmation')
-                        ->label('Needs Accounting Confirmation')
+                        ->label(__('filament-admin.resources.credit_bookings.entries.needs_accounting_confirmation'))
                         ->state(fn (SalesReservation $record): bool => $record->requiresAccountingConfirmation())
                         ->boolean(),
                 ])
                 ->columns(2),
-            Section::make('Financing')
+            Section::make(__('filament-admin.resources.credit_bookings.sections.financing'))
                 ->schema([
-                    TextEntry::make('financingTracker.overall_status')->label('Overall Status')->badge()->default('No financing tracker'),
-                    TextEntry::make('financingTracker.assignedUser.name')->label('Assigned To')->placeholder('-'),
+                    TextEntry::make('financingTracker.overall_status')->label(__('filament-admin.resources.credit_bookings.entries.overall_status'))->badge()->default(__('filament-admin.resources.credit_bookings.entries.no_financing_tracker')),
+                    TextEntry::make('financingTracker.assignedUser.name')->label(__('filament-admin.resources.credit_bookings.entries.assigned_to'))->placeholder('-'),
                     TextEntry::make('financingTracker.current_stage')
-                        ->label('Current Stage')
+                        ->label(__('filament-admin.resources.credit_bookings.entries.current_stage'))
                         ->state(fn (SalesReservation $record): string => $record->financingTracker ? (string) $record->financingTracker->getCurrentStage() : '-'),
                     TextEntry::make('financingTracker.remaining_days')
-                        ->label('Remaining Days')
+                        ->label(__('filament-admin.resources.credit_bookings.entries.remaining_days'))
                         ->state(fn (SalesReservation $record): string => $record->financingTracker?->getRemainingDays() !== null ? (string) $record->financingTracker->getRemainingDays() : '-'),
                     KeyValueEntry::make('financing_progress')
-                        ->label('Progress Summary')
+                        ->label(__('filament-admin.resources.credit_bookings.entries.progress_summary'))
                         ->state(fn (SalesReservation $record): array => static::financingProgressState($record))
                         ->columnSpanFull(),
                 ])
                 ->columns(2),
-            Section::make('Transfer and Claim Review')
+            Section::make(__('filament-admin.resources.credit_bookings.sections.transfer_claim'))
                 ->schema([
-                    TextEntry::make('titleTransfer.status')->label('Title Transfer Status')->badge()->placeholder('-'),
-                    TextEntry::make('titleTransfer.scheduled_date')->label('Scheduled Date')->date()->placeholder('-'),
-                    TextEntry::make('titleTransfer.completed_date')->label('Completed Date')->date()->placeholder('-'),
+                    TextEntry::make('titleTransfer.status')->label(__('filament-admin.resources.credit_bookings.entries.title_transfer_status'))->badge()->placeholder('-'),
+                    TextEntry::make('titleTransfer.scheduled_date')->label(__('filament-admin.resources.credit_bookings.entries.scheduled_date'))->date()->placeholder('-'),
+                    TextEntry::make('titleTransfer.completed_date')->label(__('filament-admin.resources.credit_bookings.entries.completed_date'))->date()->placeholder('-'),
                     TextEntry::make('claimFile.id')
-                        ->label('Claim File')
-                        ->state(fn (SalesReservation $record): string => $record->claimFile?->id ? '#' . $record->claimFile->id : 'Not generated'),
+                        ->label(__('filament-admin.resources.credit_bookings.columns.claim_file'))
+                        ->state(fn (SalesReservation $record): string => $record->claimFile?->id ? '#' . $record->claimFile->id : __('filament-admin.resources.credit_bookings.entries.not_generated')),
                     IconEntry::make('claim_file_pdf')
-                        ->label('Claim PDF')
+                        ->label(__('filament-admin.resources.credit_bookings.entries.claim_pdf'))
                         ->state(fn (SalesReservation $record): bool => (bool) $record->claimFile?->hasPdf())
                         ->boolean(),
-                    TextEntry::make('claimFile.total_claim_amount')->label('Claim Amount')->money('AED')->placeholder('-'),
+                    TextEntry::make('claimFile.total_claim_amount')->label(__('filament-admin.resources.credit_bookings.entries.claim_amount'))->money('AED')->placeholder('-'),
                 ])
                 ->columns(2),
         ]);
@@ -430,6 +458,11 @@ class CreditBookingResource extends Resource
             'index' => ListCreditBookings::route('/'),
             'view' => ViewCreditBooking::route('/{record}'),
         ];
+    }
+
+    public static function getNavigationLabel(): string
+    {
+        return __('filament-admin.resources.credit_bookings.navigation_label');
     }
 
     public static function canViewAny(): bool
@@ -501,9 +534,9 @@ class CreditBookingResource extends Resource
     protected static function purchaseMechanismLabel(?string $value): string
     {
         return match ($value) {
-            'cash' => 'Cash',
-            'supported_bank' => 'Supported Bank',
-            'unsupported_bank' => 'Unsupported Bank',
+            'cash' => __('filament-admin.resources.credit_bookings.purchase.cash'),
+            'supported_bank' => __('filament-admin.resources.credit_bookings.purchase.supported_bank'),
+            'unsupported_bank' => __('filament-admin.resources.credit_bookings.purchase.unsupported_bank'),
             default => $value ?? '-',
         };
     }
@@ -513,7 +546,9 @@ class CreditBookingResource extends Resource
         $tracker = $record->financingTracker;
 
         if (! $tracker) {
-            return ['Tracker' => 'No financing tracker'];
+            return [
+                __('filament-admin.resources.credit_bookings.entries.overall_status') => __('filament-admin.resources.credit_bookings.entries.no_financing_tracker'),
+            ];
         }
 
         $state = [];
@@ -522,9 +557,79 @@ class CreditBookingResource extends Resource
             $status = $tracker->getStageStatus($i);
             $deadline = $tracker->getStageDeadline($i)?->format('Y-m-d H:i');
 
-            $state["Stage {$i}"] = $deadline ? "{$status} (deadline {$deadline})" : $status;
+            $state[__('filament-admin.resources.credit_bookings.stage.label', ['number' => $i])] = $deadline
+                ? __('filament-admin.resources.credit_bookings.stage.value_with_deadline', ['status' => $status, 'deadline' => $deadline])
+                : $status;
         }
 
         return $state;
+    }
+
+    protected static function reservationProcessStepper(SalesReservation $record): \Illuminate\Support\HtmlString
+    {
+        $steps = collect(app(CreditProcessStepBuilder::class)->reservationLifecycleSteps($record))
+            ->map(function (array $step): array {
+                $label = match ($step['key']) {
+                    'confirmed' => __('filament-admin.resources.credit_bookings.stepper.steps.confirmed'),
+                    'financing' => __('filament-admin.resources.credit_bookings.stepper.steps.financing'),
+                    'title_transfer' => __('filament-admin.resources.credit_bookings.stepper.steps.title_transfer'),
+                    'sold' => __('filament-admin.resources.credit_bookings.stepper.steps.sold'),
+                    default => $step['key'],
+                };
+
+                return [
+                    'label' => $label,
+                    'state' => $step['state'],
+                ];
+            })
+            ->values()
+            ->all();
+
+        return ProcessStepper::render($steps);
+    }
+
+    protected static function financingStepper(SalesReservation $record): \Illuminate\Support\HtmlString
+    {
+        $steps = collect(app(CreditProcessStepBuilder::class)->financingStepsForReservation($record))
+            ->map(function (array $step): array {
+                $label = match ($step['key']) {
+                    'not_required' => __('filament-admin.resources.credit_bookings.stepper.financing_not_required'),
+                    'not_started' => __('filament-admin.resources.credit_bookings.stepper.financing_not_started'),
+                    default => __('filament-admin.resources.credit_bookings.stepper.stages.stage', ['number' => (int) str_replace('stage_', '', $step['key'])]),
+                };
+
+                return [
+                    'label' => $label,
+                    'state' => $step['state'],
+                    'description' => $step['description'] ?? null,
+                ];
+            })
+            ->values()
+            ->all();
+
+        return ProcessStepper::render($steps);
+    }
+
+    protected static function titleTransferStepper(SalesReservation $record): \Illuminate\Support\HtmlString
+    {
+        $steps = collect(app(CreditProcessStepBuilder::class)->titleTransferStepsForReservation($record))
+            ->map(function (array $step): array {
+                $label = match ($step['key']) {
+                    'not_started' => __('filament-admin.resources.credit_bookings.stepper.transfer_not_started'),
+                    'preparation' => __('filament-admin.resources.credit_bookings.stepper.transfer_steps.preparation'),
+                    'scheduled' => __('filament-admin.resources.credit_bookings.stepper.transfer_steps.scheduled'),
+                    'completed' => __('filament-admin.resources.credit_bookings.stepper.transfer_steps.completed'),
+                    default => $step['key'],
+                };
+
+                return [
+                    'label' => $label,
+                    'state' => $step['state'],
+                ];
+            })
+            ->values()
+            ->all();
+
+        return ProcessStepper::render($steps);
     }
 }

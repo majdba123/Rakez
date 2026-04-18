@@ -8,6 +8,7 @@ use App\Http\Requests\Credit\UpdateCreditBookingRequest;
 use App\Models\SalesReservation;
 use App\Models\SalesWaitingList;
 use App\Services\Sales\SalesReservationService;
+use App\Support\Credit\CreditProcessStepBuilder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Exception;
@@ -21,9 +22,11 @@ class CreditBookingController extends Controller
     private const CASH_CREDIT_PREPARATION_DAYS = 7;
 
     public function __construct(
-        protected ?SalesReservationService $reservationService = null
+        protected ?SalesReservationService $reservationService = null,
+        protected ?CreditProcessStepBuilder $processSteps = null,
     ) {
         $this->reservationService = $reservationService ?? app(SalesReservationService::class);
+        $this->processSteps = $processSteps ?? app(CreditProcessStepBuilder::class);
     }
 
     /**
@@ -642,51 +645,8 @@ class CreditBookingController extends Controller
      */
     private function buildCreditProcedureSteps(SalesReservation $reservation): array
     {
-        $tracker = $reservation->financingTracker;
-        $titleTransfer = $reservation->titleTransfer;
-
-        $steps = [
-            ['key' => 'contact_client', 'label_ar' => 'التواصل مع العميل', 'status' => 'pending', 'date' => null],
-            ['key' => 'submit_to_bank', 'label_ar' => 'رفع الطلب للبنك', 'status' => 'pending', 'date' => null],
-            ['key' => 'valuation', 'label_ar' => 'صدور التقييم', 'status' => 'pending', 'date' => null],
-            ['key' => 'appraiser_visit', 'label_ar' => 'زيارة المقيم للمشروع', 'status' => 'pending', 'date' => null],
-            ['key' => 'bank_contracts', 'label_ar' => 'الإجراءات البنكية والعقود', 'status' => 'pending', 'date' => null],
-            ['key' => 'contract_execution', 'label_ar' => 'تنفيذ العقود', 'status' => 'pending', 'date' => null],
-            ['key' => 'pre_evacuation', 'label_ar' => 'فترة التجهيز قبل الإفراغ', 'status' => 'pending', 'date' => null],
-        ];
-
-        if ($tracker) {
-            $stageStatusMap = [
-                1 => 0,
-                2 => 1,
-                3 => 2,
-                4 => 3,
-                5 => 4,
-            ];
-            foreach ($stageStatusMap as $stageNum => $stepIndex) {
-                $status = $tracker->{"stage_{$stageNum}_status"};
-                $steps[$stepIndex]['status'] = $status;
-                $date = $tracker->{"stage_{$stageNum}_completed_at"} ?? $tracker->{"stage_{$stageNum}_deadline"};
-                $steps[$stepIndex]['date'] = $date ? \Carbon\Carbon::parse($date)->format('Y-m-d') : null;
-            }
-        }
-
-        if ($titleTransfer) {
-            $ttStatus = $titleTransfer->status;
-            $steps[5]['status'] = in_array($ttStatus, ['scheduled', 'completed'], true) ? $ttStatus : 'pending';
-            $steps[5]['date'] = $titleTransfer->scheduled_date?->format('Y-m-d') ?? $titleTransfer->completed_date?->format('Y-m-d');
-            $steps[6]['status'] = $ttStatus === 'preparation' ? 'in_progress' : ($ttStatus === 'completed' ? 'completed' : 'pending');
-            $steps[6]['date'] = $titleTransfer->completed_date?->format('Y-m-d');
-        }
-
-        if ($reservation->credit_status === 'sold') {
-            $steps[5]['status'] = 'completed';
-            $steps[6]['status'] = 'completed';
-        }
-
-        return $steps;
+        return $this->processSteps->creditProcedureStepsForApi($reservation);
     }
 }
-
 
 

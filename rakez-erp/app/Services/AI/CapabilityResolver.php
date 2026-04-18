@@ -11,7 +11,7 @@ class CapabilityResolver
 
     public function resolve(User $user): array
     {
-        $cacheKey = spl_object_id($user);
+        $cacheKey = (int) $user->id;
         if (isset($this->cache[$cacheKey])) {
             return $this->cache[$cacheKey];
         }
@@ -54,7 +54,7 @@ class CapabilityResolver
         if ($user === null) {
             $this->cache = [];
         } else {
-            unset($this->cache[spl_object_id($user)]);
+            unset($this->cache[(int) $user->id]);
         }
     }
 }

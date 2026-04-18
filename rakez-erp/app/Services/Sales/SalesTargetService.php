@@ -7,6 +7,7 @@ use App\Models\ContractUnit;
 use App\Models\SalesTarget;
 use App\Models\User;
 use App\Services\Governance\GovernanceAuditLogger;
+use App\Support\Governance\GovernanceStatusCatalog;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Collection;
@@ -253,8 +254,7 @@ class SalesTargetService
     {
         abort_unless($actor->can('sales.targets.update'), 403);
 
-        $allowed = ['new', 'in_progress', 'completed'];
-        if (! in_array($status, $allowed, true)) {
+        if (! in_array($status, GovernanceStatusCatalog::salesTargetStatuses(), true)) {
             throw new \InvalidArgumentException('Invalid target status');
         }
 

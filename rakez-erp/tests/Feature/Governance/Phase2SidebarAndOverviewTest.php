@@ -55,10 +55,10 @@ class Phase2SidebarAndOverviewTest extends BasePermissionTestCase
 
     #[Test]
     #[DataProvider('sectionAdminOverviewMatrix')]
-    public function section_admin_can_reach_their_overview_page(string $role, string $overviewUrl): void
+    public function section_admin_cannot_reach_their_overview_page_without_top_authority(string $role, string $overviewUrl): void
     {
         $user = $this->makeGovernanceUser($role);
-        $this->actingAs($user)->get($overviewUrl)->assertOk();
+        $this->actingAs($user)->get($overviewUrl)->assertForbidden();
     }
 
     public static function sectionAdminOverviewMatrix(): array
@@ -77,9 +77,9 @@ class Phase2SidebarAndOverviewTest extends BasePermissionTestCase
     }
 
     #[Test]
-    public function erp_admin_can_reach_all_overview_pages(): void
+    public function top_authority_can_reach_all_overview_pages(): void
     {
-        $user = $this->makeGovernanceUser('erp_admin');
+        $user = $this->makeGovernanceUser('super_admin');
 
         $overviewPages = [
             '/admin/credit-overview',
@@ -139,7 +139,7 @@ class Phase2SidebarAndOverviewTest extends BasePermissionTestCase
     #[Test]
     public function dashboard_home_renders_for_governance_user(): void
     {
-        $user = $this->makeGovernanceUser('erp_admin');
+        $user = $this->makeGovernanceUser('super_admin');
         $response = $this->actingAs($user)->get('/admin');
 
         $response->assertOk();
@@ -151,7 +151,7 @@ class Phase2SidebarAndOverviewTest extends BasePermissionTestCase
         // When temporary grants are disabled, their nav item and any related copy must not appear.
         config(['governance.temporary_permissions.enabled' => false]);
 
-        $user = $this->makeGovernanceUser('erp_admin');
+        $user = $this->makeGovernanceUser('super_admin');
         $response = $this->actingAs($user)->get('/admin/effective-access');
 
         $response->assertOk()
@@ -163,7 +163,7 @@ class Phase2SidebarAndOverviewTest extends BasePermissionTestCase
     #[Test]
     public function governance_audit_filters_include_subject_type_and_category(): void
     {
-        $user = $this->makeGovernanceUser('erp_admin');
+        $user = $this->makeGovernanceUser('super_admin');
         $response = $this->actingAs($user)->get('/admin/governance-audit');
 
         $response->assertOk();
@@ -171,10 +171,11 @@ class Phase2SidebarAndOverviewTest extends BasePermissionTestCase
 
     protected function makeGovernanceUser(string $governanceRole): User
     {
-        $user = User::factory()->create([
-            'type' => 'default',
-            'is_active' => true,
-        ]);
+        if ($governanceRole === 'super_admin') {
+            return $this->createSuperAdmin(['is_active' => true])->fresh();
+        }
+
+        $user = $this->createDefaultUser(['is_active' => true]);
         $user->assignRole($governanceRole);
 
         return $user->fresh();

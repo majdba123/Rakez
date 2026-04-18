@@ -8,10 +8,12 @@ use App\Filament\Admin\Concerns\HasReadOnlyGovernanceResource;
 use App\Filament\Admin\Resources\EmployeeContracts\Pages\ListEmployeeContracts;
 use App\Models\EmployeeContract;
 use App\Models\User;
+use App\Support\Filament\ProcessStepper;
 use App\Services\Governance\GovernanceAuditLogger;
 use App\Services\HR\EmployeeContractService;
 use Filament\Actions\Action;
 use Filament\Forms\Components\DatePicker;
+use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
@@ -51,31 +53,35 @@ class EmployeeContractResource extends Resource
             ->modifyQueryUsing(fn (Builder $query): Builder => $query->with('employee')->latest())
             ->columns([
                 TextColumn::make('id')->sortable(),
-                TextColumn::make('employee.name')->label('Employee')->searchable()->placeholder('-'),
+                TextColumn::make('employee.name')->label(__('filament-admin.resources.employee_contracts.columns.employee'))->searchable()->placeholder('-'),
                 TextColumn::make('status')->badge(),
                 TextColumn::make('start_date')->date(),
                 TextColumn::make('end_date')->date()->placeholder('-'),
                 IconColumn::make('pdf_path')
-                    ->label('PDF')
+                    ->label(__('filament-admin.resources.employee_contracts.columns.pdf'))
                     ->boolean()
                     ->state(fn (EmployeeContract $record): bool => filled($record->pdf_path)),
                 TextColumn::make('remaining_days')
-                    ->label('Remaining Days')
+                    ->label(__('filament-admin.resources.employee_contracts.columns.remaining_days'))
                     ->state(fn (EmployeeContract $record): string => $record->getRemainingDays() !== null ? (string) $record->getRemainingDays() : '-'),
                 TextColumn::make('created_at')->since(),
+                TextColumn::make('contract_stepper')
+                    ->label(__('filament-admin.resources.employee_contracts.columns.lifecycle'))
+                    ->state(fn (EmployeeContract $record) => static::contractLifecycleLabel($record))
+                    ->badge(),
             ])
             ->filters([
                 SelectFilter::make('status')
                     ->options([
-                        'draft' => 'Draft',
-                        'active' => 'Active',
-                        'expired' => 'Expired',
-                        'terminated' => 'Terminated',
+                        'draft' => __('filament-admin.resources.employee_contracts.status.draft'),
+                        'active' => __('filament-admin.resources.employee_contracts.status.active'),
+                        'expired' => __('filament-admin.resources.employee_contracts.status.expired'),
+                        'terminated' => __('filament-admin.resources.employee_contracts.status.terminated'),
                     ]),
             ])
             ->actions([
                 Action::make('editContract')
-                    ->label('Edit')
+                    ->label(__('filament-admin.resources.employee_contracts.actions.edit'))
                     ->icon(Heroicon::OutlinedPencilSquare)
                     ->visible(fn (EmployeeContract $record): bool => static::canEdit($record))
                     ->fillForm(fn (EmployeeContract $record): array => [
@@ -117,11 +123,11 @@ class EmployeeContractResource extends Resource
 
                         Notification::make()
                             ->success()
-                            ->title('Employee contract updated.')
+                            ->title(__('filament-admin.resources.employee_contracts.notifications.updated'))
                             ->send();
                     }),
                 Action::make('generatePdf')
-                    ->label('Generate PDF')
+                    ->label(__('filament-admin.resources.employee_contracts.actions.generate_pdf'))
                     ->icon(Heroicon::OutlinedDocumentArrowDown)
                     ->visible(fn (EmployeeContract $record): bool => static::canGovernanceMutation('hr.contracts.manage'))
                     ->action(function (EmployeeContract $record): void {
@@ -142,11 +148,11 @@ class EmployeeContractResource extends Resource
 
                         Notification::make()
                             ->success()
-                            ->title('Employee contract PDF generated.')
+                            ->title(__('filament-admin.resources.employee_contracts.notifications.pdf_generated'))
                             ->send();
                     }),
                 Action::make('activateContract')
-                    ->label('Activate')
+                    ->label(__('filament-admin.resources.employee_contracts.actions.activate'))
                     ->icon(Heroicon::OutlinedCheckCircle)
                     ->color('success')
                     ->visible(fn (EmployeeContract $record): bool => static::canGovernanceMutation('hr.contracts.manage') && $record->status === 'draft')
@@ -166,11 +172,11 @@ class EmployeeContractResource extends Resource
 
                         Notification::make()
                             ->success()
-                            ->title('Employee contract activated.')
+                            ->title(__('filament-admin.resources.employee_contracts.notifications.activated'))
                             ->send();
                     }),
                 Action::make('terminateContract')
-                    ->label('Terminate')
+                    ->label(__('filament-admin.resources.employee_contracts.actions.terminate'))
                     ->icon(Heroicon::OutlinedNoSymbol)
                     ->color('danger')
                     ->requiresConfirmation()
@@ -191,9 +197,21 @@ class EmployeeContractResource extends Resource
 
                         Notification::make()
                             ->success()
-                            ->title('Employee contract terminated.')
+                            ->title(__('filament-admin.resources.employee_contracts.notifications.terminated'))
                             ->send();
                     }),
+                Action::make('viewLifecycle')
+                    ->label(__('filament-admin.resources.employee_contracts.actions.lifecycle'))
+                    ->icon(Heroicon::OutlinedArrowTrendingUp)
+                    ->modalHeading(__('filament-admin.resources.employee_contracts.modals.lifecycle_heading'))
+                    ->modalSubmitAction(false)
+                    ->modalCancelActionLabel(__('filament-admin.resources.employee_contracts.modals.close'))
+                    ->schema([
+                        Placeholder::make('lifecycle')
+                            ->label(__('filament-admin.resources.employee_contracts.modals.lifecycle_heading'))
+                            ->content(fn (EmployeeContract $record) => static::contractLifecycleStepper($record))
+                            ->columnSpanFull(),
+                    ]),
             ]);
     }
 
@@ -212,6 +230,11 @@ class EmployeeContractResource extends Resource
     protected static function editPermission(): ?string
     {
         return 'hr.contracts.manage';
+    }
+
+    public static function getNavigationLabel(): string
+    {
+        return __('filament-admin.resources.employee_contracts.navigation_label');
     }
 
     public static function contractForm(): array
@@ -236,10 +259,10 @@ class EmployeeContractResource extends Resource
                 ->required()
                 ->default('draft')
                 ->options([
-                    'draft' => 'Draft',
-                    'active' => 'Active',
-                    'expired' => 'Expired',
-                    'terminated' => 'Terminated',
+                    'draft' => __('filament-admin.resources.employee_contracts.status.draft'),
+                    'active' => __('filament-admin.resources.employee_contracts.status.active'),
+                    'expired' => __('filament-admin.resources.employee_contracts.status.expired'),
+                    'terminated' => __('filament-admin.resources.employee_contracts.status.terminated'),
                 ]),
             Textarea::make('terms')
                 ->rows(4)
@@ -276,5 +299,40 @@ class EmployeeContractResource extends Resource
     public static function canView(Model $record): bool
     {
         return static::canAccessGovernancePage('HR Oversight', static::$viewPermission);
+    }
+
+    protected static function contractLifecycleLabel(EmployeeContract $record): string
+    {
+        return match ($record->status) {
+            'draft' => __('filament-admin.resources.employee_contracts.status.draft'),
+            'active' => __('filament-admin.resources.employee_contracts.status.active'),
+            'expired' => __('filament-admin.resources.employee_contracts.status.expired'),
+            'terminated' => __('filament-admin.resources.employee_contracts.status.terminated'),
+            default => (string) $record->status,
+        };
+    }
+
+    protected static function contractLifecycleStepper(EmployeeContract $record): \Illuminate\Support\HtmlString
+    {
+        return ProcessStepper::render([
+            [
+                'label' => __('filament-admin.resources.employee_contracts.stepper.steps.draft'),
+                'state' => $record->status === 'draft' ? 'current' : 'completed',
+            ],
+            [
+                'label' => __('filament-admin.resources.employee_contracts.stepper.steps.active'),
+                'state' => $record->status === 'active'
+                    ? 'current'
+                    : (in_array($record->status, ['expired', 'terminated'], true) ? 'completed' : 'pending'),
+            ],
+            [
+                'label' => __('filament-admin.resources.employee_contracts.stepper.steps.expired'),
+                'state' => $record->status === 'expired' ? 'completed' : 'pending',
+            ],
+            [
+                'label' => __('filament-admin.resources.employee_contracts.stepper.steps.terminated'),
+                'state' => $record->status === 'terminated' ? 'failed' : 'pending',
+            ],
+        ]);
     }
 }

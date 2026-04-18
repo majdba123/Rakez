@@ -157,8 +157,8 @@ class AiScenarioMatrixFeatureTest extends TestCase
             'Accept' => 'text/event-stream',
         ]);
 
-        $response->assertOk();
-        $this->assertStringContainsString('You do not have permission to use the AI assistant.', $response->streamedContent());
+        $response->assertStatus(403);
+        $response->assertJsonPath('message', 'You do not have permission to use the AI assistant.');
     }
 
     private function fakeOpenAiResponse(string $text): CreateResponse

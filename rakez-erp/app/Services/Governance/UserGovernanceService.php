@@ -6,6 +6,7 @@ use App\Models\User;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Spatie\Permission\PermissionRegistrar;
 
 class UserGovernanceService
 {
@@ -17,6 +18,8 @@ class UserGovernanceService
 
     public function create(array $data): User
     {
+        $this->guardLegacyAdminTypePromotion(null, $data['type'] ?? null);
+
         return DB::transaction(function () use ($data): User {
             $attributes = $this->extractUserAttributes($data);
             $attributes['password'] = Hash::make($data['password']);
@@ -26,6 +29,7 @@ class UserGovernanceService
 
             $this->syncManagedRoles($user, $data);
             $this->syncDirectPermissions($user, $data);
+            app()[PermissionRegistrar::class]->forgetCachedPermissions();
 
             $this->audit->log('governance.user.created', $user, [
                 'roles' => $user->roles()->pluck('name')->sort()->values()->all(),
@@ -38,6 +42,7 @@ class UserGovernanceService
     public function update(User $user, array $data): User
     {
         $this->guardSuperAdminTarget($user, 'update');
+        $this->guardLegacyAdminTypePromotion($user, $data['type'] ?? $user->type);
 
         return DB::transaction(function () use ($user, $data): User {
             $before = [
@@ -58,6 +63,7 @@ class UserGovernanceService
 
             $this->syncManagedRoles($user, $data);
             $this->syncDirectPermissions($user, $data);
+            app()[PermissionRegistrar::class]->forgetCachedPermissions();
 
             $afterUser = $user->fresh();
 
@@ -119,7 +125,7 @@ class UserGovernanceService
             'target_roles' => $target->roles()->pluck('name')->sort()->values()->all(),
         ], $actor instanceof User ? $actor : null);
 
-        throw new \DomainException('Only a super_admin can modify or delete another super_admin user.');
+        throw new \DomainException('Only admin can modify or delete another top-level admin user.');
     }
 
     protected function extractUserAttributes(array $data): array
@@ -147,7 +153,7 @@ class UserGovernanceService
 
         $selectedGovernanceRoles = array_values(array_intersect(
             $data['governance_roles'] ?? [],
-            config('governance.managed_panel_roles', []),
+            config('governance.managed_governance_roles', []),
         ));
 
         if (! $actorIsSuperAdmin) {
@@ -165,9 +171,16 @@ class UserGovernanceService
             (bool) ($data['is_manager'] ?? $user->is_manager),
         );
 
+        $supplementalOperationalRoles = $this->resolveSupplementalOperationalRoles(
+            $user,
+            $data,
+            $operationalRole,
+        );
+
         $roles = array_values(array_unique(array_filter([
             ...$preservedRoles,
             $operationalRole,
+            ...$supplementalOperationalRoles,
             ...$selectedGovernanceRoles,
         ])));
 
@@ -194,5 +207,36 @@ class UserGovernanceService
         }
 
         return $type;
+    }
+
+    protected function resolveSupplementalOperationalRoles(User $user, array $data, ?string $primaryOperationalRole): array
+    {
+        $selectedRoles = array_key_exists('additional_roles', $data)
+            ? ($data['additional_roles'] ?? [])
+            : $user->roles()
+                ->pluck('name')
+                ->filter(fn (string $role): bool => $this->catalog->isSupplementalOperationalRole($role))
+                ->values()
+                ->all();
+
+        return collect($selectedRoles)
+            ->filter(fn (mixed $role): bool => is_string($role) && $this->catalog->isSupplementalOperationalRole($role))
+            ->reject(fn (string $role): bool => $role === $primaryOperationalRole)
+            ->unique()
+            ->values()
+            ->all();
+    }
+
+    protected function guardLegacyAdminTypePromotion(?User $user, ?string $requestedType): void
+    {
+        if ($requestedType !== 'admin') {
+            return;
+        }
+
+        if ($user?->type === 'admin') {
+            return;
+        }
+
+        throw new \DomainException('The legacy admin user type cannot be newly assigned from Filament. Use admin authority assignment instead.');
     }
 }

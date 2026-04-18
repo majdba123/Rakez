@@ -58,9 +58,13 @@ return [
     |--------------------------------------------------------------------------
     */
     'middleware_allowed' => [
-        'hr' => ['hr', 'admin'],
-        'inventory' => ['inventory', 'admin'],
-        'marketing' => ['marketing', 'admin'],
-        'sales' => ['sales', 'sales_leader', 'admin'],
+        'admin'              => ['admin'],
+        'project_management' => ['project_management', 'admin'],
+        'editor'             => ['editor', 'admin'],
+        'hr'                 => ['hr', 'admin'],
+        'inventory'          => ['inventory', 'admin'],
+        'marketing'          => ['marketing', 'admin'],
+        'sales'              => ['sales', 'sales_leader', 'admin'],
+        'sales_leader'       => ['sales_leader', 'admin'],
     ],
 ];

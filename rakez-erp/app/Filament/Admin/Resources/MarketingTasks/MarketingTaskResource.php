@@ -13,6 +13,7 @@ use App\Models\MarketingTask;
 use App\Models\User;
 use App\Services\Governance\GovernanceAuditLogger;
 use App\Services\Marketing\MarketingTaskService;
+use App\Support\Governance\GovernanceStatusCatalog;
 use Filament\Actions\Action;
 use Filament\Actions\EditAction;
 use Filament\Forms\Components\DatePicker;
@@ -79,11 +80,7 @@ class MarketingTaskResource extends Resource
             Select::make('status')
                 ->required()
                 ->default('pending')
-                ->options([
-                    'pending' => 'Pending',
-                    'in_progress' => 'In Progress',
-                    'completed' => 'Completed',
-                ]),
+                ->options(GovernanceStatusCatalog::marketingTaskStatusOptions()),
             DatePicker::make('due_date'),
         ])->columns(2);
     }
@@ -104,16 +101,12 @@ class MarketingTaskResource extends Resource
             ])
             ->filters([
                 SelectFilter::make('status')
-                    ->options([
-                        'pending' => 'Pending',
-                        'in_progress' => 'In Progress',
-                        'completed' => 'Completed',
-                    ]),
+                    ->options(GovernanceStatusCatalog::marketingTaskStatusOptions()),
             ])
             ->actions([
                 EditAction::make(),
                 Action::make('deleteTask')
-                    ->label('Delete')
+                    ->label(__('filament-admin.resources.marketing_tasks.actions.delete'))
                     ->icon(Heroicon::OutlinedTrash)
                     ->color('danger')
                     ->requiresConfirmation()
@@ -134,11 +127,11 @@ class MarketingTaskResource extends Resource
 
                         Notification::make()
                             ->success()
-                            ->title('Marketing task deleted.')
+                            ->title(__('filament-admin.resources.marketing_tasks.notifications.deleted'))
                             ->send();
                     }),
                 Action::make('markCompleted')
-                    ->label('Mark Completed')
+                    ->label(__('filament-admin.resources.marketing_tasks.actions.mark_completed'))
                     ->icon(Heroicon::OutlinedCheckCircle)
                     ->color('success')
                     ->visible(fn (MarketingTask $record): bool => static::canGovernanceMutation('marketing.tasks.confirm') && $record->status !== 'completed')
@@ -158,7 +151,7 @@ class MarketingTaskResource extends Resource
 
                         Notification::make()
                             ->success()
-                            ->title('Marketing task completed.')
+                            ->title(__('filament-admin.resources.marketing_tasks.notifications.completed'))
                             ->send();
                     }),
             ]);

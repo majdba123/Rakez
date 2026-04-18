@@ -32,7 +32,6 @@ class GetLeadSummaryTool implements ToolContract
         $data = [
             'id' => $lead->id,
             'name' => $lead->name,
-            'contact_info' => $lead->contact_info,
             'source' => $lead->source,
             'lead_status' => $lead->status,
             'lead_score' => $lead->lead_score,

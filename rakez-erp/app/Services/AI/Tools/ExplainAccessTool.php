@@ -18,12 +18,25 @@ class ExplainAccessTool implements ToolContract
         }
 
         $route = $args['route'] ?? '';
+        if (! is_string($route) || mb_strlen($route) > 255) {
+            return ToolResponse::invalidArguments('route must be a string under 255 characters.');
+        }
+        $route = preg_replace('/[^a-zA-Z0-9._\-\/]/', '', $route);
+
         $entityType = $args['entity_type'] ?? null;
+        if ($entityType !== null && (! is_string($entityType) || mb_strlen($entityType) > 60)) {
+            return ToolResponse::invalidArguments('entity_type must be a string under 60 characters.');
+        }
+
         $entityId = $args['entity_id'] ?? null;
+        if ($entityId !== null) {
+            $entityId = (int) $entityId;
+        }
 
         $message = "access to {$route}";
         if ($entityType && $entityId) {
-            $message .= " for {$entityType} #{$entityId}";
+            $safeType = preg_replace('/[^a-zA-Z0-9_]/', '', $entityType);
+            $message .= " for {$safeType} #{$entityId}";
         }
 
         $explanation = $this->engine->explain($user, $message);

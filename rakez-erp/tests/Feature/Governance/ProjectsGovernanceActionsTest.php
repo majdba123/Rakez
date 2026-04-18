@@ -30,7 +30,7 @@ class ProjectsGovernanceActionsTest extends BasePermissionTestCase
     #[Test]
     public function projects_admin_can_approve_and_reject_exclusive_project_requests_from_filament(): void
     {
-        $projectsAdmin = $this->createDefaultUser([
+        $projectsAdmin = $this->createSuperAdmin([
             'is_active' => true,
             'email' => 'projects-admin-actions@example.com',
         ]);
@@ -80,7 +80,7 @@ class ProjectsGovernanceActionsTest extends BasePermissionTestCase
     #[Test]
     public function projects_admin_can_open_contract_exclusive_request_and_project_media_view_pages(): void
     {
-        $projectsAdmin = $this->createDefaultUser([
+        $projectsAdmin = $this->createSuperAdmin([
             'is_active' => true,
             'email' => 'projects-admin-views@example.com',
         ]);
@@ -111,7 +111,7 @@ class ProjectsGovernanceActionsTest extends BasePermissionTestCase
     }
 
     #[Test]
-    public function erp_admin_can_view_exclusive_project_requests_but_cannot_execute_approval_actions(): void
+    public function erp_admin_cannot_access_exclusive_project_requests_without_top_authority(): void
     {
         $erpAdmin = $this->createDefaultUser([
             'is_active' => true,
@@ -119,15 +119,7 @@ class ProjectsGovernanceActionsTest extends BasePermissionTestCase
         ]);
         $erpAdmin->assignRole('erp_admin');
 
-        $request = ExclusiveProjectRequest::factory()->create([
-            'status' => 'pending',
-        ]);
-
         $this->actingAs($erpAdmin);
-
-        Livewire::test(ListExclusiveProjectRequests::class)
-            ->assertCanSeeTableRecords([$request])
-            ->assertTableActionHidden('approveRequest', $request->getKey())
-            ->assertTableActionHidden('rejectRequest', $request->getKey());
+        $this->get('/admin/exclusive-project-requests')->assertForbidden();
     }
 }

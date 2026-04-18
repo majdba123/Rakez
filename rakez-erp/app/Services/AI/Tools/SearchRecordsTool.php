@@ -18,11 +18,15 @@ class SearchRecordsTool implements ToolContract
 
         $query = $args['query'] ?? '';
         $modules = $args['modules'] ?? ['leads'];
-        $limit = $args['limit'] ?? 10;
+        $limit = min((int) ($args['limit'] ?? 10), 50);
 
         if ($query === '') {
             return ToolResponse::invalidArguments('Search query is required.');
         }
+
+        // Cap query length and escape LIKE wildcards to prevent full-table scan DoS
+        $query = mb_substr($query, 0, 200);
+        $query = str_replace(['\\', '%', '_'], ['\\\\', '\\%', '\\_'], $query);
 
         if (! is_array($modules) || $modules === []) {
             return ToolResponse::invalidArguments('modules must be a non-empty array.');
@@ -136,23 +140,32 @@ class SearchRecordsTool implements ToolContract
 
     private function searchMarketingTasks(User $user, string $query, int $limit): array
     {
-        return MarketingTask::where('title', 'LIKE', "%{$query}%")
-            ->limit($limit)->get()->map(fn ($t) => [
-                'id' => $t->id,
-                'label' => $t->title,
-                'status' => $t->status ?? null,
-            ])->toArray();
+        $builder = MarketingTask::where('title', 'LIKE', "%{$query}%");
+
+        if (! $user->can('marketing.tasks.view_all')) {
+            $builder->where('assigned_to', $user->id);
+        }
+
+        return $builder->limit($limit)->get()->map(fn ($t) => [
+            'id' => $t->id,
+            'label' => $t->title,
+            'status' => $t->status ?? null,
+        ])->toArray();
     }
 
     private function searchCustomers(User $user, string $query, int $limit): array
     {
-        return \App\Models\SecondPartyData::where(function ($q) use ($query) {
-            $q->where('name', 'LIKE', "%{$query}%")
-                ->orWhere('phone', 'LIKE', "%{$query}%");
-        })->limit($limit)->get()->map(fn ($c) => [
+        $builder = \App\Models\SecondPartyData::where(function ($q) use ($query) {
+            $q->where('name', 'LIKE', "%{$query}%");
+        });
+
+        if (! $user->can('second_party_data.view_all')) {
+            $builder->where('created_by', $user->id);
+        }
+
+        return $builder->limit($limit)->get()->map(fn ($c) => [
             'id' => $c->id,
             'label' => $c->name,
-            'phone' => $c->phone,
         ])->toArray();
     }
 }

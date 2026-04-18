@@ -10,12 +10,11 @@ use Tests\Feature\Auth\BasePermissionTestCase;
 class GovernanceObservabilityAccessTest extends BasePermissionTestCase
 {
     #[Test]
-    public function erp_admin_can_access_effective_access_and_governance_audit_pages(): void
+    public function top_authority_can_access_effective_access_and_governance_audit_pages(): void
     {
-        $viewer = $this->createDefaultUser([
+        $viewer = $this->createSuperAdmin([
             'is_active' => true,
         ]);
-        $viewer->assignRole('erp_admin');
 
         $subject = $this->createSalesStaff([
             'is_active' => true,
@@ -32,7 +31,7 @@ class GovernanceObservabilityAccessTest extends BasePermissionTestCase
     }
 
     #[Test]
-    public function auditor_can_access_read_only_governance_pages_but_cannot_mutate_records(): void
+    public function auditor_cannot_access_observability_pages_without_top_authority(): void
     {
         $auditor = $this->createDefaultUser([
             'is_active' => true,
@@ -50,11 +49,11 @@ class GovernanceObservabilityAccessTest extends BasePermissionTestCase
             'after' => ['active' => false],
         ], $auditor);
 
-        $this->actingAs($auditor)->get('/admin')->assertOk();
-        $this->actingAs($auditor)->get('/admin/effective-access')->assertOk();
-        $this->actingAs($auditor)->get("/admin/effective-access/{$subject->id}")->assertOk();
-        $this->actingAs($auditor)->get('/admin/governance-audit')->assertOk();
-        $this->actingAs($auditor)->get("/admin/governance-audit/{$auditLog->id}")->assertOk();
+        $this->actingAs($auditor)->get('/admin')->assertForbidden();
+        $this->actingAs($auditor)->get('/admin/effective-access')->assertForbidden();
+        $this->actingAs($auditor)->get("/admin/effective-access/{$subject->id}")->assertForbidden();
+        $this->actingAs($auditor)->get('/admin/governance-audit')->assertForbidden();
+        $this->actingAs($auditor)->get("/admin/governance-audit/{$auditLog->id}")->assertForbidden();
 
         $this->actingAs($auditor)->get('/admin/users/create')->assertForbidden();
         $this->actingAs($auditor)->get("/admin/users/{$subject->id}/edit")->assertForbidden();

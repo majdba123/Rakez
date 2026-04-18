@@ -368,7 +368,7 @@ class AdminConsoleSectionActionsTest extends BasePermissionTestCase
 
     protected function createGovernanceUser(string $role): User
     {
-        $user = $this->createDefaultUser([
+        $user = $this->createSuperAdmin([
             'is_active' => true,
             'email' => "{$role}-" . uniqid() . '@example.com',
         ]);

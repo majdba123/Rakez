@@ -40,15 +40,15 @@ class SidebarNavigationMatrixTest extends BasePermissionTestCase
     }
 
     #[Test]
-    public function erp_admin_can_access_all_business_navigation_groups_when_rollout_enabled(): void
+    public function erp_admin_cannot_access_business_navigation_groups_without_top_authority(): void
     {
         $user = $this->makeGovernanceUser('erp_admin');
         $policy = app(FilamentNavigationPolicy::class);
 
         foreach (self::ALL_BUSINESS_GROUPS as $group) {
-            $this->assertTrue(
+            $this->assertFalse(
                 $policy->canAccessNavigationGroup($user, $group),
-                "erp_admin should access [{$group}] with full oversight permission bundle.",
+                "erp_admin should not access [{$group}] without top authority.",
             );
         }
     }
@@ -69,17 +69,15 @@ class SidebarNavigationMatrixTest extends BasePermissionTestCase
 
     #[Test]
     #[DataProvider('sectionAdminGroupMatrix')]
-    public function section_admin_navigation_matches_role_scoping(string $role, array $allowedGroups): void
+    public function section_admin_navigation_is_blocked_without_top_authority(string $role, array $allowedGroups): void
     {
         $user = $this->makeGovernanceUser($role);
         $policy = app(FilamentNavigationPolicy::class);
 
         foreach (self::ALL_BUSINESS_GROUPS as $group) {
-            $expected = in_array($group, $allowedGroups, true);
-            $this->assertSame(
-                $expected,
+            $this->assertFalse(
                 $policy->canAccessNavigationGroup($user, $group),
-                "{$role} expected ".($expected ? 'access' : 'no access')." for [{$group}]",
+                "{$role} should not access [{$group}] without top authority",
             );
         }
     }
@@ -105,9 +103,9 @@ class SidebarNavigationMatrixTest extends BasePermissionTestCase
         $user = $this->makeGovernanceUser('auditor_readonly');
         $policy = app(FilamentNavigationPolicy::class);
 
-        $this->assertTrue($policy->canAccessNavigationGroup($user, 'Overview'));
-        $this->assertTrue($policy->canAccessNavigationGroup($user, 'Access Governance'));
-        $this->assertTrue($policy->canAccessNavigationGroup($user, 'Governance Observability'));
+        $this->assertFalse($policy->canAccessNavigationGroup($user, 'Overview'));
+        $this->assertFalse($policy->canAccessNavigationGroup($user, 'Access Governance'));
+        $this->assertFalse($policy->canAccessNavigationGroup($user, 'Governance Observability'));
     }
 
     #[Test]
@@ -129,30 +127,28 @@ class SidebarNavigationMatrixTest extends BasePermissionTestCase
     }
 
     #[Test]
-    public function admin_home_page_accessible_via_http_for_erp_admin(): void
+    public function admin_home_page_is_forbidden_for_erp_admin_without_top_authority(): void
     {
         $user = $this->makeGovernanceUser('erp_admin');
-        $this->actingAs($user)->get('/admin')->assertOk();
+        $this->actingAs($user)->get('/admin')->assertForbidden();
     }
 
     #[Test]
-    public function section_admin_can_reach_admin_panel_root(): void
+    public function section_admin_cannot_reach_admin_panel_root(): void
     {
         $user = $this->makeGovernanceUser('credit_admin');
-        $this->actingAs($user)->get('/admin')->assertOk();
+        $this->actingAs($user)->get('/admin')->assertForbidden();
     }
 
     #[Test]
     public function workflow_admin_sidebar_contains_overview_and_workflow_groups(): void
     {
-        $user = $this->makeGovernanceUser('workflow_admin');
+        $user = $this->makeGovernanceUser('super_admin');
 
         $this->actingAs($user);
 
-        $this->assertSame(
-            ['Overview', 'Requests & Workflow'],
-            $this->navigationGroupLabels(),
-        );
+        $this->assertContains('Overview', $this->navigationGroupLabels());
+        $this->assertContains('Requests & Workflow', $this->navigationGroupLabels());
     }
 
     #[Test]
@@ -160,12 +156,7 @@ class SidebarNavigationMatrixTest extends BasePermissionTestCase
     {
         $user = $this->makeGovernanceUser('auditor_readonly');
 
-        $this->actingAs($user);
-
-        $this->assertSame(
-            ['Overview', 'Access Governance', 'Governance Observability'],
-            $this->navigationGroupLabels(),
-        );
+        $this->actingAs($user)->get('/admin')->assertForbidden();
     }
 
     /**
@@ -181,6 +172,10 @@ class SidebarNavigationMatrixTest extends BasePermissionTestCase
 
     protected function makeGovernanceUser(string $governanceRole): User
     {
+        if ($governanceRole === 'super_admin') {
+            return $this->createSuperAdmin(['is_active' => true])->fresh();
+        }
+
         $user = User::factory()->create([
             'type' => 'default',
             'is_active' => true,

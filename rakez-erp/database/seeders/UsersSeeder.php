@@ -22,12 +22,12 @@ class UsersSeeder extends Seeder
         }
 
         $fixedUsers = [
-            [
-                'name' => 'مدير النظام',
-                'email' => 'admin@rakez.com',
-                'type' => 'admin',
-                'is_manager' => true,
-            ],
+            // [
+            //     'name' => 'مدير النظام',
+            //     'email' => 'admin@rakez.com',
+            //     'type' => 'admin',
+            //     'is_manager' => true,
+            // ],
             [
                 'name' => 'قائد المبيعات',
                 'email' => 'sales.leader@rakez.com',

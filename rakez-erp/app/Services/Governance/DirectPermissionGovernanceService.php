@@ -4,6 +4,7 @@ namespace App\Services\Governance;
 
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
+use Spatie\Permission\PermissionRegistrar;
 
 class DirectPermissionGovernanceService
 {
@@ -20,9 +21,12 @@ class DirectPermissionGovernanceService
         return DB::transaction(function () use ($user, $permissions): User {
             $before = $user->permissions()->pluck('name')->sort()->values()->all();
 
-            $filtered = array_values(array_intersect($permissions, $this->catalog->activePanelPermissionNames()));
+            $filtered = array_values(array_intersect($permissions, $this->catalog->activeDatabasePermissionNames()));
 
             $user->syncPermissions($filtered);
+
+            // Clear Spatie permission cache to ensure fresh queries reflect the sync
+            app()[PermissionRegistrar::class]->forgetCachedPermissions();
 
             $this->audit->log('governance.user.direct_permissions_synced', $user, [
                 'before' => $before,
@@ -70,7 +74,7 @@ class DirectPermissionGovernanceService
             return;
         }
 
-        throw new \DomainException('Only a super_admin can modify direct permissions for a super_admin user.');
+        throw new \DomainException('Only admin can modify direct permissions for a top-level admin user.');
     }
 
     protected function guardPostponedPermissions(array $permissions): void

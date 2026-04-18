@@ -21,7 +21,8 @@ class AskQuestionRequest extends FormRequest
         $rules = [
             'question' => ['required', 'string', 'max:2000'],
             'section' => ['nullable', 'string', Rule::in($sections)],
-            'context' => ['nullable', 'array'],
+            'context' => ['nullable', 'array', 'max:50'],
+            'context.*' => ['nullable'],
             'provider' => ['nullable', 'string', Rule::in(['openai', 'anthropic'])],
         ];
 

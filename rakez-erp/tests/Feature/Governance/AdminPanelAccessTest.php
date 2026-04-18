@@ -18,9 +18,9 @@ class AdminPanelAccessTest extends BasePermissionTestCase
     }
 
     #[Test]
-    public function admin_role_with_panel_permission_can_access_admin_panel(): void
+    public function super_admin_can_access_admin_panel(): void
     {
-        $admin = $this->createAdmin();
+        $admin = $this->createSuperAdmin();
 
         $this->assertTrue(app(GovernanceAccessService::class)->canAccessPanel($admin));
         $this->actingAs($admin)->get('/admin')->assertOk();
@@ -40,16 +40,16 @@ class AdminPanelAccessTest extends BasePermissionTestCase
     }
 
     #[Test]
-    public function erp_admin_with_panel_permission_can_access_admin_panel(): void
+    public function legacy_admin_role_cannot_access_panel_even_when_permission_is_inherited_via_role(): void
     {
         $user = User::factory()->create([
-            'type' => 'default',
+            'type' => 'admin',
             'is_active' => true,
         ]);
-        $user->assignRole('erp_admin');
+        $user->assignRole('admin');
 
-        $this->assertTrue(app(GovernanceAccessService::class)->canAccessPanel($user));
-        $this->actingAs($user)->get('/admin')->assertOk();
+        $this->assertFalse(app(GovernanceAccessService::class)->canAccessPanel($user));
+        $this->actingAs($user)->get('/admin')->assertForbidden();
     }
 
     #[Test]
@@ -59,7 +59,7 @@ class AdminPanelAccessTest extends BasePermissionTestCase
             'type' => 'default',
             'is_active' => true,
         ]);
-        $eligible->assignRole('erp_admin');
+        $eligible->assignRole('super_admin');
 
         $ineligible = User::factory()->create([
             'type' => 'default',
@@ -83,13 +83,13 @@ class AdminPanelAccessTest extends BasePermissionTestCase
     }
 
     #[Test]
-    public function inactive_governance_user_cannot_access_admin_panel(): void
+    public function inactive_super_admin_cannot_access_admin_panel(): void
     {
         $user = User::factory()->create([
             'type' => 'default',
             'is_active' => false,
         ]);
-        $user->assignRole('erp_admin');
+        $user->assignRole('super_admin');
 
         $this->assertFalse(app(GovernanceAccessService::class)->canAccessPanel($user));
         $this->actingAs($user)->get('/admin')->assertForbidden();
@@ -102,13 +102,13 @@ class AdminPanelAccessTest extends BasePermissionTestCase
             'type' => 'marketing',
             'is_manager' => false,
         ]);
-        $user->assignRole('erp_admin');
+        $user->assignRole('super_admin');
 
         $user->type = 'sales';
         $user->is_manager = false;
         $user->syncRolesFromType();
 
-        $this->assertTrue($user->hasRole('erp_admin'));
+        $this->assertTrue($user->hasRole('super_admin'));
         $this->assertTrue($user->hasRole('sales'));
         $this->assertFalse($user->hasRole('marketing'));
     }

@@ -4,12 +4,9 @@ namespace Tests\Feature\Governance;
 
 use App\Filament\Admin\Resources\ClaimFiles\ClaimFileResource;
 use App\Filament\Admin\Resources\ClaimFiles\Pages\ListClaimFiles;
-use App\Filament\Admin\Resources\ClaimFiles\Pages\ViewClaimFile;
 use App\Filament\Admin\Resources\CreditBookings\CreditBookingResource;
 use App\Filament\Admin\Resources\CreditBookings\Pages\ListCreditBookings;
-use App\Filament\Admin\Resources\CreditBookings\Pages\ViewCreditBooking;
 use App\Filament\Admin\Resources\TitleTransfers\Pages\ListTitleTransfers;
-use App\Filament\Admin\Resources\TitleTransfers\Pages\ViewTitleTransfer;
 use App\Filament\Admin\Resources\TitleTransfers\TitleTransferResource;
 use App\Models\ClaimFile;
 use App\Models\Contract;
@@ -37,13 +34,12 @@ class CreditGovernanceActionsTest extends BasePermissionTestCase
     }
 
     #[Test]
-    public function credit_admin_can_manage_title_transfer_actions_from_filament_while_other_credit_surfaces_stay_scoped(): void
+    public function top_authority_can_manage_credit_actions_from_filament(): void
     {
-        $creditAdmin = $this->createDefaultUser([
+        $admin = $this->createSuperAdmin([
             'is_active' => true,
-            'email' => 'credit-admin-readonly@example.com',
+            'email' => 'admin-credit-actions@example.com',
         ]);
-        $creditAdmin->assignRole('credit_admin');
 
         $financingReservation = $this->createCreditReservation([
             'purchase_mechanism' => 'supported_bank',
@@ -52,7 +48,7 @@ class CreditGovernanceActionsTest extends BasePermissionTestCase
 
         CreditFinancingTracker::factory()->create([
             'sales_reservation_id' => $financingReservation->id,
-            'assigned_to' => $creditAdmin->id,
+            'assigned_to' => $admin->id,
             'overall_status' => 'in_progress',
             'stage_1_status' => 'in_progress',
             'stage_2_status' => 'pending',
@@ -68,7 +64,7 @@ class CreditGovernanceActionsTest extends BasePermissionTestCase
 
         $transfer = TitleTransfer::factory()->create([
             'sales_reservation_id' => $transferReservation->id,
-            'processed_by' => $creditAdmin->id,
+            'processed_by' => $admin->id,
             'status' => 'scheduled',
             'scheduled_date' => now()->addDay()->toDateString(),
             'notes' => 'Read-only transfer',
@@ -81,11 +77,11 @@ class CreditGovernanceActionsTest extends BasePermissionTestCase
 
         $claimFile = ClaimFile::factory()->create([
             'sales_reservation_id' => $claimReservation->id,
-            'generated_by' => $creditAdmin->id,
+            'generated_by' => $admin->id,
             'pdf_path' => 'claim_files/existing.pdf',
         ]);
 
-        $this->actingAs($creditAdmin);
+        $this->actingAs($admin);
 
         Livewire::test(ListCreditBookings::class)
             ->assertCanSeeTableRecords([$financingReservation, $transferReservation, $claimReservation])
@@ -111,11 +107,10 @@ class CreditGovernanceActionsTest extends BasePermissionTestCase
     #[Test]
     public function credit_resources_remain_read_only_and_do_not_mutate_domain_state_when_rendered(): void
     {
-        $creditAdmin = $this->createDefaultUser([
+        $admin = $this->createSuperAdmin([
             'is_active' => true,
-            'email' => 'credit-admin-state-check@example.com',
+            'email' => 'admin-credit-state-check@example.com',
         ]);
-        $creditAdmin->assignRole('credit_admin');
 
         $financingReservation = $this->createCreditReservation([
             'purchase_mechanism' => 'supported_bank',
@@ -124,7 +119,7 @@ class CreditGovernanceActionsTest extends BasePermissionTestCase
 
         $tracker = CreditFinancingTracker::factory()->create([
             'sales_reservation_id' => $financingReservation->id,
-            'assigned_to' => $creditAdmin->id,
+            'assigned_to' => $admin->id,
             'overall_status' => 'in_progress',
             'bank_name' => 'Boundary Bank',
             'stage_1_status' => 'completed',
@@ -138,7 +133,7 @@ class CreditGovernanceActionsTest extends BasePermissionTestCase
 
         $transfer = TitleTransfer::factory()->create([
             'sales_reservation_id' => $transferReservation->id,
-            'processed_by' => $creditAdmin->id,
+            'processed_by' => $admin->id,
             'status' => 'scheduled',
             'scheduled_date' => now()->addDays(3)->toDateString(),
             'notes' => 'Keep unchanged',
@@ -151,7 +146,7 @@ class CreditGovernanceActionsTest extends BasePermissionTestCase
 
         $claimFile = ClaimFile::factory()->create([
             'sales_reservation_id' => $claimReservation->id,
-            'generated_by' => $creditAdmin->id,
+            'generated_by' => $admin->id,
             'pdf_path' => 'claim_files/existing.pdf',
         ]);
 
@@ -166,12 +161,12 @@ class CreditGovernanceActionsTest extends BasePermissionTestCase
         $originalContractClosed = (bool) $claimReservation->contractUnit->secondPartyData?->contract?->is_closed;
         $originalPdfPath = $claimFile->pdf_path;
 
-        $this->actingAs($creditAdmin)->get('/admin/credit-bookings')->assertOk();
-        $this->actingAs($creditAdmin)->get("/admin/credit-bookings/{$financingReservation->id}")->assertOk();
-        $this->actingAs($creditAdmin)->get('/admin/title-transfers')->assertOk();
-        $this->actingAs($creditAdmin)->get("/admin/title-transfers/{$transfer->id}")->assertOk();
-        $this->actingAs($creditAdmin)->get('/admin/claim-files')->assertOk();
-        $this->actingAs($creditAdmin)->get("/admin/claim-files/{$claimFile->id}")->assertOk();
+        $this->actingAs($admin)->get('/admin/credit-bookings')->assertOk();
+        $this->actingAs($admin)->get("/admin/credit-bookings/{$financingReservation->id}")->assertOk();
+        $this->actingAs($admin)->get('/admin/title-transfers')->assertOk();
+        $this->actingAs($admin)->get("/admin/title-transfers/{$transfer->id}")->assertOk();
+        $this->actingAs($admin)->get('/admin/claim-files')->assertOk();
+        $this->actingAs($admin)->get("/admin/claim-files/{$claimFile->id}")->assertOk();
 
         $financingReservation->refresh();
         $transfer->refresh();
@@ -194,7 +189,7 @@ class CreditGovernanceActionsTest extends BasePermissionTestCase
     }
 
     #[Test]
-    public function direct_operational_permissions_restore_title_transfer_execution_paths_in_filament(): void
+    public function section_roles_with_direct_permissions_still_cannot_access_filament_panel(): void
     {
         $user = $this->createDefaultUser([
             'is_active' => true,
@@ -211,66 +206,19 @@ class CreditGovernanceActionsTest extends BasePermissionTestCase
             'credit.claim_files.generate',
         ]);
 
-        $reservation = $this->createCreditReservation([
-            'purchase_mechanism' => 'supported_bank',
-            'credit_status' => 'in_progress',
-        ]);
-
-        CreditFinancingTracker::factory()->create([
-            'sales_reservation_id' => $reservation->id,
-            'overall_status' => 'in_progress',
-        ]);
-
-        $transferReservation = $this->createCreditReservation([
-            'credit_status' => 'title_transfer',
-        ]);
-
-        $transfer = TitleTransfer::factory()->create([
-            'sales_reservation_id' => $transferReservation->id,
-            'processed_by' => $user->id,
-            'status' => 'preparation',
-        ]);
-
-        $claimReservation = $this->createCreditReservation([
-            'credit_status' => 'sold',
-        ]);
-
-        $claimFile = ClaimFile::factory()->create([
-            'sales_reservation_id' => $claimReservation->id,
-            'generated_by' => $user->id,
-        ]);
-
-        $this->actingAs($user)->get('/admin/credit-overview')->assertOk();
-        $this->actingAs($user)->get('/admin/credit-bookings')->assertOk();
-        $this->actingAs($user)->get('/admin/title-transfers')->assertOk();
-        $this->actingAs($user)->get('/admin/claim-files')->assertOk();
-
-        Livewire::test(ListCreditBookings::class)
-            ->assertCanSeeTableRecords([$reservation, $transferReservation, $claimReservation])
-            ->assertTableActionDoesNotExist('initializeFinancing')
-            ->assertTableActionVisible('advanceFinancing', $reservation->getKey())
-            ->assertTableActionVisible('rejectFinancing', $reservation->getKey())
-            ->assertTableActionDoesNotExist('initializeTitleTransfer')
-            ->assertTableActionVisible('generateClaimPdf', $claimReservation->getKey());
-
-        Livewire::test(ListTitleTransfers::class)
-            ->assertCanSeeTableRecords([$transfer])
-            ->assertTableActionVisible('scheduleTransfer', $transfer->getKey())
-            ->assertTableActionVisible('completeTransfer', $transfer->getKey());
-
-        Livewire::test(ListClaimFiles::class)
-            ->assertCanSeeTableRecords([$claimFile])
-            ->assertTableActionVisible('generatePdf', $claimFile->getKey());
+        $this->actingAs($user)->get('/admin/credit-overview')->assertForbidden();
+        $this->actingAs($user)->get('/admin/credit-bookings')->assertForbidden();
+        $this->actingAs($user)->get('/admin/title-transfers')->assertForbidden();
+        $this->actingAs($user)->get('/admin/claim-files')->assertForbidden();
     }
 
     #[Test]
-    public function credit_admin_can_schedule_unschedule_and_complete_title_transfers_from_filament(): void
+    public function top_authority_can_schedule_unschedule_and_complete_title_transfers_from_filament(): void
     {
-        $creditAdmin = $this->createDefaultUser([
+        $admin = $this->createSuperAdmin([
             'is_active' => true,
-            'email' => 'credit-admin-title-transfer-actions@example.com',
+            'email' => 'admin-title-transfer-actions@example.com',
         ]);
-        $creditAdmin->assignRole('credit_admin');
 
         $reservation = $this->createCreditReservation([
             'credit_status' => 'title_transfer',
@@ -278,12 +226,12 @@ class CreditGovernanceActionsTest extends BasePermissionTestCase
 
         $transfer = TitleTransfer::factory()->create([
             'sales_reservation_id' => $reservation->id,
-            'processed_by' => $creditAdmin->id,
+            'processed_by' => $admin->id,
             'status' => 'preparation',
             'scheduled_date' => null,
         ]);
 
-        $this->actingAs($creditAdmin);
+        $this->actingAs($admin);
 
         Livewire::test(ListTitleTransfers::class)
             ->callTableAction('scheduleTransfer', $transfer->getKey(), [
@@ -317,14 +265,14 @@ class CreditGovernanceActionsTest extends BasePermissionTestCase
         $this->assertSame('sold', $reservation->contractUnit->status);
         $this->assertDatabaseHas('governance_audit_logs', [
             'event' => 'governance.credit.title_transfer.completed',
-            'actor_id' => $creditAdmin->id,
+            'actor_id' => $admin->id,
             'subject_type' => TitleTransfer::class,
             'subject_id' => $transfer->id,
         ]);
     }
 
     #[Test]
-    public function title_transfer_resource_capabilities_follow_credit_management_permissions(): void
+    public function non_top_authority_cannot_access_credit_filament_resources(): void
     {
         $user = $this->createDefaultUser([
             'is_active' => true,
@@ -352,7 +300,7 @@ class CreditGovernanceActionsTest extends BasePermissionTestCase
         $this->actingAs($user);
 
         $this->assertFalse(CreditBookingResource::canCreate());
-        $this->assertTrue(CreditBookingResource::canEdit($reservation));
+        $this->assertFalse(CreditBookingResource::canEdit($reservation));
         $this->assertFalse(CreditBookingResource::canDelete($reservation));
         $this->assertFalse(CreditBookingResource::canDeleteAny());
         $this->assertFalse(CreditBookingResource::canForceDelete($reservation));
@@ -365,23 +313,19 @@ class CreditGovernanceActionsTest extends BasePermissionTestCase
         $this->assertFalse(TitleTransferResource::canForceDelete($transfer));
         $this->assertFalse(TitleTransferResource::canRestore($transfer));
 
-        $this->assertTrue(ClaimFileResource::canCreate());
+        $this->assertFalse(ClaimFileResource::canCreate());
         $this->assertFalse(ClaimFileResource::canEdit($claimFile));
         $this->assertFalse(ClaimFileResource::canDelete($claimFile));
         $this->assertFalse(ClaimFileResource::canDeleteAny());
         $this->assertFalse(ClaimFileResource::canForceDelete($claimFile));
         $this->assertFalse(ClaimFileResource::canRestore($claimFile));
 
-        $this->assertSame([], Livewire::test(ListCreditBookings::class)->instance()->getCachedHeaderActions());
-        $this->assertSame([], Livewire::test(ViewCreditBooking::class, ['record' => $reservation->getRouteKey()])->instance()->getCachedHeaderActions());
-        $this->assertSame([], Livewire::test(ListTitleTransfers::class)->instance()->getCachedHeaderActions());
-        $this->assertSame([], Livewire::test(ViewTitleTransfer::class, ['record' => $transfer->getRouteKey()])->instance()->getCachedHeaderActions());
-        $this->assertNotEmpty(Livewire::test(ListClaimFiles::class)->instance()->getCachedHeaderActions());
-        $this->assertSame([], Livewire::test(ViewClaimFile::class, ['record' => $claimFile->getRouteKey()])->instance()->getCachedHeaderActions());
-
-        $this->assertCount(0, Livewire::test(ListCreditBookings::class)->instance()->getTable()->getFlatBulkActions());
-        $this->assertCount(0, Livewire::test(ListTitleTransfers::class)->instance()->getTable()->getFlatBulkActions());
-        $this->assertCount(0, Livewire::test(ListClaimFiles::class)->instance()->getTable()->getFlatBulkActions());
+        $this->actingAs($user)->get('/admin/credit-bookings')->assertForbidden();
+        $this->actingAs($user)->get('/admin/title-transfers')->assertForbidden();
+        $this->actingAs($user)->get('/admin/claim-files')->assertForbidden();
+        $this->actingAs($user)->get("/admin/credit-bookings/{$reservation->id}")->assertForbidden();
+        $this->actingAs($user)->get("/admin/title-transfers/{$transfer->id}")->assertForbidden();
+        $this->actingAs($user)->get("/admin/claim-files/{$claimFile->id}")->assertForbidden();
     }
 
     protected function createCreditReservation(array $overrides = []): SalesReservation

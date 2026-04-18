@@ -12,7 +12,7 @@ use Tests\Feature\Auth\BasePermissionTestCase;
 class DirectPermissionGovernanceTest extends BasePermissionTestCase
 {
     #[Test]
-    public function erp_admin_can_access_direct_permissions_pages_while_auditor_cannot_edit(): void
+    public function direct_permissions_pages_are_super_admin_only(): void
     {
         $target = User::factory()->create([
             'type' => 'default',
@@ -20,11 +20,11 @@ class DirectPermissionGovernanceTest extends BasePermissionTestCase
         ]);
         $target->assignRole('default');
 
-        $erpAdmin = User::factory()->create([
+        $superAdmin = User::factory()->create([
             'type' => 'default',
             'is_active' => true,
         ]);
-        $erpAdmin->assignRole('erp_admin');
+        $superAdmin->assignRole('super_admin');
 
         $auditor = User::factory()->create([
             'type' => 'default',
@@ -32,17 +32,27 @@ class DirectPermissionGovernanceTest extends BasePermissionTestCase
         ]);
         $auditor->assignRole('auditor_readonly');
 
-        $this->actingAs($erpAdmin)
+        $erpAdmin = User::factory()->create([
+            'type' => 'default',
+            'is_active' => true,
+        ]);
+        $erpAdmin->assignRole('erp_admin');
+
+        $this->actingAs($superAdmin)
             ->get('/admin/direct-permissions')
             ->assertOk();
 
-        $this->actingAs($erpAdmin)
+        $this->actingAs($superAdmin)
             ->get("/admin/direct-permissions/{$target->id}/edit")
             ->assertOk();
 
+        $this->actingAs($erpAdmin)
+            ->get('/admin/direct-permissions')
+            ->assertForbidden();
+
         $this->actingAs($auditor)
             ->get('/admin/direct-permissions')
-            ->assertOk();
+            ->assertForbidden();
 
         $this->actingAs($auditor)
             ->get("/admin/direct-permissions/{$target->id}/edit")
@@ -146,7 +156,7 @@ class DirectPermissionGovernanceTest extends BasePermissionTestCase
         $service = app(DirectPermissionGovernanceService::class);
 
         $this->expectException(\DomainException::class);
-        $this->expectExceptionMessage('Only a super_admin can modify direct permissions');
+        $this->expectExceptionMessage('Only admin can modify direct permissions');
 
         $service->grant($target, 'notifications.manage');
     }

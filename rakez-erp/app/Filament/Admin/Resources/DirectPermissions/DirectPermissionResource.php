@@ -43,22 +43,24 @@ class DirectPermissionResource extends Resource
     {
         return $schema->components([
             Placeholder::make('user_name')
-                ->label('User')
+                ->label(__('filament-admin.resources.direct_permissions.fields.user'))
                 ->content(fn (?User $record): string => $record?->name ?? '-'),
             Placeholder::make('user_email')
-                ->label('Email')
+                ->label(__('filament-admin.resources.direct_permissions.fields.email'))
                 ->content(fn (?User $record): string => $record?->email ?? '-'),
             Placeholder::make('role_summary')
-                ->label('Current Roles')
-                ->content(fn (?User $record): string => $record ? $record->roles->pluck('name')->implode(', ') : '-'),
+                ->label(__('filament-admin.resources.direct_permissions.fields.current_roles'))
+                ->content(fn (?User $record): string => $record
+                    ? implode(', ', app(GovernanceCatalog::class)->displayRoleLabels($record->roles->pluck('name')->values()->all()))
+                    : '-'),
             Select::make('direct_permissions')
-                ->label('Direct Permissions')
+                ->label(__('filament-admin.resources.direct_permissions.fields.direct_permissions'))
                 ->multiple()
                 ->searchable()
                 ->preload()
                 ->options(app(GovernanceCatalog::class)->groupedPermissionOptions()),
             Placeholder::make('effective_access_summary')
-                ->label('Effective Access Snapshot')
+                ->label(__('filament-admin.resources.direct_permissions.fields.effective_access'))
                 ->content(fn (?User $record): string => $record ? app(EffectiveAccessSnapshotService::class)->summaryForUser($record) : '-')
                 ->columnSpanFull(),
         ])->columns(2);
@@ -70,22 +72,26 @@ class DirectPermissionResource extends Resource
             ->modifyQueryUsing(fn (Builder $query): Builder => $query->withTrashed()->with(['roles'])->withCount('permissions'))
             ->columns([
                 TextColumn::make('name')
+                    ->label(__('filament-admin.resources.direct_permissions.columns.name'))
                     ->searchable()
                     ->sortable(),
                 TextColumn::make('email')
+                    ->label(__('filament-admin.resources.direct_permissions.columns.email'))
                     ->searchable(),
                 TextColumn::make('permissions_count')
-                    ->label('Direct Permissions')
+                    ->label(__('filament-admin.resources.direct_permissions.columns.direct_permissions'))
                     ->sortable(),
                 TextColumn::make('roles_summary')
-                    ->label('Roles')
-                    ->state(fn (User $record): string => $record->roles->pluck('name')->implode(', ') ?: '-'),
+                    ->label(__('filament-admin.resources.direct_permissions.columns.roles'))
+                    ->state(fn (User $record): string => implode(', ', app(GovernanceCatalog::class)->displayRoleLabels(
+                        $record->roles->pluck('name')->values()->all()
+                    )) ?: '-'),
                 IconColumn::make('panel_eligible')
-                    ->label('Panel Access')
+                    ->label(__('filament-admin.resources.direct_permissions.columns.panel_access'))
                     ->boolean()
                     ->state(fn (User $record): bool => app(GovernanceAccessService::class)->canAccessPanel($record)),
                 IconColumn::make('is_trashed')
-                    ->label('Deleted')
+                    ->label(__('filament-admin.resources.direct_permissions.columns.deleted'))
                     ->boolean()
                     ->state(fn (User $record): bool => method_exists($record, 'trashed') && $record->trashed()),
             ])
@@ -103,6 +109,11 @@ class DirectPermissionResource extends Resource
             'index' => ListDirectPermissions::route('/'),
             'edit' => EditDirectPermissions::route('/{record}/edit'),
         ];
+    }
+
+    public static function getNavigationLabel(): string
+    {
+        return __('filament-admin.resources.direct_permissions.navigation_label');
     }
 
     public static function getEloquentQuery(): Builder
@@ -153,4 +164,3 @@ class DirectPermissionResource extends Resource
         return false;
     }
 }
-

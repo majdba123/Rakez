@@ -43,19 +43,21 @@ class PermissionResource extends Resource
                 ->withCount(['roles', 'users']))
             ->columns([
                 TextColumn::make('name')
+                    ->label(__('filament-admin.resources.permissions.columns.name'))
                     ->searchable()
                     ->sortable(),
                 TextColumn::make('description')
+                    ->label(__('filament-admin.resources.permissions.columns.description'))
                     ->state(fn (Permission $record): string => app(GovernanceCatalog::class)->permissionDescription($record->name) ?? '-')
                     ->wrap(),
                 TextColumn::make('roles_count')
-                    ->label('Roles')
+                    ->label(__('filament-admin.resources.permissions.columns.roles'))
                     ->sortable(),
                 TextColumn::make('users_count')
-                    ->label('Direct Users')
+                    ->label(__('filament-admin.resources.permissions.columns.direct_users'))
                     ->sortable(),
                 TextColumn::make('guard_name')
-                    ->label('Guard')
+                    ->label(__('filament-admin.resources.permissions.columns.guard'))
                     ->badge(),
             ]);
     }
@@ -65,6 +67,11 @@ class PermissionResource extends Resource
         return [
             'index' => ListPermissions::route('/'),
         ];
+    }
+
+    public static function getNavigationLabel(): string
+    {
+        return __('filament-admin.resources.permissions.navigation_label');
     }
 
     public static function canAccess(): bool

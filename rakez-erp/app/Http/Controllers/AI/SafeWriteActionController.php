@@ -9,6 +9,7 @@ use App\Http\Requests\AI\ProposeSafeWriteActionRequest;
 use App\Http\Requests\AI\RejectSafeWriteActionRequest;
 use App\Services\AI\SafeWrites\SafeWriteActionService;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 
 class SafeWriteActionController extends Controller
 {
@@ -16,13 +17,13 @@ class SafeWriteActionController extends Controller
         private readonly SafeWriteActionService $service,
     ) {}
 
-    public function catalog(): JsonResponse
+    public function catalog(Request $request): JsonResponse
     {
         return response()->json([
             'success' => true,
             'submit_mode' => 'manual_only',
             'execution_enabled' => false,
-            'actions' => $this->service->catalog(request()->user()),
+            'actions' => $this->service->catalog($request->user()),
         ]);
     }
 

@@ -22,30 +22,30 @@ class ListWorkflowTasks extends ListRecords
     {
         return [
             Action::make('createTask')
-                ->label('Create Task')
+                ->label(__('filament-admin.resources.workflow_tasks.actions.create'))
                 ->icon('heroicon-o-plus')
                 ->visible(fn (): bool => WorkflowTaskResource::canManageTasks())
                 ->schema([
                     TextInput::make('task_name')
-                        ->label('Task')
+                        ->label(__('filament-admin.resources.workflow_tasks.columns.task'))
                         ->required()
                         ->maxLength(255),
                     Select::make('assigned_to')
-                        ->label('Assignee')
+                        ->label(__('filament-admin.resources.workflow_tasks.columns.assignee'))
                         ->required()
                         ->searchable()
                         ->preload()
                         ->options(fn (): array => User::query()->orderBy('name')->pluck('name', 'id')->all()),
                     Select::make('team_id')
-                        ->label('Team')
+                        ->label(__('filament-admin.resources.workflow_tasks.columns.team'))
                         ->searchable()
                         ->preload()
                         ->options(fn (): array => Team::query()->orderBy('name')->pluck('name', 'id')->all()),
                     TextInput::make('section')
                         ->maxLength(100)
-                        ->helperText('Optional. Defaults to the assignee user type.'),
+                        ->helperText(__('filament-admin.resources.workflow_tasks.helper.section')),
                     DateTimePicker::make('due_at')
-                        ->label('Due At'),
+                        ->label(__('filament-admin.resources.workflow_tasks.fields.due_at')),
                 ])
                 ->action(function (array $data): void {
                     $actor = auth()->user();
@@ -64,7 +64,7 @@ class ListWorkflowTasks extends ListRecords
 
                     Notification::make()
                         ->success()
-                        ->title('Task created successfully.')
+                        ->title(__('filament-admin.resources.workflow_tasks.notifications.created'))
                         ->send();
                 }),
         ];

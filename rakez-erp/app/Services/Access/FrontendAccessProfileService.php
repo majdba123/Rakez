@@ -130,18 +130,18 @@ class FrontendAccessProfileService
 
     protected function hasPermission(User $user, string $permission): bool
     {
+        // Check dynamic permissions first (includes temporary grants and manager overlays).
         if (method_exists($user, 'hasEffectivePermission') && $user->hasEffectivePermission($permission)) {
             return true;
         }
 
+        // Fall through to Spatie's direct permission check.
+        // Intentionally not using $user->can() to avoid triggering Laravel Policies.
         try {
-            if ($user->hasPermissionTo($permission)) {
-                return true;
-            }
+            return $user->hasPermissionTo($permission);
         } catch (PermissionDoesNotExist) {
-            // ignore invalid permission names in legacy mappings
+            // Ignore unknown permission names from legacy config mappings.
+            return false;
         }
-
-        return $user->can($permission);
     }
 }

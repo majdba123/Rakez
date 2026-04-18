@@ -22,7 +22,8 @@ class ChatRequest extends FormRequest
             'message' => ['required', 'string', 'max:2000'],
             'session_id' => ['nullable', 'uuid'],
             'section' => ['nullable', 'string', Rule::in($sections)],
-            'context' => ['nullable', 'array'],
+            'context' => ['nullable', 'array', 'max:50'],
+            'context.*' => ['nullable'],
             'stream' => ['nullable', 'boolean'],
             'provider' => ['nullable', 'string', Rule::in(['openai', 'anthropic'])],
         ];
