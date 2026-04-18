@@ -36,7 +36,7 @@ class SalesReservationDetailResource extends JsonResource
             'voucher_url' => $this->voucher_pdf_path ? "/api/sales/reservations/{$this->id}/voucher" : null,
             'receipt_voucher_path' => $this->receipt_voucher_path,
             'receipt_voucher_url' => $this->receipt_voucher_path
-                ? url('/storage/' . ltrim($this->receipt_voucher_path, '/'))
+                ? url('/api/storage/' . ltrim($this->receipt_voucher_path, '/'))
                 : null,
             'confirmed_at' => $this->confirmed_at?->toIso8601String(),
             'cancelled_at' => $this->cancelled_at?->toIso8601String(),
