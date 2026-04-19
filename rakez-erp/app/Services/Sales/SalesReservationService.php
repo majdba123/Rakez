@@ -22,8 +22,44 @@ class SalesReservationService
     public function __construct(
         ReservationVoucherService $voucherService,
         protected SalesDashboardService $salesDashboardService,
+        protected DepositService $depositService,
     ) {
         $this->voucherService = $voucherService;
+    }
+
+    /**
+     * Map contract commission_from value to deposit commission_source enum value.
+     * Handles both Arabic and English values.
+     */
+    protected function mapCommissionSource(?string $contractCommissionFrom): string
+    {
+        if (!$contractCommissionFrom) {
+            return 'owner'; // default
+        }
+
+        $value = strtolower(trim($contractCommissionFrom));
+        
+        // Map Arabic values
+        if (str_contains($value, 'مالك') || $value === 'مالك') {
+            return 'owner';
+        }
+        if (str_contains($value, 'مشتري') || $value === 'مشتري') {
+            return 'buyer';
+        }
+        if (str_contains($value, 'طرفين') || $value === 'الطرفين') {
+            return 'owner'; // Default to owner if both parties
+        }
+        
+        // Map English values
+        if ($value === 'owner') {
+            return 'owner';
+        }
+        if ($value === 'buyer') {
+            return 'buyer';
+        }
+        
+        // Fallback to owner
+        return 'owner';
     }
 
     /**
@@ -141,6 +177,22 @@ class SalesReservationService
 
             // Update unit status to reserved
             $unit->update(['status' => 'reserved']);
+
+            // Create deposit if reservation is confirmed (immediate deposit flow)
+            if ($status === 'confirmed' && $data['down_payment_amount'] > 0) {
+                $commissionSource = $this->mapCommissionSource($contract->commission_from);
+                $this->depositService->createDeposit(
+                    $reservation->id,
+                    $data['contract_id'],
+                    $data['contract_unit_id'],
+                    (float) $data['down_payment_amount'],
+                    $data['payment_method'],
+                    $data['client_name'],
+                    now()->format('Y-m-d'),
+                    $commissionSource,
+                    'تم إنشاء العربون من حجز المبيعات'
+                );
+            }
 
             // Generate PDF voucher (optional: if Mpdf is not installed, reservation is still created)
             try {
