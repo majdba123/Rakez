@@ -342,8 +342,8 @@ class MarketingProjectService
             'commission_percent' => (float) $contract->getEffectiveCommissionPercent(),
             'commission_value' => $commissionValue,
             'total_unit_price' => (float) $pricingBasis[ContractPricingBasisService::COMMISSION_BASE_KEY],
-            /** Canonical UI average = full-project mean */
-            'average_unit_price' => (float) ($pricingBasis['average_unit_price_all'] ?? 0),
+            /** Canonical UI average = mean price of available units */
+            'average_unit_price' => (float) ($pricingBasis['average_unit_price_available'] ?? 0),
             'average_unit_price_all' => (float) ($pricingBasis['average_unit_price_all'] ?? 0),
             'average_unit_price_available' => (float) ($pricingBasis['average_unit_price_available'] ?? 0),
             'pricing_basis' => $pricingBasis,

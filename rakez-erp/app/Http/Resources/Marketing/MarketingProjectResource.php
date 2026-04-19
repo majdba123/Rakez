@@ -30,7 +30,7 @@ class MarketingProjectResource extends JsonResource
                 'available' => $availableUnits->count(),
                 'pending' => $pendingUnits->count(),
             ],
-            'avg_unit_price' => $units->count() > 0 ? round((float) $units->sum('price') / $units->count(), 2) : 0,
+            'avg_unit_price' => $availableUnits->count() > 0 ? round((float) $availableUnits->sum('price') / $availableUnits->count(), 2) : 0,
             'advertiser_number' => (!empty($info?->agency_number)) ? 'Available' : 'Pending',
             'advertiser_number_value' => $info?->agency_number,
             'advertiser_number_status' => (!empty($info?->agency_number)) ? 'Available' : 'Pending',

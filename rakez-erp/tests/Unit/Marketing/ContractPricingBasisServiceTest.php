@@ -33,8 +33,9 @@ class ContractPricingBasisServiceTest extends TestCase
     }
 
     #[Test]
-    public function it_uses_all_units_sum_not_available_only_when_no_override(): void
+    public function it_uses_available_units_sum_for_commission_base_when_no_override(): void
     {
+        // Business rule: commission base = available units only, not all units
         $contract = Contract::factory()->create();
         ContractInfo::factory()->create([
             'contract_id' => $contract->id,
@@ -47,11 +48,35 @@ class ContractPricingBasisServiceTest extends TestCase
         $svc = app(ContractPricingBasisService::class);
         $basis = $svc->resolve($contract, []);
 
-        $this->assertSame(ContractPricingBasisService::SOURCE_ALL_UNITS, $basis['source']);
-        $this->assertSame(1000000.0, $basis['commission_base_amount']);
+        $this->assertSame(ContractPricingBasisService::SOURCE_AVAILABLE_UNITS, $basis['source']);
+        // Commission base = available units only (300k), not all units (1000k)
+        $this->assertSame(300000.0, $basis['commission_base_amount']);
         $this->assertSame(300000.0, $basis['total_unit_price_available_sum']);
+        // All-units fields remain in response as informational only
         $this->assertSame(1000000.0, $basis['total_unit_price_all_sum']);
         $this->assertSame(300000.0, $basis['average_unit_price_available']);
         $this->assertSame(500000.0, $basis['average_unit_price_all']);
+        // Canonical average_unit_price must now equal available-only average
+        $this->assertSame(300000.0, $basis['average_unit_price']);
+    }
+
+    #[Test]
+    public function it_falls_back_to_avg_stored_when_no_available_units(): void
+    {
+        // When all units are sold/pending (none available), fall back to stored avg
+        $contract = Contract::factory()->create();
+        ContractInfo::factory()->create([
+            'contract_id' => $contract->id,
+            'avg_property_value' => 800000,
+        ]);
+        ContractUnit::factory()->create(['contract_id' => $contract->id, 'status' => 'sold', 'price' => 500000]);
+        ContractUnit::factory()->create(['contract_id' => $contract->id, 'status' => 'pending', 'price' => 600000]);
+        $contract->refresh();
+
+        $svc = app(ContractPricingBasisService::class);
+        $basis = $svc->resolve($contract, []);
+
+        $this->assertSame(ContractPricingBasisService::SOURCE_AVG_STORED, $basis['source']);
+        $this->assertSame(800000.0, $basis['commission_base_amount']);
     }
 }

@@ -90,8 +90,9 @@ class MarketingPlansRoutesTest extends TestCase
     }
 
     #[Test]
-    public function developer_plan_uses_sum_of_all_unit_prices_for_commission_and_marketing_formula(): void
+    public function developer_plan_uses_sum_of_available_unit_prices_for_commission_and_marketing_formula(): void
     {
+        // available: 400k + 600k = 1000k; sold 500k excluded from commission base
         $contract = Contract::factory()->create([
             'commission_percent' => 2.5,
         ]);
@@ -118,12 +119,18 @@ class MarketingPlansRoutesTest extends TestCase
             ->getJson("/api/marketing/developer-plans/{$contract->id}");
 
         $response->assertStatus(200)
-            ->assertJsonPath('data.contract.pricing_basis.source', 'unit_prices_sum_all')
+            // Source = available-units basis
+            ->assertJsonPath('data.contract.pricing_basis.source', 'unit_prices_sum_available')
+            // All-units still informational
             ->assertJsonPath('data.contract.pricing_basis.total_unit_price_all_sum', 1500000)
-            ->assertJsonPath('data.calculated_contract_budget.commission_value', 37500)
-            ->assertJsonPath('data.calculated_contract_budget.marketing_value', 3750)
-            ->assertJsonPath('data.total_budget', 3750)
+            // commission base = 1000k (available only)
+            ->assertJsonPath('data.contract.pricing_basis.total_unit_price', 1000000)
+            // commission = 1000k × 2.5% = 25000; marketing = 25000 × 10% = 2500
+            ->assertJsonPath('data.calculated_contract_budget.commission_value', 25000)
+            ->assertJsonPath('data.calculated_contract_budget.marketing_value', 2500)
+            ->assertJsonPath('data.total_budget', 2500)
             ->assertJsonPath('data.stored_marketing_value', 4000)
+            // average_unit_price = available avg = (400k+600k)/2 = 500000
             ->assertJsonPath('data.contract.average_unit_price', 500000);
     }
 

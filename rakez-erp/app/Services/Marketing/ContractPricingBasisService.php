@@ -7,15 +7,15 @@ use App\Models\Contract;
 /**
  * Resolves canonical commission-base pricing for marketing APIs (project `pricing_source`, developer plan show, budget calculator inputs).
  *
- * Canonical commission base = **full project inventory value** (sum of all contract unit prices), not available-only.
+ * Canonical commission base = **available-unit inventory value** (sum of available contract unit prices only).
  *
- * Priority for {@see self::COMMISSION_BASE_KEY} / {@see self::SOURCE_COMMISSION_BASE}:
+ * Priority for {@see self::COMMISSION_BASE_KEY}:
  * 1. total_unit_price_override (or legacy unit_price) when positive
- * 2. Sum of **all** contract unit prices (`unit_prices_sum_all`)
- * 3. Stored contract_infos.avg_property_value (legacy fallback when no unit rows / zero sum)
+ * 2. Sum of **available** contract unit prices (`unit_prices_sum_available`)
+ * 3. Stored contract_infos.avg_property_value (legacy fallback when no available unit rows / zero sum)
  *
- * Transparency: `total_unit_price_available_sum`, `available_units_count`, and `average_unit_price_available`
- * are informational only; they do not drive commission unless you use an override.
+ * Informational fields `total_unit_price_all_sum`, `all_units_count`, and `average_unit_price_all`
+ * are still returned for transparency but do not drive planning or commission math.
  */
 class ContractPricingBasisService
 {
@@ -23,7 +23,10 @@ class ContractPricingBasisService
 
     public const SOURCE_OVERRIDE = 'total_unit_price_override';
 
-    public const SOURCE_ALL_UNITS = 'unit_prices_sum_all';
+    public const SOURCE_AVAILABLE_UNITS = 'unit_prices_sum_available';
+
+    /** @deprecated Use SOURCE_AVAILABLE_UNITS. Kept for migration reference only. */
+    public const SOURCE_ALL_UNITS = 'unit_prices_sum_available';
 
     public const SOURCE_AVG_STORED = 'avg_property_value_stored';
 
@@ -59,9 +62,9 @@ class ContractPricingBasisService
         if ($override !== null && $override > 0) {
             $source = self::SOURCE_OVERRIDE;
             $commissionBase = $override;
-        } elseif ($totalAllSum > 0) {
-            $source = self::SOURCE_ALL_UNITS;
-            $commissionBase = $totalAllSum;
+        } elseif ($totalAvailableSum > 0) {
+            $source = self::SOURCE_AVAILABLE_UNITS;
+            $commissionBase = $totalAvailableSum;
         } elseif ($avgStored > 0) {
             $source = self::SOURCE_AVG_STORED;
             $commissionBase = $avgStored;
@@ -79,11 +82,8 @@ class ContractPricingBasisService
             'average_unit_price_available' => $averageUnitPriceAvailable,
             /** Mean price across all units (aligns with project-wide total / count). */
             'average_unit_price_all' => $averageUnitPriceAll,
-            /**
-             * @deprecated Prefer `average_unit_price_all` for project-wide mean. Previously mirrored available-only average.
-             * Now equals `average_unit_price_all` so it matches the canonical project-wide basis.
-             */
-            'average_unit_price' => $averageUnitPriceAll,
+            /** Canonical UI average = mean price of available units (matches planning commission base). */
+            'average_unit_price' => $averageUnitPriceAvailable,
             'avg_property_value_stored' => round($avgStored, 2),
             'override_applied' => $override !== null && $override > 0,
         ];

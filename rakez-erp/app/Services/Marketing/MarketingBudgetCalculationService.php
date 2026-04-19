@@ -55,9 +55,9 @@ class MarketingBudgetCalculationService
         $expectedClicks = (int) round($this->expectedClicks($marketingValue, $averageCpc));
 
         $calculatedContractBudget = [
-            'total_unit_price_all_sum' => (float) ($pricingBasis['total_unit_price_all_sum'] ?? 0),
-            'all_units_count' => (int) ($pricingBasis['all_units_count'] ?? 0),
-            'average_unit_price_all' => (float) ($pricingBasis['average_unit_price_all'] ?? 0),
+            'total_unit_price_available_sum' => (float) ($pricingBasis['total_unit_price_available_sum'] ?? 0),
+            'available_units_count' => (int) ($pricingBasis['available_units_count'] ?? 0),
+            'average_unit_price_available' => (float) ($pricingBasis['average_unit_price_available'] ?? 0),
             'commission_percent' => (float) $commissionPercent,
             'commission_value' => $commissionValue,
             'commission_value_total' => $commissionValue,
