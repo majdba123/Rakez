@@ -3,6 +3,8 @@
 namespace App\Http\Controllers\Accounting;
 
 use App\Http\Controllers\Controller;
+use App\Http\Resources\Accounting\AccountingDepositFollowUpResource;
+use App\Http\Resources\Accounting\AccountingPendingDepositResource;
 use App\Services\Accounting\AccountingDepositService;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\JsonResponse;
@@ -41,7 +43,7 @@ class AccountingDepositController extends Controller
             return response()->json([
                 'success' => true,
                 'message' => 'تم جلب العرابين المعلقة بنجاح',
-                'data' => $deposits->items(),
+                'data' => AccountingPendingDepositResource::collection(collect($deposits->items())),
                 'meta' => [
                     'total' => $deposits->total(),
                     'per_page' => $deposits->perPage(),
@@ -117,7 +119,7 @@ class AccountingDepositController extends Controller
             return response()->json([
                 'success' => true,
                 'message' => 'تم جلب بيانات المتابعة بنجاح',
-                'data' => $reservations->items(),
+                'data' => AccountingDepositFollowUpResource::collection(collect($reservations->items())),
                 'meta' => [
                     'total' => $reservations->total(),
                     'per_page' => $reservations->perPage(),

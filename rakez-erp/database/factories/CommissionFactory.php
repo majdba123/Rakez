@@ -22,8 +22,11 @@ class CommissionFactory extends Factory
         $netAmount = $totalAmount;
 
         return [
-            'contract_unit_id' => ContractUnit::factory(),
             'sales_reservation_id' => SalesReservation::factory(),
+            'contract_unit_id' => function (array $attributes) {
+                return SalesReservation::query()->find($attributes['sales_reservation_id'])?->contract_unit_id
+                    ?? ContractUnit::factory()->create()->id;
+            },
             'final_selling_price' => $finalSellingPrice,
             'commission_percentage' => $commissionPercentage,
             'total_amount' => $totalAmount,

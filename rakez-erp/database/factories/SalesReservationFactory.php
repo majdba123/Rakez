@@ -16,7 +16,11 @@ class SalesReservationFactory extends Factory
     {
         return [
             'contract_id' => Contract::factory(),
-            'contract_unit_id' => ContractUnit::factory(),
+            'contract_unit_id' => function (array $attributes) {
+                return ContractUnit::factory()->create([
+                    'contract_id' => $attributes['contract_id'],
+                ])->id;
+            },
             'marketing_employee_id' => User::factory(),
             'status' => 'confirmed',
             'reservation_type' => 'confirmed_reservation',

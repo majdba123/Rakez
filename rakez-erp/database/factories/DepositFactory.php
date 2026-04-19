@@ -16,11 +16,20 @@ class DepositFactory extends Factory
     {
         return [
             'sales_reservation_id' => SalesReservation::factory(),
-            'contract_id' => Contract::factory(),
-            'contract_unit_id' => ContractUnit::factory(),
+            'contract_id' => function (array $attributes) {
+                return SalesReservation::query()->find($attributes['sales_reservation_id'])?->contract_id
+                    ?? Contract::factory()->create()->id;
+            },
+            'contract_unit_id' => function (array $attributes) {
+                return SalesReservation::query()->find($attributes['sales_reservation_id'])?->contract_unit_id
+                    ?? ContractUnit::factory()->create()->id;
+            },
             'amount' => $this->faker->numberBetween(1000, 50000),
             'payment_method' => $this->faker->randomElement(['bank_transfer', 'cash', 'bank_financing']),
-            'client_name' => $this->faker->name,
+            'client_name' => function (array $attributes) {
+                return SalesReservation::query()->find($attributes['sales_reservation_id'])?->client_name
+                    ?? $this->faker->name;
+            },
             'payment_date' => $this->faker->dateTimeBetween('-1 month', 'now'),
             'commission_source' => $this->faker->randomElement(['owner', 'buyer']),
             'status' => 'pending',
