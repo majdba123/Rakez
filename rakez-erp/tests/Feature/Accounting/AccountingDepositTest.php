@@ -307,6 +307,167 @@ class AccountingDepositTest extends TestCase
         $response->assertStatus(422)->assertJsonFragment(['success' => false]);
     }
 
+    #[Test]
+    public function unified_queue_returns_both_reservations_and_deposits(): void
+    {
+        Sanctum::actingAs($this->accountingUser);
+
+        [$contract, $unit] = $this->createProjectContext();
+        
+        // Reservation awaiting deposit
+        $reservationWithoutDeposit = $this->createReservation($contract, $unit, [
+            'client_name' => 'Awaiting Deposit',
+        ]);
+        
+        // Reservation with deposits
+        $reservationWithDeposits = $this->createReservation($contract, $unit, [
+            'client_name' => 'Has Deposits',
+        ]);
+        $deposit1 = $this->createDeposit($reservationWithDeposits, ['status' => 'pending']);
+        $deposit2 = $this->createDeposit($reservationWithDeposits, ['status' => 'confirmed']);
+
+        $response = $this->getJson('/api/accounting/deposits/pending?scope=all');
+
+        $response->assertOk()->assertJsonPath('meta.total', 3);
+
+        $data = collect($response->json('data'));
+        
+        // Should include reservation row
+        $reservationRow = $data->firstWhere('reservation_id', $reservationWithoutDeposit->id);
+        $this->assertNotNull($reservationRow);
+        $this->assertSame('sales_reservation', $reservationRow['row_entity']);
+        $this->assertSame('awaiting_deposit_creation', $reservationRow['accounting_state']);
+        $this->assertNull($reservationRow['deposit_status']);
+        $this->assertFalse($reservationRow['has_deposit']);
+
+        // Should include both deposit rows
+        $depositRow1 = $data->firstWhere('deposit_id', $deposit1->id);
+        $depositRow2 = $data->firstWhere('deposit_id', $deposit2->id);
+        $this->assertNotNull($depositRow1);
+        $this->assertNotNull($depositRow2);
+        $this->assertSame('deposit', $depositRow1['row_entity']);
+        $this->assertSame('deposit_pending_confirmation', $depositRow1['accounting_state']);
+        $this->assertSame('pending', $depositRow1['deposit_status']);
+    }
+
+    #[Test]
+    public function action_required_field_is_correct_for_all_rows(): void
+    {
+        Sanctum::actingAs($this->accountingUser);
+
+        [$contract, $unit] = $this->createProjectContext();
+        
+        $reservationAwaitingDeposit = $this->createReservation($contract, $unit);
+        
+        $reservationWithPendingDeposit = $this->createReservation($contract, $unit);
+        $pendingDeposit = $this->createDeposit($reservationWithPendingDeposit, ['status' => 'pending']);
+        
+        $reservationWithConfirmedDeposit = $this->createReservation($contract, $unit);
+        $confirmedDeposit = $this->createDeposit($reservationWithConfirmedDeposit, ['status' => 'confirmed']);
+
+        $response = $this->getJson('/api/accounting/deposits/pending?scope=all');
+
+        $data = collect($response->json('data'));
+
+        // Reservation awaiting deposit: action required
+        $awaitingRow = $data->firstWhere('reservation_id', $reservationAwaitingDeposit->id);
+        $this->assertTrue($awaitingRow['action_required']);
+
+        // Pending deposit: action required
+        $pendingRow = $data->firstWhere('deposit_id', $pendingDeposit->id);
+        $this->assertTrue($pendingRow['action_required']);
+
+        // Confirmed deposit: no action required
+        $confirmedRow = $data->firstWhere('deposit_id', $confirmedDeposit->id);
+        $this->assertFalse($confirmedRow['action_required']);
+    }
+
+    #[Test]
+    public function scope_actionable_returns_only_actionable_rows(): void
+    {
+        Sanctum::actingAs($this->accountingUser);
+
+        [$contract, $unit] = $this->createProjectContext();
+        
+        $reservationAwaitingDeposit = $this->createReservation($contract, $unit);
+        
+        $reservationWithPendingDeposit = $this->createReservation($contract, $unit);
+        $pendingDeposit = $this->createDeposit($reservationWithPendingDeposit, ['status' => 'pending']);
+        
+        $reservationWithConfirmedDeposit = $this->createReservation($contract, $unit);
+        $confirmedDeposit = $this->createDeposit($reservationWithConfirmedDeposit, ['status' => 'confirmed']);
+        
+        $reservationWithRefundedDeposit = $this->createReservation($contract, $unit);
+        $this->createDeposit($reservationWithRefundedDeposit, ['status' => 'refunded', 'commission_source' => 'owner']);
+
+        // Default scope is actionable
+        $response = $this->getJson('/api/accounting/deposits/pending');
+
+        $response->assertOk();
+        $data = collect($response->json('data'));
+
+        // Should include awaiting and pending but not confirmed/refunded
+        $this->assertTrue($data->pluck('deposit_id')->contains($pendingDeposit->id));
+        $this->assertTrue($data->pluck('reservation_id')->contains($reservationAwaitingDeposit->id));
+        
+        // Confirmed and refunded should not be in actionable scope
+        $this->assertFalse($data->pluck('deposit_id')->contains($confirmedDeposit->id));
+        $this->assertFalse($data->pluck('deposit_id')->contains(function ($id) use ($reservationWithRefundedDeposit) {
+            return $data->firstWhere('reservation_id', $reservationWithRefundedDeposit->id) !== null;
+        }));
+    }
+
+    #[Test]
+    public function scope_closed_returns_only_closed_rows(): void
+    {
+        Sanctum::actingAs($this->accountingUser);
+
+        [$contract, $unit] = $this->createProjectContext();
+        
+        $reservationWithPendingDeposit = $this->createReservation($contract, $unit);
+        $this->createDeposit($reservationWithPendingDeposit, ['status' => 'pending']);
+        
+        $reservationWithConfirmedDeposit = $this->createReservation($contract, $unit);
+        $confirmedDeposit = $this->createDeposit($reservationWithConfirmedDeposit, ['status' => 'confirmed']);
+        
+        $reservationWithRefundedDeposit = $this->createReservation($contract, $unit);
+        $refundedDeposit = $this->createDeposit($reservationWithRefundedDeposit, ['status' => 'refunded', 'commission_source' => 'owner']);
+
+        $response = $this->getJson('/api/accounting/deposits/pending?scope=closed');
+
+        $response->assertOk();
+        $data = collect($response->json('data'));
+        $depositIds = $data->pluck('deposit_id')->all();
+
+        // Should only include confirmed and refunded
+        $this->assertContains($confirmedDeposit->id, $depositIds);
+        $this->assertContains($refundedDeposit->id, $depositIds);
+        $this->assertCount(2, $depositIds);
+    }
+
+    #[Test]
+    public function deposit_status_field_is_null_only_for_reservations_without_deposits(): void
+    {
+        Sanctum::actingAs($this->accountingUser);
+
+        [$contract, $unit] = $this->createProjectContext();
+        
+        $reservationAwaitingDeposit = $this->createReservation($contract, $unit);
+        $reservationWithDeposit = $this->createReservation($contract, $unit);
+        $deposit = $this->createDeposit($reservationWithDeposit, ['status' => 'pending']);
+
+        $response = $this->getJson('/api/accounting/deposits/pending?scope=all');
+
+        $data = collect($response->json('data'));
+
+        $awaitingRow = $data->firstWhere('reservation_id', $reservationAwaitingDeposit->id);
+        $depositRow = $data->firstWhere('deposit_id', $deposit->id);
+
+        // Only reservation without deposit should have null deposit_status
+        $this->assertNull($awaitingRow['deposit_status']);
+        $this->assertSame('pending', $depositRow['deposit_status']);
+    }
+
     protected function createProjectContext(array $contractOverrides = []): array
     {
         $contract = Contract::factory()->create(array_merge([

@@ -9,6 +9,7 @@ use App\Models\UserNotification;
 use Exception;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
+use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 
@@ -36,9 +37,94 @@ class AccountingDepositService
     }
 
     /**
-     * Get the accounting queue for actionable deposit records.
+     * Get unified accounting queue: both deposits and reservations awaiting deposits.
+     * Supports scope filtering: all, actionable, closed.
      */
-    public function getPendingDeposits(array $filters = [])
+    public function getUnifiedAccountingQueue(array $filters = [])
+    {
+        $scope = $filters['scope'] ?? 'actionable';
+        $allRows = collect();
+
+        // Fetch reservation rows awaiting deposit creation
+        $reservations = $this->fetchReservationsAwaitingDeposit($filters, $scope);
+        $reservationRows = $reservations->map(fn (SalesReservation $r) => 
+            $this->transformUnifiedQueueRow($r, null)
+        );
+        $allRows = $allRows->concat($reservationRows);
+
+        // Fetch deposit rows
+        $deposits = $this->fetchDepositsForQueue($filters, $scope);
+        $depositRows = $deposits->map(fn (Deposit $d) => 
+            $this->transformUnifiedQueueRow(null, $d)
+        );
+        $allRows = $allRows->concat($depositRows);
+
+        // Sort unified collection by date descending, then by ID descending
+        $allRows = $allRows->sortByDesc(function ($row) {
+            $sortKey = $row['sort_key'] ?? '0000-00-00 00:00:00-0000000000';
+            return str_replace('-', '', $sortKey);
+        })->values();
+
+        // Manual pagination since we're merging two collections
+        $page = (int) ($filters['page'] ?? 1);
+        $perPage = (int) ($filters['per_page'] ?? 25);
+        $total = $allRows->count();
+        $lastPage = max(1, ceil($total / $perPage));
+
+        if ($page > $lastPage && $total > 0) {
+            $page = $lastPage;
+        }
+
+        $items = $allRows->forPage($page, $perPage);
+
+        // Remove sort_key before returning (internal field only)
+        $items = $items->map(function ($row) {
+            unset($row['sort_key']);
+            return $row;
+        });
+
+        return new LengthAwarePaginator(
+            $items,
+            $total,
+            $perPage,
+            $page,
+            [
+                'path' => request()->url(),
+                'query' => request()->query(),
+            ]
+        );
+    }
+
+    /**
+     * Fetch reservations awaiting deposit creation.
+     */
+    protected function fetchReservationsAwaitingDeposit(array $filters, string $scope)
+    {
+        $query = SalesReservation::query()
+            ->with([
+                'contract',
+                'contractUnit',
+                'commission',
+                'deposits' => fn ($q) => $q->orderByDesc('payment_date')->orderByDesc('id'),
+            ])
+            ->where('status', 'confirmed')
+            ->whereNotNull('contract_id')
+            ->whereNotNull('contract_unit_id')
+            ->whereNotNull('client_name')
+            ->whereHas('contract')
+            ->whereHas('contractUnit')
+            ->whereDoesntHave('deposits'); // Only those WITHOUT deposits yet
+
+        $this->applyUnifiedQueueFilters($query, $filters, 'reservation');
+        $this->applyScopeFilter($query, $scope, 'reservation');
+
+        return $query->get();
+    }
+
+    /**
+     * Fetch deposits for the unified queue.
+     */
+    protected function fetchDepositsForQueue(array $filters, string $scope)
     {
         $query = Deposit::query()
             ->with([
@@ -48,9 +134,9 @@ class AccountingDepositService
                 'contract',
                 'contractUnit',
             ])
-            ->whereIn('status', ['pending', 'received', 'confirmed'])
-            ->whereHas('salesReservation', function (Builder $query) {
-                $query->where('status', 'confirmed')
+            ->whereIn('status', ['pending', 'received', 'confirmed', 'refunded'])
+            ->whereHas('salesReservation', function (Builder $q) {
+                $q->where('status', 'confirmed')
                     ->whereNotNull('contract_id')
                     ->whereNotNull('contract_unit_id')
                     ->whereNotNull('client_name')
@@ -60,32 +146,261 @@ class AccountingDepositService
             ->whereHas('contract')
             ->whereHas('contractUnit');
 
+        $this->applyUnifiedQueueFilters($query, $filters, 'deposit');
+        $this->applyScopeFilter($query, $scope, 'deposit');
+
+        return $query->get();
+    }
+
+    /**
+     * Apply common filters to both reservation and deposit queries.
+     */
+    protected function applyUnifiedQueueFilters(Builder $query, array $filters, string $entityType): void
+    {
+        if (isset($filters['contract_id'])) {
+            $query->where('contract_id', $filters['contract_id']);
+        }
+
         if (isset($filters['project_id'])) {
             $query->where('contract_id', $filters['project_id']);
         }
 
-        if (isset($filters['from_date'])) {
-            $query->whereDate('payment_date', '>=', $filters['from_date']);
+        if (isset($filters['project_name'])) {
+            $query->whereHas('contract', function (Builder $q) {
+                $q->where('project_name', 'like', '%' . $filters['project_name'] . '%');
+            });
         }
 
-        if (isset($filters['to_date'])) {
-            $query->whereDate('payment_date', '<=', $filters['to_date']);
-        }
-
-        if (isset($filters['payment_method'])) {
-            $query->where('payment_method', $filters['payment_method']);
+        if (isset($filters['client_name'])) {
+            if ($entityType === 'reservation') {
+                $query->where('client_name', 'like', '%' . $filters['client_name'] . '%');
+            } else {
+                $query->whereHas('salesReservation', function (Builder $q) {
+                    $q->where('client_name', 'like', '%' . $filters['client_name'] . '%');
+                });
+            }
         }
 
         if (isset($filters['commission_source'])) {
-            $query->where('commission_source', $filters['commission_source']);
+            if ($entityType === 'deposit') {
+                $query->where('commission_source', $filters['commission_source']);
+            } else {
+                $this->applyReservationCommissionSourceFilter($query, $filters['commission_source']);
+            }
         }
 
-        $paginator = $query->orderByDesc('payment_date')->orderByDesc('id')->paginate($filters['per_page'] ?? 15);
-        $paginator->setCollection(
-            $paginator->getCollection()->map(fn (Deposit $deposit) => $this->transformPendingDepositForList($deposit))
-        );
+        if (isset($filters['from_date'])) {
+            if ($entityType === 'reservation') {
+                $query->whereDate('confirmed_at', '>=', $filters['from_date']);
+            } else {
+                $query->whereDate('payment_date', '>=', $filters['from_date']);
+            }
+        }
 
-        return $paginator;
+        if (isset($filters['to_date'])) {
+            if ($entityType === 'reservation') {
+                $query->whereDate('confirmed_at', '<=', $filters['to_date']);
+            } else {
+                $query->whereDate('payment_date', '<=', $filters['to_date']);
+            }
+        }
+    }
+
+    /**
+     * Apply scope filter (all, actionable, closed).
+     */
+    protected function applyScopeFilter(Builder $query, string $scope, string $entityType): void
+    {
+        if ($scope === 'actionable') {
+            if ($entityType === 'reservation') {
+                // Reservations awaiting deposit are always actionable
+            } elseif ($entityType === 'deposit') {
+                // Only pending and received deposits are actionable
+                $query->whereIn('status', ['pending', 'received']);
+            }
+        } elseif ($scope === 'closed') {
+            if ($entityType === 'deposit') {
+                $query->whereIn('status', ['confirmed', 'refunded']);
+            } else {
+                // Reservations don't have a "closed" state in accounting
+                $query->where('id', '<', 0); // Empty result
+            }
+        }
+        // 'all' scope: no additional filtering
+    }
+
+    /**
+     * Transform a unified queue row (reservation or deposit).
+     */
+    protected function transformUnifiedQueueRow(?SalesReservation $reservation, ?Deposit $deposit): array
+    {
+        if ($reservation !== null) {
+            return $this->buildUnifiedQueueReservationRow($reservation);
+        }
+        return $this->buildUnifiedQueueDepositRow($deposit);
+    }
+
+    /**
+     * Build unified queue row for a reservation awaiting deposit.
+     */
+    protected function buildUnifiedQueueReservationRow(SalesReservation $reservation): array
+    {
+        $contract = $reservation->contract;
+        $contractUnit = $reservation->contractUnit;
+        $pricing = $this->buildPricingPayload($reservation);
+        $accountingState = 'awaiting_deposit_creation';
+        $actionRequired = true;
+
+        return [
+            'id' => $reservation->id,
+            'reservation_id' => $reservation->id,
+            'deposit_id' => null,
+            'row_entity' => 'sales_reservation',
+            'accounting_state' => $accountingState,
+            'action_required' => $actionRequired,
+            'has_deposit' => false,
+            'deposit_status' => null,
+            'contract_id' => $contract?->id,
+            'contract_unit_id' => $contractUnit?->id,
+            'project_name' => $contract?->project_name,
+            'unit_number' => $contractUnit?->unit_number,
+            'unit_type' => $contractUnit?->unit_type,
+            'unit_price' => $pricing['unit_price'],
+            'final_selling_price' => $pricing['final_selling_price'],
+            'client_name' => $reservation->client_name,
+            'commission_percentage' => $pricing['commission_percentage'],
+            'commission_source' => $pricing['commission_source'],
+            'pricing' => $pricing,
+            'deposit' => [
+                'has_deposit' => false,
+                'id' => null,
+                'status' => null,
+                'count' => 0,
+                'amount' => null,
+                'payment_date' => null,
+                'payment_method' => null,
+            ],
+            'deposits' => [],
+            'project' => [
+                'contract_id' => $contract?->id,
+                'name' => $contract?->project_name,
+            ],
+            'unit' => [
+                'id' => $contractUnit?->id,
+                'number' => $contractUnit?->unit_number,
+                'type' => $contractUnit?->unit_type,
+            ],
+            'client' => [
+                'name' => $reservation->client_name,
+            ],
+            'contract' => $contract ? [
+                'id' => $contract->id,
+                'project_name' => $contract->project_name,
+            ] : null,
+            'contract_unit' => $contractUnit ? [
+                'id' => $contractUnit->id,
+                'unit_number' => $contractUnit->unit_number,
+                'unit_type' => $contractUnit->unit_type,
+                'price' => $pricing['unit_price'],
+            ] : null,
+            'sort_key' => $reservation->confirmed_at?->format('Y-m-d H:i:s') . '-' . str_pad($reservation->id, 10, '0', STR_PAD_LEFT),
+        ];
+    }
+
+    /**
+     * Build unified queue row for a deposit.
+     */
+    protected function buildUnifiedQueueDepositRow(Deposit $deposit): array
+    {
+        $reservation = $deposit->salesReservation;
+        $contract = $deposit->contract ?? $reservation?->contract;
+        $contractUnit = $deposit->contractUnit ?? $reservation?->contractUnit;
+        $pricing = $this->buildPricingPayload($reservation);
+        $depositItem = $this->transformRelatedDeposit($deposit, $reservation);
+        
+        $accountingState = $this->determineDepositAccountingState($deposit);
+        $actionRequired = $this->isAccountingActionRequired($accountingState);
+
+        return [
+            'id' => $deposit->id,
+            'deposit_id' => $deposit->id,
+            'reservation_id' => $reservation?->id,
+            'row_entity' => 'deposit',
+            'accounting_state' => $accountingState,
+            'action_required' => $actionRequired,
+            'has_deposit' => true,
+            'deposit_status' => $deposit->status,
+            'contract_id' => $contract?->id,
+            'contract_unit_id' => $contractUnit?->id,
+            'project_name' => $contract?->project_name,
+            'unit_number' => $contractUnit?->unit_number,
+            'unit_type' => $contractUnit?->unit_type,
+            'unit_price' => $pricing['unit_price'],
+            'final_selling_price' => $pricing['final_selling_price'],
+            'amount' => $depositItem['amount'],
+            'payment_method' => $depositItem['payment_method'],
+            'payment_date' => $depositItem['payment_date'],
+            'client_name' => $reservation?->client_name ?? $deposit->client_name,
+            'commission_percentage' => $pricing['commission_percentage'],
+            'commission_source' => $pricing['commission_source'],
+            'status' => $deposit->status,
+            'pricing' => $pricing,
+            'deposit' => [
+                'has_deposit' => true,
+                'id' => $deposit->id,
+                'count' => 1,
+                'status' => $deposit->status,
+                'amount' => $depositItem['amount'],
+                'payment_date' => $depositItem['payment_date'],
+                'payment_method' => $depositItem['payment_method'],
+            ],
+            'deposits' => [$depositItem],
+            'project' => [
+                'contract_id' => $contract?->id,
+                'name' => $contract?->project_name,
+            ],
+            'unit' => [
+                'id' => $contractUnit?->id,
+                'number' => $contractUnit?->unit_number,
+                'type' => $contractUnit?->unit_type,
+            ],
+            'client' => [
+                'name' => $reservation?->client_name ?? $deposit->client_name,
+            ],
+            'contract' => $contract ? [
+                'id' => $contract->id,
+                'project_name' => $contract->project_name,
+            ] : null,
+            'contract_unit' => $contractUnit ? [
+                'id' => $contractUnit->id,
+                'unit_number' => $contractUnit->unit_number,
+                'unit_type' => $contractUnit->unit_type,
+                'price' => $pricing['unit_price'],
+            ] : null,
+            'sort_key' => $deposit->payment_date?->format('Y-m-d H:i:s') . '-' . str_pad($deposit->id, 10, '0', STR_PAD_LEFT),
+        ];
+    }
+
+    /**
+     * Determine if accounting action is required for this state.
+     */
+    protected function isAccountingActionRequired(string $accountingState): bool
+    {
+        return in_array($accountingState, [
+            'awaiting_deposit_creation',
+            'deposit_pending_confirmation',
+            'deposit_received',
+        ], true);
+    }
+
+    /**
+     * Get the accounting queue for actionable deposit records (backward compatibility).
+     */
+    public function getPendingDeposits(array $filters = [])
+    {
+        // Use unified queue with actionable scope by default for backward compatibility
+        $filters['scope'] = $filters['scope'] ?? 'actionable';
+        return $this->getUnifiedAccountingQueue($filters);
     }
 
     /**

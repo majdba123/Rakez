@@ -22,33 +22,77 @@ class AccountingDepositController extends Controller
     }
 
     /**
-     * Get pending deposits.
-     * GET /api/accounting/deposits/pending
+     * Get pending deposits (unified accounting queue).
+     * GET /api/accounting/deposits/pending?scope=all|actionable|closed&...
+     * 
+     * Supports query params:
+     * - scope: all|actionable|closed (default: actionable)
+     * - accounting_state: filter by accounting state
+     * - deposit_status: filter by deposit status
+     * - has_deposit: 0|1
+     * - contract_id or project_id: filter by contract
+     * - project_name: filter by project name (partial match)
+     * - client_name: filter by client name (partial match)
+     * - commission_source: owner|buyer
+     * - from_date, to_date: date range
+     * - payment_method: filter by payment method
+     * - page, per_page: pagination
      */
     public function pending(Request $request): JsonResponse
     {
         try {
             $request->validate([
-                'project_id' => 'nullable|exists:contracts,id',
+                'scope' => 'nullable|in:all,actionable,closed',
+                'accounting_state' => 'nullable|string',
+                'deposit_status' => 'nullable|string',
+                'has_deposit' => 'nullable|in:0,1',
+                'contract_id' => 'nullable|integer|exists:contracts,id',
+                'project_id' => 'nullable|integer|exists:contracts,id',
+                'project_name' => 'nullable|string',
+                'client_name' => 'nullable|string',
+                'commission_source' => 'nullable|in:owner,buyer',
                 'from_date' => 'nullable|date',
                 'to_date' => 'nullable|date|after_or_equal:from_date',
                 'payment_method' => 'nullable|string',
-                'commission_source' => 'nullable|in:owner,buyer',
+                'page' => 'nullable|integer|min:1',
                 'per_page' => 'nullable|integer|min:1|max:100',
             ]);
 
-            $filters = $request->only(['project_id', 'from_date', 'to_date', 'payment_method', 'commission_source', 'per_page']);
-            $deposits = $this->depositService->getPendingDeposits($filters);
+            $filters = $request->only([
+                'scope', 'accounting_state', 'deposit_status', 'has_deposit',
+                'contract_id', 'project_id', 'project_name', 'client_name',
+                'commission_source', 'from_date', 'to_date', 'payment_method',
+                'page', 'per_page'
+            ]);
+
+            $data = $this->depositService->getPendingDeposits($filters);
+            
+            // Client-side post-filtering for accounting_state, deposit_status, has_deposit
+            // (could be optimized in service layer if needed)
+            $filtered = collect($data->items());
+            
+            if (isset($filters['accounting_state'])) {
+                $filtered = $filtered->where('accounting_state', $filters['accounting_state']);
+            }
+            
+            if (isset($filters['deposit_status'])) {
+                $filtered = $filtered->where('deposit_status', $filters['deposit_status']);
+            }
+            
+            if (isset($filters['has_deposit'])) {
+                $hasDeposit = (bool) $filters['has_deposit'];
+                $filtered = $filtered->where('has_deposit', $hasDeposit);
+            }
 
             return response()->json([
                 'success' => true,
-                'message' => 'تم جلب العرابين المعلقة بنجاح',
-                'data' => AccountingPendingDepositResource::collection(collect($deposits->items())),
+                'message' => 'تم جلب قائمة العربون الموحدة بنجاح',
+                'data' => AccountingPendingDepositResource::collection($filtered),
                 'meta' => [
-                    'total' => $deposits->total(),
-                    'per_page' => $deposits->perPage(),
-                    'current_page' => $deposits->currentPage(),
-                    'last_page' => $deposits->lastPage(),
+                    'total' => $data->total(),
+                    'per_page' => $data->perPage(),
+                    'current_page' => $data->currentPage(),
+                    'last_page' => $data->lastPage(),
                 ],
             ], 200);
         } catch (ValidationException $e) {
