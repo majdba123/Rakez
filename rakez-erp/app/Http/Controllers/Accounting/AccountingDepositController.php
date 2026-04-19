@@ -65,29 +65,13 @@ class AccountingDepositController extends Controller
                 'page', 'per_page'
             ]);
 
+            // Service now handles ALL filtering (including post-filtering) before pagination
             $data = $this->depositService->getPendingDeposits($filters);
-            
-            // Client-side post-filtering for accounting_state, deposit_status, has_deposit
-            // (could be optimized in service layer if needed)
-            $filtered = collect($data->items());
-            
-            if (isset($filters['accounting_state'])) {
-                $filtered = $filtered->where('accounting_state', $filters['accounting_state']);
-            }
-            
-            if (isset($filters['deposit_status'])) {
-                $filtered = $filtered->where('deposit_status', $filters['deposit_status']);
-            }
-            
-            if (isset($filters['has_deposit'])) {
-                $hasDeposit = (bool) $filters['has_deposit'];
-                $filtered = $filtered->where('has_deposit', $hasDeposit);
-            }
 
             return response()->json([
                 'success' => true,
                 'message' => 'تم جلب قائمة العربون الموحدة بنجاح',
-                'data' => AccountingPendingDepositResource::collection($filtered),
+                'data' => AccountingPendingDepositResource::collection(collect($data->items())),
                 'meta' => [
                     'total' => $data->total(),
                     'per_page' => $data->perPage(),

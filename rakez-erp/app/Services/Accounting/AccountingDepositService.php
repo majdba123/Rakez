@@ -39,6 +39,7 @@ class AccountingDepositService
     /**
      * Get unified accounting queue: both deposits and reservations awaiting deposits.
      * Supports scope filtering: all, actionable, closed.
+     * Applies post-filtering BEFORE pagination to maintain correct meta counts.
      */
     public function getUnifiedAccountingQueue(array $filters = [])
     {
@@ -64,6 +65,9 @@ class AccountingDepositService
             $sortKey = $row['sort_key'] ?? '0000-00-00 00:00:00-0000000000';
             return str_replace('-', '', $sortKey);
         })->values();
+
+        // Apply post-filtering BEFORE pagination to maintain correct meta counts
+        $allRows = $this->applyPostFilters($allRows, $filters);
 
         // Manual pagination since we're merging two collections
         $page = (int) ($filters['page'] ?? 1);
@@ -204,6 +208,28 @@ class AccountingDepositService
                 $query->whereDate('payment_date', '<=', $filters['to_date']);
             }
         }
+    }
+
+    /**
+     * Apply post-filtering to rows AFTER they're merged but BEFORE pagination.
+     * This ensures pagination meta counts are accurate.
+     */
+    protected function applyPostFilters(Collection $rows, array $filters): Collection
+    {
+        if (isset($filters['accounting_state'])) {
+            $rows = $rows->where('accounting_state', $filters['accounting_state']);
+        }
+
+        if (isset($filters['deposit_status'])) {
+            $rows = $rows->where('deposit_status', $filters['deposit_status']);
+        }
+
+        if (isset($filters['has_deposit'])) {
+            $hasDeposit = (bool) $filters['has_deposit'];
+            $rows = $rows->where('has_deposit', $hasDeposit);
+        }
+
+        return $rows;
     }
 
     /**
@@ -564,74 +590,6 @@ class AccountingDepositService
                 'amount' => $distribution->amount !== null ? round((float) $distribution->amount, 2) : null,
             ])->values()->all() ?? [],
             'generated_at' => now()->toDateTimeString(),
-        ];
-    }
-
-    protected function transformPendingDepositForList(Deposit $deposit): array
-    {
-        $reservation = $deposit->salesReservation;
-        $contract = $deposit->contract ?? $reservation?->contract;
-        $contractUnit = $deposit->contractUnit ?? $reservation?->contractUnit;
-        $pricing = $this->buildPricingPayload($reservation);
-        $depositItem = $this->transformRelatedDeposit($deposit, $reservation);
-
-        return [
-            'id' => $deposit->id,
-            'deposit_id' => $deposit->id,
-            'reservation_id' => $reservation?->id,
-            'row_entity' => 'deposit',
-            'accounting_state' => $this->determineDepositAccountingState($deposit),
-            'project_name' => $contract?->project_name,
-            'unit_number' => $contractUnit?->unit_number,
-            'unit_type' => $contractUnit?->unit_type,
-            'unit_price' => $pricing['unit_price'],
-            'final_selling_price' => $pricing['final_selling_price'],
-            'amount' => $depositItem['amount'],
-            'payment_method' => $depositItem['payment_method'],
-            'client_name' => $reservation?->client_name ?? $deposit->client_name,
-            'payment_date' => $depositItem['payment_date'],
-            'commission_source' => $pricing['commission_source'],
-            'commission_percentage' => $pricing['commission_percentage'],
-            'status' => $deposit->status,
-            'sales_reservation_id' => $reservation?->id,
-            'contract_id' => $contract?->id,
-            'contract_unit_id' => $contractUnit?->id,
-            'reservation' => [
-                'id' => $reservation?->id,
-            ],
-            'project' => [
-                'contract_id' => $contract?->id,
-                'name' => $contract?->project_name,
-            ],
-            'unit' => [
-                'id' => $contractUnit?->id,
-                'number' => $contractUnit?->unit_number,
-                'type' => $contractUnit?->unit_type,
-            ],
-            'client' => [
-                'name' => $reservation?->client_name ?? $deposit->client_name,
-            ],
-            'pricing' => $pricing,
-            'deposit' => [
-                'has_deposit' => true,
-                'id' => $deposit->id,
-                'count' => 1,
-                'status' => $deposit->status,
-                'amount' => $depositItem['amount'],
-                'payment_date' => $depositItem['payment_date'],
-                'payment_method' => $depositItem['payment_method'],
-            ],
-            'deposits' => [$depositItem],
-            'contract' => $contract ? [
-                'id' => $contract->id,
-                'project_name' => $contract->project_name,
-            ] : null,
-            'contract_unit' => $contractUnit ? [
-                'id' => $contractUnit->id,
-                'unit_number' => $contractUnit->unit_number,
-                'unit_type' => $contractUnit->unit_type,
-                'price' => $pricing['unit_price'],
-            ] : null,
         ];
     }
 

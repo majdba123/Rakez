@@ -511,4 +511,234 @@ class AccountingDepositTest extends TestCase
             'commission_source' => 'owner',
         ], $overrides));
     }
+
+    #[Test]
+    public function relation_safety_all_returned_rows_have_complete_chain(): void
+    {
+        Sanctum::actingAs($this->accountingUser);
+
+        [$contract, $unit] = $this->createProjectContext();
+        $reservation = $this->createReservation($contract, $unit);
+        $deposit = $this->createDeposit($reservation, ['status' => 'pending']);
+
+        $response = $this->getJson('/api/accounting/deposits/pending?scope=all');
+        $response->assertOk();
+
+        $data = collect($response->json('data'));
+
+        // Verify every row has complete relation chain
+        foreach ($data as $row) {
+            $this->assertNotNull($row['contract_id'], "Row {$row['id']} missing contract_id");
+            $this->assertNotNull($row['contract_unit_id'], "Row {$row['id']} missing contract_unit_id");
+            $this->assertNotNull($row['client_name'], "Row {$row['id']} missing client_name");
+            $this->assertNotNull($row['project_name'], "Row {$row['id']} missing project_name");
+            $this->assertNotNull($row['unit_number'], "Row {$row['id']} missing unit_number");
+            $this->assertNotNull($row['accounting_state'], "Row {$row['id']} missing accounting_state");
+            
+            // Every row must have either reservation_id OR deposit_id (or both)
+            $hasReservationId = $row['reservation_id'] !== null;
+            $hasDepositId = $row['deposit_id'] !== null;
+            $this->assertTrue($hasReservationId || $hasDepositId, "Row {$row['id']} has neither reservation_id nor deposit_id");
+        }
+    }
+
+    #[Test]
+    public function deposit_amount_field_is_always_correct_from_deposit_table(): void
+    {
+        Sanctum::actingAs($this->accountingUser);
+
+        [$contract, $unit] = $this->createProjectContext();
+        $reservation = $this->createReservation($contract, $unit);
+
+        // Create deposits with specific amounts
+        $deposit1 = $this->createDeposit($reservation, [
+            'status' => 'pending',
+            'amount' => 5000.50,
+        ]);
+        $deposit2 = $this->createDeposit($reservation, [
+            'status' => 'confirmed',
+            'amount' => 15000.75,
+        ]);
+
+        $response = $this->getJson('/api/accounting/deposits/pending?scope=all');
+        $response->assertOk();
+
+        $data = collect($response->json('data'));
+
+        // Verify deposit amounts match exactly
+        $depositRow1 = $data->firstWhere('deposit_id', $deposit1->id);
+        $depositRow2 = $data->firstWhere('deposit_id', $deposit2->id);
+
+        $this->assertSame(5000.5, (float) $depositRow1['amount']);
+        $this->assertSame(15000.75, (float) $depositRow2['amount']);
+        $this->assertSame(5000.5, (float) $depositRow1['deposit']['amount']);
+        $this->assertSame(15000.75, (float) $depositRow2['deposit']['amount']);
+    }
+
+    #[Test]
+    public function pagination_meta_is_accurate_after_accounting_state_filtering(): void
+    {
+        Sanctum::actingAs($this->accountingUser);
+
+        [$contract, $unit] = $this->createProjectContext();
+
+        // Create multiple reservations awaiting deposits
+        for ($i = 0; $i < 5; $i++) {
+            $this->createReservation($contract, $unit);
+        }
+
+        // Create deposits in various states
+        $reservation = $this->createReservation($contract, $unit);
+        $this->createDeposit($reservation, ['status' => 'pending']);
+        $this->createDeposit($reservation, ['status' => 'confirmed']);
+
+        // Total should be: 5 awaiting + 2 deposits = 7
+        $response = $this->getJson('/api/accounting/deposits/pending?scope=all');
+        $response->assertOk();
+        $this->assertSame(7, $response->json('meta.total'));
+
+        // Filter to only awaiting deposits
+        $response = $this->getJson('/api/accounting/deposits/pending?scope=all&accounting_state=awaiting_deposit_creation');
+        $response->assertOk();
+        $this->assertSame(5, $response->json('meta.total'));
+        $this->assertCount(5, $response->json('data'));
+
+        // Filter to only deposit pending
+        $response = $this->getJson('/api/accounting/deposits/pending?scope=all&accounting_state=deposit_pending_confirmation');
+        $response->assertOk();
+        $this->assertSame(1, $response->json('meta.total'));
+        $this->assertCount(1, $response->json('data'));
+    }
+
+    #[Test]
+    public function unit_price_field_is_correct_from_contract_unit_table(): void
+    {
+        Sanctum::actingAs($this->accountingUser);
+
+        $contract = Contract::factory()->create(['commission_percent' => 2.5]);
+        SecondPartyData::factory()->create(['contract_id' => $contract->id]);
+
+        $unit = ContractUnit::factory()->create([
+            'contract_id' => $contract->id,
+            'price' => 750000.00,
+        ]);
+
+        $reservation = $this->createReservation($contract, $unit);
+        $deposit = $this->createDeposit($reservation, ['status' => 'pending']);
+
+        $response = $this->getJson('/api/accounting/deposits/pending?scope=all');
+        $response->assertOk();
+
+        $data = collect($response->json('data'));
+        $depositRow = $data->firstWhere('deposit_id', $deposit->id);
+
+        // Unit price should match contract unit price
+        $this->assertSame(750000.0, (float) $depositRow['unit_price']);
+    }
+
+    #[Test]
+    public function commission_percentage_field_resolution_chain_is_correct(): void
+    {
+        Sanctum::actingAs($this->accountingUser);
+
+        [$contract, $unit] = $this->createProjectContext([
+            'commission_percent' => 3.0,
+            'commission_from' => 'owner',
+        ]);
+
+        // Test 1: Commission model overrides all
+        $reservation1 = $this->createReservation($contract, $unit, [
+            'brokerage_commission_percent' => 2.0,
+        ]);
+        Commission::factory()->create([
+            'sales_reservation_id' => $reservation1->id,
+            'contract_unit_id' => $unit->id,
+            'commission_percentage' => 4.5,
+            'commission_source' => 'buyer',
+        ]);
+        $this->createDeposit($reservation1, ['status' => 'pending']);
+
+        // Test 2: Reservation field overrides contract
+        $reservation2 = $this->createReservation($contract, $unit, [
+            'brokerage_commission_percent' => 2.5,
+        ]);
+        $this->createDeposit($reservation2, ['status' => 'pending']);
+
+        // Test 3: Contract fallback
+        $reservation3 = $this->createReservation($contract, $unit, [
+            'brokerage_commission_percent' => null,
+        ]);
+        $this->createDeposit($reservation3, ['status' => 'pending']);
+
+        $response = $this->getJson('/api/accounting/deposits/pending?scope=all');
+        $response->assertOk();
+
+        $data = collect($response->json('data'));
+
+        // Test 1: Commission model wins
+        $row1 = $data->firstWhere('reservation_id', $reservation1->id);
+        $this->assertSame(4.5, (float) $row1['commission_percentage']);
+        $this->assertSame('commission', $row1['pricing']['commission_resolution_source']);
+
+        // Test 2: Reservation field wins
+        $row2 = $data->firstWhere('reservation_id', $reservation2->id);
+        $this->assertSame(2.5, (float) $row2['commission_percentage']);
+        $this->assertSame('reservation', $row2['pricing']['commission_resolution_source']);
+
+        // Test 3: Contract field as fallback
+        $row3 = $data->firstWhere('reservation_id', $reservation3->id);
+        $this->assertSame(3.0, (float) $row3['commission_percentage']);
+        $this->assertSame('contract', $row3['pricing']['commission_resolution_source']);
+    }
+
+    #[Test]
+    public function final_selling_price_resolution_chain_is_correct(): void
+    {
+        Sanctum::actingAs($this->accountingUser);
+
+        [$contract, $unit] = $this->createProjectContext();
+
+        // Test 1: Commission model final_selling_price wins
+        $reservation1 = $this->createReservation($contract, $unit, [
+            'proposed_price' => 600000,
+        ]);
+        Commission::factory()->create([
+            'sales_reservation_id' => $reservation1->id,
+            'contract_unit_id' => $unit->id,
+            'final_selling_price' => 700000,
+        ]);
+        $this->createDeposit($reservation1, ['status' => 'pending']);
+
+        // Test 2: Reservation proposed_price wins
+        $reservation2 = $this->createReservation($contract, $unit, [
+            'proposed_price' => 550000,
+        ]);
+        $this->createDeposit($reservation2, ['status' => 'pending']);
+
+        // Test 3: Unit price fallback
+        $reservation3 = $this->createReservation($contract, $unit, [
+            'proposed_price' => null,
+        ]);
+        $this->createDeposit($reservation3, ['status' => 'pending']);
+
+        $response = $this->getJson('/api/accounting/deposits/pending?scope=all');
+        $response->assertOk();
+
+        $data = collect($response->json('data'));
+
+        // Test 1: Commission model final_selling_price wins
+        $row1 = $data->firstWhere('reservation_id', $reservation1->id);
+        $this->assertSame(700000.0, (float) $row1['final_selling_price']);
+        $this->assertSame('commission', $row1['pricing']['final_selling_price_resolution_source']);
+
+        // Test 2: Reservation proposed_price wins
+        $row2 = $data->firstWhere('reservation_id', $reservation2->id);
+        $this->assertSame(550000.0, (float) $row2['final_selling_price']);
+        $this->assertSame('reservation', $row2['pricing']['final_selling_price_resolution_source']);
+
+        // Test 3: Unit price fallback
+        $row3 = $data->firstWhere('reservation_id', $reservation3->id);
+        $this->assertSame((float) $unit->price, (float) $row3['final_selling_price']);
+        $this->assertSame('unit', $row3['pricing']['final_selling_price_resolution_source']);
+    }
 }
