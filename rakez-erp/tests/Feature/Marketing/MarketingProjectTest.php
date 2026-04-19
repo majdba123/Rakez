@@ -247,6 +247,167 @@ class MarketingProjectTest extends TestCase
     }
 
     #[Test]
+    public function avg_unit_price_is_calculated_from_the_correct_contract_units_only(): void
+    {
+        // Contract A: 3 units with prices 100k, 200k, 300k → avg = 200k
+        $contractA = Contract::factory()->create(['status' => 'completed']);
+        ContractInfo::factory()->create(['contract_id' => $contractA->id, 'avg_property_value' => 9000000]);
+        ContractUnit::factory()->create(['contract_id' => $contractA->id, 'price' => 100000, 'status' => 'available']);
+        ContractUnit::factory()->create(['contract_id' => $contractA->id, 'price' => 200000, 'status' => 'available']);
+        ContractUnit::factory()->create(['contract_id' => $contractA->id, 'price' => 300000, 'status' => 'available']);
+
+        // Contract B: 2 units with prices 400k, 600k → avg = 500k
+        $contractB = Contract::factory()->create(['status' => 'completed']);
+        ContractInfo::factory()->create(['contract_id' => $contractB->id, 'avg_property_value' => 10000000]);
+        ContractUnit::factory()->create(['contract_id' => $contractB->id, 'price' => 400000, 'status' => 'available']);
+        ContractUnit::factory()->create(['contract_id' => $contractB->id, 'price' => 600000, 'status' => 'available']);
+
+        $response = $this->actingAs($this->marketingUser, 'sanctum')
+            ->getJson('/api/marketing/projects');
+
+        $response->assertStatus(200);
+        $data = collect($response->json('data'));
+
+        $rowA = $data->firstWhere('contract_id', $contractA->id);
+        $rowB = $data->firstWhere('contract_id', $contractB->id);
+
+        $this->assertNotNull($rowA);
+        $this->assertNotNull($rowB);
+        // Must reflect real unit prices — NOT the stale avg_property_value stored in contract_infos
+        $this->assertEquals(200000.00, $rowA['avg_unit_price']);
+        $this->assertEquals(500000.00, $rowB['avg_unit_price']);
+    }
+
+    #[Test]
+    public function avg_unit_price_is_not_duplicated_by_related_joins(): void
+    {
+        $contract = Contract::factory()->create(['status' => 'completed']);
+        ContractInfo::factory()->create(['contract_id' => $contract->id]);
+        ContractUnit::factory()->create(['contract_id' => $contract->id, 'price' => 300000, 'status' => 'available']);
+        ContractUnit::factory()->create(['contract_id' => $contract->id, 'price' => 300000, 'status' => 'available']);
+
+        // Media rows — the kind that could cause duplication in a JOIN-based query
+        ProjectMedia::create(['contract_id' => $contract->id, 'type' => 'image', 'url' => 'https://cdn.example.com/a.jpg', 'department' => 'photography']);
+        ProjectMedia::create(['contract_id' => $contract->id, 'type' => 'image', 'url' => 'https://cdn.example.com/b.jpg', 'department' => 'photography']);
+        ProjectMedia::create(['contract_id' => $contract->id, 'type' => 'video', 'url' => 'https://cdn.example.com/c.mp4', 'department' => 'montage']);
+
+        $response = $this->actingAs($this->marketingUser, 'sanctum')
+            ->getJson('/api/marketing/projects');
+
+        $response->assertStatus(200);
+        $row = collect($response->json('data'))->firstWhere('contract_id', $contract->id);
+
+        $this->assertNotNull($row);
+        // Average must be 300k — media rows must not inflate it
+        $this->assertEquals(300000.00, $row['avg_unit_price']);
+    }
+
+    #[Test]
+    public function avg_unit_price_uses_the_correct_price_field_from_contract_units(): void
+    {
+        $contract = Contract::factory()->create(['status' => 'completed']);
+        // avg_property_value set to a completely different value to prove it is NOT the source
+        ContractInfo::factory()->create(['contract_id' => $contract->id, 'avg_property_value' => 9999999]);
+        ContractUnit::factory()->create(['contract_id' => $contract->id, 'price' => 750000, 'status' => 'available']);
+        ContractUnit::factory()->create(['contract_id' => $contract->id, 'price' => 250000, 'status' => 'sold']);
+
+        $response = $this->actingAs($this->marketingUser, 'sanctum')
+            ->getJson('/api/marketing/projects');
+
+        $response->assertStatus(200);
+        $row = collect($response->json('data'))->firstWhere('contract_id', $contract->id);
+
+        // Must NOT return avg_property_value (9999999); must return avg of unit prices
+        $this->assertNotEquals(9999999, $row['avg_unit_price']);
+        $this->assertEquals(500000.00, $row['avg_unit_price']);
+    }
+
+    #[Test]
+    public function avg_unit_price_uses_all_contract_units_not_only_available(): void
+    {
+        // Business rule: average across ALL units in the contract (not just available)
+        // This matches ContractPricingBasisService::resolve() which uses average_unit_price_all
+        $contract = Contract::factory()->create(['status' => 'completed']);
+        ContractInfo::factory()->create(['contract_id' => $contract->id]);
+        ContractUnit::factory()->create(['contract_id' => $contract->id, 'price' => 200000, 'status' => 'available']);
+        ContractUnit::factory()->create(['contract_id' => $contract->id, 'price' => 400000, 'status' => 'sold']);
+        ContractUnit::factory()->create(['contract_id' => $contract->id, 'price' => 600000, 'status' => 'pending']);
+
+        $response = $this->actingAs($this->marketingUser, 'sanctum')
+            ->getJson('/api/marketing/projects');
+
+        $response->assertStatus(200);
+        $row = collect($response->json('data'))->firstWhere('contract_id', $contract->id);
+
+        // All 3 units: (200k + 400k + 600k) / 3 = 400k
+        // Available only would give 200k — that would be wrong
+        $this->assertEquals(400000.00, $row['avg_unit_price']);
+    }
+
+    #[Test]
+    public function total_available_value_and_units_count_remain_consistent(): void
+    {
+        $contract = Contract::factory()->create(['status' => 'completed']);
+        ContractInfo::factory()->create(['contract_id' => $contract->id]);
+        ContractUnit::factory()->create(['contract_id' => $contract->id, 'price' => 100000, 'status' => 'available']);
+        ContractUnit::factory()->create(['contract_id' => $contract->id, 'price' => 200000, 'status' => 'available']);
+        ContractUnit::factory()->create(['contract_id' => $contract->id, 'price' => 300000, 'status' => 'pending']);
+        ContractUnit::factory()->create(['contract_id' => $contract->id, 'price' => 400000, 'status' => 'sold']);
+
+        $response = $this->actingAs($this->marketingUser, 'sanctum')
+            ->getJson('/api/marketing/projects');
+
+        $response->assertStatus(200);
+        $row = collect($response->json('data'))->firstWhere('contract_id', $contract->id);
+
+        // units_count scoped to available/pending only
+        $this->assertEquals(2, $row['units_count']['available']);
+        $this->assertEquals(1, $row['units_count']['pending']);
+
+        // total_available_value = sum of available unit prices only
+        $this->assertEquals(300000.00, (float) $row['total_available_value']);
+
+        // avg_unit_price = average across ALL 4 units: (100k+200k+300k+400k)/4 = 250k
+        $this->assertEquals(250000.00, $row['avg_unit_price']);
+    }
+
+    #[Test]
+    public function zero_price_units_are_included_in_avg_calculation(): void
+    {
+        // Units with price = 0 are real units in the contract; they should be counted
+        // to avoid inflating the average (zero price = unpriced, not excluded)
+        $contract = Contract::factory()->create(['status' => 'completed']);
+        ContractInfo::factory()->create(['contract_id' => $contract->id]);
+        ContractUnit::factory()->create(['contract_id' => $contract->id, 'price' => 600000, 'status' => 'available']);
+        ContractUnit::factory()->create(['contract_id' => $contract->id, 'price' => 0, 'status' => 'available']);
+
+        $response = $this->actingAs($this->marketingUser, 'sanctum')
+            ->getJson('/api/marketing/projects');
+
+        $response->assertStatus(200);
+        $row = collect($response->json('data'))->firstWhere('contract_id', $contract->id);
+
+        // (600k + 0) / 2 = 300k — not 600k (which would be if zero-price units were excluded)
+        $this->assertEquals(300000.00, $row['avg_unit_price']);
+    }
+
+    #[Test]
+    public function avg_unit_price_is_zero_when_contract_has_no_units(): void
+    {
+        $contract = Contract::factory()->create(['status' => 'completed']);
+        ContractInfo::factory()->create(['contract_id' => $contract->id, 'avg_property_value' => 5000000]);
+        // No ContractUnit rows created
+
+        $response = $this->actingAs($this->marketingUser, 'sanctum')
+            ->getJson('/api/marketing/projects');
+
+        $response->assertStatus(200);
+        $row = collect($response->json('data'))->firstWhere('contract_id', $contract->id);
+
+        $this->assertEquals(0, $row['avg_unit_price']);
+    }
+
+    #[Test]
     public function project_show_includes_pricing_source_without_campaign_calculator_payload(): void
     {
         $contract = Contract::factory()->create([
