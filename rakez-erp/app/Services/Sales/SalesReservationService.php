@@ -324,6 +324,10 @@ class SalesReservationService
             $query->where('contract_id', $filters['contract_id']);
         }
 
+        if (!empty($filters['marketing_id'])) {
+            $query->where('marketing_employee_id', (int) $filters['marketing_id']);
+        }
+
         // Filter by status
         if (!empty($filters['status'])) {
             $query->where('status', $filters['status']);

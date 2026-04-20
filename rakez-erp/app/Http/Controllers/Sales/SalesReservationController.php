@@ -93,6 +93,7 @@ class SalesReservationController extends Controller
                 'mine' => $request->query('mine'),
                 'include_cancelled' => $request->query('include_cancelled'),
                 'contract_id' => $request->query('contract_id'),
+                'marketing_id' => $request->query('marketing_id'),
                 'status' => $request->query('status'),
                 'from' => $request->query('from'),
                 'to' => $request->query('to'),
