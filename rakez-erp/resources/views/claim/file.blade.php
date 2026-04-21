@@ -1,102 +1,122 @@
+@php
+    $formatClaimValue = static function ($key, $val) {
+        if ($val === null || $val === '') {
+            return '—';
+        }
+        $k = (string) $key;
+        if (str_contains($k, 'commission_percent') || str_ends_with($k, '_percent')) {
+            return is_numeric($val) ? $val.'%' : (string) $val;
+        }
+        if (is_numeric($val) && (str_contains($k, 'price') || str_contains($k, 'amount') || str_contains($k, 'tax'))) {
+            return number_format((float) $val, 2).' ريال';
+        }
+        if ($k === 'unit_area' && is_numeric($val)) {
+            return number_format((float) $val, 2);
+        }
+
+        return is_scalar($val) ? (string) $val : json_encode($val, JSON_UNESCAPED_UNICODE);
+    };
+    $fd = $file_data ?? [];
+    $isCombined = !empty($fd['summary']) && isset($fd['items']) && is_array($fd['items']);
+    $labels = [
+        'project_name' => 'اسم المشروع',
+        'project_location' => 'المدينة',
+        'project_district' => 'الحي',
+        'unit_number' => 'رقم الوحدة',
+        'unit_type' => 'نوع الوحدة',
+        'unit_area' => 'المساحة',
+        'unit_price' => 'سعر الوحدة',
+        'client_name' => 'اسم العميل',
+        'client_mobile' => 'جوال العميل',
+        'client_nationality' => 'الجنسية',
+        'client_iban' => 'الآيبان',
+        'down_payment_amount' => 'مبلغ العربون',
+        'down_payment_status' => 'حالة العربون',
+        'payment_method' => 'طريقة الدفع',
+        'purchase_mechanism' => 'آلية الشراء',
+        'brokerage_commission_percent' => 'نسبة عمولة الوساطة',
+        'commission_payer' => 'دافع العمولة',
+        'tax_amount' => 'مبلغ الضريبة',
+        'team_name' => 'فريق المبيعات',
+        'marketer_name' => 'مسوّق',
+        'contract_date' => 'تاريخ العقد',
+        'confirmed_at' => 'تاريخ التأكيد',
+        'title_transfer_date' => 'تاريخ نقل الملكية',
+        'reservation_id' => 'رقم الحجز',
+        'reservation_type' => 'نوع الحجز',
+    ];
+@endphp
+
 @extends('layouts.pdf')
 
-@section('title', 'مطالبة عمولة - ' . $commission->id)
+@section('title', 'ملف مطالبة - ' . ($claim_file->id ?? ''))
 
 @section('extra-styles')
     .totals-table { width: 100%; border-collapse: collapse; margin: 10px 0; }
     .totals-table td { padding: 8px; border: 1px solid #ddd; font-size: 11px; }
-    .totals-table td:first-child { width: 60%; background-color: #f5f5f5; font-weight: bold; }
-    .totals-table tr:last-child td { background-color: #1B2A4A; color: #fff; font-size: 13px; font-weight: bold; }
+    .totals-table td:first-child { width: 45%; background-color: #f5f5f5; font-weight: bold; }
 @endsection
 
 @section('content')
-    <p class="doc-title">مطالبة عمولة</p>
-    <p class="doc-subtitle">رقم العمولة: {{ $commission->id }} | تاريخ الإصدار: {{ $generated_at }}</p>
+    <p class="doc-title">ملف مطالبة عمولة</p>
+    <p class="doc-subtitle">
+        رقم الملف: {{ $claim_file->id ?? '—' }}
+        @if(!empty($claim_file->is_combined))
+            | <strong>ملف مجمّع</strong>
+        @endif
+        | تاريخ الإصدار: {{ $generated_at ?? '' }}
+    </p>
 
-    <p class="section-title">&#9670; معلومات العمولة</p>
-    <table class="info-table">
-        <tr>
-            <td>سعر البيع النهائي</td>
-            <td>{{ number_format($commission->final_selling_price, 2) }} ريال</td>
-        </tr>
-        <tr>
-            <td>نسبة العمولة</td>
-            <td>{{ $commission->commission_percentage }}%</td>
-        </tr>
-        <tr>
-            <td>الحالة</td>
-            <td>
-                <span class="status-badge status-{{ $commission->status }}">
-                    @if($commission->status === 'pending') معلق
-                    @elseif($commission->status === 'approved') معتمد
-                    @elseif($commission->status === 'paid') مدفوع
-                    @endif
-                </span>
-            </td>
-        </tr>
-    </table>
+    @if($isCombined)
+        <p class="section-title first">&#9670; ملخص المشروع</p>
+        @php $s = $fd['summary'] ?? []; @endphp
+        <table class="info-table">
+            <tr><td>اسم المشروع</td><td>{{ $s['project_name'] ?? '—' }}</td></tr>
+            <tr><td>عدد الوحدات</td><td>{{ $s['reservation_count'] ?? '—' }}</td></tr>
+            <tr><td>إجمالي أسعار الوحدات</td><td>{{ isset($s['total_unit_price']) ? number_format((float) $s['total_unit_price'], 2) . ' ريال' : '—' }}</td></tr>
+            <tr><td>إجمالي المطالبة</td><td>{{ isset($s['total_claim_amount']) ? number_format((float) $s['total_claim_amount'], 2) . ' ريال' : '—' }}</td></tr>
+            @if(!empty($claim_file->claim_type))
+                <tr><td>نوع المطالبة</td><td>{{ $claim_file->claim_type }}</td></tr>
+            @endif
+            @if(!empty($claim_file->notes))
+                <tr><td>ملاحظات</td><td>{{ $claim_file->notes }}</td></tr>
+            @endif
+        </table>
 
-    <p class="section-title">&#9670; توزيع العمولة</p>
-    <table class="data-table">
-        <thead>
-            <tr>
-                <th>المستلم</th>
-                <th>النوع</th>
-                <th>النسبة</th>
-                <th>المبلغ</th>
-                <th>الحالة</th>
-            </tr>
-        </thead>
-        <tbody>
-            @foreach($distributions as $dist)
-            <tr>
-                <td>
-                    @if($dist->recipient)
-                        {{ $dist->recipient->name }}
-                    @else
-                        {{ $dist->external_marketer_name ?? 'غير محدد' }}
-                    @endif
-                </td>
-                <td>{{ $dist->type }}</td>
-                <td>{{ $dist->percentage }}%</td>
-                <td>{{ number_format($dist->amount, 2) }} ريال</td>
-                <td>
-                    <span class="status-badge status-{{ $dist->status }}">
-                        @if($dist->status === 'pending') معلق
-                        @elseif($dist->status === 'approved') معتمد
-                        @elseif($dist->status === 'rejected') مرفوض
-                        @elseif($dist->status === 'paid') مدفوع
-                        @endif
-                    </span>
-                </td>
-            </tr>
+        <p class="section-title">&#9670; تفاصيل الوحدات</p>
+        @foreach($fd['items'] as $idx => $item)
+            <p style="font-weight:bold; margin:12px 0 6px 0; font-size:10pt;">وحدة {{ $idx + 1 }}</p>
+            <table class="info-table">
+                @foreach($item as $key => $val)
+                    @continue(in_array($key, ['summary', 'items'], true))
+                    <tr>
+                        <td>{{ $labels[$key] ?? $key }}</td>
+                        <td>{{ $formatClaimValue($key, $val) }}</td>
+                    </tr>
+                @endforeach
+            </table>
+        @endforeach
+    @else
+        <p class="section-title first">&#9670; بيانات المطالبة</p>
+        <table class="info-table">
+            @foreach($fd as $key => $val)
+                @if($key === 'summary' || $key === 'items')
+                    @continue
+                @endif
+                <tr>
+                    <td>{{ $labels[$key] ?? $key }}</td>
+                    <td>{{ $formatClaimValue($key, $val) }}</td>
+                </tr>
             @endforeach
-        </tbody>
-    </table>
+        </table>
+    @endif
 
-    <p class="section-title">&#9670; الإجماليات</p>
-    <table class="totals-table">
-        <tr>
-            <td>المبلغ الإجمالي</td>
-            <td>{{ number_format($commission->total_amount, 2) }} ريال</td>
-        </tr>
-        <tr>
-            <td>ضريبة القيمة المضافة (15%)</td>
-            <td>{{ number_format($commission->vat, 2) }} ريال</td>
-        </tr>
-        <tr>
-            <td>مصاريف التسويق</td>
-            <td>{{ number_format($commission->marketing_expenses, 2) }} ريال</td>
-        </tr>
-        <tr>
-            <td>رسوم البنك</td>
-            <td>{{ number_format($commission->bank_fees, 2) }} ريال</td>
-        </tr>
-        <tr>
-            <td>صافي العمولة</td>
-            <td>{{ number_format($commission->net_amount, 2) }} ريال</td>
-        </tr>
-    </table>
+    @if(!empty($claim_file->generatedBy))
+        <p class="section-title">&#9670; الإصدار</p>
+        <table class="info-table">
+            <tr><td>أصدر بواسطة</td><td>{{ $claim_file->generatedBy->name ?? '—' }}</td></tr>
+        </table>
+    @endif
 
-    <p class="auto-msg">هذا المستند تم إنشاؤه آلياً بواسطة نظام راكز العقاري | {{ $generated_at }}</p>
+    <p class="auto-msg">هذا المستند تم إنشاؤه آلياً بواسطة نظام راكز العقاري | {{ $generated_at ?? '' }}</p>
 @endsection
