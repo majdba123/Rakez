@@ -300,7 +300,13 @@ class SalesReservationService
      */
     public function getReservations(array $filters, User $user): LengthAwarePaginator
     {
-        $query = SalesReservation::with(['contract', 'contractUnit', 'marketingEmployee']);
+        $query = SalesReservation::with([
+            'contract',
+            'contractUnit',
+            'marketingEmployee',
+            'claimFile',
+            'combinedClaimFiles',
+        ]);
 
         // Visibility: sales reps see own rows; sales leaders see team + led-project rows (see SalesDashboardService).
         // `mine=1` limits to own reservations for any sales user (including leaders).

@@ -2,15 +2,15 @@
 
 namespace App\Http\Resources\Sales;
 
+use App\Support\ReservationCreditTraceHelper;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
-use Illuminate\Support\Facades\Storage;
 
 class SalesReservationResource extends JsonResource
 {
     public function toArray(Request $request): array
     {
-        return [
+        $row = [
             'reservation_id' => $this->id,
             'contract_id' => $this->contract_id,
             'contract_unit_id' => $this->contract_unit_id,
@@ -40,5 +40,11 @@ class SalesReservationResource extends JsonResource
                 ? url('/api/storage/' . ltrim($this->receipt_voucher_path, '/'))
                 : null,
         ];
+
+        if ($this->credit_status === 'sold') {
+            $row['trace'] = ReservationCreditTraceHelper::traceForSold($this->resource);
+        }
+
+        return $row;
     }
 }
