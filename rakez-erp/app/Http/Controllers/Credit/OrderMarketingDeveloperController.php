@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Credit\IndexOrderMarketingDeveloperRequest;
 use App\Http\Requests\Credit\StoreOrderMarketingDeveloperRequest;
 use App\Http\Requests\Credit\UpdateOrderMarketingDeveloperRequest;
+use App\Http\Requests\Credit\UpdateOrderMarketingDeveloperStatusRequest;
 use App\Http\Responses\ApiResponse;
 use App\Services\Credit\OrderMarketingDeveloperService;
 use Illuminate\Http\JsonResponse;
@@ -95,6 +96,25 @@ class OrderMarketingDeveloperController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'تم تحديث السجل بنجاح',
+            'data' => $this->orderMarketingDeveloperService->transform($updated),
+        ], 200);
+    }
+
+    /**
+     * PATCH /admin/order-marketing-developers/{id}/status — same service update(); body: { "status": "approved"|"rejected" }
+     */
+    public function updateStatus(UpdateOrderMarketingDeveloperStatusRequest $request, int $id): JsonResponse
+    {
+        $row = $this->orderMarketingDeveloperService->findForUser($id, $request->user());
+        $updated = $this->orderMarketingDeveloperService->update(
+            $row,
+            $request->validated(),
+            $request->user()
+        );
+
+        return response()->json([
+            'success' => true,
+            'message' => 'تم تحديث الحالة بنجاح',
             'data' => $this->orderMarketingDeveloperService->transform($updated),
         ], 200);
     }

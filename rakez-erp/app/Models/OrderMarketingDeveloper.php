@@ -9,6 +9,10 @@ class OrderMarketingDeveloper extends Model
 {
     public const STATUS_PENDING = 'pending';
 
+    public const STATUS_APPROVED = 'approved';
+
+    public const STATUS_REJECTED = 'rejected';
+
     protected $table = 'order_marketing_developers';
 
     protected $fillable = [
@@ -24,6 +28,16 @@ class OrderMarketingDeveloper extends Model
     public function isPending(): bool
     {
         return $this->status === self::STATUS_PENDING;
+    }
+
+    public function isApproved(): bool
+    {
+        return $this->status === self::STATUS_APPROVED;
+    }
+
+    public function isRejected(): bool
+    {
+        return $this->status === self::STATUS_REJECTED;
     }
 
     public function createdBy(): BelongsTo

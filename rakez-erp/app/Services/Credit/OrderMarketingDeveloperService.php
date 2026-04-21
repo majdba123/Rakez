@@ -147,18 +147,45 @@ class OrderMarketingDeveloperService
     }
 
     /**
-     * @param  array<string, mixed>  $data  Validated fields only (developer_name, developer_number, description, location)
+     * @param  array<string, mixed>  $data  developer_* fields, or `status` (admin only: approved|rejected from pending)
      */
     public function update(OrderMarketingDeveloper $row, array $data, User $user): OrderMarketingDeveloper
     {
         $this->assertUserCanAccessOrder($row, $user);
 
-        if (!$row->isPending()) {
-            throw new HttpResponseException(response()->json([
-                'success' => false,
-                'message' => 'لا يمكن التعديل إلا عندما تكون الحالة قيد الانتظار',
-            ], 422));
+        if (array_key_exists('status', $data)) {
+            if (!$user->hasRole('admin') && !$user->isAdmin()) {
+                throw new HttpResponseException(response()->json([
+                    'success' => false,
+                    'message' => 'هذه العملية للمسؤول فقط',
+                ], 403));
+            }
+
+            $status = (string) $data['status'];
+            $allowed = [OrderMarketingDeveloper::STATUS_APPROVED, OrderMarketingDeveloper::STATUS_REJECTED];
+            if (!in_array($status, $allowed, true)) {
+                throw new HttpResponseException(response()->json([
+                    'success' => false,
+                    'message' => 'الحالة غير صالحة',
+                ], 422));
+            }
+
+            if (!$row->isPending()) {
+                throw new HttpResponseException(response()->json([
+                    'success' => false,
+                    'message' => 'يمكن تغيير الحالة من قيد الانتظار فقط إلى موافق أو مرفوض',
+                ], 422));
+            }
+
+            $row->update([
+                'status' => $status,
+                'updated_by' => $user->id,
+            ]);
+
+            return $row->fresh(['createdBy:id,name', 'updatedBy:id,name']);
         }
+
+        $this->assertCanModifyOrDelete($row, 'تعديل');
 
         $payload = array_merge(
             array_intersect_key($data, array_flip(['developer_name', 'developer_number', 'description', 'location'])),
@@ -174,7 +201,25 @@ class OrderMarketingDeveloperService
     {
         $row = OrderMarketingDeveloper::findOrFail($id);
         $this->assertUserCanAccessOrder($row, $user);
+        $this->assertCanModifyOrDelete($row, 'حذف');
         $row->delete();
+    }
+
+    protected function assertCanModifyOrDelete(OrderMarketingDeveloper $row, string $actionLabelAr): void
+    {
+        if ($row->isApproved()) {
+            throw new HttpResponseException(response()->json([
+                'success' => false,
+                'message' => 'لا يمكن '.$actionLabelAr.' السجل بعد الموافقة عليه',
+            ], 422));
+        }
+
+        if (!$row->isPending()) {
+            throw new HttpResponseException(response()->json([
+                'success' => false,
+                'message' => 'لا يمكن '.$actionLabelAr.' إلا عندما تكون الحالة قيد الانتظار',
+            ], 422));
+        }
     }
 
     protected function assertUserCanAccessOrder(OrderMarketingDeveloper $row, User $user): void
