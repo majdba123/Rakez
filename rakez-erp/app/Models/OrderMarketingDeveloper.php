@@ -7,6 +7,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class OrderMarketingDeveloper extends Model
 {
+    public const STATUS_PENDING = 'pending';
+
     protected $table = 'order_marketing_developers';
 
     protected $fillable = [
@@ -14,9 +16,15 @@ class OrderMarketingDeveloper extends Model
         'developer_number',
         'description',
         'location',
+        'status',
         'created_by',
         'updated_by',
     ];
+
+    public function isPending(): bool
+    {
+        return $this->status === self::STATUS_PENDING;
+    }
 
     public function createdBy(): BelongsTo
     {
