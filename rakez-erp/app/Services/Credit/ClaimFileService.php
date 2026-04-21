@@ -191,8 +191,10 @@ class ClaimFileService
     /**
      * List all sold units for a contract (project). Includes units with and without claim file.
      * Used for "وحدات المشروع" view: show all sold, with has_claim_file / has_pdf for download.
+     *
+     * @param  bool|null  $filterHasClaimFile  null = all; true = only reservations with a claim file; false = only without
      */
-    public function listSoldUnitsByContract(int $contractId): \Illuminate\Support\Collection
+    public function listSoldUnitsByContract(int $contractId, ?bool $filterHasClaimFile = null): \Illuminate\Support\Collection
     {
         $reservations = SalesReservation::with(['contract.info', 'contractUnit', 'claimFile', 'combinedClaimFiles'])
             ->where('credit_status', 'sold')
@@ -200,7 +202,7 @@ class ClaimFileService
             ->orderBy('confirmed_at', 'desc')
             ->get();
 
-        return $reservations->map(function (SalesReservation $r) {
+        $rows = $reservations->map(function (SalesReservation $r) {
             // Individual row on claim_files, or one shared file from POST .../claim-files/combined (pivot).
             $claimFile = $r->claimFile ?? $r->combinedClaimFiles->first();
             $price = $r->proposed_price ?? $r->contractUnit?->price ?? null;
@@ -221,6 +223,15 @@ class ClaimFileService
                     : null,
             ];
         });
+
+        if ($filterHasClaimFile === true) {
+            return $rows->filter(static fn (array $row) => $row['has_claim_file'] === true)->values();
+        }
+        if ($filterHasClaimFile === false) {
+            return $rows->filter(static fn (array $row) => $row['has_claim_file'] === false)->values();
+        }
+
+        return $rows;
     }
 
     /**

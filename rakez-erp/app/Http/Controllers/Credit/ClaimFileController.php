@@ -447,33 +447,63 @@ class ClaimFileController extends Controller
     }
 
     /**
-     * List all sold units for a project (contract). For accounting: وحدات المشروع - كل الوحدات المباعة.
+     * List all sold units for a project (contract). For accounting: وحدات المشروع.
      * GET /accounting/claim-files/sold-units?contract_id=2
+     * Optional: has_claim_file = all (default) | 1 | 0 | true | false | yes | no — filter by claim file presence.
      */
     public function soldUnitsByProject(Request $request): JsonResponse
     {
         try {
-            $contractId = (int) $request->input('contract_id');
-            if ($contractId <= 0) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'معرف العقد (contract_id) مطلوب ويجب أن يكون رقماً صحيحاً',
-                ], 422);
-            }
+            $validated = $request->validate([
+                'contract_id' => 'required|integer|min:1',
+                'has_claim_file' => ['sometimes', 'nullable', 'string', 'in:0,1,true,false,yes,no,all'],
+            ], [
+                'contract_id.required' => 'معرف العقد (contract_id) مطلوب',
+                'contract_id.min' => 'معرف العقد غير صالح',
+            ]);
 
-            $items = $this->claimFileService->listSoldUnitsByContract($contractId);
+            $filterHasClaimFile = $this->parseHasClaimFileFilter($validated['has_claim_file'] ?? null);
+
+            $items = $this->claimFileService->listSoldUnitsByContract(
+                (int) $validated['contract_id'],
+                $filterHasClaimFile
+            );
 
             return response()->json([
                 'success' => true,
                 'message' => 'تم جلب الوحدات المباعة للمشروع بنجاح',
                 'data' => $items->values()->all(),
             ], 200);
+        } catch (ValidationException $e) {
+            throw $e;
         } catch (Exception $e) {
             return response()->json([
                 'success' => false,
                 'message' => $e->getMessage(),
             ], 500);
         }
+    }
+
+    /**
+     * @return bool|null true = only reservations with a claim file; false = only without; null = all
+     */
+    private function parseHasClaimFileFilter(mixed $raw): ?bool
+    {
+        if ($raw === null || $raw === '') {
+            return null;
+        }
+        $v = strtolower((string) $raw);
+        if ($v === 'all') {
+            return null;
+        }
+        if (in_array($v, ['1', 'true', 'yes'], true)) {
+            return true;
+        }
+        if (in_array($v, ['0', 'false', 'no'], true)) {
+            return false;
+        }
+
+        return null;
     }
 
     /**
