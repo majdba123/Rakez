@@ -212,20 +212,20 @@ class ClaimFileController extends Controller
     }
 
     /**
-     * Generate a single combined claim file from multiple reservations (create only, status pending; no PDF here).
+     * Create one claim file (combined record) for one or more reservations (create only, status pending; no PDF here).
      * POST /credit/claim-files/combined, POST /accounting/claim-files/combined
      */
     public function generateCombined(Request $request): JsonResponse
     {
         try {
             $validated = $request->validate([
-                'booking_ids' => 'required|array|min:2',
+                'booking_ids' => 'required|array|min:1|distinct',
                 'booking_ids.*' => 'integer|min:1',
                 'claim_type' => 'required|string|in:commission',
                 'notes' => 'nullable|string|max:1000',
             ], [
                 'booking_ids.required' => 'معرفات الحجوزات مطلوبة',
-                'booking_ids.min' => 'يجب اختيار حجزين على الأقل للدمج',
+                'booking_ids.min' => 'يجب إرسال حجز واحد على الأقل',
                 'claim_type.required' => 'نوع المطالبة مطلوب',
                 'claim_type.in' => 'نوع المطالبة غير صالح',
             ]);
