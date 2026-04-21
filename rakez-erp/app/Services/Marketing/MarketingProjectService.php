@@ -19,6 +19,7 @@ class MarketingProjectService
         private SalesTeamService $salesTeamService,
         private ContractPricingBasisService $pricingBasisService,
         private MarketingBudgetCalculationService $budgetCalculationService,
+        private MarketingProjectMetricsResolver $metricsResolver,
     ) {}
 
     /**
@@ -27,6 +28,17 @@ class MarketingProjectService
      */
     /** @deprecated Prefer {@see ContractWorkflowStatus::Completed} */
     public const COMPLETED_CONTRACT_STATUS = 'completed';
+
+    /**
+     * Get canonical shared metrics for a contract.
+     * Used by both list and show endpoints to ensure numeric consistency.
+     *
+     * @return array<string, mixed>
+     */
+    public function getCanonicalMetrics(Contract $contract): array
+    {
+        return $this->metricsResolver->resolveForShow($contract);
+    }
 
     /**
      * Get all marketing projects whose contracts are completed. Every marketing user sees the same list.
@@ -335,16 +347,19 @@ class MarketingProjectService
         $pricingBasis = $this->pricingBasisService->resolve($contract, []);
         $commissionValue = $this->budgetCalculationService->commissionValueFromPricingBasis($contract, $pricingBasis);
 
+        // Get canonical metrics
+        $metrics = $this->metricsResolver->resolve($contract);
+
         return [
-            'contract_id' => (int) $contract->id,
+            'contract_id' => $metrics['contract_id'],
             'contract_number' => $info?->contract_number,
-            'project_name' => $contract->project_name,
-            'commission_percent' => (float) $contract->getEffectiveCommissionPercent(),
+            'project_name' => $metrics['project_name'],
+            'commission_percent' => $metrics['commission_percent'],
             'commission_value' => $commissionValue,
             'total_unit_price' => (float) $pricingBasis[ContractPricingBasisService::COMMISSION_BASE_KEY],
-            /** Canonical UI average = mean price of available units */
-            'average_unit_price' => (float) ($pricingBasis['average_unit_price_available'] ?? 0),
-            'average_unit_price_all' => (float) ($pricingBasis['average_unit_price_all'] ?? 0),
+            /** Canonical UI average = mean price of ALL units per business rules */
+            'average_unit_price' => $metrics['avg_unit_price'],
+            'average_unit_price_all' => $metrics['avg_unit_price'],
             'average_unit_price_available' => (float) ($pricingBasis['average_unit_price_available'] ?? 0),
             'pricing_basis' => $pricingBasis,
             'agreement_duration_days' => $info ? (int) ($info->agreement_duration_days ?? 0) : null,
