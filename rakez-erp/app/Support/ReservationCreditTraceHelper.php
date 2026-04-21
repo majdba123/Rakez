@@ -8,14 +8,14 @@ use App\Models\SalesReservation;
 class ReservationCreditTraceHelper
 {
     /**
-     * Trace flags for sold reservations: claim file coverage and placeholders for future use.
-     * Uses eager-loaded claimFile / combinedClaimFiles when available.
+     * Trace flags for sold reservations: claim file, commission record (accounting), future slot.
+     * Uses eager-loaded claimFile / combinedClaimFiles / commission when available.
      *
      * @return array{
      *     has_claim_file: int,
      *     claim_file_completed: int,
-     *     reserved_1: int,
-     *     reserved_2: int
+     *     has_commission: int,
+     *     distribution_approved: int
      * }
      */
     public static function traceForSold(SalesReservation $reservation): array
@@ -28,11 +28,29 @@ class ReservationCreditTraceHelper
             $completed = ($claimFile->status ?? null) === ClaimFile::STATUS_COMPLETED ? 1 : 0;
         }
 
+        $hasCommission = $reservation->commission !== null ? 1 : 0;
+
+        $distributionApproved = 0;
+        $commission = $reservation->commission;
+        if ($commission !== null) {
+            if ($commission->relationLoaded('distributions')) {
+                $distributionApproved = $commission->distributions->contains(
+                    static fn ($d) => in_array($d->status ?? '', ['approved', 'paid'], true)
+                ) ? 1 : 0;
+            } else {
+                $distributionApproved = $commission->distributions()
+                    ->whereIn('status', ['approved', 'paid'])
+                    ->exists()
+                    ? 1
+                    : 0;
+            }
+        }
+
         return [
             'has_claim_file' => $hasClaim,
             'claim_file_completed' => $completed,
-            'reserved_1' => 0,
-            'reserved_2' => 0,
+            'has_commission' => $hasCommission,
+            'distribution_approved' => $distributionApproved,
         ];
     }
 }

@@ -306,6 +306,7 @@ class SalesReservationService
             'marketingEmployee',
             'claimFile',
             'combinedClaimFiles',
+            'commission.distributions',
         ]);
 
         // Visibility: sales reps see own rows; sales leaders see team + led-project rows (see SalesDashboardService).
