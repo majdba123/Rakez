@@ -22,11 +22,9 @@ class OrderMarketingDeveloperController extends Controller
      * List marketing developer orders.
      * GET /credit/order-marketing-developers
      *
-     * Query filters (all optional): id, developer_name, developer_number, description, location, status,
-     * created_by, updated_by, created_from, created_to, updated_from, updated_to.
-     * processed_by (user id): rows where that user created or last updated the record — allowed only for
-     * admin or credit department manager; otherwise 403.
-     * Credit employees always see only their own rows (created_by = current user); other filters apply within that scope.
+     * Credit employee: only orders they created; filters narrow that list.
+     * Admin or credit manager: all orders; filters narrow the list; no filter params = all orders (paginated).
+     * processed_by: only applied for admin / credit manager (rows touched by that user id); ignored for others.
      */
     public function index(IndexOrderMarketingDeveloperRequest $request): JsonResponse
     {

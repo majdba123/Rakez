@@ -11,21 +11,20 @@ use Illuminate\Http\Exceptions\HttpResponseException;
 class OrderMarketingDeveloperService
 {
     /**
+     * List orders with optional filters.
+     *
+     * - Credit employee (not admin, not credit manager): only rows they created (`created_by` = user). Filters apply within that set.
+     * - Admin or credit department manager: full table; optional filters narrow results; empty filters = all rows.
+     * - `processed_by` (creator or last updater) applies only for admin / credit manager; ignored for other users.
+     *
      * @param  array<string, mixed>  $filters  Validated query filters from IndexOrderMarketingDeveloperRequest
      */
     public function list(int $perPage, User $user, array $filters = []): LengthAwarePaginator
     {
-        $processorId = isset($filters['processed_by']) ? (int) $filters['processed_by'] : 0;
-        if ($processorId > 0 && !$this->canUseProcessedByFilter($user)) {
-            throw new HttpResponseException(response()->json([
-                'success' => false,
-                'message' => 'لا يمكن استخدام تصفية معالج بواسطة (processed_by) إلا لمدير قسم الائتمان أو المسؤول',
-            ], 403));
-        }
-
         $query = OrderMarketingDeveloper::with(['createdBy:id,name', 'updatedBy:id,name']);
 
-        if ($this->canViewAllOrderMarketingDevelopers($user)) {
+        if ($this->isAdminOrCreditDepartmentManager($user)) {
+            $processorId = isset($filters['processed_by']) ? (int) $filters['processed_by'] : 0;
             if ($processorId > 0) {
                 $query->where(function (Builder $q) use ($processorId): void {
                     $q->where('created_by', $processorId)
@@ -33,6 +32,7 @@ class OrderMarketingDeveloperService
                 });
             }
         } else {
+            // Credit account (and any non-manager): only own orders
             $query->where('created_by', (int) $user->id);
         }
 
@@ -42,17 +42,9 @@ class OrderMarketingDeveloperService
     }
 
     /**
-     * Admin or credit department manager: can see all rows and use processed_by.
+     * Admin or credit department manager: unrestricted list + filters; no filters = all records.
      */
     public function canViewAllOrderMarketingDevelopers(User $user): bool
-    {
-        return $this->isAdminOrCreditDepartmentManager($user);
-    }
-
-    /**
-     * Only admin or credit department manager may use the processed_by filter.
-     */
-    public function canUseProcessedByFilter(User $user): bool
     {
         return $this->isAdminOrCreditDepartmentManager($user);
     }
