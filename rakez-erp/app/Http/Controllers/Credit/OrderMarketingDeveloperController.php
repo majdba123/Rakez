@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Credit;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Credit\IndexOrderMarketingDeveloperRequest;
 use App\Http\Requests\Credit\StoreOrderMarketingDeveloperRequest;
 use App\Http\Requests\Credit\UpdateOrderMarketingDeveloperRequest;
 use App\Http\Responses\ApiResponse;
@@ -21,16 +22,16 @@ class OrderMarketingDeveloperController extends Controller
      * List marketing developer orders.
      * GET /credit/order-marketing-developers
      *
-     * Query: processed_by (user id) — admin / credit manager only; narrows to rows created or last updated by that user.
-     * Credit employees always see only their own rows (created_by = current user); processed_by is ignored.
+     * Query filters (all optional): id, developer_name, developer_number, description, location, status,
+     * created_by, updated_by, created_from, created_to, updated_from, updated_to.
+     * processed_by (user id): rows where that user created or last updated the record — allowed only for
+     * admin or credit department manager; otherwise 403.
+     * Credit employees always see only their own rows (created_by = current user); other filters apply within that scope.
      */
-    public function index(Request $request): JsonResponse
+    public function index(IndexOrderMarketingDeveloperRequest $request): JsonResponse
     {
         $perPage = ApiResponse::getPerPage($request, 15, 100);
-        $filters = [
-            'processed_by' => $request->query('processed_by'),
-        ];
-        $paginator = $this->orderMarketingDeveloperService->list($perPage, $request->user(), $filters);
+        $paginator = $this->orderMarketingDeveloperService->list($perPage, $request->user(), $request->validated());
 
         $data = Collection::make($paginator->items())->map(
             fn ($row) => $this->orderMarketingDeveloperService->transform($row)

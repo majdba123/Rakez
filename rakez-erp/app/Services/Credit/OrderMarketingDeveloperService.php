@@ -11,14 +11,21 @@ use Illuminate\Http\Exceptions\HttpResponseException;
 class OrderMarketingDeveloperService
 {
     /**
-     * @param  array{processed_by?: int|string|null}  $filters
+     * @param  array<string, mixed>  $filters  Validated query filters from IndexOrderMarketingDeveloperRequest
      */
     public function list(int $perPage, User $user, array $filters = []): LengthAwarePaginator
     {
+        $processorId = isset($filters['processed_by']) ? (int) $filters['processed_by'] : 0;
+        if ($processorId > 0 && !$this->canUseProcessedByFilter($user)) {
+            throw new HttpResponseException(response()->json([
+                'success' => false,
+                'message' => 'لا يمكن استخدام تصفية معالج بواسطة (processed_by) إلا لمدير قسم الائتمان أو المسؤول',
+            ], 403));
+        }
+
         $query = OrderMarketingDeveloper::with(['createdBy:id,name', 'updatedBy:id,name']);
 
         if ($this->canViewAllOrderMarketingDevelopers($user)) {
-            $processorId = isset($filters['processed_by']) ? (int) $filters['processed_by'] : 0;
             if ($processorId > 0) {
                 $query->where(function (Builder $q) use ($processorId): void {
                     $q->where('created_by', $processorId)
@@ -29,20 +36,95 @@ class OrderMarketingDeveloperService
             $query->where('created_by', (int) $user->id);
         }
 
+        $this->applyListColumnFilters($query, $filters);
+
         return $query->orderByDesc('id')->paginate($perPage);
     }
 
     /**
-     * Admin or credit manager: full list + optional processed_by filter.
-     * Credit employee: only rows they created.
+     * Admin or credit department manager: can see all rows and use processed_by.
      */
     public function canViewAllOrderMarketingDevelopers(User $user): bool
+    {
+        return $this->isAdminOrCreditDepartmentManager($user);
+    }
+
+    /**
+     * Only admin or credit department manager may use the processed_by filter.
+     */
+    public function canUseProcessedByFilter(User $user): bool
+    {
+        return $this->isAdminOrCreditDepartmentManager($user);
+    }
+
+    protected function isAdminOrCreditDepartmentManager(User $user): bool
     {
         if ($user->hasRole('admin') || $user->isAdmin()) {
             return true;
         }
 
         return $user->type === 'credit' && $user->isManager();
+    }
+
+    /**
+     * @param  array<string, mixed>  $filters
+     */
+    protected function applyListColumnFilters(Builder $query, array $filters): void
+    {
+        unset($filters['processed_by']);
+
+        if (!empty($filters['id'])) {
+            $query->where('id', (int) $filters['id']);
+        }
+
+        if (!empty($filters['developer_name'])) {
+            $query->where('developer_name', 'like', $this->likePattern((string) $filters['developer_name']));
+        }
+
+        if (!empty($filters['developer_number'])) {
+            $query->where('developer_number', 'like', $this->likePattern((string) $filters['developer_number']));
+        }
+
+        if (!empty($filters['description'])) {
+            $query->where('description', 'like', $this->likePattern((string) $filters['description']));
+        }
+
+        if (!empty($filters['location'])) {
+            $query->where('location', 'like', $this->likePattern((string) $filters['location']));
+        }
+
+        if (array_key_exists('status', $filters) && $filters['status'] !== null && $filters['status'] !== '') {
+            $query->where('status', (string) $filters['status']);
+        }
+
+        if (!empty($filters['created_by'])) {
+            $query->where('created_by', (int) $filters['created_by']);
+        }
+
+        if (!empty($filters['updated_by'])) {
+            $query->where('updated_by', (int) $filters['updated_by']);
+        }
+
+        if (!empty($filters['created_from'])) {
+            $query->whereDate('created_at', '>=', $filters['created_from']);
+        }
+
+        if (!empty($filters['created_to'])) {
+            $query->whereDate('created_at', '<=', $filters['created_to']);
+        }
+
+        if (!empty($filters['updated_from'])) {
+            $query->whereDate('updated_at', '>=', $filters['updated_from']);
+        }
+
+        if (!empty($filters['updated_to'])) {
+            $query->whereDate('updated_at', '<=', $filters['updated_to']);
+        }
+    }
+
+    protected function likePattern(string $value): string
+    {
+        return '%'.addcslashes($value, '%_\\').'%';
     }
 
     public function create(array $data, User $user): OrderMarketingDeveloper
