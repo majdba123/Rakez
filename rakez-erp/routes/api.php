@@ -56,6 +56,7 @@ use App\Http\Controllers\Accounting\AccountingNotificationController;
 use App\Http\Controllers\Accounting\AccountingSalaryController;
 use App\Http\Controllers\Credit\ClaimFileController;
 use App\Http\Controllers\Credit\CreditBookingController;
+use App\Http\Controllers\Credit\OrderMarketingDeveloperController;
 use App\Http\Controllers\Credit\CreditDashboardController;
 use App\Http\Controllers\Credit\CreditFinancingController;
 use App\Http\Controllers\Credit\CreditNotificationController;
@@ -823,6 +824,13 @@ use Illuminate\Support\Facades\File;  // أضف هذا السطر في الأع�
             // Dashboard
             Route::get('dashboard', [CreditDashboardController::class, 'index'])->middleware('permission:credit.dashboard.view');
             Route::post('dashboard/refresh', [CreditDashboardController::class, 'refresh'])->middleware('permission:credit.dashboard.view');
+
+            // Marketing developer orders (order_marketing_developers)
+            Route::get('order-marketing-developers', [OrderMarketingDeveloperController::class, 'index'])->middleware('permission:credit.bookings.view');
+            Route::post('order-marketing-developers', [OrderMarketingDeveloperController::class, 'store'])->middleware('permission:credit.bookings.manage');
+            Route::get('order-marketing-developers/{id}', [OrderMarketingDeveloperController::class, 'show'])->middleware('permission:credit.bookings.view');
+            Route::patch('order-marketing-developers/{id}', [OrderMarketingDeveloperController::class, 'update'])->middleware('permission:credit.bookings.manage');
+            Route::delete('order-marketing-developers/{id}', [OrderMarketingDeveloperController::class, 'destroy'])->middleware('permission:credit.bookings.manage');
 
             // Bookings
             Route::get('bookings', [CreditBookingController::class, 'index'])->middleware('permission:credit.bookings.view');
