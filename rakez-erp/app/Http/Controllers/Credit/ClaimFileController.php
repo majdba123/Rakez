@@ -420,7 +420,7 @@ class ClaimFileController extends Controller
     }
 
     /**
-     * Download claim file PDF by claim file id (individual or combined: one PDF for the whole file).
+     * Download claim file PDF by claim_files.id (individual or combined: one PDF for the whole file).
      * GET /credit/claim-files/{id}/pdf | GET /accounting/claim-files/{id}/pdf
      */
     public function download(int $id)
@@ -504,42 +504,6 @@ class ClaimFileController extends Controller
         }
 
         return null;
-    }
-
-    /**
-     * Download claim file PDF for a reservation only if already uploaded/generated (read-only).
-     * Does not create a claim file or generate PDF.
-     * GET /accounting/claim-files/download-for-reservation/{reservationId}
-     */
-    public function downloadForReservation(Request $request, int $reservationId)
-    {
-        try {
-            if (!$request->user()) {
-                return response()->json(['success' => false, 'message' => 'غير مصرح'], 401);
-            }
-
-            $claimFile = $this->claimFileService->getClaimFileWithExistingPdfForReservation($reservationId);
-            if (!$claimFile) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'لا يوجد ملف مطالبة مرفوع أو جاهز للتحميل لهذا الحجز',
-                ], 404);
-            }
-
-            $downloadName = sprintf(
-                'claim_file_%d_%s.pdf',
-                $claimFile->id,
-                $claimFile->created_at?->format('Y-m-d') ?? date('Y-m-d')
-            );
-
-            return Storage::disk('public')->download($claimFile->pdf_path, $downloadName);
-        } catch (Exception $e) {
-            $statusCode = str_contains($e->getMessage(), 'No query results') ? 404 : 500;
-            return response()->json([
-                'success' => false,
-                'message' => $e->getMessage(),
-            ], $statusCode);
-        }
     }
 
     /**

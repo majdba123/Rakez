@@ -235,37 +235,6 @@ class ClaimFileService
     }
 
     /**
-     * Claim file for this reservation: direct (single) or combined (pivot).
-     */
-    public function findClaimFileCoveringReservation(int $reservationId): ?ClaimFile
-    {
-        $direct = ClaimFile::where('sales_reservation_id', $reservationId)->first();
-        if ($direct) {
-            return $direct;
-        }
-
-        return ClaimFile::whereHas('reservations', function (Builder $query) use ($reservationId): void {
-            $query->where('sales_reservations.id', $reservationId);
-        })->first();
-    }
-
-    /**
-     * Download-only: return claim file only if PDF exists on disk. Does not create records or generate PDF.
-     */
-    public function getClaimFileWithExistingPdfForReservation(int $reservationId): ?ClaimFile
-    {
-        $claimFile = $this->findClaimFileCoveringReservation($reservationId);
-        if (!$claimFile) {
-            return null;
-        }
-        if (empty($claimFile->pdf_path) || !Storage::disk('public')->exists($claimFile->pdf_path)) {
-            return null;
-        }
-
-        return $claimFile;
-    }
-
-    /**
      * Compute claim amount from unit price and commission percent.
      */
     public function computeClaimAmount($unitPrice, $commissionPercent): ?float
