@@ -7,6 +7,7 @@ use App\Http\Responses\ApiResponse;
 use App\Models\ClaimFile;
 use App\Services\Credit\ClaimFileService;
 use Exception;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
@@ -416,6 +417,48 @@ class ClaimFileController extends Controller
                 'success' => false,
                 'message' => $e->getMessage(),
             ], $statusCode);
+        }
+    }
+
+    /**
+     * Update claim_files.status (e.g. set to completed).
+     * PATCH /accounting/claim-files/{id}
+     */
+    public function updateClaimFileStatus(Request $request, int $id): JsonResponse
+    {
+        try {
+            $validated = $request->validate([
+                'status' => ['required', 'string', 'in:'.ClaimFile::STATUS_PENDING.','.ClaimFile::STATUS_COMPLETED],
+            ], [
+                'status.required' => 'الحالة مطلوبة',
+                'status.in' => 'يجب أن تكون الحالة pending أو completed',
+            ]);
+
+            $claimFile = ClaimFile::query()->findOrFail($id);
+            $claimFile->update(['status' => $validated['status']]);
+            $claimFile->refresh();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'تم تحديث حالة ملف المطالبة',
+                'data' => [
+                    'id' => $claimFile->id,
+                    'status' => $claimFile->status,
+                    'status_label_ar' => $this->claimFileStatusLabelAr($claimFile->status),
+                ],
+            ], 200);
+        } catch (ValidationException $e) {
+            throw $e;
+        } catch (ModelNotFoundException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'ملف المطالبة غير موجود',
+            ], 404);
+        } catch (Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage(),
+            ], 500);
         }
     }
 
