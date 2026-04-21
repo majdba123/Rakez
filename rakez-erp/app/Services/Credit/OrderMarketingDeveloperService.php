@@ -205,6 +205,9 @@ class OrderMarketingDeveloperService
         $row->delete();
     }
 
+    /**
+     * Content update/delete: allowed when pending or rejected; not when approved.
+     */
     protected function assertCanModifyOrDelete(OrderMarketingDeveloper $row, string $actionLabelAr): void
     {
         if ($row->isApproved()) {
@@ -214,10 +217,10 @@ class OrderMarketingDeveloperService
             ], 422));
         }
 
-        if (!$row->isPending()) {
+        if (!$row->isPending() && !$row->isRejected()) {
             throw new HttpResponseException(response()->json([
                 'success' => false,
-                'message' => 'لا يمكن '.$actionLabelAr.' إلا عندما تكون الحالة قيد الانتظار',
+                'message' => 'لا يمكن '.$actionLabelAr.' إلا عندما تكون الحالة قيد الانتظار أو مرفوض',
             ], 422));
         }
     }
