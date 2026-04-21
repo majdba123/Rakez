@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
@@ -132,6 +133,27 @@ class SalesReservation extends Model
     public function claimFile(): HasOne
     {
         return $this->hasOne(ClaimFile::class);
+    }
+
+    /**
+     * Combined claim files that include this reservation (POST claim-files/combined → one file, many rows in pivot).
+     */
+    public function combinedClaimFiles(): BelongsToMany
+    {
+        return $this->belongsToMany(
+            ClaimFile::class,
+            'claim_file_reservations',
+            'sales_reservation_id',
+            'claim_file_id'
+        )->withTimestamps();
+    }
+
+    /**
+     * Individual claim file, or the single combined file that covers this reservation.
+     */
+    public function coveringClaimFile(): ?ClaimFile
+    {
+        return $this->claimFile ?? $this->combinedClaimFiles()->first();
     }
 
     /**

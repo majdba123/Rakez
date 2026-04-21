@@ -27,6 +27,8 @@ class ClaimFileController extends Controller
      * GET /credit/claim-files | GET /accounting/claim-files
      *
      * Query: reservation_id (optional), status (optional: pending|completed)
+     * Combined rows include reservation_ids; under accounting, pdf_download_path is
+     * accounting/claim-files/{claim_file_id}/pdf (same as credit). Optional: download-for-reservation/{reservationId}.
      */
     public function index(Request $request): JsonResponse
     {
@@ -47,10 +49,21 @@ class ClaimFileController extends Controller
 
             $claimFiles = $this->claimFileService->listClaimFiles($perPage, $filters);
 
-            $data = Collection::make($claimFiles->items())->map(function ($cf) {
+            $isAccounting = str_contains($request->path(), 'accounting');
+
+            $data = Collection::make($claimFiles->items())->map(function ($cf) use ($isAccounting) {
                 $hasPdf = $cf->hasPdf();
                 $status = $cf->status ?? ClaimFile::STATUS_PENDING;
                 $statusLabelAr = $this->claimFileStatusLabelAr($status);
+
+                $pdfDownloadPath = null;
+                if ($hasPdf) {
+                    if ($isAccounting) {
+                        $pdfDownloadPath = "accounting/claim-files/{$cf->id}/pdf";
+                    } else {
+                        $pdfDownloadPath = "credit/claim-files/{$cf->id}/pdf";
+                    }
+                }
 
                 $row = [
                     'id' => $cf->id,
@@ -60,7 +73,7 @@ class ClaimFileController extends Controller
                     'file_data' => $cf->file_data,
                     'has_pdf' => $hasPdf,
                     'created_at' => $cf->created_at,
-                    'pdf_download_path' => $hasPdf ? "credit/claim-files/{$cf->id}/pdf" : null,
+                    'pdf_download_path' => $pdfDownloadPath,
                 ];
 
                 if ($cf->isCombined()) {
@@ -69,6 +82,15 @@ class ClaimFileController extends Controller
                     $row['total_claim_amount'] = $cf->total_claim_amount;
                     $row['reservation_count'] = count($cf->file_data['items'] ?? []);
                     $row['project_name'] = $cf->file_data['summary']['project_name'] ?? null;
+                    $row['reservation_ids'] = $cf->reservations->pluck('id')->values()->all();
+                    if ($row['reservation_ids'] === [] && !empty($cf->file_data['items'])) {
+                        $row['reservation_ids'] = collect($cf->file_data['items'])
+                            ->pluck('reservation_id')
+                            ->filter()
+                            ->unique()
+                            ->values()
+                            ->all();
+                    }
                 } else {
                     $row['reservation_id'] = $cf->sales_reservation_id;
                     $row['project_name'] = $cf->reservation?->contract?->project_name
@@ -190,8 +212,8 @@ class ClaimFileController extends Controller
     }
 
     /**
-     * Generate a single combined claim file from multiple reservations.
-     * POST /credit/claim-files/combined
+     * Generate a single combined claim file from multiple reservations (create only, status pending; no PDF here).
+     * POST /credit/claim-files/combined, POST /accounting/claim-files/combined
      */
     public function generateCombined(Request $request): JsonResponse
     {
@@ -378,8 +400,8 @@ class ClaimFileController extends Controller
     }
 
     /**
-     * Download claim file PDF.
-     * GET /credit/claim-files/{id}/pdf
+     * Download claim file PDF by claim file id (individual or combined: one PDF for the whole file).
+     * GET /credit/claim-files/{id}/pdf | GET /accounting/claim-files/{id}/pdf
      */
     public function download(int $id)
     {
@@ -435,25 +457,23 @@ class ClaimFileController extends Controller
     }
 
     /**
-     * Download claim file PDF for a reservation. Creates claim file (status pending, file_data snapshot)
-     * and/or generates PDF if missing; after PDF exists status becomes completed.
+     * Download claim file PDF for a reservation only if already uploaded/generated (read-only).
+     * Does not create a claim file or generate PDF.
      * GET /accounting/claim-files/download-for-reservation/{reservationId}
      */
     public function downloadForReservation(Request $request, int $reservationId)
     {
         try {
-            $user = $request->user();
-            if (!$user) {
+            if (!$request->user()) {
                 return response()->json(['success' => false, 'message' => 'غير مصرح'], 401);
             }
 
-            $claimFile = $this->claimFileService->ensurePdfForReservation($reservationId, $user);
-
-            if (empty($claimFile->pdf_path) || !Storage::disk('public')->exists($claimFile->pdf_path)) {
+            $claimFile = $this->claimFileService->getClaimFileWithExistingPdfForReservation($reservationId);
+            if (!$claimFile) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'تعذر إنشاء ملف PDF',
-                ], 500);
+                    'message' => 'لا يوجد ملف مطالبة مرفوع أو جاهز للتحميل لهذا الحجز',
+                ], 404);
             }
 
             $downloadName = sprintf(
@@ -461,6 +481,7 @@ class ClaimFileController extends Controller
                 $claimFile->id,
                 $claimFile->created_at?->format('Y-m-d') ?? date('Y-m-d')
             );
+
             return Storage::disk('public')->download($claimFile->pdf_path, $downloadName);
         } catch (Exception $e) {
             $statusCode = str_contains($e->getMessage(), 'No query results') ? 404 : 500;

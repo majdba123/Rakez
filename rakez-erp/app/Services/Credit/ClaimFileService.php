@@ -194,14 +194,15 @@ class ClaimFileService
      */
     public function listSoldUnitsByContract(int $contractId): \Illuminate\Support\Collection
     {
-        $reservations = SalesReservation::with(['contract.info', 'contractUnit', 'claimFile'])
+        $reservations = SalesReservation::with(['contract.info', 'contractUnit', 'claimFile', 'combinedClaimFiles'])
             ->where('credit_status', 'sold')
             ->where('contract_id', $contractId)
             ->orderBy('confirmed_at', 'desc')
             ->get();
 
         return $reservations->map(function (SalesReservation $r) {
-            $claimFile = $r->claimFile;
+            // Individual row on claim_files, or one shared file from POST .../claim-files/combined (pivot).
+            $claimFile = $r->claimFile ?? $r->combinedClaimFiles->first();
             $price = $r->proposed_price ?? $r->contractUnit?->price ?? null;
             $claimAmount = $this->computeClaimAmount($price, $r->brokerage_commission_percent);
 
@@ -215,24 +216,41 @@ class ClaimFileService
                 'claim_file_id' => $claimFile?->id,
                 'claim_file_status' => $claimFile?->status,
                 'has_pdf' => $claimFile?->hasPdf() ?? false,
-                'download_path' => "accounting/claim-files/download-for-reservation/{$r->id}",
+                'download_path' => $claimFile !== null
+                    ? "accounting/claim-files/{$claimFile->id}/pdf"
+                    : null,
             ];
         });
     }
 
     /**
-     * Ensure claim file and PDF exist for a reservation; return claim file. For "تحميل" that generates if needed.
+     * Claim file for this reservation: direct (single) or combined (pivot).
      */
-    public function ensurePdfForReservation(int $reservationId, User $user): ClaimFile
+    public function findClaimFileCoveringReservation(int $reservationId): ?ClaimFile
     {
-        $claimFile = $this->getClaimFileByReservation($reservationId);
+        $direct = ClaimFile::where('sales_reservation_id', $reservationId)->first();
+        if ($direct) {
+            return $direct;
+        }
+
+        return ClaimFile::whereHas('reservations', function (Builder $query) use ($reservationId): void {
+            $query->where('sales_reservations.id', $reservationId);
+        })->first();
+    }
+
+    /**
+     * Download-only: return claim file only if PDF exists on disk. Does not create records or generate PDF.
+     */
+    public function getClaimFileWithExistingPdfForReservation(int $reservationId): ?ClaimFile
+    {
+        $claimFile = $this->findClaimFileCoveringReservation($reservationId);
         if (!$claimFile) {
-            $claimFile = $this->generateClaimFile($reservationId, $user);
+            return null;
         }
         if (empty($claimFile->pdf_path) || !Storage::disk('public')->exists($claimFile->pdf_path)) {
-            $this->generatePdf($claimFile->id);
-            $claimFile->refresh();
+            return null;
         }
+
         return $claimFile;
     }
 
