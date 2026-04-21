@@ -27,8 +27,8 @@ class ClaimFileController extends Controller
      * GET /credit/claim-files | GET /accounting/claim-files
      *
      * Query: reservation_id (optional), status (optional: pending|completed)
-     * Combined rows include reservation_ids; under accounting, pdf_download_path is
-     * accounting/claim-files/{claim_file_id}/pdf (same as credit). Optional: download-for-reservation/{reservationId}.
+     * Accounting GET /accounting/claim-files returns only: id, reservation_ids[], status.
+     * Credit keeps the full payload.
      */
     public function index(Request $request): JsonResponse
     {
@@ -52,17 +52,37 @@ class ClaimFileController extends Controller
             $isAccounting = str_contains($request->path(), 'accounting');
 
             $data = Collection::make($claimFiles->items())->map(function ($cf) use ($isAccounting) {
-                $hasPdf = $cf->hasPdf();
                 $status = $cf->status ?? ClaimFile::STATUS_PENDING;
+
+                if ($isAccounting) {
+                    $reservationIds = [];
+                    if ($cf->isCombined()) {
+                        $reservationIds = $cf->reservations->pluck('id')->values()->all();
+                        if ($reservationIds === [] && !empty($cf->file_data['items'])) {
+                            $reservationIds = collect($cf->file_data['items'])
+                                ->pluck('reservation_id')
+                                ->filter()
+                                ->unique()
+                                ->values()
+                                ->all();
+                        }
+                    } elseif ($cf->sales_reservation_id !== null) {
+                        $reservationIds = [(int) $cf->sales_reservation_id];
+                    }
+
+                    return [
+                        'id' => $cf->id,
+                        'reservation_ids' => $reservationIds,
+                        'status' => $status,
+                    ];
+                }
+
+                $hasPdf = $cf->hasPdf();
                 $statusLabelAr = $this->claimFileStatusLabelAr($status);
 
                 $pdfDownloadPath = null;
                 if ($hasPdf) {
-                    if ($isAccounting) {
-                        $pdfDownloadPath = "accounting/claim-files/{$cf->id}/pdf";
-                    } else {
-                        $pdfDownloadPath = "credit/claim-files/{$cf->id}/pdf";
-                    }
+                    $pdfDownloadPath = "credit/claim-files/{$cf->id}/pdf";
                 }
 
                 $row = [
