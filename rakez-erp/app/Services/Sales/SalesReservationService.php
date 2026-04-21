@@ -333,6 +333,10 @@ class SalesReservationService
             $query->where('status', $filters['status']);
         }
 
+        if (!empty($filters['credit_status'])) {
+            $query->byCreditStatus($filters['credit_status']);
+        }
+
         // Date range filter
         if (!empty($filters['from']) || !empty($filters['to'])) {
             $query->where(function ($q) use ($filters) {

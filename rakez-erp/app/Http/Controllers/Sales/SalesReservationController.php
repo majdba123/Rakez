@@ -94,6 +94,7 @@ class SalesReservationController extends Controller
                 'include_cancelled' => $request->query('include_cancelled'),
                 'contract_id' => $request->query('contract_id'),
                 'marketing_id' => $request->query('marketing_id'),
+                'credit_status' => $request->query('credit_status'),
                 'status' => $request->query('status'),
                 'from' => $request->query('from'),
                 'to' => $request->query('to'),
