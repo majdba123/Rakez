@@ -76,7 +76,7 @@ class OrderMarketingDeveloperController extends Controller
     }
 
     /**
-     * PATCH /credit/order-marketing-developers/{id}
+     * PUT /credit/order-marketing-developers/{id}
      */
     public function update(UpdateOrderMarketingDeveloperRequest $request, int $id): JsonResponse
     {

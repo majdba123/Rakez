@@ -3,7 +3,6 @@
 namespace App\Http\Requests\Credit;
 
 use Illuminate\Foundation\Http\FormRequest;
-use Illuminate\Validation\Validator;
 
 class UpdateOrderMarketingDeveloperRequest extends FormRequest
 {
@@ -29,27 +28,10 @@ class UpdateOrderMarketingDeveloperRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'developer_name' => ['sometimes', 'required', 'string', 'max:255'],
-            'developer_number' => ['sometimes', 'required', 'string', 'max:255'],
-            'description' => ['sometimes', 'nullable', 'string'],
-            'location' => ['sometimes', 'nullable', 'string', 'max:255'],
+            'developer_name' => ['required', 'string', 'max:255'],
+            'developer_number' => ['required', 'string', 'max:255'],
+            'description' => ['nullable', 'string'],
+            'location' => ['nullable', 'string', 'max:255'],
         ];
-    }
-
-    public function withValidator(Validator $validator): void
-    {
-        $validator->after(function (Validator $v): void {
-            $keys = ['developer_name', 'developer_number', 'description', 'location', 'name', 'number'];
-            $any = false;
-            foreach ($keys as $k) {
-                if ($this->has($k)) {
-                    $any = true;
-                    break;
-                }
-            }
-            if (!$any) {
-                $v->errors()->add('developer_name', 'لم يتم إرسال أي حقول للتحديث');
-            }
-        });
     }
 }
