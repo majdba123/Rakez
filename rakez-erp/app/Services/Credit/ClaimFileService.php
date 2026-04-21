@@ -5,6 +5,7 @@ namespace App\Services\Credit;
 use App\Models\SalesReservation;
 use App\Models\ClaimFile;
 use App\Models\User;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use App\Services\Pdf\PdfFactory;
@@ -38,6 +39,7 @@ class ClaimFileService
                 'sales_reservation_id' => $reservationId,
                 'generated_by' => $user->id,
                 'file_data' => $fileData,
+                'status' => ClaimFile::STATUS_PENDING,
             ]);
 
             DB::commit();
@@ -71,7 +73,10 @@ class ClaimFileService
 
         Storage::disk('public')->put($filename, PdfFactory::output('claim.file', $data));
 
-        $claimFile->update(['pdf_path' => $filename]);
+        $claimFile->update([
+            'pdf_path' => $filename,
+            'status' => ClaimFile::STATUS_COMPLETED,
+        ]);
 
         return $filename;
     }
@@ -128,18 +133,37 @@ class ClaimFileService
     }
 
     /**
-     * List claim files (for Tab 5: إصدار ملف المطالبة والإفراغات).
+     * List claim files (for Credit / Accounting).
+     *
+     * @param  array{reservation_id?: int|string|null, status?: string|null}  $filters
      */
-    public function listClaimFiles(int $perPage = 15): \Illuminate\Contracts\Pagination\LengthAwarePaginator
+    public function listClaimFiles(int $perPage = 15, array $filters = []): \Illuminate\Contracts\Pagination\LengthAwarePaginator
     {
-        return ClaimFile::with([
+        $query = ClaimFile::with([
                 'reservation.contract.info',
                 'reservation.contractUnit',
                 'reservations',
                 'generatedBy',
             ])
-            ->orderBy('created_at', 'desc')
-            ->paginate($perPage);
+            ->orderBy('created_at', 'desc');
+
+        if (!empty($filters['status'])) {
+            $query->where('status', (string) $filters['status']);
+        }
+
+        if (!empty($filters['reservation_id'])) {
+            $reservationId = (int) $filters['reservation_id'];
+            if ($reservationId > 0) {
+                $query->where(function (Builder $q) use ($reservationId): void {
+                    $q->where('sales_reservation_id', $reservationId)
+                        ->orWhereHas('reservations', function (Builder $sq) use ($reservationId): void {
+                            $sq->where('sales_reservations.id', $reservationId);
+                        });
+                });
+            }
+        }
+
+        return $query->paginate($perPage);
     }
 
     /**
@@ -189,6 +213,7 @@ class ClaimFileService
                 'claim_amount' => $claimAmount,
                 'has_claim_file' => $claimFile !== null,
                 'claim_file_id' => $claimFile?->id,
+                'claim_file_status' => $claimFile?->status,
                 'has_pdf' => $claimFile?->hasPdf() ?? false,
                 'download_path' => "accounting/claim-files/download-for-reservation/{$r->id}",
             ];
@@ -355,6 +380,7 @@ class ClaimFileService
                 'notes' => $notes,
                 'total_claim_amount' => round($totalClaimAmount, 2),
                 'file_data' => $fileData,
+                'status' => ClaimFile::STATUS_PENDING,
             ]);
 
             $claimFile->reservations()->attach($reservationIds);

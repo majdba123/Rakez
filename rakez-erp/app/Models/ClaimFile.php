@@ -11,10 +11,15 @@ class ClaimFile extends Model
 {
     use HasFactory;
 
+    public const STATUS_PENDING = 'pending';
+
+    public const STATUS_COMPLETED = 'completed';
+
     protected $fillable = [
         'sales_reservation_id',
         'generated_by',
         'pdf_path',
+        'status',
         'file_data',
         'is_combined',
         'claim_type',

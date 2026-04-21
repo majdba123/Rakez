@@ -24,6 +24,7 @@ class ClaimFileFactory extends Factory
         return [
             'sales_reservation_id' => SalesReservation::factory(),
             'generated_by' => User::factory(),
+            'status' => ClaimFile::STATUS_PENDING,
             'file_data' => [
                 'project_name' => $this->faker->company(),
                 'unit_number' => $this->faker->unique()->numerify('Unit-###'),
@@ -45,6 +46,7 @@ class ClaimFileFactory extends Factory
     {
         return $this->state(fn (array $attributes) => [
             'pdf_path' => 'claim_files/claim_' . $this->faker->unique()->randomNumber(5) . '.pdf',
+            'status' => ClaimFile::STATUS_COMPLETED,
         ]);
     }
 }

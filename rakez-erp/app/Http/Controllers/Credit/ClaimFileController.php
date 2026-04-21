@@ -4,11 +4,14 @@ namespace App\Http\Controllers\Credit;
 
 use App\Http\Controllers\Controller;
 use App\Http\Responses\ApiResponse;
+use App\Models\ClaimFile;
 use App\Services\Credit\ClaimFileService;
 use Exception;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Validation\ValidationException;
 
 class ClaimFileController extends Controller
 {
@@ -20,19 +23,34 @@ class ClaimFileController extends Controller
     }
 
     /**
-     * List claim files (Tab 5: إصدار ملف المطالبة والإفراغات).
-     * GET /credit/claim-files
+     * List claim files (Credit Tab 5 + Accounting).
+     * GET /credit/claim-files | GET /accounting/claim-files
+     *
+     * Query: reservation_id (optional), status (optional: pending|completed)
      */
     public function index(Request $request): JsonResponse
     {
         try {
-            $perPage = ApiResponse::getPerPage($request, 15, 100);
-            $claimFiles = $this->claimFileService->listClaimFiles($perPage);
+            $validated = $request->validate([
+                'reservation_id' => ['sometimes', 'nullable', 'integer', 'min:1'],
+                'status' => ['sometimes', 'nullable', 'string', 'in:'.ClaimFile::STATUS_PENDING.','.ClaimFile::STATUS_COMPLETED],
+            ]);
 
-            $data = $claimFiles->getCollection()->map(function ($cf) {
-                $status = $cf->hasPdf() ? 'completed' : 'under_processing';
-                $statusLabelAr = $cf->hasPdf() ? 'مكتمل' : 'قيد المعالجة';
+            $perPage = ApiResponse::getPerPage($request, 15, 100);
+            $filters = array_filter(
+                [
+                    'reservation_id' => $validated['reservation_id'] ?? null,
+                    'status' => $validated['status'] ?? null,
+                ],
+                static fn ($v) => $v !== null && $v !== ''
+            );
+
+            $claimFiles = $this->claimFileService->listClaimFiles($perPage, $filters);
+
+            $data = Collection::make($claimFiles->items())->map(function ($cf) {
                 $hasPdf = $cf->hasPdf();
+                $status = $cf->status ?? ClaimFile::STATUS_PENDING;
+                $statusLabelAr = $this->claimFileStatusLabelAr($status);
 
                 $row = [
                     'id' => $cf->id,
@@ -77,6 +95,8 @@ class ClaimFileController extends Controller
                     'last_page' => $claimFiles->lastPage(),
                 ],
             ], 200);
+        } catch (ValidationException $e) {
+            throw $e;
         } catch (Exception $e) {
             return response()->json([
                 'success' => false,
@@ -219,6 +239,8 @@ class ClaimFileController extends Controller
                     'total_claim_amount' => $claimFile->total_claim_amount,
                     'reservation_count' => count($claimFile->file_data['items'] ?? []),
                     'items' => $items->all(),
+                    'status' => $claimFile->status ?? ClaimFile::STATUS_PENDING,
+                    'status_label_ar' => $this->claimFileStatusLabelAr($claimFile->status),
                     'has_pdf' => $claimFile->hasPdf(),
                     'created_at' => $claimFile->created_at,
                 ],
@@ -254,6 +276,8 @@ class ClaimFileController extends Controller
                     'id' => $claimFile->id,
                     'reservation_id' => $claimFile->sales_reservation_id,
                     'file_data' => $claimFile->file_data,
+                    'status' => $claimFile->status ?? ClaimFile::STATUS_PENDING,
+                    'status_label_ar' => $this->claimFileStatusLabelAr($claimFile->status),
                     'has_pdf' => $claimFile->hasPdf(),
                     'created_at' => $claimFile->created_at,
                 ],
@@ -280,7 +304,10 @@ class ClaimFileController extends Controller
                 'id' => $claimFile->id,
                 'is_combined' => $claimFile->isCombined(),
                 'file_data' => $claimFile->file_data,
+                'status' => $claimFile->status ?? ClaimFile::STATUS_PENDING,
+                'status_label_ar' => $this->claimFileStatusLabelAr($claimFile->status),
                 'has_pdf' => $claimFile->hasPdf(),
+                'pdf_path' => $claimFile->pdf_path,
                 'created_at' => $claimFile->created_at,
                 'generated_by' => $claimFile->generatedBy,
             ];
@@ -329,6 +356,7 @@ class ClaimFileController extends Controller
     {
         try {
             $pdfPath = $this->claimFileService->generatePdf($id);
+            $claimFile = $this->claimFileService->getClaimFile($id);
 
             return response()->json([
                 'success' => true,
@@ -336,6 +364,8 @@ class ClaimFileController extends Controller
                 'data' => [
                     'pdf_path' => $pdfPath,
                     'download_url' => Storage::disk('public')->url($pdfPath),
+                    'status' => $claimFile->status,
+                    'status_label_ar' => $this->claimFileStatusLabelAr($claimFile->status),
                 ],
             ], 200);
         } catch (Exception $e) {
@@ -405,7 +435,8 @@ class ClaimFileController extends Controller
     }
 
     /**
-     * Download claim file PDF for a reservation. Creates claim file and/or generates PDF if missing.
+     * Download claim file PDF for a reservation. Creates claim file (status pending, file_data snapshot)
+     * and/or generates PDF if missing; after PDF exists status becomes completed.
      * GET /accounting/claim-files/download-for-reservation/{reservationId}
      */
     public function downloadForReservation(Request $request, int $reservationId)
@@ -438,6 +469,18 @@ class ClaimFileController extends Controller
                 'message' => $e->getMessage(),
             ], $statusCode);
         }
+    }
+
+    /**
+     * Arabic label for claim_files.status.
+     */
+    private function claimFileStatusLabelAr(?string $status): string
+    {
+        return match ($status) {
+            ClaimFile::STATUS_PENDING => 'قيد الانتظار',
+            ClaimFile::STATUS_COMPLETED => 'مكتمل',
+            default => $status ?? '—',
+        };
     }
 
     /**
