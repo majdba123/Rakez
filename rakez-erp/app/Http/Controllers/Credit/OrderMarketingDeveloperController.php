@@ -20,11 +20,17 @@ class OrderMarketingDeveloperController extends Controller
     /**
      * List marketing developer orders.
      * GET /credit/order-marketing-developers
+     *
+     * Query: processed_by (user id) — admin / credit manager only; narrows to rows created or last updated by that user.
+     * Credit employees always see only their own rows (created_by = current user); processed_by is ignored.
      */
     public function index(Request $request): JsonResponse
     {
         $perPage = ApiResponse::getPerPage($request, 15, 100);
-        $paginator = $this->orderMarketingDeveloperService->list($perPage);
+        $filters = [
+            'processed_by' => $request->query('processed_by'),
+        ];
+        $paginator = $this->orderMarketingDeveloperService->list($perPage, $request->user(), $filters);
 
         $data = Collection::make($paginator->items())->map(
             fn ($row) => $this->orderMarketingDeveloperService->transform($row)
@@ -64,9 +70,9 @@ class OrderMarketingDeveloperController extends Controller
     /**
      * GET /credit/order-marketing-developers/{id}
      */
-    public function show(int $id): JsonResponse
+    public function show(Request $request, int $id): JsonResponse
     {
-        $row = $this->orderMarketingDeveloperService->find($id);
+        $row = $this->orderMarketingDeveloperService->findForUser($id, $request->user());
 
         return response()->json([
             'success' => true,
@@ -80,7 +86,7 @@ class OrderMarketingDeveloperController extends Controller
      */
     public function update(UpdateOrderMarketingDeveloperRequest $request, int $id): JsonResponse
     {
-        $row = $this->orderMarketingDeveloperService->find($id);
+        $row = $this->orderMarketingDeveloperService->findForUser($id, $request->user());
         $updated = $this->orderMarketingDeveloperService->update(
             $row,
             $request->validated(),
@@ -97,9 +103,9 @@ class OrderMarketingDeveloperController extends Controller
     /**
      * DELETE /credit/order-marketing-developers/{id}
      */
-    public function destroy(int $id): JsonResponse
+    public function destroy(Request $request, int $id): JsonResponse
     {
-        $this->orderMarketingDeveloperService->delete($id);
+        $this->orderMarketingDeveloperService->delete($id, $request->user());
 
         return response()->json([
             'success' => true,
