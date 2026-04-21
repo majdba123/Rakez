@@ -21,6 +21,9 @@ class SalesReservationResource extends JsonResource
             'client_nationality' => $this->client_nationality ?? null,
             'payment_method' => $this->payment_method ?? null,
             'down_payment_status' => $this->down_payment_status ?? null,
+
+            'credit_status' => $this->credit_status ?? null,
+
             'purchase_mechanism' => $this->purchase_mechanism ?? null,
             'status' => $this->status,
             'reservation_type' => $this->reservation_type,
