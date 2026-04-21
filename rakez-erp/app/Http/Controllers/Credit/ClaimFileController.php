@@ -391,8 +391,8 @@ class ClaimFileController extends Controller
     }
 
     /**
-     * Generate PDF for claim file.
-     * POST /credit/claim-files/{id}/pdf
+     * Generate PDF for claim file (writes pdf_path, sets status completed). Call this after create.
+     * POST /credit/claim-files/{id}/pdf | POST /accounting/claim-files/{id}/pdf
      */
     public function generatePdf(int $id): JsonResponse
     {
