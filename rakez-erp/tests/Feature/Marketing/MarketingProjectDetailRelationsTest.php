@@ -87,15 +87,18 @@ class MarketingProjectDetailRelationsTest extends TestCase
             ->assertJsonPath('data.project_name', 'Linked Marketing Project')
             ->assertJsonPath('data.marketing_project.id', $marketingProject->id)
             ->assertJsonCount(3, 'data.contract_units')
-            ->assertJsonCount(2, 'data.available_contract_units')
+            ->assertJsonCount(2, 'data.actual_unit_data.available_contract_units')
             ->assertJsonCount(1, 'data.sales_project_assignments')
             ->assertJsonPath('data.sales_project_assignments.0.contract_id', $contract->id)
             ->assertJsonCount(1, 'data.teams')
             ->assertJsonPath('data.teams.0.id', $team->id)
             ->assertJsonCount(1, 'data.responsible_sales_teams')
             ->assertJsonPath('data.responsible_sales_teams.0.id', $team->id)
+            ->assertJsonPath('data.units_count.total', 3)
             ->assertJsonPath('data.units_count.available', 2)
             ->assertJsonPath('data.units_count.pending', 1)
+            ->assertJsonPath('data.units_count.reserved', 0)
+            ->assertJsonPath('data.units_count.sold', 0)
             ->assertJsonPath('data.avg_unit_price', 200000)
             ->assertJsonPath('data.total_available_value', 400000);
 
@@ -116,11 +119,14 @@ class MarketingProjectDetailRelationsTest extends TestCase
 
         $response
             ->assertJsonCount(0, 'data.contract_units')
-            ->assertJsonCount(0, 'data.available_contract_units')
+            ->assertJsonCount(0, 'data.actual_unit_data.available_contract_units')
             ->assertJsonCount(0, 'data.teams')
             ->assertJsonCount(0, 'data.sales_project_assignments')
+            ->assertJsonPath('data.units_count.total', 0)
             ->assertJsonPath('data.units_count.available', 0)
             ->assertJsonPath('data.units_count.pending', 0)
+            ->assertJsonPath('data.units_count.reserved', 0)
+            ->assertJsonPath('data.units_count.sold', 0)
             ->assertJsonPath('data.avg_unit_price', 0)
             ->assertJsonPath('data.total_available_value', 0);
 
@@ -151,11 +157,11 @@ class MarketingProjectDetailRelationsTest extends TestCase
 
         $response
             ->assertJsonCount(1, 'data.contract_units')
-            ->assertJsonCount(1, 'data.available_contract_units')
+            ->assertJsonCount(1, 'data.actual_unit_data.available_contract_units')
             ->assertJsonPath('data.units_count.available', 1)
             ->assertJsonPath('data.avg_unit_price', 100000)
             ->assertJsonPath('data.total_available_value', 100000)
-            ->assertJsonPath('data.unit_statistics.all_units_count', 1);
+            ->assertJsonPath('data.actual_unit_data.unit_statistics.all_units_count', 1);
     }
 
     #[Test]
@@ -189,8 +195,8 @@ class MarketingProjectDetailRelationsTest extends TestCase
             ->assertJsonPath('data.pricing_source.total_unit_price_all_sum', 8250000)
             ->assertJsonPath('data.pricing_source.average_unit_price_available', 0)
             ->assertJsonPath('data.pricing_source.average_unit_price_all', 825000)
-            ->assertJsonPath('data.unit_statistics.total_unit_price_all_sum', 8250000)
-            ->assertJsonPath('data.unit_statistics.average_unit_price_all', 825000)
+            ->assertJsonPath('data.actual_unit_data.unit_statistics.total_unit_price_all_sum', 8250000)
+            ->assertJsonPath('data.actual_unit_data.unit_statistics.average_unit_price_all', 825000)
             ->assertJsonPath('data.pricing_source.pricing_basis.avg_property_value_stored', 9000000)
             ->assertJsonPath('data.pricing_source.pricing_basis.stored_fallback_applied', false)
             ->assertJsonPath('data.pricing_source.pricing_basis.stored_fallback_forbidden_reason', 'actual_contract_units_exist')
@@ -308,6 +314,148 @@ class MarketingProjectDetailRelationsTest extends TestCase
             ->assertJsonPath('data.actual_unit_data.source', 'contract_units')
             ->assertJsonPath('data.actual_unit_data.all_contract_units.0.unit_type', 'actual-apartment')
             ->assertJsonPath('data.contract_units.0.unit_type', 'actual-apartment')
-            ->assertJsonPath('data.units.0.type', 'legacy-villa');
+            ->assertJsonPath('data.legacy_summary.legacy_contract_units_summary.items.0.type', 'legacy-villa');
+    }
+
+    #[Test]
+    public function show_uses_canonical_blocks_while_preserving_legacy_top_level_aliases(): void
+    {
+        $contract = Contract::factory()->create(['status' => 'completed']);
+        ContractInfo::factory()->create(['contract_id' => $contract->id]);
+        ContractUnit::factory()->create(['contract_id' => $contract->id, 'status' => 'available', 'price' => 500000]);
+
+        $response = $this->actingAs($this->marketingUser, 'sanctum')
+            ->getJson("/api/marketing/projects/{$contract->id}")
+            ->assertOk();
+
+        $payload = $response->json('data');
+
+        foreach ([
+            'identity',
+            'developer',
+            'media',
+            'location',
+            'legacy_summary',
+            'actual_unit_data',
+            'teams_and_assignments',
+            'marketing_details',
+            'pricing',
+            'duration',
+        ] as $canonicalBlock) {
+            $this->assertArrayHasKey($canonicalBlock, $payload);
+        }
+
+        foreach ([
+            'pricing_source',
+            'avg_unit_price',
+            'total_available_value',
+            'project_media',
+            'media_links',
+            'responsible_sales_teams',
+            'contract_units',
+            'actual_contract_units',
+            'all_contract_units',
+            'available_contract_units',
+            'unit_statistics',
+            'units',
+            'marketing_project',
+            'teams',
+            'sales_project_assignments',
+            'commission_value',
+            'total_unit_price',
+            'average_unit_price',
+            'average_unit_price_all',
+            'average_unit_price_available',
+            'total_unit_price_all_sum',
+            'total_unit_price_available_sum',
+        ] as $compatibilityAlias) {
+            $this->assertArrayHasKey($compatibilityAlias, $payload);
+        }
+
+        $this->assertSame($payload['actual_unit_data']['all_contract_units'], $payload['contract_units']);
+        $this->assertSame($payload['actual_unit_data']['all_contract_units'], $payload['actual_contract_units']);
+        $this->assertSame($payload['actual_unit_data']['all_contract_units'], $payload['all_contract_units']);
+        $this->assertSame($payload['actual_unit_data']['available_contract_units'], $payload['available_contract_units']);
+        $this->assertSame($payload['actual_unit_data']['unit_statistics'], $payload['unit_statistics']);
+        $this->assertSame($payload['legacy_summary']['legacy_contract_units_summary']['items'], $payload['units']);
+        $this->assertSame($payload['pricing_source']['average_unit_price_all'], $payload['average_unit_price_all']);
+        $this->assertSame($payload['pricing_source']['total_unit_price'], $payload['total_unit_price']);
+        $this->assertArrayNotHasKey('contract', $payload['marketing_details']['marketing_project']);
+        $this->assertArrayNotHasKey('contract', $payload['marketing_project']);
+    }
+
+    #[Test]
+    public function show_location_keeps_address_out_of_district_when_district_relation_is_missing(): void
+    {
+        $contract = Contract::factory()->create([
+            'status' => 'completed',
+            'city_id' => null,
+            'district_id' => null,
+        ]);
+        ContractInfo::factory()->create([
+            'contract_id' => $contract->id,
+            'contract_city' => 'Riyadh',
+            'second_party_address' => 'Jeddah',
+        ]);
+
+        $response = $this->actingAs($this->marketingUser, 'sanctum')
+            ->getJson("/api/marketing/projects/{$contract->id}")
+            ->assertOk();
+
+        $response
+            ->assertJsonPath('data.location.city.name', 'Riyadh')
+            ->assertJsonPath('data.location.district', null)
+            ->assertJsonPath('data.location.address.value', 'Jeddah')
+            ->assertJsonPath('data.city.name', 'Riyadh')
+            ->assertJsonPath('data.district', null);
+    }
+
+    #[Test]
+    public function show_units_count_exposes_all_known_status_buckets_without_changing_pricing(): void
+    {
+        $contract = Contract::factory()->create(['status' => 'completed']);
+        ContractInfo::factory()->create(['contract_id' => $contract->id]);
+
+        ContractUnit::factory()->create(['contract_id' => $contract->id, 'status' => 'available', 'price' => 100]);
+        ContractUnit::factory()->create(['contract_id' => $contract->id, 'status' => 'pending', 'price' => 200]);
+        ContractUnit::factory()->create(['contract_id' => $contract->id, 'status' => 'reserved', 'price' => 300]);
+        ContractUnit::factory()->create(['contract_id' => $contract->id, 'status' => 'sold', 'price' => 400]);
+
+        $response = $this->actingAs($this->marketingUser, 'sanctum')
+            ->getJson("/api/marketing/projects/{$contract->id}")
+            ->assertOk();
+
+        $response
+            ->assertJsonPath('data.units_count.total', 4)
+            ->assertJsonPath('data.units_count.available', 1)
+            ->assertJsonPath('data.units_count.pending', 1)
+            ->assertJsonPath('data.units_count.reserved', 1)
+            ->assertJsonPath('data.units_count.sold', 1)
+            ->assertJsonPath('data.actual_unit_data.unit_statistics.status_counts.available', 1)
+            ->assertJsonPath('data.actual_unit_data.unit_statistics.status_counts.reserved', 1)
+            ->assertJsonPath('data.avg_unit_price', 100)
+            ->assertJsonPath('data.total_available_value', 100);
+    }
+
+    #[Test]
+    public function show_normalizes_advertiser_number_as_agency_number_with_legacy_aliases(): void
+    {
+        $contract = Contract::factory()->create(['status' => 'completed']);
+        ContractInfo::factory()->create([
+            'contract_id' => $contract->id,
+            'agency_number' => 'ADV-100',
+        ]);
+
+        $response = $this->actingAs($this->marketingUser, 'sanctum')
+            ->getJson("/api/marketing/projects/{$contract->id}")
+            ->assertOk();
+
+        $response
+            ->assertJsonPath('data.identity.advertiser.source', 'contract_infos.agency_number')
+            ->assertJsonPath('data.identity.advertiser.agency_number', 'ADV-100')
+            ->assertJsonPath('data.identity.advertiser.availability_status', 'available')
+            ->assertJsonPath('data.advertiser_number', 'Available')
+            ->assertJsonPath('data.advertiser_number_value', 'ADV-100')
+            ->assertJsonPath('data.advertiser_number_status', 'Available');
     }
 }

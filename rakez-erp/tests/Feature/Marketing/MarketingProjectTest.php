@@ -243,7 +243,8 @@ class MarketingProjectTest extends TestCase
 
         $response->assertStatus(200)
             ->assertJsonPath('data.city.name', 'الرياض')
-            ->assertJsonPath('data.district.name', 'حي الملز');
+            ->assertJsonPath('data.district', null)
+            ->assertJsonPath('data.location.address.value', 'حي الملز');
     }
 
     #[Test]
@@ -361,9 +362,10 @@ class MarketingProjectTest extends TestCase
         $response->assertStatus(200);
         $row = collect($response->json('data'))->firstWhere('contract_id', $contract->id);
 
-        // units_count scoped to available/pending only
+        // units_count exposes all status buckets while pricing still uses available units only.
         $this->assertEquals(2, $row['units_count']['available']);
         $this->assertEquals(1, $row['units_count']['pending']);
+        $this->assertEquals(1, $row['units_count']['sold']);
 
         // total_available_value = sum of available unit prices only
         $this->assertEquals(300000.00, (float) $row['total_available_value']);

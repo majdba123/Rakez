@@ -31,10 +31,7 @@ class MarketingProjectResource extends JsonResource
             'developer_name' => $contract->developer_name ?? null,
             'status' => $metrics['status'],
             'team_leader' => $this->teamLeader->name ?? null,
-            'units_count' => [
-                'available' => (int) $metrics['units_count']['available'],
-                'pending' => (int) $metrics['units_count']['pending'],
-            ],
+            'units_count' => $metrics['units_count'],
             'avg_unit_price' => (float) $metrics['avg_unit_price'],
             'advertiser_number' => (!empty($info?->agency_number)) ? 'Available' : 'Pending',
             'advertiser_number_value' => $info?->agency_number,

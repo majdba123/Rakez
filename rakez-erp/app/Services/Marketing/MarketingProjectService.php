@@ -232,14 +232,10 @@ class MarketingProjectService
             ];
         }
 
-        if (
-            $contract->relationLoaded('district')
-            && $contract->getRelation('district') === null
-            && $info?->second_party_address
-        ) {
-            $out['district'] = [
-                'id' => null,
-                'name' => $info->second_party_address,
+        if ($info?->second_party_address) {
+            $out['address'] = [
+                'source' => 'contract_infos.second_party_address',
+                'value' => $info->second_party_address,
             ];
         }
 
