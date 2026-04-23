@@ -20,7 +20,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
  * for shared fields:
  * - contract_id, project_name, status, commission_percent
  * - units_count.available, units_count.pending
- * - avg_unit_price (from ALL units)
+ * - avg_unit_price (from available units)
  * - total_available_value (from ONLY available units)
  */
 class MarketingProjectMetricsConsistencyTest extends TestCase
@@ -80,7 +80,7 @@ class MarketingProjectMetricsConsistencyTest extends TestCase
     }
 
     #[Test]
-    public function marketing_project_avg_unit_price_uses_all_contract_units_in_both_list_and_show(): void
+    public function marketing_project_avg_unit_price_uses_available_contract_units_in_both_list_and_show(): void
     {
         $contract = Contract::factory()->create([
             'status' => 'completed',
@@ -92,7 +92,7 @@ class MarketingProjectMetricsConsistencyTest extends TestCase
         // Available: 100, 200 (sum=300, count=2)
         // Pending: 150 (sum=150, count=1)
         // Sold: 180 (sum=180, count=1)
-        // Total: 5 units, sum=630, avg=630/5=126
+        // Available total: 300, count=2, avg=150
         ContractUnit::factory()->create(['contract_id' => $contract->id, 'status' => 'available', 'price' => 100]);
         ContractUnit::factory()->create(['contract_id' => $contract->id, 'status' => 'available', 'price' => 200]);
         ContractUnit::factory()->create(['contract_id' => $contract->id, 'status' => 'pending', 'price' => 150]);
@@ -106,8 +106,8 @@ class MarketingProjectMetricsConsistencyTest extends TestCase
         $showResponse = $this->actingAs($this->marketingUser, 'sanctum')
             ->getJson("/api/marketing/projects/{$contract->id}");
 
-        // Verify avg_unit_price is from ALL units
-        $expectedAvg = 630 / 4; // (100 + 200 + 150 + 180) / 4 = 132.5
+        // Verify avg_unit_price is from available units only.
+        $expectedAvg = 300 / 2;
         $this->assertEquals($expectedAvg, $listProject['avg_unit_price']);
         $this->assertEquals($expectedAvg, $showResponse->json('data.avg_unit_price'));
         $this->assertEquals($listProject['avg_unit_price'], $showResponse->json('data.avg_unit_price'));

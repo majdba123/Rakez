@@ -11,11 +11,11 @@ use Illuminate\Support\Collection;
  * Ensures list and show endpoints return numerically identical metrics for shared fields:
  * - contract_id, project_name, status, commission_percent
  * - units_count (available, pending)
- * - avg_unit_price (from ALL units across the contract)
+ * - avg_unit_price (from available units across the contract)
  * - total_available_value (from ONLY available units)
  *
  * Business Rules:
- * 1. avg_unit_price = mean price of ALL units (not just available)
+ * 1. avg_unit_price = mean price of available units
  * 2. total_available_value = sum of ONLY available unit prices
  * 3. units_count.available = count of units with status='available'
  * 4. units_count.pending = count of units with status='pending'
@@ -36,10 +36,10 @@ class MarketingProjectMetricsResolver
         $availableUnits = $units->where('status', 'available');
         $pendingUnits = $units->where('status', 'pending');
 
-        // avg_unit_price: mean of ALL units
-        $allUnitsCount = $units->count();
-        $allUnitsSum = (float) $units->sum('price');
-        $avgUnitPrice = $allUnitsCount > 0 ? round($allUnitsSum / $allUnitsCount, 2) : 0.0;
+        // avg_unit_price follows the marketing pricing basis: available units only.
+        $availableUnitsCount = $availableUnits->count();
+        $availableUnitsSum = (float) $availableUnits->sum('price');
+        $avgUnitPrice = $availableUnitsCount > 0 ? round($availableUnitsSum / $availableUnitsCount, 2) : 0.0;
 
         // total_available_value: sum of ONLY available units
         $totalAvailableValue = (float) $availableUnits->sum('price');

@@ -9,6 +9,7 @@ use App\Models\Team;
 use App\Models\User;
 use App\Models\MarketingProject;
 use App\Services\Sales\SalesTeamService;
+use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Collection;
 
@@ -120,24 +121,26 @@ class MarketingProjectService
         return $contracts;
     }
 
-    public function getProjectDetails($contractId)
+    public function getProjectDetails($projectId)
     {
-        $contract = Contract::with([
-            'info',
-            'projectMedia',
-            'contractUnits',
-            'city',
-            'district',
-            'teams',
-            'salesProjectAssignments' => fn ($q) => $q->active()->with('leader'),
-        ])->findOrFail($contractId);
+        $project = MarketingProject::query()
+            ->with($this->marketingProjectDetailRelations())
+            ->find($projectId);
 
-        $project = $this->bootstrapService->ensureForCompletedContract($contract);
+        if ($project?->contract) {
+            $contract = $project->contract;
+        } else {
+            $contract = Contract::query()
+                ->with($this->contractDetailRelations())
+                ->findOrFail($projectId);
+
+            $project = $this->bootstrapService->ensureForCompletedContract($contract);
+        }
 
         if ($project) {
             $project->loadMissing([
                 'teamLeader',
-                'teams.user',
+                'teams.user.team',
                 'developerPlan',
                 'employeePlans.user',
                 'expectedBooking',
@@ -146,7 +149,83 @@ class MarketingProjectService
             $contract->setRelation('marketingProject', $project);
         }
 
+        $contract->loadMissing($this->contractDetailRelations());
+        $this->hydrateTeamsFromSalesAndMarketingAssignments($contract);
+
         return $contract;
+    }
+
+    /**
+     * @return array<int|string, mixed>
+     */
+    private function contractDetailRelations(): array
+    {
+        return [
+            'info',
+            'projectMedia',
+            'contractUnits',
+            'city',
+            'district',
+            'teams',
+            'salesProjectAssignments.leader.team',
+            'marketingProject.teamLeader',
+            'marketingProject.teams.user.team',
+            'marketingProject.developerPlan',
+            'marketingProject.employeePlans.user',
+            'marketingProject.expectedBooking',
+        ];
+    }
+
+    /**
+     * @return array<int|string, mixed>
+     */
+    private function marketingProjectDetailRelations(): array
+    {
+        return [
+            'teamLeader',
+            'teams.user.team',
+            'developerPlan',
+            'employeePlans.user',
+            'expectedBooking',
+            'contract' => fn ($query) => $query->with($this->contractDetailRelations()),
+        ];
+    }
+
+    private function hydrateTeamsFromSalesAndMarketingAssignments(Contract $contract): void
+    {
+        $contract->loadMissing([
+            'teams',
+            'salesProjectAssignments.leader.team',
+            'marketingProject.teams.user.team',
+        ]);
+
+        $teams = new EloquentCollection($contract->teams->all());
+
+        $assignmentTeamIds = $contract->salesProjectAssignments
+            ->map(fn ($assignment) => $assignment->leader?->team_id)
+            ->filter()
+            ->unique()
+            ->values();
+
+        $marketingProjectTeamIds = $contract->marketingProject?->teams
+            ? $contract->marketingProject->teams
+                ->map(fn ($assignment) => $assignment->user?->team_id)
+                ->filter()
+                ->unique()
+                ->values()
+            : collect();
+
+        $inferredTeams = Team::query()
+            ->whereIn('id', $assignmentTeamIds->merge($marketingProjectTeamIds)->unique()->values())
+            ->get();
+
+        foreach ($inferredTeams as $team) {
+            if (! $teams->contains(fn (Team $existing) => (int) $existing->id === (int) $team->id)) {
+                $teams->push($team);
+            }
+        }
+
+        $contract->setRelation('teams', $teams->values());
     }
 
     /**
@@ -233,8 +312,10 @@ class MarketingProjectService
         $contract->loadMissing([
             'teams',
             'marketingProject',
-            'salesProjectAssignments' => fn ($q) => $q->active()->with('leader'),
+            'salesProjectAssignments.leader.team',
         ]);
+
+        $this->hydrateTeamsFromSalesAndMarketingAssignments($contract);
 
         $assignments = $contract->salesProjectAssignments;
         $teams = $contract->teams;
@@ -364,6 +445,40 @@ class MarketingProjectService
             'pricing_basis' => $pricingBasis,
             'agreement_duration_days' => $info ? (int) ($info->agreement_duration_days ?? 0) : null,
             'agreement_duration_months' => $info ? (int) ($info->agreement_duration_months ?? 0) : null,
+        ];
+    }
+
+    /**
+     * Explicit detail-only unit payloads so all linked units and available units are not conflated.
+     *
+     * @return array<string, mixed>
+     */
+    public function buildUnitDetailPayload(Contract $contract): array
+    {
+        $contract->loadMissing(['contractUnits']);
+
+        $units = $contract->contractUnits->values();
+        $availableUnits = $units->where('status', 'available')->values();
+        $pricingBasis = $this->pricingBasisService->resolve($contract, []);
+
+        return [
+            'available_contract_units' => $availableUnits->toArray(),
+            'unit_statistics' => [
+                'all_units_count' => $units->count(),
+                'available_units_count' => $availableUnits->count(),
+                'pending_units_count' => $units->where('status', 'pending')->count(),
+                'total_unit_price_all_sum' => (float) ($pricingBasis['total_unit_price_all_sum'] ?? 0),
+                'total_unit_price_available_sum' => (float) ($pricingBasis['total_unit_price_available_sum'] ?? 0),
+                'average_unit_price' => (float) ($pricingBasis['average_unit_price'] ?? 0),
+                'average_unit_price_available' => (float) ($pricingBasis['average_unit_price_available'] ?? 0),
+                'average_unit_price_all' => (float) ($pricingBasis['average_unit_price_all'] ?? 0),
+                'basis' => [
+                    'contract_units' => 'all linked non-deleted contract_units rows',
+                    'available_contract_units' => 'contract_units where status is available',
+                    'avg_unit_price' => 'available_contract_units.price average',
+                    'total_available_value' => 'available_contract_units.price sum',
+                ],
+            ],
         ];
     }
 

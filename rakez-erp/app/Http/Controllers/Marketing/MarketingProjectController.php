@@ -44,12 +44,13 @@ class MarketingProjectController extends Controller
         ], 200);
     }
 
-    public function show(int $contractId): JsonResponse
+    public function show(int $id): JsonResponse
     {
-        $details = $this->projectService->getProjectDetails($contractId);
-        $durationStatus = $this->projectService->getContractDurationStatus($contractId);
+        $details = $this->projectService->getProjectDetails($id);
+        $durationStatus = $this->projectService->getContractDurationStatus($details->id);
         $responsibleSalesTeams = $this->projectService->buildResponsibleSalesTeams($details);
         $detailEnrichment = $this->projectService->enrichContractDetailForMarketingApi($details);
+        $unitDetailPayload = $this->projectService->buildUnitDetailPayload($details);
         
         // Get canonical shared metrics
         $canonicalMetrics = $this->projectService->getCanonicalMetrics($details);
@@ -60,6 +61,7 @@ class MarketingProjectController extends Controller
                 $canonicalMetrics,
                 $details->toArray(), 
                 $detailEnrichment, 
+                $unitDetailPayload,
                 [
                     'duration_status' => $durationStatus,
                     'responsible_sales_teams' => $responsibleSalesTeams,
