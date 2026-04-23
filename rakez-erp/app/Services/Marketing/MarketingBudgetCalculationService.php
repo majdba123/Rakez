@@ -5,7 +5,6 @@ namespace App\Services\Marketing;
 use App\Enums\ContractWorkflowStatus;
 use App\Models\Contract;
 use App\Models\ContractInfo;
-use App\Models\MarketingSetting;
 
 /**
  * Single canonical implementation for developer-plan budget math (commission → marketing → reach).
@@ -18,6 +17,7 @@ class MarketingBudgetCalculationService
     public function __construct(
         private ContractPricingBasisService $pricingBasisService,
         private MarketingProjectBootstrapService $bootstrapService,
+        private MarketingPlanningMathService $planningMathService,
     ) {}
 
     /**
@@ -107,12 +107,12 @@ class MarketingBudgetCalculationService
 
     private function expectedImpressions(float $marketingValue, float $averageCpm): float
     {
-        return $averageCpm > 0 ? ($marketingValue / $averageCpm) * 1000 : 0.0;
+        return $this->planningMathService->expectedImpressions($marketingValue, $averageCpm);
     }
 
     private function expectedClicks(float $marketingValue, float $averageCpc): float
     {
-        return $averageCpc > 0 ? ($marketingValue / $averageCpc) : 0.0;
+        return $this->planningMathService->expectedClicks($marketingValue, $averageCpc);
     }
 
     private function resolveDurationMonths(?ContractInfo $info, int $durationDays): int
@@ -130,19 +130,11 @@ class MarketingBudgetCalculationService
 
     private function getDefaultAverageCpm(): float
     {
-        $value = MarketingSetting::getByKey('average_cpm')
-            ?? MarketingSetting::getByKey('default_cpm')
-            ?? 25.00;
-
-        return (float) $value;
+        return $this->planningMathService->defaultAverageCpm();
     }
 
     private function getDefaultAverageCpc(): float
     {
-        $value = MarketingSetting::getByKey('average_cpc')
-            ?? MarketingSetting::getByKey('default_cpc')
-            ?? 2.50;
-
-        return (float) $value;
+        return $this->planningMathService->defaultAverageCpc();
     }
 }

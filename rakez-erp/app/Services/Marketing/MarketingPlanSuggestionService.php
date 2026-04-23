@@ -8,12 +8,16 @@ class MarketingPlanSuggestionService
 
     private ?AI\BudgetDistributionOptimizer $optimizer;
 
+    private MarketingPlanningMathService $planningMathService;
+
     public function __construct(
         MarketingDistributionBreakdownService $breakdownService,
         ?AI\BudgetDistributionOptimizer $optimizer = null,
+        ?MarketingPlanningMathService $planningMathService = null,
     ) {
         $this->breakdownService = $breakdownService;
         $this->optimizer = $optimizer;
+        $this->planningMathService = $planningMathService ?? new MarketingPlanningMathService();
     }
 
     public function suggest(array $inputs): array
@@ -278,19 +282,11 @@ class MarketingPlanSuggestionService
 
     private function deriveCampaignDistribution(array $platformDistribution, array $campaignDistributionByPlatform): array
     {
-        $derived = [];
-        foreach (EmployeeMarketingPlanService::CAMPAIGNS as $campaign) {
-            $derived[$campaign] = 0.0;
-        }
-
-        foreach ($platformDistribution as $platform => $platformPercent) {
-            $campaigns = $campaignDistributionByPlatform[$platform] ?? [];
-            foreach ($campaigns as $campaign => $campaignPercent) {
-                if (isset($derived[$campaign])) {
-                    $derived[$campaign] += ($platformPercent / 100) * $campaignPercent;
-                }
-            }
-        }
+        $derived = $this->planningMathService->weightedCampaignDistribution(
+            $platformDistribution,
+            $campaignDistributionByPlatform,
+            EmployeeMarketingPlanService::CAMPAIGNS
+        );
 
         return $this->normalizeDistribution($derived, EmployeeMarketingPlanService::CAMPAIGNS);
     }

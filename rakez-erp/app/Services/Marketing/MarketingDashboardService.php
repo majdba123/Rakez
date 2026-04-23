@@ -6,7 +6,6 @@ use App\Models\Lead;
 use App\Models\ContractUnit;
 use App\Models\MarketingTask;
 use App\Models\DailyDeposit;
-use App\Models\MarketingProject;
 use App\Models\DailyMarketingSpend;
 
 class MarketingDashboardService

@@ -3,8 +3,8 @@
 namespace App\Services\Marketing;
 
 use App\Models\MarketingTask;
-use App\Models\User;
 use App\Services\Marketing\MarketingNotificationService;
+use Illuminate\Database\Eloquent\Builder;
 
 class MarketingTaskService
 {
@@ -29,11 +29,7 @@ class MarketingTaskService
      */
     public function getDailyTasks($userId, $date = null, $status = null, int $perPage = 15)
     {
-        $query = MarketingTask::where('marketer_id', $userId);
-        
-        if ($date) {
-            $query->whereDate('created_at', $date);
-        }
+        $query = $this->tasksForUserQuery($userId, $date);
         
         if ($status) {
             $query->where('status', $status);
@@ -51,17 +47,22 @@ class MarketingTaskService
 
     public function getTaskAchievementRate($userId, $date = null)
     {
-        $query = MarketingTask::where('marketer_id', $userId);
-        
-        if ($date) {
-            $query->whereDate('created_at', $date);
-        }
-        
-        $tasks = $query->get();
+        $tasks = $this->tasksForUserQuery($userId, $date)->get();
 
         if ($tasks->isEmpty()) return 0;
 
         $completed = $tasks->where('status', 'completed')->count();
         return ($completed / $tasks->count()) * 100;
+    }
+
+    private function tasksForUserQuery($userId, ?string $date = null): Builder
+    {
+        $query = MarketingTask::where('marketer_id', $userId);
+
+        if ($date) {
+            $query->whereDate('created_at', $date);
+        }
+
+        return $query;
     }
 }

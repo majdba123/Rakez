@@ -4,13 +4,13 @@ namespace App\Services\Marketing;
 
 use App\Models\DeveloperMarketingPlan;
 use App\Models\Contract;
-use App\Models\MarketingSetting;
 
 class DeveloperMarketingPlanService
 {
     public function __construct(
         private ContractPricingBasisService $pricingBasisService,
         private MarketingBudgetCalculationService $budgetCalculationService,
+        private MarketingPlanningMathService $planningMathService,
     ) {}
 
     public function createOrUpdatePlan($contractId, $data)
@@ -49,12 +49,12 @@ class DeveloperMarketingPlanService
 
     public function calculateExpectedImpressions($marketingValue, $averageCpm)
     {
-        return $averageCpm > 0 ? ($marketingValue / $averageCpm) * 1000 : 0;
+        return $this->planningMathService->expectedImpressions((float) $marketingValue, (float) $averageCpm);
     }
 
     public function calculateExpectedClicks($marketingValue, $averageCpc)
     {
-        return $averageCpc > 0 ? ($marketingValue / $averageCpc) : 0;
+        return $this->planningMathService->expectedClicks((float) $marketingValue, (float) $averageCpc);
     }
 
     /**
@@ -202,11 +202,7 @@ class DeveloperMarketingPlanService
      */
     public function getDefaultAverageCpm(): float
     {
-        $value = MarketingSetting::getByKey('average_cpm')
-            ?? MarketingSetting::getByKey('default_cpm')
-            ?? 25.00;
-
-        return (float) $value;
+        return $this->planningMathService->defaultAverageCpm();
     }
 
     /**
@@ -214,10 +210,6 @@ class DeveloperMarketingPlanService
      */
     public function getDefaultAverageCpc(): float
     {
-        $value = MarketingSetting::getByKey('average_cpc')
-            ?? MarketingSetting::getByKey('default_cpc')
-            ?? 2.50;
-
-        return (float) $value;
+        return $this->planningMathService->defaultAverageCpc();
     }
 }

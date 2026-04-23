@@ -8,7 +8,8 @@ use App\Models\MarketingCampaign;
 class EmployeeMarketingPlanService
 {
     public function __construct(
-        private ContractPricingBasisService $pricingBasisService
+        private ContractPricingBasisService $pricingBasisService,
+        private MarketingPlanningMathService $planningMathService,
     ) {}
 
     public const PLATFORMS = [
@@ -91,21 +92,11 @@ class EmployeeMarketingPlanService
 
     private function deriveCampaignDistribution(array $platformDistribution, array $campaignDistributionByPlatform): array
     {
-        $derived = [];
-        foreach (self::CAMPAIGNS as $campaign) {
-            $derived[$campaign] = 0.0;
-        }
-
-        foreach ($platformDistribution as $platform => $platformPercent) {
-            $campaigns = $campaignDistributionByPlatform[$platform] ?? [];
-            foreach ($campaigns as $campaign => $campaignPercent) {
-                if (isset($derived[$campaign])) {
-                    $derived[$campaign] += ($platformPercent / 100) * $campaignPercent;
-                }
-            }
-        }
-
-        return $derived;
+        return $this->planningMathService->weightedCampaignDistribution(
+            $platformDistribution,
+            $campaignDistributionByPlatform,
+            self::CAMPAIGNS
+        );
     }
 
     /**
