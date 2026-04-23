@@ -3,16 +3,18 @@
 namespace App\Http\Controllers\Marketing;
 
 use App\Http\Controllers\Controller;
-use App\Services\Marketing\MarketingProjectService;
 use App\Http\Resources\Marketing\MarketingProjectResource;
 use App\Http\Responses\ApiResponse;
+use App\Services\Marketing\MarketingProjectDetailAssembler;
+use App\Services\Marketing\MarketingProjectService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class MarketingProjectController extends Controller
 {
     public function __construct(
-        private MarketingProjectService $projectService
+        private MarketingProjectService $projectService,
+        private MarketingProjectDetailAssembler $detailAssembler,
     ) {}
 
     public function index(Request $request): JsonResponse
@@ -44,28 +46,20 @@ class MarketingProjectController extends Controller
         ], 200);
     }
 
-    public function show(int $contractId): JsonResponse
+    public function show(int $id): JsonResponse
     {
-        $details = $this->projectService->getProjectDetails($contractId);
-        $durationStatus = $this->projectService->getContractDurationStatus($contractId);
+        $details = $this->projectService->getProjectDetails($id);
+        $durationStatus = $this->projectService->getContractDurationStatus($details->id);
         $responsibleSalesTeams = $this->projectService->buildResponsibleSalesTeams($details);
         $detailEnrichment = $this->projectService->enrichContractDetailForMarketingApi($details);
-        
-        // Get canonical shared metrics
-        $canonicalMetrics = $this->projectService->getCanonicalMetrics($details);
 
         return response()->json([
             'success' => true,
-            'data' => array_merge(
-                $canonicalMetrics,
-                $details->toArray(), 
-                $detailEnrichment, 
-                [
-                    'duration_status' => $durationStatus,
-                    'responsible_sales_teams' => $responsibleSalesTeams,
-                    /** Canonical contract/pricing source — no campaign budget math (use POST …/developer-plans/calculate-budget). */
-                    'pricing_source' => $this->projectService->buildPricingSourceForContract($details),
-                ]
+            'data' => $this->detailAssembler->assemble(
+                $details,
+                $durationStatus,
+                $responsibleSalesTeams,
+                $detailEnrichment
             ),
         ]);
     }

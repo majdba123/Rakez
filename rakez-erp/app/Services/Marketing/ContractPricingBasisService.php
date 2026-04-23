@@ -38,6 +38,30 @@ class ContractPricingBasisService
      */
     public function resolve(Contract $contract, array $inputs = []): array
     {
+        return $this->resolveWithStoredFallbackPolicy($contract, $inputs, true);
+    }
+
+    /**
+     * Marketing project details must not use stored contract info as a silent fallback
+     * when relational contract_units exist. Actual inventory rows are the source of truth.
+     *
+     * @return array<string, mixed>
+     */
+    public function resolveForMarketingProjectDetail(Contract $contract): array
+    {
+        return $this->resolveWithStoredFallbackPolicy($contract, [], false);
+    }
+
+    /**
+     * @param  array<string, mixed>  $inputs
+     * @return array<string, mixed>
+     */
+    private function resolveWithStoredFallbackPolicy(
+        Contract $contract,
+        array $inputs = [],
+        bool $allowStoredFallbackWhenActualUnitsExist = true
+    ): array
+    {
         $contract->loadMissing(['info', 'contractUnits']);
         $info = $contract->info;
         $units = $contract->contractUnits;
@@ -58,6 +82,8 @@ class ContractPricingBasisService
 
         $source = self::SOURCE_NONE;
         $commissionBase = 0.0;
+        $sourceDetail = null;
+        $storedFallbackApplied = false;
 
         if ($override !== null && $override > 0) {
             $source = self::SOURCE_OVERRIDE;
@@ -65,13 +91,30 @@ class ContractPricingBasisService
         } elseif ($totalAvailableSum > 0) {
             $source = self::SOURCE_AVAILABLE_UNITS;
             $commissionBase = $totalAvailableSum;
-        } elseif ($avgStored > 0) {
+        } elseif ($allCount > 0) {
+            $source = self::SOURCE_AVAILABLE_UNITS;
+            $commissionBase = 0.0;
+            $sourceDetail = $allowStoredFallbackWhenActualUnitsExist
+                ? 'actual_units_exist_no_available_units_stored_fallback_allowed'
+                : 'actual_units_exist_no_available_units_stored_fallback_forbidden';
+        }
+
+        if (
+            $commissionBase <= 0
+            && $avgStored > 0
+            && ($allCount === 0 || $allowStoredFallbackWhenActualUnitsExist)
+        ) {
             $source = self::SOURCE_AVG_STORED;
             $commissionBase = $avgStored;
+            $storedFallbackApplied = true;
+            $sourceDetail = $allCount > 0
+                ? 'stored_fallback_used_despite_actual_units'
+                : 'stored_fallback_used_no_actual_units';
         }
 
         return [
             'source' => $source,
+            'source_detail' => $sourceDetail,
             self::COMMISSION_BASE_KEY => round($commissionBase, 2),
             'commission_base_amount' => round($commissionBase, 2),
             'total_unit_price_available_sum' => round($totalAvailableSum, 2),
@@ -86,6 +129,15 @@ class ContractPricingBasisService
             'average_unit_price' => $averageUnitPriceAvailable,
             'avg_property_value_stored' => round($avgStored, 2),
             'override_applied' => $override !== null && $override > 0,
+            'has_actual_contract_units' => $allCount > 0,
+            'stored_fallback_allowed_when_actual_units_exist' => $allowStoredFallbackWhenActualUnitsExist,
+            'stored_fallback_applied' => $storedFallbackApplied,
+            'stored_fallback_forbidden_reason' => (
+                $allCount > 0
+                && ! $allowStoredFallbackWhenActualUnitsExist
+                && $avgStored > 0
+                && $totalAvailableSum <= 0
+            ) ? 'actual_contract_units_exist' : null,
         ];
     }
 

@@ -158,7 +158,7 @@
 |--------|-------|------------|-------------|
 | GET | `/api/marketing/dashboard` | `marketing.dashboard.view` | View marketing dashboard |
 | GET | `/api/marketing/projects` | `marketing.projects.view` | List marketing projects |
-| GET | `/api/marketing/projects/{contractId}` | `marketing.projects.view` | View project details |
+| GET | `/api/marketing/projects/{id}` | `marketing.projects.view` | View project details |
 | POST | `/api/marketing/projects/calculate-budget` | `marketing.budgets.manage` | Calculate budget |
 
 ### Marketing Plans

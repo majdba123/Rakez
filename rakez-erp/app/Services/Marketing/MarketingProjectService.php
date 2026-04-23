@@ -9,6 +9,7 @@ use App\Models\Team;
 use App\Models\User;
 use App\Models\MarketingProject;
 use App\Services\Sales\SalesTeamService;
+use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Collection;
 
@@ -17,9 +18,6 @@ class MarketingProjectService
     public function __construct(
         private MarketingProjectBootstrapService $bootstrapService,
         private SalesTeamService $salesTeamService,
-        private ContractPricingBasisService $pricingBasisService,
-        private MarketingBudgetCalculationService $budgetCalculationService,
-        private MarketingProjectMetricsResolver $metricsResolver,
     ) {}
 
     /**
@@ -28,17 +26,6 @@ class MarketingProjectService
      */
     /** @deprecated Prefer {@see ContractWorkflowStatus::Completed} */
     public const COMPLETED_CONTRACT_STATUS = 'completed';
-
-    /**
-     * Get canonical shared metrics for a contract.
-     * Used by both list and show endpoints to ensure numeric consistency.
-     *
-     * @return array<string, mixed>
-     */
-    public function getCanonicalMetrics(Contract $contract): array
-    {
-        return $this->metricsResolver->resolveForShow($contract);
-    }
 
     /**
      * Get all marketing projects whose contracts are completed. Every marketing user sees the same list.
@@ -120,24 +107,26 @@ class MarketingProjectService
         return $contracts;
     }
 
-    public function getProjectDetails($contractId)
+    public function getProjectDetails($projectId)
     {
-        $contract = Contract::with([
-            'info',
-            'projectMedia',
-            'contractUnits',
-            'city',
-            'district',
-            'teams',
-            'salesProjectAssignments' => fn ($q) => $q->active()->with('leader'),
-        ])->findOrFail($contractId);
+        $project = MarketingProject::query()
+            ->with($this->marketingProjectDetailRelations())
+            ->find($projectId);
 
-        $project = $this->bootstrapService->ensureForCompletedContract($contract);
+        if ($project?->contract) {
+            $contract = $project->contract;
+        } else {
+            $contract = Contract::query()
+                ->with($this->contractDetailRelations())
+                ->findOrFail($projectId);
+
+            $project = $this->bootstrapService->ensureForCompletedContract($contract);
+        }
 
         if ($project) {
             $project->loadMissing([
-                'teamLeader',
-                'teams.user',
+                'teamLeader.team',
+                'teams.user.team',
                 'developerPlan',
                 'employeePlans.user',
                 'expectedBooking',
@@ -146,7 +135,83 @@ class MarketingProjectService
             $contract->setRelation('marketingProject', $project);
         }
 
+        $contract->loadMissing($this->contractDetailRelations());
+        $this->hydrateTeamsFromSalesAndMarketingAssignments($contract);
+
         return $contract;
+    }
+
+    /**
+     * @return array<int|string, mixed>
+     */
+    private function contractDetailRelations(): array
+    {
+        return [
+            'info',
+            'projectMedia',
+            'contractUnits',
+            'city',
+            'district',
+            'teams',
+            'salesProjectAssignments.leader.team',
+            'marketingProject.teamLeader.team',
+            'marketingProject.teams.user.team',
+            'marketingProject.developerPlan',
+            'marketingProject.employeePlans.user',
+            'marketingProject.expectedBooking',
+        ];
+    }
+
+    /**
+     * @return array<int|string, mixed>
+     */
+    private function marketingProjectDetailRelations(): array
+    {
+        return [
+            'teamLeader.team',
+            'teams.user.team',
+            'developerPlan',
+            'employeePlans.user',
+            'expectedBooking',
+            'contract' => fn ($query) => $query->with($this->contractDetailRelations()),
+        ];
+    }
+
+    private function hydrateTeamsFromSalesAndMarketingAssignments(Contract $contract): void
+    {
+        $contract->loadMissing([
+            'teams',
+            'salesProjectAssignments.leader.team',
+            'marketingProject.teams.user.team',
+        ]);
+
+        $teams = new EloquentCollection($contract->teams->all());
+
+        $assignmentTeamIds = $contract->salesProjectAssignments
+            ->map(fn ($assignment) => $assignment->leader?->team_id)
+            ->filter()
+            ->unique()
+            ->values();
+
+        $marketingProjectTeamIds = $contract->marketingProject?->teams
+            ? $contract->marketingProject->teams
+                ->map(fn ($assignment) => $assignment->user?->team_id)
+                ->filter()
+                ->unique()
+                ->values()
+            : collect();
+
+        $inferredTeams = Team::query()
+            ->whereIn('id', $assignmentTeamIds->merge($marketingProjectTeamIds)->unique()->values())
+            ->get();
+
+        foreach ($inferredTeams as $team) {
+            if (! $teams->contains(fn (Team $existing) => (int) $existing->id === (int) $team->id)) {
+                $teams->push($team);
+            }
+        }
+
+        $contract->setRelation('teams', $teams->values());
     }
 
     /**
@@ -233,8 +298,10 @@ class MarketingProjectService
         $contract->loadMissing([
             'teams',
             'marketingProject',
-            'salesProjectAssignments' => fn ($q) => $q->active()->with('leader'),
+            'salesProjectAssignments.leader.team',
         ]);
+
+        $this->hydrateTeamsFromSalesAndMarketingAssignments($contract);
 
         $assignments = $contract->salesProjectAssignments;
         $teams = $contract->teams;
@@ -299,72 +366,6 @@ class MarketingProjectService
         }
 
         return $out;
-    }
-
-    /**
-     * Get summary fields for a contract (location, contract_number, units_count, pricing, etc.)
-     * for use in list and detail API responses.
-     */
-    public function getContractSummaryFields(Contract $contract): array
-    {
-        $contract->loadMissing(['info', 'contractUnits', 'city', 'district']);
-        $info = $contract->info;
-        $units = $contract->relationLoaded('contractUnits')
-            ? $contract->getRelation('contractUnits')
-            : $contract->contractUnits()->get();
-        $availableUnits = $units->where('status', 'available');
-        $pendingUnits = $units->where('status', 'pending');
-
-        $locationParts = array_filter([$contract->city?->name, $contract->district?->name]);
-        $location = $locationParts ? trim(implode(', ', $locationParts)) : null;
-
-        return [
-            'location' => $location,
-            'city' => $contract->city?->name,
-            'district' => $contract->district?->name,
-            'contract_number' => $info?->contract_number ?? null,
-            'units_count' => [
-                'available' => $availableUnits->count(),
-                'pending' => $pendingUnits->count(),
-            ],
-            'avg_unit_price' => $info ? (float) ($info->avg_property_value ?? 0) : 0,
-            'commission_percent' => $contract->getEffectiveCommissionPercent(),
-            'total_available_value' => (float) $availableUnits->sum('price'),
-            'advertiser_number' => (!empty($info?->agency_number)) ? 'Available' : 'Pending',
-            'advertiser_number_value' => $info?->agency_number ?? null,
-        ];
-    }
-
-    /**
-     * Financial source for marketing project screens — no marketing % / campaign preview (use POST developer-plans/calculate-budget).
-     *
-     * @return array<string, mixed>
-     */
-    public function buildPricingSourceForContract(Contract $contract): array
-    {
-        $contract->loadMissing(['info', 'contractUnits']);
-        $info = $contract->info;
-        $pricingBasis = $this->pricingBasisService->resolve($contract, []);
-        $commissionValue = $this->budgetCalculationService->commissionValueFromPricingBasis($contract, $pricingBasis);
-
-        // Get canonical metrics
-        $metrics = $this->metricsResolver->resolve($contract);
-
-        return [
-            'contract_id' => $metrics['contract_id'],
-            'contract_number' => $info?->contract_number,
-            'project_name' => $metrics['project_name'],
-            'commission_percent' => $metrics['commission_percent'],
-            'commission_value' => $commissionValue,
-            'total_unit_price' => (float) $pricingBasis[ContractPricingBasisService::COMMISSION_BASE_KEY],
-            /** Canonical UI average = mean price of ALL units per business rules */
-            'average_unit_price' => $metrics['avg_unit_price'],
-            'average_unit_price_all' => $metrics['avg_unit_price'],
-            'average_unit_price_available' => (float) ($pricingBasis['average_unit_price_available'] ?? 0),
-            'pricing_basis' => $pricingBasis,
-            'agreement_duration_days' => $info ? (int) ($info->agreement_duration_days ?? 0) : null,
-            'agreement_duration_months' => $info ? (int) ($info->agreement_duration_months ?? 0) : null,
-        ];
     }
 
     public function getContractDurationStatus($contractId)
