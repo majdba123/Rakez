@@ -18,9 +18,6 @@ class MarketingProjectService
     public function __construct(
         private MarketingProjectBootstrapService $bootstrapService,
         private SalesTeamService $salesTeamService,
-        private ContractPricingBasisService $pricingBasisService,
-        private MarketingBudgetCalculationService $budgetCalculationService,
-        private MarketingProjectMetricsResolver $metricsResolver,
     ) {}
 
     /**
@@ -29,17 +26,6 @@ class MarketingProjectService
      */
     /** @deprecated Prefer {@see ContractWorkflowStatus::Completed} */
     public const COMPLETED_CONTRACT_STATUS = 'completed';
-
-    /**
-     * Get canonical shared metrics for a contract.
-     * Used by both list and show endpoints to ensure numeric consistency.
-     *
-     * @return array<string, mixed>
-     */
-    public function getCanonicalMetrics(Contract $contract): array
-    {
-        return $this->metricsResolver->resolveForShow($contract);
-    }
 
     /**
      * Get all marketing projects whose contracts are completed. Every marketing user sees the same list.
@@ -139,7 +125,7 @@ class MarketingProjectService
 
         if ($project) {
             $project->loadMissing([
-                'teamLeader',
+                'teamLeader.team',
                 'teams.user.team',
                 'developerPlan',
                 'employeePlans.user',
@@ -168,7 +154,7 @@ class MarketingProjectService
             'district',
             'teams',
             'salesProjectAssignments.leader.team',
-            'marketingProject.teamLeader',
+            'marketingProject.teamLeader.team',
             'marketingProject.teams.user.team',
             'marketingProject.developerPlan',
             'marketingProject.employeePlans.user',
@@ -182,7 +168,7 @@ class MarketingProjectService
     private function marketingProjectDetailRelations(): array
     {
         return [
-            'teamLeader',
+            'teamLeader.team',
             'teams.user.team',
             'developerPlan',
             'employeePlans.user',
@@ -380,106 +366,6 @@ class MarketingProjectService
         }
 
         return $out;
-    }
-
-    /**
-     * Get summary fields for a contract (location, contract_number, units_count, pricing, etc.)
-     * for use in list and detail API responses.
-     */
-    public function getContractSummaryFields(Contract $contract): array
-    {
-        $contract->loadMissing(['info', 'contractUnits', 'city', 'district']);
-        $info = $contract->info;
-        $units = $contract->relationLoaded('contractUnits')
-            ? $contract->getRelation('contractUnits')
-            : $contract->contractUnits()->get();
-        $availableUnits = $units->where('status', 'available');
-        $pendingUnits = $units->where('status', 'pending');
-
-        $locationParts = array_filter([$contract->city?->name, $contract->district?->name]);
-        $location = $locationParts ? trim(implode(', ', $locationParts)) : null;
-
-        return [
-            'location' => $location,
-            'city' => $contract->city?->name,
-            'district' => $contract->district?->name,
-            'contract_number' => $info?->contract_number ?? null,
-            'units_count' => [
-                'available' => $availableUnits->count(),
-                'pending' => $pendingUnits->count(),
-            ],
-            'avg_unit_price' => $info ? (float) ($info->avg_property_value ?? 0) : 0,
-            'commission_percent' => $contract->getEffectiveCommissionPercent(),
-            'total_available_value' => (float) $availableUnits->sum('price'),
-            'advertiser_number' => (!empty($info?->agency_number)) ? 'Available' : 'Pending',
-            'advertiser_number_value' => $info?->agency_number ?? null,
-        ];
-    }
-
-    /**
-     * Financial source for marketing project screens — no marketing % / campaign preview (use POST developer-plans/calculate-budget).
-     *
-     * @return array<string, mixed>
-     */
-    public function buildPricingSourceForContract(Contract $contract): array
-    {
-        $contract->loadMissing(['info', 'contractUnits']);
-        $info = $contract->info;
-        $pricingBasis = $this->pricingBasisService->resolve($contract, []);
-        $commissionValue = $this->budgetCalculationService->commissionValueFromPricingBasis($contract, $pricingBasis);
-
-        // Get canonical metrics
-        $metrics = $this->metricsResolver->resolve($contract);
-
-        return [
-            'contract_id' => $metrics['contract_id'],
-            'contract_number' => $info?->contract_number,
-            'project_name' => $metrics['project_name'],
-            'commission_percent' => $metrics['commission_percent'],
-            'commission_value' => $commissionValue,
-            'total_unit_price' => (float) $pricingBasis[ContractPricingBasisService::COMMISSION_BASE_KEY],
-            /** Canonical UI average = mean price of ALL units per business rules */
-            'average_unit_price' => $metrics['avg_unit_price'],
-            'average_unit_price_all' => $metrics['avg_unit_price'],
-            'average_unit_price_available' => (float) ($pricingBasis['average_unit_price_available'] ?? 0),
-            'pricing_basis' => $pricingBasis,
-            'agreement_duration_days' => $info ? (int) ($info->agreement_duration_days ?? 0) : null,
-            'agreement_duration_months' => $info ? (int) ($info->agreement_duration_months ?? 0) : null,
-        ];
-    }
-
-    /**
-     * Explicit detail-only unit payloads so all linked units and available units are not conflated.
-     *
-     * @return array<string, mixed>
-     */
-    public function buildUnitDetailPayload(Contract $contract): array
-    {
-        $contract->loadMissing(['contractUnits']);
-
-        $units = $contract->contractUnits->values();
-        $availableUnits = $units->where('status', 'available')->values();
-        $pricingBasis = $this->pricingBasisService->resolve($contract, []);
-
-        return [
-            'available_contract_units' => $availableUnits->toArray(),
-            'unit_statistics' => [
-                'all_units_count' => $units->count(),
-                'available_units_count' => $availableUnits->count(),
-                'pending_units_count' => $units->where('status', 'pending')->count(),
-                'total_unit_price_all_sum' => (float) ($pricingBasis['total_unit_price_all_sum'] ?? 0),
-                'total_unit_price_available_sum' => (float) ($pricingBasis['total_unit_price_available_sum'] ?? 0),
-                'average_unit_price' => (float) ($pricingBasis['average_unit_price'] ?? 0),
-                'average_unit_price_available' => (float) ($pricingBasis['average_unit_price_available'] ?? 0),
-                'average_unit_price_all' => (float) ($pricingBasis['average_unit_price_all'] ?? 0),
-                'basis' => [
-                    'contract_units' => 'all linked non-deleted contract_units rows',
-                    'available_contract_units' => 'contract_units where status is available',
-                    'avg_unit_price' => 'available_contract_units.price average',
-                    'total_available_value' => 'available_contract_units.price sum',
-                ],
-            ],
-        ];
     }
 
     public function getContractDurationStatus($contractId)
