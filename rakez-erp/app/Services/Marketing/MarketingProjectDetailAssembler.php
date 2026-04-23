@@ -3,6 +3,7 @@
 namespace App\Services\Marketing;
 
 use App\Models\Contract;
+use App\Models\Team;
 use Illuminate\Support\Collection;
 
 class MarketingProjectDetailAssembler
@@ -52,8 +53,6 @@ class MarketingProjectDetailAssembler
         $unitPayload = $this->unitPayload($contract, $pricingBasis);
         $media = $this->mediaPayload($contract->projectMedia);
 
-        $rawContract = $contract->toArray();
-
         $legacySummary = [
             'source' => 'contracts.units',
             'items' => $contract->units ?? [],
@@ -65,6 +64,7 @@ class MarketingProjectDetailAssembler
             'project_name' => $contract->project_name,
             'status' => $contract->status,
             'contract_number' => $metrics['contract_number'],
+            'advertiser' => $metrics['advertiser'],
             'created_at' => $contract->created_at,
             'updated_at' => $contract->updated_at,
         ];
@@ -77,17 +77,26 @@ class MarketingProjectDetailAssembler
 
         $location = [
             'city' => $detailEnrichment['city'] ?? ($contract->city?->toArray()),
-            'district' => $detailEnrichment['district'] ?? ($contract->district?->toArray()),
+            'district' => $contract->district?->toArray(),
+            'address' => $detailEnrichment['address'] ?? (
+                $contract->info?->second_party_address
+                    ? [
+                        'source' => 'contract_infos.second_party_address',
+                        'value' => $contract->info->second_party_address,
+                    ]
+                    : null
+            ),
+            'location_url' => $contract->info?->location_url,
         ];
 
         $teamsAndAssignments = [
-            'teams' => $contract->teams->values()->toArray(),
+            'teams' => $this->teamPayload($contract->teams),
             'responsible_sales_teams' => $responsibleSalesTeams,
-            'sales_project_assignments' => $contract->salesProjectAssignments->values()->toArray(),
+            'sales_project_assignments' => $this->salesAssignmentPayload($contract->salesProjectAssignments),
         ];
 
         $marketingDetails = [
-            'marketing_project' => $contract->marketingProject?->toArray(),
+            'marketing_project' => $this->marketingProjectPayload($contract->marketingProject),
             'developer_plan' => $contract->marketingProject?->developerPlan?->toArray(),
             'employee_plans' => $contract->marketingProject?->employeePlans?->values()->toArray() ?? [],
             'expected_booking' => $contract->marketingProject?->expectedBooking?->toArray(),
@@ -116,13 +125,8 @@ class MarketingProjectDetailAssembler
                 'developer_number' => $contract->developer_number,
                 'city' => $location['city'],
                 'district' => $location['district'],
-                'units' => $contract->units ?? [],
                 'legacy_contract_units_summary' => $legacySummary,
-                'actual_contract_units' => $unitPayload['actual_contract_units'],
-                'all_contract_units' => $unitPayload['actual_contract_units'],
                 'contract_units' => $unitPayload['actual_contract_units'],
-                'available_contract_units' => $unitPayload['available_contract_units'],
-                'unit_statistics' => $unitPayload['unit_statistics'],
                 'project_media' => $media['project_media'],
                 'media_links' => $media['media_links'],
                 'teams' => $teamsAndAssignments['teams'],
@@ -131,17 +135,10 @@ class MarketingProjectDetailAssembler
                 'marketing_project' => $marketingDetails['marketing_project'],
                 'duration_status' => $durationStatus,
                 'pricing_source' => $pricingSource,
-                'commission_value' => $pricingSource['commission_value'],
-                'total_unit_price' => $pricingSource['total_unit_price'],
-                'average_unit_price' => $pricingSource['average_unit_price'],
-                'average_unit_price_all' => $pricingSource['average_unit_price_all'],
-                'average_unit_price_available' => $pricingSource['average_unit_price_available'],
-                'total_unit_price_all_sum' => $pricingSource['total_unit_price_all_sum'],
-                'total_unit_price_available_sum' => $pricingSource['total_unit_price_available_sum'],
             ]
         );
 
-        return array_merge($rawContract, $conceptualBlocks, $compatibilityAliases);
+        return array_merge($conceptualBlocks, $compatibilityAliases);
     }
 
     /**
@@ -153,10 +150,7 @@ class MarketingProjectDetailAssembler
         $metrics = $this->metricsResolver->resolveForShow($contract);
 
         return array_merge($metrics, [
-            'units_count' => [
-                'available' => (int) ($pricingBasis['available_units_count'] ?? 0),
-                'pending' => $contract->contractUnits->where('status', 'pending')->count(),
-            ],
+            'units_count' => $this->metricsResolver->unitStatusCounts($contract->contractUnits),
             'avg_unit_price' => (float) ($pricingBasis['average_unit_price_available'] ?? 0),
             'total_available_value' => (float) ($pricingBasis['total_unit_price_available_sum'] ?? 0),
             'commission_percent' => (float) $contract->getEffectiveCommissionPercent(),
@@ -248,12 +242,17 @@ class MarketingProjectDetailAssembler
     {
         $units = $contract->contractUnits->values();
         $availableUnits = $units->where('status', 'available')->values();
+        $unitCounts = $this->metricsResolver->unitStatusCounts($units);
 
         $unitStatistics = [
             'source' => 'actual_contract_units',
             'all_units_count' => (int) ($pricingBasis['all_units_count'] ?? $units->count()),
             'available_units_count' => (int) ($pricingBasis['available_units_count'] ?? $availableUnits->count()),
-            'pending_units_count' => $units->where('status', 'pending')->count(),
+            'pending_units_count' => $unitCounts['pending'],
+            'reserved_units_count' => $unitCounts['reserved'],
+            'sold_units_count' => $unitCounts['sold'],
+            'units_count' => $unitCounts,
+            'status_counts' => $unitCounts['by_status'],
             'total_unit_price_all_sum' => (float) ($pricingBasis['total_unit_price_all_sum'] ?? 0),
             'total_unit_price_available_sum' => (float) ($pricingBasis['total_unit_price_available_sum'] ?? 0),
             'average_unit_price' => (float) ($pricingBasis['average_unit_price'] ?? 0),
@@ -273,10 +272,112 @@ class MarketingProjectDetailAssembler
             'unit_statistics' => $unitStatistics,
             'actual_unit_data' => [
                 'source' => 'contract_units',
+                'meaning' => 'Actual linked non-deleted contract_units rows. This is distinct from legacy_summary.legacy_contract_units_summary.',
                 'all_contract_units' => $units->toArray(),
                 'available_contract_units' => $availableUnits->toArray(),
+                'units_count' => $unitCounts,
                 'unit_statistics' => $unitStatistics,
             ],
+        ];
+    }
+
+    /**
+     * @param  Collection<int, mixed>  $teams
+     * @return array<int, array<string, mixed>>
+     */
+    private function teamPayload(Collection $teams): array
+    {
+        return $teams
+            ->map(fn ($team) => [
+                'id' => $team->id,
+                'code' => $team->code ?? null,
+                'name' => $team->name,
+                'description' => $team->description ?? null,
+            ])
+            ->values()
+            ->all();
+    }
+
+    /**
+     * @param  Collection<int, mixed>  $assignments
+     * @return array<int, array<string, mixed>>
+     */
+    private function salesAssignmentPayload(Collection $assignments): array
+    {
+        return $assignments
+            ->map(fn ($assignment) => [
+                'id' => $assignment->id,
+                'contract_id' => $assignment->contract_id,
+                'leader_id' => $assignment->leader_id,
+                'assigned_by' => $assignment->assigned_by,
+                'start_date' => $assignment->start_date,
+                'end_date' => $assignment->end_date,
+                'created_at' => $assignment->created_at,
+                'updated_at' => $assignment->updated_at,
+                'leader' => $this->userPayload($assignment->leader),
+            ])
+            ->values()
+            ->all();
+    }
+
+    /**
+     * @return array<string, mixed>|null
+     */
+    private function marketingProjectPayload(mixed $project): ?array
+    {
+        if (! $project) {
+            return null;
+        }
+
+        return [
+            'id' => $project->id,
+            'contract_id' => $project->contract_id,
+            'status' => $project->status,
+            'assigned_team_leader' => $project->assigned_team_leader,
+            'team_leader' => $this->userPayload($project->teamLeader),
+            'teams' => $project->teams
+                ? $project->teams
+                    ->map(fn ($assignment) => [
+                        'id' => $assignment->id,
+                        'marketing_project_id' => $assignment->marketing_project_id,
+                        'user_id' => $assignment->user_id,
+                        'role' => $assignment->role,
+                        'user' => $this->userPayload($assignment->user),
+                    ])
+                    ->values()
+                    ->all()
+                : [],
+            'created_at' => $project->created_at,
+            'updated_at' => $project->updated_at,
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>|null
+     */
+    private function userPayload(mixed $user): ?array
+    {
+        if (! $user) {
+            return null;
+        }
+
+        $team = $user->getRelationValue('team');
+        if (! $team && $user->team_id) {
+            $team = Team::query()->find($user->team_id);
+        }
+
+        return [
+            'id' => $user->id,
+            'name' => $user->name,
+            'email' => $user->email ?? null,
+            'type' => $user->type ?? null,
+            'team_id' => $user->team_id ?? null,
+            'team' => $team ? [
+                'id' => $team->id,
+                'code' => $team->code ?? null,
+                'name' => $team->name,
+                'description' => $team->description ?? null,
+            ] : null,
         ];
     }
 

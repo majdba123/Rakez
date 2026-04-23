@@ -10,18 +10,24 @@ use Illuminate\Support\Collection;
  *
  * Ensures list and show endpoints return numerically identical metrics for shared fields:
  * - contract_id, project_name, status, commission_percent
- * - units_count (available, pending)
+ * - units_count (total, available, pending, reserved, sold, by_status)
  * - avg_unit_price (from available units across the contract)
  * - total_available_value (from ONLY available units)
  *
  * Business Rules:
  * 1. avg_unit_price = mean price of available units
  * 2. total_available_value = sum of ONLY available unit prices
- * 3. units_count.available = count of units with status='available'
- * 4. units_count.pending = count of units with status='pending'
+ * 3. units_count exposes all known status buckets without changing pricing math
  */
 class MarketingProjectMetricsResolver
 {
+    private const UNIT_STATUS_BUCKETS = [
+        'available',
+        'pending',
+        'reserved',
+        'sold',
+    ];
+
     /**
      * Resolve shared metrics for a contract.
      *
@@ -34,7 +40,7 @@ class MarketingProjectMetricsResolver
 
         $units = $contract->contractUnits;
         $availableUnits = $units->where('status', 'available');
-        $pendingUnits = $units->where('status', 'pending');
+        $unitCounts = $this->unitStatusCounts($units);
 
         // avg_unit_price follows the marketing pricing basis: available units only.
         $availableUnitsCount = $availableUnits->count();
@@ -49,12 +55,41 @@ class MarketingProjectMetricsResolver
             'project_name' => $contract->project_name,
             'status' => $contract->status,
             'commission_percent' => (float) $contract->getEffectiveCommissionPercent(),
-            'units_count' => [
-                'available' => $availableUnits->count(),
-                'pending' => $pendingUnits->count(),
-            ],
+            'units_count' => $unitCounts,
             'avg_unit_price' => $avgUnitPrice,
             'total_available_value' => $totalAvailableValue,
+        ];
+    }
+
+    /**
+     * @param  Collection<int, mixed>  $units
+     * @return array<string, mixed>
+     */
+    public function unitStatusCounts(Collection $units): array
+    {
+        $rawCounts = $units
+            ->groupBy(fn ($unit) => strtolower((string) ($unit->status ?: 'unknown')))
+            ->map(fn (Collection $items) => $items->count())
+            ->all();
+
+        $byStatus = [];
+        foreach (self::UNIT_STATUS_BUCKETS as $status) {
+            $byStatus[$status] = (int) ($rawCounts[$status] ?? 0);
+            unset($rawCounts[$status]);
+        }
+
+        ksort($rawCounts);
+        foreach ($rawCounts as $status => $count) {
+            $byStatus[$status] = (int) $count;
+        }
+
+        return [
+            'total' => $units->count(),
+            'available' => $byStatus['available'],
+            'pending' => $byStatus['pending'],
+            'reserved' => $byStatus['reserved'],
+            'sold' => $byStatus['sold'],
+            'by_status' => $byStatus,
         ];
     }
 
@@ -85,6 +120,11 @@ class MarketingProjectMetricsResolver
 
         return array_merge($metrics, [
             'contract_number' => $info?->contract_number ?? null,
+            'advertiser' => [
+                'source' => 'contract_infos.agency_number',
+                'agency_number' => $info?->agency_number ?? null,
+                'availability_status' => (! empty($info?->agency_number)) ? 'available' : 'pending',
+            ],
             'advertiser_number' => (!empty($info?->agency_number)) ? 'Available' : 'Pending',
             'advertiser_number_value' => $info?->agency_number ?? null,
             'advertiser_number_status' => (!empty($info?->agency_number)) ? 'Available' : 'Pending',
