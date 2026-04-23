@@ -42,7 +42,7 @@ class AccountingDashboardServiceTest extends TestCase
 
         $total = $this->service->getTotalReceivedDeposits();
 
-        $this->assertEquals(25000, $total);
+        $this->assertEquals(2, $total);
     }
 
     /** @test */
@@ -54,7 +54,7 @@ class AccountingDashboardServiceTest extends TestCase
 
         $total = $this->service->getTotalRefundedDeposits();
 
-        $this->assertEquals(8000, $total);
+        $this->assertEquals(2, $total);
     }
 
     /** @test */

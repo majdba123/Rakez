@@ -24,7 +24,7 @@ class PhotographyDepartmentResource extends JsonResource
             'video_url' => $this->video_url,                     // رابط الفيديو
             'description' => $this->description,                 // الوصف
             'status' => $this->status ?? 'pending',
-
+            'rejection_comment' => $this->rejection_comment,
 
             'processed_by' => $this->when($this->processedByUser, [
                 'id' => $this->processedByUser?->id,

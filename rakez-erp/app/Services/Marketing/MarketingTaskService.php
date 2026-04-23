@@ -3,8 +3,8 @@
 namespace App\Services\Marketing;
 
 use App\Models\MarketingTask;
+use App\Models\User;
 use App\Services\Marketing\MarketingNotificationService;
-use App\Support\Governance\GovernanceStatusCatalog;
 
 class MarketingTaskService
 {
@@ -44,27 +44,9 @@ class MarketingTaskService
 
     public function updateTaskStatus($taskId, $status)
     {
-        if (! in_array((string) $status, GovernanceStatusCatalog::marketingTaskStatuses(), true)) {
-            throw new \InvalidArgumentException('Invalid marketing task status');
-        }
-
         $task = MarketingTask::findOrFail($taskId);
         $task->update(['status' => $status]);
         return $task;
-    }
-
-    public function updateTask(int $taskId, array $data): MarketingTask
-    {
-        $task = MarketingTask::findOrFail($taskId);
-        $task->update($data);
-
-        return $task->fresh();
-    }
-
-    public function deleteTask(int $taskId): void
-    {
-        $task = MarketingTask::findOrFail($taskId);
-        $task->delete();
     }
 
     public function getTaskAchievementRate($userId, $date = null)

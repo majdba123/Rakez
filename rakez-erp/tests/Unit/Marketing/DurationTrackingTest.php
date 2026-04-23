@@ -18,7 +18,7 @@ class DurationTrackingTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->service = new MarketingProjectService();
+        $this->service = app(MarketingProjectService::class);
     }
 
     #[Test]

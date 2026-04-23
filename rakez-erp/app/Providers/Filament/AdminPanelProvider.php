@@ -44,10 +44,14 @@ class AdminPanelProvider extends PanelProvider
             ->path(config('governance.panel_path'))
             ->login()
             ->authGuard('web')
-            ->brandName(fn (): string => __('filament-admin.panel.brand_name'))
+            ->brandName('RAKEZ ERP')
+            ->brandLogo(asset('images/rakez-logo-brown-trans.webp'))
+            ->darkModeBrandLogo(asset('images/rakez-logo-brown-trans.webp'))
+            ->brandLogoHeight('2.75rem')
             ->colors([
-                'primary' => Color::Amber,
+                'primary' => Color::Taupe,
             ])
+            ->viteTheme('resources/css/filament/admin/theme.css')
             ->discoverResources(in: app_path('Filament/Admin/Resources'), for: 'App\\Filament\\Admin\\Resources')
             ->pages([
                 AdminHome::class,

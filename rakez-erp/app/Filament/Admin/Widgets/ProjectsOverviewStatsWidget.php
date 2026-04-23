@@ -2,6 +2,7 @@
 
 namespace App\Filament\Admin\Widgets;
 
+use App\Enums\ContractWorkflowStatus;
 use App\Filament\Admin\Concerns\HasGovernanceAuthorization;
 use App\Models\Contract;
 use App\Models\ExclusiveProjectRequest;
@@ -27,8 +28,10 @@ class ProjectsOverviewStatsWidget extends StatsOverviewWidget
         return [
             Stat::make('Contracts', (string) Contract::count())
                 ->description('All project contracts'),
-            Stat::make('Completed Contracts', (string) Contract::query()->where('status', 'completed')->count())
-                ->description('Projects ready for downstream teams'),
+            Stat::make('Contract Info Completed', (string) Contract::query()->where('status', ContractWorkflowStatus::Completed->value)->count())
+                ->description('Contracts with completed contract-info lifecycle'),
+            Stat::make('Marketing Ready Projects', (string) Contract::query()->whereHas('marketingProject')->count())
+                ->description('Contracts handed off to marketing as ready'),
             Stat::make('Exclusive Requests', (string) ExclusiveProjectRequest::count())
                 ->description('Exclusive project workflow records'),
             Stat::make('Project Media', (string) ProjectMedia::count())

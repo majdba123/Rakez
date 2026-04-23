@@ -21,6 +21,32 @@ class StoreCityRequest extends FormRequest
         }
     }
 
+    /**
+     * Row shape for cities+districts CSV (no unique on code — re-import may reference existing cities).
+     */
+    public static function citiesDistrictsCsvRowRules(): array
+    {
+        return [
+            'city_name' => ['required', 'string', 'max:255'],
+            'city_code' => ['required', 'string', 'max:64'],
+            'district_name' => ['nullable', 'string', 'max:255'],
+        ];
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    public static function citiesDistrictsCsvRowMessages(): array
+    {
+        return [
+            'city_name.required' => 'اسم المدينة مطلوب',
+            'city_name.max' => 'اسم المدينة يجب ألا يتجاوز 255 حرفاً',
+            'city_code.required' => 'رمز المدينة مطلوب',
+            'city_code.max' => 'رمز المدينة يجب ألا يتجاوز 64 حرفاً',
+            'district_name.max' => 'اسم الحي يجب ألا يتجاوز 255 حرفاً',
+        ];
+    }
+
     public function rules(): array
     {
         return [

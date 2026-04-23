@@ -19,7 +19,10 @@ class StoreDistrictRequest extends FormRequest
         }
     }
 
-    public function rules(): array
+    /**
+     * Same rules as {@see rules()} for CSV import rows (city_id comes from the row).
+     */
+    public static function rulesForCsvRow(int $cityId): array
     {
         return [
             'city_id' => ['required', 'integer', 'exists:cities,id'],
@@ -28,10 +31,15 @@ class StoreDistrictRequest extends FormRequest
                 'string',
                 'max:255',
                 Rule::unique('districts', 'name')->where(
-                    fn ($query) => $query->where('city_id', $this->input('city_id'))
+                    fn ($query) => $query->where('city_id', $cityId)
                 ),
             ],
         ];
+    }
+
+    public function rules(): array
+    {
+        return self::rulesForCsvRow((int) $this->input('city_id'));
     }
 
     public function messages(): array

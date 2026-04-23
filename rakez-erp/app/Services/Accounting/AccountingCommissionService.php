@@ -216,6 +216,12 @@ class AccountingCommissionService
             ];
         })->values()->all();
 
+        $pool = $commission->getDistributionPoolFigures();
+        $base['total_distributed_percentage'] = $pool['total_distributed_percentage'];
+        $base['remaining_percentage'] = $pool['remaining_percentage'];
+        $base['distributed_amount'] = $pool['distributed_amount'];
+        $base['remaining_amount'] = $pool['remaining_amount'];
+
         return $base;
     }
 
@@ -269,16 +275,21 @@ class AccountingCommissionService
             throw new Exception('Cannot modify distributions for non-pending commissions.');
         }
 
-        // Validate total percentage equals 100%
         $totalPercentage = array_sum(array_column($distributions, 'percentage'));
-        if (abs($totalPercentage - 100) > 0.01) {
-            throw new Exception('Total distribution percentage must equal 100%. Current total: ' . $totalPercentage);
+        if ($totalPercentage > 100 + 0.0001) {
+            throw new Exception('Total distribution percentage cannot exceed 100%. Current total: ' . $totalPercentage);
         }
 
         DB::beginTransaction();
         try {
             // Delete existing distributions
             $commission->distributions()->delete();
+
+            if ($distributions === []) {
+                DB::commit();
+
+                return $commission->fresh(['distributions.user']);
+            }
 
             // Create new distributions
             foreach ($distributions as $dist) {
@@ -397,6 +408,7 @@ class AccountingCommissionService
             ->findOrFail($commissionId);
 
         $distributions = $commission->distributions;
+        $pool = $commission->getDistributionPoolFigures();
 
         return [
             'commission_id' => $commission->id,
@@ -424,8 +436,11 @@ class AccountingCommissionService
                     'approved_at' => $dist->approved_at,
                 ];
             })->values()->all(),
-            'total_distributed_percentage' => round((float) $distributions->sum('percentage'), 2),
-            'total_distributed_amount' => round((float) $distributions->sum('amount'), 2),
+            'total_distributed_percentage' => $pool['total_distributed_percentage'],
+            'total_distributed_amount' => $pool['distributed_amount'],
+            'distributed_amount' => $pool['distributed_amount'],
+            'remaining_percentage' => $pool['remaining_percentage'],
+            'remaining_amount' => $pool['remaining_amount'],
         ];
     }
 

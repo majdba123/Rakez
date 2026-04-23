@@ -45,8 +45,9 @@ class CreditProcessStepBuilder
         }
 
         $steps = [];
+        $stageNumbers = $tracker->is_cash_workflow ? [1, 6] : range(1, 6);
 
-        for ($i = 1; $i <= 5; $i++) {
+        foreach ($stageNumbers as $i) {
             $status = $tracker->getStageStatus($i);
 
             $steps[] = [

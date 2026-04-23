@@ -6,17 +6,12 @@ use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Models\EmployeeWarning;
 use App\Http\Responses\ApiResponse;
-use App\Services\HR\EmployeeWarningService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Exception;
 
 class EmployeeWarningController extends Controller
 {
-    public function __construct(
-        private EmployeeWarningService $warningService
-    ) {}
-
     /**
      * List warnings for an employee.
      * GET /hr/users/{id}/warnings
@@ -99,7 +94,15 @@ class EmployeeWarningController extends Controller
         try {
             $user = User::findOrFail($id);
 
-            $warning = $this->warningService->createWarning($user->id, $validated, $request->user());
+            $warning = EmployeeWarning::create([
+                'user_id' => $user->id,
+                'issued_by' => $request->user()->id,
+                'type' => $validated['type'],
+                'reason' => $validated['reason'],
+                'details' => $validated['details'] ?? null,
+                'is_auto_generated' => false,
+                'warning_date' => $validated['warning_date'] ?? now()->toDateString(),
+            ]);
 
             return response()->json([
                 'success' => true,
@@ -131,7 +134,8 @@ class EmployeeWarningController extends Controller
     public function destroy(int $id): JsonResponse
     {
         try {
-            $this->warningService->deleteWarning($id);
+            $warning = EmployeeWarning::findOrFail($id);
+            $warning->delete();
 
             return response()->json([
                 'success' => true,

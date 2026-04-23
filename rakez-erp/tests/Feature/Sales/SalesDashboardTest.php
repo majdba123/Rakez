@@ -8,6 +8,7 @@ use App\Models\Commission;
 use App\Models\Deposit;
 use App\Models\SalesReservation;
 use App\Models\SecondPartyData;
+use App\Models\Team;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -27,22 +28,25 @@ class SalesDashboardTest extends TestCase
         // Seed roles and permissions
         $this->artisan('db:seed', ['--class' => 'RolesAndPermissionsSeeder']);
 
-        // Create sales users
+        // Create sales users (team scope uses users.team_id, not legacy string column)
+        $teamAlpha = Team::factory()->create(['name' => 'Team Alpha']);
+        $teamBeta = Team::factory()->create(['name' => 'Team Beta']);
+
         $this->salesUser = User::factory()->create([
             'type' => 'sales',
-            'team' => 'Team Alpha',
+            'team_id' => $teamAlpha->id,
         ]);
         $this->salesUser->assignRole('sales');
 
         $this->teamMember = User::factory()->create([
             'type' => 'sales',
-            'team' => 'Team Alpha',
+            'team_id' => $teamAlpha->id,
         ]);
         $this->teamMember->assignRole('sales');
 
         $this->otherTeamUser = User::factory()->create([
             'type' => 'sales',
-            'team' => 'Team Beta',
+            'team_id' => $teamBeta->id,
         ]);
         $this->otherTeamUser->assignRole('sales');
     }
@@ -144,6 +148,44 @@ class SalesDashboardTest extends TestCase
         // Should only count the salesUser's reservation
         $this->assertEquals(1, $data['reserved_units']);
         $this->assertEquals(1, $data['confirmed_reservations']);
+    }
+
+    public function test_dashboard_invalid_scope_uses_role_default_for_sales_leader()
+    {
+        $leader = User::factory()->create([
+            'type' => 'sales',
+            'is_manager' => true,
+            'team_id' => $this->salesUser->team_id,
+        ]);
+        $leader->assignRole('sales');
+
+        $contract = Contract::factory()->create(['status' => 'completed']);
+        $secondPartyData = SecondPartyData::factory()->create(['contract_id' => $contract->id]);
+        $unit = ContractUnit::factory()->create([
+            'contract_id' => $secondPartyData->contract_id,
+            'status' => 'available',
+            'price' => 500000,
+        ]);
+
+        SalesReservation::factory()->create([
+            'contract_id' => $contract->id,
+            'contract_unit_id' => $unit->id,
+            'marketing_employee_id' => $this->teamMember->id,
+            'status' => 'confirmed',
+        ]);
+
+        $response = $this->actingAs($leader, 'sanctum')
+            ->getJson('/api/sales/dashboard?scope=___not_a_valid_scope___');
+
+        $response->assertStatus(200);
+        $this->assertSame('team', $response->json('data.scope'));
+        $this->assertEquals(1, $response->json('data.total_reservations'));
+
+        $meResponse = $this->actingAs($leader, 'sanctum')
+            ->getJson('/api/sales/dashboard?scope=me');
+
+        $this->assertSame('me', $meResponse->json('data.scope'));
+        $this->assertEquals(0, $meResponse->json('data.total_reservations'));
     }
 
     public function test_dashboard_scope_team_filters_by_team()

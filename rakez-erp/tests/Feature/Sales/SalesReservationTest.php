@@ -4,10 +4,12 @@ namespace Tests\Feature\Sales;
 
 use App\Models\Contract;
 use App\Models\ContractUnit;
+use App\Models\Deposit;
 use App\Models\SalesReservation;
 use App\Models\SecondPartyData;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
@@ -99,7 +101,24 @@ class SalesReservationTest extends TestCase
         $this->assertNotNull($reservation->voucher_pdf_path);
         
         // Verify PDF file exists
-        Storage::disk('public')->assertExists($reservation->voucher_pdf_path);
+        $this->assertTrue(Storage::disk('public')->exists($reservation->voucher_pdf_path));
+    }
+
+    public function test_create_reservation_can_upload_receipt_voucher()
+    {
+        $data = $this->getValidReservationData();
+        $data['receipt_voucher'] = UploadedFile::fake()->image('receipt-voucher.jpg');
+
+        $response = $this->actingAs($this->salesUser, 'sanctum')
+            ->post('/api/sales/reservations', $data);
+
+        $response->assertStatus(201)
+            ->assertJsonPath('data.receipt_voucher_path', fn ($path) => is_string($path) && str_starts_with($path, 'reservations/receipts/'))
+            ->assertJsonPath('data.receipt_voucher_url', fn ($url) => is_string($url) && str_contains($url, 'reservations/receipts/'));
+
+        $reservation = SalesReservation::first();
+        $this->assertNotNull($reservation->receipt_voucher_path);
+        $this->assertTrue(Storage::disk('public')->exists($reservation->receipt_voucher_path));
     }
 
     public function test_create_reservation_stores_snapshot()
@@ -368,5 +387,225 @@ class SalesReservationTest extends TestCase
             ->get("/api/sales/reservations/{$reservation->id}/voucher");
 
         $response->assertStatus(403);
+    }
+
+    public function test_confirmed_reservation_creates_deposit_automatically()
+    {
+        // Test that creating a confirmed reservation automatically creates a deposit
+        $data = $this->getValidReservationData();
+        $data['reservation_type'] = 'confirmed_reservation';
+        $data['down_payment_amount'] = 150000;
+        $data['payment_method'] = 'bank_transfer';
+
+        $response = $this->actingAs($this->salesUser, 'sanctum')
+            ->postJson('/api/sales/reservations', $data);
+
+        $response->assertStatus(201);
+
+        $reservation = SalesReservation::first();
+        $this->assertSame('confirmed', $reservation->status);
+
+        // Verify deposit was created
+        $this->assertDatabaseHas('deposits', [
+            'sales_reservation_id' => $reservation->id,
+            'contract_id' => $this->contract->id,
+            'contract_unit_id' => $this->unit->id,
+            'amount' => 150000,
+            'payment_method' => 'bank_transfer',
+            'status' => 'pending',
+        ]);
+
+        $deposit = Deposit::where('sales_reservation_id', $reservation->id)->first();
+        $this->assertNotNull($deposit);
+        $this->assertSame($reservation->client_name, $deposit->client_name);
+        // Commission source should be a valid enum value (owner or buyer)
+        $this->assertContains($deposit->commission_source, ['owner', 'buyer']);
+    }
+
+    public function test_negotiation_reservation_does_not_create_deposit()
+    {
+        // Test that negotiation reservations don't create deposits (only confirmed ones do)
+        $data = $this->getValidReservationData();
+        $data['reservation_type'] = 'negotiation';
+        $data['proposed_price'] = 450000; // Must be less than unit price (500000)
+        $data['negotiation_notes'] = 'Client wants discount';
+
+        $response = $this->actingAs($this->salesUser, 'sanctum')
+            ->postJson('/api/sales/reservations', $data);
+
+        $response->assertStatus(201);
+
+        $reservation = SalesReservation::first();
+        $this->assertSame('under_negotiation', $reservation->status);
+
+        // Verify NO deposit was created
+        $this->assertDatabaseMissing('deposits', [
+            'sales_reservation_id' => $reservation->id,
+        ]);
+    }
+
+    public function test_created_deposit_appears_in_accounting_queue()
+    {
+        // Test that a deposit created from reservation appears in accounting queue
+        $data = $this->getValidReservationData();
+        $data['down_payment_amount'] = 250000;
+        $data['client_name'] = 'Khalid Ahmed';
+
+        // Create the reservation (which also creates a deposit)
+        $response = $this->actingAs($this->salesUser, 'sanctum')
+            ->postJson('/api/sales/reservations', $data);
+        $response->assertStatus(201);
+
+        $reservation = SalesReservation::first();
+
+        // Set up accounting user with proper role and permission
+        $this->artisan('db:seed', ['--class' => 'RolesAndPermissionsSeeder']);
+        $accountingUser = User::factory()->create(['type' => 'accounting']);
+        $accountingUser->assignRole('accounting');
+        $accountingUser->givePermissionTo('accounting.deposits.view');
+
+        // Get accounting queue
+        $response = $this->actingAs($accountingUser, 'sanctum')
+            ->getJson('/api/accounting/deposits/pending');
+
+        $response->assertStatus(200);
+
+        // Find the deposit row for our reservation
+        $depositRows = collect($response->json('data'))->filter(fn ($row) =>
+            $row['reservation_id'] === $reservation->id && $row['row_entity'] === 'deposit'
+        );
+
+        $this->assertGreaterThan(0, $depositRows->count(), 'Created deposit should appear in accounting queue');
+
+        $depositRow = $depositRows->first();
+        $this->assertSame('deposit', $depositRow['row_entity']);
+        $this->assertSame('deposit_pending_confirmation', $depositRow['accounting_state']);
+        $this->assertSame('Khalid Ahmed', $depositRow['client']['name']);
+        $this->assertEquals(250000.0, (float) $depositRow['amount']);
+        $this->assertSame('bank_transfer', $depositRow['payment_method']);
+    }
+
+    public function test_deposit_amount_matches_down_payment_from_reservation()
+    {
+        // Test that deposit amount is correctly set to down_payment_amount
+        $data = $this->getValidReservationData();
+        $testAmount = 175000;
+        $data['down_payment_amount'] = $testAmount;
+
+        $response = $this->actingAs($this->salesUser, 'sanctum')
+            ->postJson('/api/sales/reservations', $data);
+        $response->assertStatus(201);
+
+        $reservation = SalesReservation::first();
+        $deposit = Deposit::where('sales_reservation_id', $reservation->id)->first();
+
+        $this->assertEquals($testAmount, (float) $deposit->amount);
+        $this->assertEquals($reservation->down_payment_amount, $deposit->amount);
+    }
+
+    public function test_deposit_payment_method_matches_reservation()
+    {
+        // Test that deposit payment method is correctly taken from reservation
+        $paymentMethods = ['cash', 'bank_transfer', 'bank_financing'];
+
+        foreach ($paymentMethods as $method) {
+            $this->unit->refresh();
+            $data = $this->getValidReservationData();
+            $data['payment_method'] = $method;
+
+            $response = $this->actingAs($this->salesUser, 'sanctum')
+                ->postJson('/api/sales/reservations', $data);
+            $response->assertStatus(201);
+
+            $reservation = SalesReservation::latest()->first();
+            $deposit = Deposit::where('sales_reservation_id', $reservation->id)->first();
+
+            $this->assertSame($method, $deposit->payment_method,
+                "Deposit payment method should match reservation for method: $method"
+            );
+
+            // Clean up for next iteration
+            $reservation->delete();
+            $deposit->delete();
+        }
+    }
+
+    public function test_reservation_without_down_payment_does_not_create_deposit()
+    {
+        // Test that reservations with zero down_payment don't create deposits
+        $data = $this->getValidReservationData();
+        $data['down_payment_amount'] = 0;
+
+        $response = $this->actingAs($this->salesUser, 'sanctum')
+            ->postJson('/api/sales/reservations', $data);
+        $response->assertStatus(201);
+
+        $reservation = SalesReservation::first();
+
+        // Verify NO deposit was created (since amount is 0)
+        $this->assertDatabaseMissing('deposits', [
+            'sales_reservation_id' => $reservation->id,
+        ]);
+    }
+
+    public function test_complete_sales_to_accounting_flow()
+    {
+        // Test the complete flow: sales creates reservation -> deposit created -> accounting sees it
+        
+        // Step 1: Sales creates a confirmed reservation
+        $data = $this->getValidReservationData();
+        $data['client_name'] = 'Mohammed Hassan';
+        $data['down_payment_amount'] = 300000;
+
+        $response = $this->actingAs($this->salesUser, 'sanctum')
+            ->postJson('/api/sales/reservations', $data);
+        $response->assertStatus(201);
+
+        $reservation = SalesReservation::first();
+        $this->assertSame('confirmed', $reservation->status);
+
+        // Step 2: Verify deposit was created with correct data
+        $deposit = Deposit::where('sales_reservation_id', $reservation->id)->first();
+        $this->assertNotNull($deposit);
+        $this->assertSame('pending', $deposit->status);
+        $this->assertSame('Mohammed Hassan', $deposit->client_name);
+        $this->assertEquals(300000.0, (float) $deposit->amount);
+
+        // Step 3: Accounting views the pending deposits
+        $this->artisan('db:seed', ['--class' => 'RolesAndPermissionsSeeder']);
+        $accountingUser = User::factory()->create(['type' => 'accounting']);
+        $accountingUser->assignRole('accounting');
+        $accountingUser->givePermissionTo('accounting.deposits.view');
+
+        $response = $this->actingAs($accountingUser, 'sanctum')
+            ->getJson('/api/accounting/deposits/pending?scope=all');
+        $response->assertStatus(200);
+
+        // Step 4: Verify the deposit appears in accounting queue
+        $depositRows = collect($response->json('data'))->filter(fn ($row) =>
+            $row['deposit_id'] === $deposit->id
+        );
+
+        $this->assertCount(1, $depositRows, 'Deposit should appear in accounting queue');
+
+        $row = $depositRows->first();
+        $this->assertSame('deposit', $row['row_entity']);
+        $this->assertSame('deposit_pending_confirmation', $row['accounting_state']);
+        $this->assertSame($reservation->id, $row['reservation_id']);
+        $this->assertSame($deposit->id, $row['deposit_id']);
+        $this->assertSame('Mohammed Hassan', $row['client']['name']);
+        $this->assertEquals(300000.0, (float) $row['amount']);
+        $this->assertSame($this->contract->id, $row['project']['contract_id']);
+        $this->assertSame($this->unit->id, $row['unit']['id']);
+
+        // Step 5: Accounting confirms the deposit receipt
+        $response = $this->actingAs($accountingUser, 'sanctum')
+            ->postJson("/api/accounting/deposits/{$deposit->id}/confirm");
+        $response->assertStatus(200);
+
+        // Step 6: Verify deposit status changed to confirmed
+        $deposit->refresh();
+        $this->assertSame('confirmed', $deposit->status);
+        $this->assertNotNull($deposit->confirmed_at);
     }
 }

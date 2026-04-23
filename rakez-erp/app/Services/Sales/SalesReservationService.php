@@ -11,7 +11,6 @@ use App\Models\User;
 use App\Models\UserNotification;
 use App\Events\UserNotificationEvent;
 use App\Exceptions\UnitAlreadyReservedException;
-use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Exception;
@@ -20,9 +19,47 @@ class SalesReservationService
 {
     protected ReservationVoucherService $voucherService;
 
-    public function __construct(ReservationVoucherService $voucherService)
-    {
+    public function __construct(
+        ReservationVoucherService $voucherService,
+        protected SalesDashboardService $salesDashboardService,
+        protected DepositService $depositService,
+    ) {
         $this->voucherService = $voucherService;
+    }
+
+    /**
+     * Map contract commission_from value to deposit commission_source enum value.
+     * Handles both Arabic and English values.
+     */
+    protected function mapCommissionSource(?string $contractCommissionFrom): string
+    {
+        if (!$contractCommissionFrom) {
+            return 'owner'; // default
+        }
+
+        $value = strtolower(trim($contractCommissionFrom));
+        
+        // Map Arabic values
+        if (str_contains($value, 'مالك') || $value === 'مالك') {
+            return 'owner';
+        }
+        if (str_contains($value, 'مشتري') || $value === 'مشتري') {
+            return 'buyer';
+        }
+        if (str_contains($value, 'طرفين') || $value === 'الطرفين') {
+            return 'owner'; // Default to owner if both parties
+        }
+        
+        // Map English values
+        if ($value === 'owner') {
+            return 'owner';
+        }
+        if ($value === 'buyer') {
+            return 'buyer';
+        }
+        
+        // Fallback to owner
+        return 'owner';
     }
 
     /**
@@ -78,7 +115,7 @@ class SalesReservationService
                 'employee' => [
                     'id' => $user->id,
                     'name' => $user->name,
-                    'team' => $user->team,
+                    'team' => $user->team?->name ?? '',
                 ],
                 'client' => [
                     'name' => $data['client_name'],
@@ -120,6 +157,7 @@ class SalesReservationService
                 'down_payment_amount' => $data['down_payment_amount'],
                 'down_payment_status' => $data['down_payment_status'],
                 'purchase_mechanism' => $data['purchase_mechanism'],
+                'receipt_voucher_path' => $data['receipt_voucher_path'] ?? null,
                 'snapshot' => $snapshot,
                 'confirmed_at' => $status === 'confirmed' ? now() : null,
             ]);
@@ -139,6 +177,22 @@ class SalesReservationService
 
             // Update unit status to reserved
             $unit->update(['status' => 'reserved']);
+
+            // Create deposit if reservation is confirmed (immediate deposit flow)
+            if ($status === 'confirmed' && $data['down_payment_amount'] > 0) {
+                $commissionSource = $this->mapCommissionSource($contract->commission_from);
+                $this->depositService->createDeposit(
+                    $reservation->id,
+                    $data['contract_id'],
+                    $data['contract_unit_id'],
+                    (float) $data['down_payment_amount'],
+                    $data['payment_method'],
+                    $data['client_name'],
+                    now()->format('Y-m-d'),
+                    $commissionSource,
+                    'تم إنشاء العربون من حجز المبيعات'
+                );
+            }
 
             // Generate PDF voucher (optional: if Mpdf is not installed, reservation is still created)
             try {
@@ -173,9 +227,10 @@ class SalesReservationService
     {
         $reservation = SalesReservation::findOrFail($id);
 
-        // Check ownership first; governance admins with the real confirm permission can also execute.
+        // Check ownership first - regular sales employees can only confirm their own reservations
         if ($reservation->marketing_employee_id !== $user->id) {
-            if (! $user->can('sales.reservations.confirm') && ! $user->hasRole('admin')) {
+            // Only admins and project_management can confirm others' reservations
+            if (!$user->hasRole('admin') && !$user->hasRole('project_management')) {
                 throw new \Illuminate\Auth\Access\AuthorizationException('Unauthorized to confirm this reservation');
             }
         }
@@ -203,14 +258,9 @@ class SalesReservationService
     {
         $reservation = SalesReservation::findOrFail($id);
 
-        // Sales can cancel their own; governance sales/credit admins can cancel through real permissions.
+        // Check ownership: sales can cancel own; admin, credit and project_management can cancel any
         if ($reservation->marketing_employee_id !== $user->id) {
-            if (
-                ! $user->can('sales.reservations.cancel')
-                && ! $user->can('credit.bookings.manage')
-                && ! $user->hasRole('admin')
-                && ! $user->hasRole('credit')
-            ) {
+            if (!$user->hasRole('admin') && !$user->hasRole('credit') && !$user->hasRole('project_management')) {
                 throw new \Illuminate\Auth\Access\AuthorizationException('Unauthorized to cancel this reservation');
             }
         }
@@ -252,13 +302,16 @@ class SalesReservationService
     {
         $query = SalesReservation::with(['contract', 'contractUnit', 'marketingEmployee']);
 
-        // Auto-filter for sales users: show only their own reservations
-        // Admins and managers can see all reservations (unless mine filter is explicitly set)
+        // Visibility: sales reps see own rows; sales leaders see team + led-project rows (see SalesDashboardService).
+        // `mine=1` limits to own reservations for any sales user (including leaders).
         if ($user->type === 'sales' && !$user->hasRole('admin')) {
-            $query->where('marketing_employee_id', $user->id);
+            if (!empty($filters['mine'])) {
+                $query->where('marketing_employee_id', (int) $user->id);
+            } else {
+                $this->salesDashboardService->applyReservationListVisibility($query, $user);
+            }
         } elseif (!empty($filters['mine'])) {
-            // For other users, apply mine filter if provided
-            $query->where('marketing_employee_id', $user->id);
+            $query->where('marketing_employee_id', (int) $user->id);
         }
 
         // Include cancelled or not
@@ -271,9 +324,17 @@ class SalesReservationService
             $query->where('contract_id', $filters['contract_id']);
         }
 
+        if (!empty($filters['marketing_id'])) {
+            $query->where('marketing_employee_id', (int) $filters['marketing_id']);
+        }
+
         // Filter by status
         if (!empty($filters['status'])) {
             $query->where('status', $filters['status']);
+        }
+
+        if (!empty($filters['credit_status'])) {
+            $query->byCreditStatus($filters['credit_status']);
         }
 
         // Date range filter
@@ -290,25 +351,6 @@ class SalesReservationService
 
         $perPage = $filters['per_page'] ?? 15;
         return $query->orderBy('created_at', 'desc')->paginate($perPage);
-    }
-
-    public function getReservationForAiSkill(int $reservationId, User $user): SalesReservation
-    {
-        $reservation = SalesReservation::with([
-            'contract',
-            'contractUnit',
-            'marketingEmployee',
-            'negotiationApproval',
-            'paymentInstallments',
-            'financingTracker',
-            'titleTransfer',
-        ])->findOrFail($reservationId);
-
-        if (! $user->can('view', $reservation)) {
-            throw new AuthorizationException('Unauthorized to view this reservation');
-        }
-
-        return $reservation;
     }
 
     /**

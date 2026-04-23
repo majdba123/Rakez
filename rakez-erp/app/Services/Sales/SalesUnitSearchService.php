@@ -10,6 +10,11 @@ use Illuminate\Support\Facades\DB;
 
 class SalesUnitSearchService
 {
+    protected function isSalesOrLeader(User $user): bool
+    {
+        return $user->hasAnyRole(['sales', 'sales_leader']) || $user->type === 'sales';
+    }
+
     public function search(array $filters, User $user): LengthAwarePaginator
     {
         $query = ContractUnit::query()
@@ -242,7 +247,7 @@ class SalesUnitSearchService
     {
         // Sales users (leaders + staff) can search across all completed contracts' units,
         // regardless of whether a specific project/contract is assigned to them.
-        if ($user->type === 'sales') {
+        if ($this->isSalesOrLeader($user)) {
             return \App\Models\Contract::where('status', 'completed')->pluck('id')->all();
         }
         return [];

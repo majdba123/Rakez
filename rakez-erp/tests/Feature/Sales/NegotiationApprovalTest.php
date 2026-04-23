@@ -33,6 +33,7 @@ class NegotiationApprovalTest extends TestCase
             'sales.reservations.view',
             'sales.negotiation.approve',
             'sales.payment-plan.manage',
+            'sales.payment_plan.manage',
         ];
 
         foreach ($permissions as $perm) {

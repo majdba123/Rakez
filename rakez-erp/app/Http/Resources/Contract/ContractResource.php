@@ -45,6 +45,7 @@ class ContractResource extends JsonResource
             'developer_requiment' => $this->developer_requiment,
             'project_image_url' => $this->project_image_url,
             'status' => $this->status,
+            'is_complete_second' => (bool) $this->is_complete_second,
             'notes' => $this->notes,
             'units' => $this->units ?? [],
             'unit_count' => $unitCount,

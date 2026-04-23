@@ -106,7 +106,7 @@ class CreditDashboardService
     public function getOverdueStagesSummary(): array
     {
         $summary = [];
-        for ($i = 1; $i <= 5; $i++) {
+        for ($i = 1; $i <= 6; $i++) {
             $summary["stage_{$i}"] = CreditFinancingTracker::inProgress()
                 ->where("stage_{$i}_status", 'overdue')
                 ->count();
@@ -139,7 +139,7 @@ class CreditDashboardService
     }
 
     /**
-     * Get Arabic labels for financing stages 1-5 (for display in dashboard).
+     * Get Arabic labels for financing stages 1–6 (for display in dashboard).
      */
     public function getStageLabelsAr(): array
     {
@@ -152,7 +152,7 @@ class CreditDashboardService
     }
 
     /**
-     * Get title transfer breakdown (stages 6 & 7: preparation, contract execution).
+     * Get title transfer breakdown (preparation vs scheduled; separate from financing stage 6).
      */
     public function getTitleTransferBreakdown(): array
     {
@@ -169,7 +169,7 @@ class CreditDashboardService
     {
         $breakdown = [];
 
-        for ($i = 1; $i <= 5; $i++) {
+        for ($i = 1; $i <= 6; $i++) {
             $breakdown["stage_{$i}"] = [
                 'pending' => CreditFinancingTracker::inProgress()->where("stage_{$i}_status", 'pending')->count(),
                 'in_progress' => CreditFinancingTracker::inProgress()->where("stage_{$i}_status", 'in_progress')->count(),

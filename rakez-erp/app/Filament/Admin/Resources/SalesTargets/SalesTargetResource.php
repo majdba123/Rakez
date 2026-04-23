@@ -50,6 +50,15 @@ class SalesTargetResource extends Resource
                 TextColumn::make('contract.project_name')->label('Project')->searchable()->placeholder('-'),
                 TextColumn::make('leader.name')->label('Leader')->placeholder('-'),
                 TextColumn::make('marketer.name')->label('Marketer')->placeholder('-'),
+                TextColumn::make('must_sell_units_count')
+                    ->label('Units Goal')
+                    ->numeric()
+                    ->sortable()
+                    ->placeholder('-'),
+                TextColumn::make('assigned_target_value')
+                    ->label('Target Value')
+                    ->state(fn (SalesTarget $record): string => $record->assigned_target_value !== null ? number_format((float) $record->assigned_target_value, 2) . ' AED' : '-')
+                    ->sortable(),
                 TextColumn::make('target_type')->label('Target Type')->badge(),
                 TextColumn::make('status')->badge(),
                 TextColumn::make('start_date')->date(),

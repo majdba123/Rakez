@@ -21,7 +21,8 @@ class PhotographyDepartment extends Model
         'image_url',           // رابط الصورة
         'video_url',           // رابط الفيديو
         'description',         // الوصف
-        'status',              // الحالة (pending/approved)
+        'status',              // الحالة (pending/approved/rejected)
+        'rejection_comment',   // سبب الرفض عند عدم الاعتماد
         'processed_by',        // معالج بواسطة
         'processed_at',        // تاريخ المعالجة
     ];

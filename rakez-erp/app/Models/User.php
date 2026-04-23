@@ -3,20 +3,15 @@
 namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
-use App\Services\Governance\GovernanceAccessService;
-use App\Services\Governance\GovernanceTemporaryPermissionService;
-use Filament\Models\Contracts\FilamentUser;
-use Filament\Panel;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
 use Spatie\Permission\Traits\HasRoles;
 
-class User extends Authenticatable implements FilamentUser
+class User extends Authenticatable
 {
-    use HasApiTokens, HasFactory, Notifiable, HasRoles, SoftDeletes;
+    use HasApiTokens, HasFactory, Notifiable, HasRoles;
 
 
     protected $fillable = [
@@ -110,11 +105,6 @@ class User extends Authenticatable implements FilamentUser
     public function isAdmin()
     {
         return $this->type === 'admin';
-    }
-
-    public function canAccessPanel(Panel $panel): bool
-    {
-        return app(GovernanceAccessService::class)->canAccessPanel($this, $panel);
     }
 
     /**
@@ -236,7 +226,7 @@ class User extends Authenticatable implements FilamentUser
     public function getEffectivePermissions(): array
     {
         $permissions = $this->getAllPermissions()->pluck('name')->toArray();
-
+        
         // Add manager-specific permissions dynamically
         if ($this->isProjectManagementManager()) {
             $managerPermissions = [
@@ -248,17 +238,15 @@ class User extends Authenticatable implements FilamentUser
             $permissions = array_merge($permissions, $managerPermissions);
         }
 
-        $temporary = app(GovernanceTemporaryPermissionService::class)
-            ->activePermissionNamesForUser($this)
-            ->all();
-        $permissions = array_merge($permissions, $temporary);
+        // Sales leaders: ensure Gate can see leader permissions even when Spatie role sync lags (type sales + is_manager)
+        if ($this->isSalesLeader()) {
+            $leaderPerms = config('ai_capabilities.bootstrap_role_map.sales_leader', []);
+            if (is_array($leaderPerms) && $leaderPerms !== []) {
+                $permissions = array_merge($permissions, $leaderPerms);
+            }
+        }
 
         return array_values(array_unique($permissions));
-    }
-
-    public function governanceTemporaryPermissions()
-    {
-        return $this->hasMany(GovernanceTemporaryPermission::class, 'user_id');
     }
 
     /**
@@ -280,22 +268,8 @@ class User extends Authenticatable implements FilamentUser
             $roleName = 'sales_leader';
         }
 
-        if ($this->type === 'user') {
-            $roleName = 'default';
-        }
-
         if (\Spatie\Permission\Models\Role::where('name', $roleName)->exists()) {
-            $operationalRoles = config('governance.operational_roles', []);
-
-            $preservedRoles = $this->roles()
-                ->whereNotIn('name', $operationalRoles)
-                ->pluck('name')
-                ->all();
-
-            $this->syncRoles(array_values(array_unique([
-                ...$preservedRoles,
-                $roleName,
-            ])));
+            $this->syncRoles([$roleName]);
         }
     }
 

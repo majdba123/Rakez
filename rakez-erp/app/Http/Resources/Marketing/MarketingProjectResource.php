@@ -2,40 +2,45 @@
 
 namespace App\Http\Resources\Marketing;
 
+use App\Services\Marketing\MarketingProjectMetricsResolver;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
 class MarketingProjectResource extends JsonResource
 {
+    private MarketingProjectMetricsResolver $metricsResolver;
+
+    public function __construct($resource)
+    {
+        parent::__construct($resource);
+        $this->metricsResolver = app(MarketingProjectMetricsResolver::class);
+    }
+
     public function toArray(Request $request): array
     {
         $contract = $this->contract;
         $info = $contract->info;
 
-        // Use contract_units rows; avoid `$contract->units` (JSON column on contracts).
-        $units = $contract->relationLoaded('contractUnits')
-            ? $contract->getRelation('contractUnits')
-            : $contract->contractUnits()->get();
-        $availableUnits = $units->where('status', 'available');
-        $pendingUnits = $units->where('status', 'pending');
+        // Use canonical metrics resolver
+        $metrics = $this->metricsResolver->resolveForList($contract);
 
         return [
             'id' => $this->id,
-            'contract_id' => $this->contract_id,
-            'project_name' => $contract->project_name ?? null,
+            'contract_id' => (int) $metrics['contract_id'],
+            'project_name' => $metrics['project_name'],
             'developer_name' => $contract->developer_name ?? null,
-            'status' => $this->status,
+            'status' => $metrics['status'],
             'team_leader' => $this->teamLeader->name ?? null,
             'units_count' => [
-                'available' => $availableUnits->count(),
-                'pending' => $pendingUnits->count(),
+                'available' => (int) $metrics['units_count']['available'],
+                'pending' => (int) $metrics['units_count']['pending'],
             ],
-            'avg_unit_price' => $info?->avg_property_value ?? 0,
+            'avg_unit_price' => (float) $metrics['avg_unit_price'],
             'advertiser_number' => (!empty($info?->agency_number)) ? 'Available' : 'Pending',
             'advertiser_number_value' => $info?->agency_number,
             'advertiser_number_status' => (!empty($info?->agency_number)) ? 'Available' : 'Pending',
-            'commission_percent' => $contract->getEffectiveCommissionPercent(),
-            'total_available_value' => $availableUnits->sum('price'),
+            'commission_percent' => (float) $metrics['commission_percent'],
+            'total_available_value' => (float) $metrics['total_available_value'],
             'media_links' => $contract->projectMedia
                 ->filter(function ($media) {
                     $isSupportedDepartment = in_array($media->department, ['montage', 'photography'], true);

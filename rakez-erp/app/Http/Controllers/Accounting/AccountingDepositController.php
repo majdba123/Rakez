@@ -3,8 +3,10 @@
 namespace App\Http\Controllers\Accounting;
 
 use App\Http\Controllers\Controller;
-use App\Models\Deposit;
+use App\Http\Resources\Accounting\AccountingDepositFollowUpResource;
+use App\Http\Resources\Accounting\AccountingPendingDepositResource;
 use App\Services\Accounting\AccountingDepositService;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
@@ -20,33 +22,61 @@ class AccountingDepositController extends Controller
     }
 
     /**
-     * Get pending deposits.
-     * GET /api/accounting/deposits/pending
+     * Get pending deposits (unified accounting queue).
+     * GET /api/accounting/deposits/pending?scope=all|actionable|closed&...
+     * 
+     * Supports query params:
+     * - scope: all|actionable|closed (default: actionable)
+     * - accounting_state: filter by accounting state
+     * - deposit_status: filter by deposit status
+     * - has_deposit: 0|1
+     * - contract_id or project_id: filter by contract
+     * - project_name: filter by project name (partial match)
+     * - client_name: filter by client name (partial match)
+     * - commission_source: owner|buyer
+     * - from_date, to_date: date range
+     * - payment_method: filter by payment method
+     * - page, per_page: pagination
      */
     public function pending(Request $request): JsonResponse
     {
         try {
             $request->validate([
-                'project_id' => 'nullable|exists:contracts,id',
+                'scope' => 'nullable|in:all,actionable,closed',
+                'accounting_state' => 'nullable|string',
+                'deposit_status' => 'nullable|string',
+                'has_deposit' => 'nullable|in:0,1',
+                'contract_id' => 'nullable|integer|exists:contracts,id',
+                'project_id' => 'nullable|integer|exists:contracts,id',
+                'project_name' => 'nullable|string',
+                'client_name' => 'nullable|string',
+                'commission_source' => 'nullable|in:owner,buyer',
                 'from_date' => 'nullable|date',
                 'to_date' => 'nullable|date|after_or_equal:from_date',
                 'payment_method' => 'nullable|string',
-                'commission_source' => 'nullable|in:owner,buyer',
+                'page' => 'nullable|integer|min:1',
                 'per_page' => 'nullable|integer|min:1|max:100',
             ]);
 
-            $filters = $request->only(['project_id', 'from_date', 'to_date', 'payment_method', 'commission_source', 'per_page']);
-            $deposits = $this->depositService->getPendingDeposits($filters);
+            $filters = $request->only([
+                'scope', 'accounting_state', 'deposit_status', 'has_deposit',
+                'contract_id', 'project_id', 'project_name', 'client_name',
+                'commission_source', 'from_date', 'to_date', 'payment_method',
+                'page', 'per_page'
+            ]);
+
+            // Service now handles ALL filtering (including post-filtering) before pagination
+            $data = $this->depositService->getPendingDeposits($filters);
 
             return response()->json([
                 'success' => true,
-                'message' => 'تم جلب العرابين المعلقة بنجاح',
-                'data' => $deposits->items(),
+                'message' => 'تم جلب قائمة العربون الموحدة بنجاح',
+                'data' => AccountingPendingDepositResource::collection(collect($data->items())),
                 'meta' => [
-                    'total' => $deposits->total(),
-                    'per_page' => $deposits->perPage(),
-                    'current_page' => $deposits->currentPage(),
-                    'last_page' => $deposits->lastPage(),
+                    'total' => $data->total(),
+                    'per_page' => $data->perPage(),
+                    'current_page' => $data->currentPage(),
+                    'last_page' => $data->lastPage(),
                 ],
             ], 200);
         } catch (ValidationException $e) {
@@ -77,12 +107,22 @@ class AccountingDepositController extends Controller
                 'message' => 'تم تأكيد استلام العربون بنجاح',
                 'data' => $deposit,
             ], 200);
+        } catch (ModelNotFoundException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Deposit not found',
+            ], 404);
         } catch (Exception $e) {
-            $statusCode = str_contains($e->getMessage(), 'No query results') ? 404 : 400;
+            if (str_contains($e->getMessage(), 'المعرف المُرسل يخص حجزاً')) {
+                return response()->json([
+                    'success' => false,
+                    'message' => $e->getMessage(),
+                ], 422);
+            }
             return response()->json([
                 'success' => false,
                 'message' => $e->getMessage(),
-            ], $statusCode);
+            ], 400);
         }
     }
 
@@ -107,7 +147,7 @@ class AccountingDepositController extends Controller
             return response()->json([
                 'success' => true,
                 'message' => 'تم جلب بيانات المتابعة بنجاح',
-                'data' => $reservations->items(),
+                'data' => AccountingDepositFollowUpResource::collection(collect($reservations->items())),
                 'meta' => [
                     'total' => $reservations->total(),
                     'per_page' => $reservations->perPage(),
@@ -136,9 +176,12 @@ class AccountingDepositController extends Controller
     public function depositPdfData(int $id): JsonResponse
     {
         try {
-            $deposit = Deposit::with(['contract', 'contractUnit', 'confirmedBy'])->findOrFail($id);
+            $deposit = $this->depositService->findDepositForAccountingAction($id);
+            $deposit->load(['contract', 'contractUnit', 'confirmedBy']);
 
             $data = [
+                'deposit_id' => $deposit->id,
+                'reservation_id' => $deposit->sales_reservation_id,
                 'id' => $deposit->id,
                 'commission_source' => (string) ($deposit->commission_source ?? ''),
                 'payment_method' => (string) ($deposit->payment_method ?? ''),
@@ -161,9 +204,12 @@ class AccountingDepositController extends Controller
             ];
 
             return response()->json($data, 200, ['Content-Type' => 'application/json']);
-        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+        } catch (ModelNotFoundException $e) {
             return response()->json(['success' => false, 'message' => 'Deposit not found'], 404);
         } catch (Exception $e) {
+            if (str_contains($e->getMessage(), 'المعرف المُرسل يخص حجزاً')) {
+                return response()->json(['success' => false, 'message' => $e->getMessage()], 422);
+            }
             return response()->json([
                 'success' => false,
                 'message' => $e->getMessage(),
@@ -185,12 +231,22 @@ class AccountingDepositController extends Controller
                 'message' => 'تم استرداد العربون بنجاح',
                 'data' => $deposit,
             ], 200);
+        } catch (ModelNotFoundException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Deposit not found',
+            ], 404);
         } catch (Exception $e) {
-            $statusCode = str_contains($e->getMessage(), 'No query results') ? 404 : 400;
+            if (str_contains($e->getMessage(), 'المعرف المُرسل يخص حجزاً')) {
+                return response()->json([
+                    'success' => false,
+                    'message' => $e->getMessage(),
+                ], 422);
+            }
             return response()->json([
                 'success' => false,
                 'message' => $e->getMessage(),
-            ], $statusCode);
+            ], 400);
         }
     }
 

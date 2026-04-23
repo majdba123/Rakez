@@ -13,6 +13,7 @@ class SalesTargetProjectResource extends JsonResource
     {
         /** @var Contract $contract */
         $contract = $this->resource;
+        $contract->loadMissing(['city', 'district']);
 
         return [
             'item_type' => 'project_assignment',
@@ -20,6 +21,14 @@ class SalesTargetProjectResource extends JsonResource
             'target_id' => null,
             'contract_id' => $contract->id,
             'project_name' => $contract->project_name,
+            'project_location' => [
+                'city_id' => $contract->city_id,
+                'city_name' => $contract->city?->name,
+                'district_id' => $contract->district_id,
+                'district_name' => $contract->district?->name,
+            ],
+            'must_sell_units_count' => null,
+            'assigned_target_value' => null,
             'unit_number' => null,
             'contract_unit_ids' => [],
             'units' => [],
@@ -32,6 +41,7 @@ class SalesTargetProjectResource extends JsonResource
             'status' => null,
             'status_label_ar' => null,
             'leader_notes' => null,
+            'leader_id' => null,
             'assigned_by' => 'Project Management',
             'marketer_id' => null,
             'marketer_name' => null,

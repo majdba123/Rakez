@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Contract;
 
+use App\Models\SecondPartyData;
 use Illuminate\Foundation\Http\FormRequest;
 
 class StoreSecondPartyDataRequest extends FormRequest
@@ -9,6 +10,20 @@ class StoreSecondPartyDataRequest extends FormRequest
     public function authorize(): bool
     {
         return true;
+    }
+
+    protected function prepareForValidation(): void
+    {
+        $merge = [];
+        foreach (SecondPartyData::fieldNamesRequiredForContractCompletion() as $field) {
+            if (!$this->has($field)) {
+                continue;
+            }
+            $merge[$field] = $this->input($field);
+        }
+        if ($merge !== []) {
+            $this->merge(SecondPartyData::normalizeCompletionFieldsInPayload($merge));
+        }
     }
 
     public function rules(): array

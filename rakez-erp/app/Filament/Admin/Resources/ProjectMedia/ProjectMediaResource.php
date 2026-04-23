@@ -59,11 +59,12 @@ class ProjectMediaResource extends Resource
             ])
             ->filters([
                 SelectFilter::make('department')
-                    ->options([
-                        'boards' => 'Boards',
-                        'photography' => 'Photography',
-                        'montage' => 'Montage',
-                    ]),
+                    ->options(fn (): array => ProjectMedia::query()
+                        ->whereNotNull('department')
+                        ->distinct()
+                        ->pluck('department', 'department')
+                        ->sort()
+                        ->all()),
                 SelectFilter::make('type')
                     ->options(fn (): array => ProjectMedia::query()
                         ->whereNotNull('type')

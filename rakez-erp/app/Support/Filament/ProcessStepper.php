@@ -26,18 +26,18 @@ class ProcessStepper
                 };
 
                 $descriptionHtml = $description
-                    ? '<div class="text-xs text-gray-500">'.$description.'</div>'
+                    ? '<div class="fi-rakez-stepper-desc text-xs text-gray-500">'.$description.'</div>'
                     : '';
 
                 $stepNumber = $index + 1;
 
                 return <<<HTML
-<li class="rounded-lg border p-3 {$itemClasses}">
+<li class="fi-rakez-stepper-item rounded-2xl border p-4 {$itemClasses}">
     <div class="flex items-start gap-3">
-        <span class="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full border text-xs font-bold {$badgeClasses}">{$stepNumber}</span>
-        <div class="min-w-0">
-            <div class="text-sm font-semibold text-gray-900">{$label}</div>
-            <div class="text-xs text-gray-600">{$stateLabel}</div>
+        <span class="fi-rakez-stepper-badge inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full border text-xs font-bold {$badgeClasses}">{$stepNumber}</span>
+        <div class="min-w-0 space-y-1">
+            <div class="fi-rakez-stepper-label text-sm font-semibold text-gray-900">{$label}</div>
+            <div class="fi-rakez-stepper-state text-xs text-gray-600">{$stateLabel}</div>
             {$descriptionHtml}
         </div>
     </div>
@@ -49,7 +49,7 @@ HTML;
         );
 
         return new HtmlString(
-            '<ol class="grid gap-2 md:grid-cols-2 xl:grid-cols-4">'.implode('', $items).'</ol>'
+            '<ol class="fi-rakez-stepper grid gap-3 md:grid-cols-2 xl:grid-cols-4">'.implode('', $items).'</ol>'
         );
     }
 }

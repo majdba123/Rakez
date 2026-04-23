@@ -161,8 +161,11 @@ class CreditDashboardTest extends TestCase
 
         $response->assertStatus(200)
             ->assertJsonPath('data.stage_labels_ar.stage_1', 'التواصل مع العميل')
-            ->assertJsonPath('data.stage_labels_ar.stage_2', 'رفع الطلب للبنك')
-            ->assertJsonPath('data.stage_labels_ar.stage_5', 'الإجراءات البنكية والعقود');
+            ->assertJsonPath('data.stage_labels_ar.stage_2', 'رفع الطلب إلى البنك')
+            ->assertJsonPath('data.stage_labels_ar.stage_3', 'صدور التقييم')
+            ->assertJsonPath('data.stage_labels_ar.stage_4', 'زيارة المقيم للمشروع')
+            ->assertJsonPath('data.stage_labels_ar.stage_5', 'الإجراءات البنكية والعقود')
+            ->assertJsonPath('data.stage_labels_ar.stage_6', 'فترة التجهيز قبل الإفراغ');
     }
 
     public function test_dashboard_reflects_requires_review_count_with_overdue_stage(): void

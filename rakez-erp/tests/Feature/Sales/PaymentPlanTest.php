@@ -32,6 +32,7 @@ class PaymentPlanTest extends TestCase
             'sales.reservations.create',
             'sales.reservations.view',
             'sales.payment-plan.manage',
+            'sales.payment_plan.manage',
         ];
 
         foreach ($permissions as $perm) {

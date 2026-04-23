@@ -145,6 +145,7 @@ class StoreReservationRequest extends FormRequest
             'down_payment_amount' => 'required|numeric|min:0',
             'down_payment_status' => 'required|in:refundable,non_refundable',
             'purchase_mechanism' => 'required|in:cash,supported_bank,unsupported_bank',
+            'receipt_voucher' => 'nullable|file|mimes:jpg,jpeg,png,webp,pdf|max:10240',
         ];
     }
 
@@ -197,6 +198,8 @@ class StoreReservationRequest extends FormRequest
             'down_payment_amount.required' => 'Down payment amount is required',
             'down_payment_status.required' => 'Down payment status is required',
             'purchase_mechanism.required' => 'Purchase mechanism is required',
+            'receipt_voucher.mimes' => 'Receipt voucher must be a JPG, PNG, WEBP, or PDF file',
+            'receipt_voucher.max' => 'Receipt voucher must not exceed 10 MB',
         ];
     }
 }

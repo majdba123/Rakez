@@ -26,6 +26,7 @@ class ContractUnit extends Model
         'bedrooms',
         'bathrooms',
         'private_area_m2',
+        'street_width',
         // total_area_m2 is computed as area + private_area_m2 (set in boot saving, accessor below)
         'facade', // DB column (view/facade/orientation)
         'description_en',
@@ -39,6 +40,7 @@ class ContractUnit extends Model
         // DB column is string(255) per migration; numeric sorting uses CAST in queries where needed.
         'area' => 'string',
         'private_area_m2' => 'decimal:2',
+        'street_width' => 'decimal:2',
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
         'deleted_at' => 'datetime',

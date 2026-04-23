@@ -44,6 +44,7 @@ class Contract extends Model
         'emergency_contact_number',
         'security_guard_number',
         'is_closed',
+        'is_complete_second',
     ];
 
     /**
@@ -55,6 +56,7 @@ class Contract extends Model
         'units' => 'array',
         'is_off_plan' => 'boolean',
         'is_closed' => 'boolean',
+        'is_complete_second' => 'boolean',
         'commission_percent' => 'decimal:2',
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
@@ -186,6 +188,17 @@ class Contract extends Model
     }
 
     /**
+     * Contract is in an approval lifecycle state that PM flows can operate on.
+     */
+    public function isApprovedOrCompleted(): bool
+    {
+        return in_array($this->status, [
+            ContractWorkflowStatus::Approved->value,
+            ContractWorkflowStatus::Completed->value,
+        ], true);
+    }
+
+    /**
      * Check if contract is ready for sales/marketing (completed only).
      */
     public function isReady(): bool
@@ -203,6 +216,7 @@ class Contract extends Model
     {
         $this->loadMissing([
             'info',
+            'secondPartyData',
             'contractUnits',
             'boardsDepartment',
             'photographyDepartment',

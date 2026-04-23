@@ -13,7 +13,6 @@ use App\Events\UserNotificationEvent;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Pagination\LengthAwarePaginator;
-use Illuminate\Support\Str;
 use App\Services\Pdf\PdfFactory;
 use App\Support\ContractCodeGenerator;
 use Exception;
@@ -217,11 +216,6 @@ class ExclusiveProjectService
                 $district = \App\Models\District::query()
                     ->where('city_id', $city->id)
                     ->where('name', $request->location_district)
-                    ->first();
-            } elseif ($city) {
-                $district = \App\Models\District::query()
-                    ->where('city_id', $city->id)
-                    ->where('name', 'General')
                     ->first();
             }
             if (!$city || !$district) {

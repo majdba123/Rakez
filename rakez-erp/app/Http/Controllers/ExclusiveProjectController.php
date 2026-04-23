@@ -9,7 +9,6 @@ use App\Services\ExclusiveProjectService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Str;
 use Symfony\Component\HttpFoundation\Response;
 
 class ExclusiveProjectController extends Controller
@@ -65,11 +64,7 @@ class ExclusiveProjectController extends Controller
             $exclusiveRequest = $this->exclusiveProjectService->getRequest($id);
             $user = $request->user();
 
-            if (
-                (int) $exclusiveRequest->requested_by !== (int) $user->id
-                && ! $user->can('exclusive_projects.view')
-                && ! $user->can('exclusive_projects.approve')
-            ) {
+            if ((int) $exclusiveRequest->requested_by !== (int) $user->id && !$user->can('exclusive_projects.approve')) {
                 return response()->json([
                     'success' => false,
                     'message' => 'You do not have access to this exclusive project request.',
@@ -164,18 +159,6 @@ class ExclusiveProjectController extends Controller
     public function completeContract(int $id, CompleteExclusiveContractRequest $request): JsonResponse
     {
         try {
-            $exclusiveRequest = $this->exclusiveProjectService->getRequest($id);
-
-            $city = \App\Models\City::query()->firstOrCreate(
-                ['name' => $exclusiveRequest->location_city],
-                ['code' => $this->resolveCityCode($exclusiveRequest->location_city)]
-            );
-
-            \App\Models\District::query()->firstOrCreate([
-                'city_id' => $city->id,
-                'name' => $exclusiveRequest->location_district ?: 'General',
-            ]);
-
             $exclusiveRequest = $this->exclusiveProjectService->completeContract(
                 $id,
                 $request->validated(),
@@ -193,25 +176,6 @@ class ExclusiveProjectController extends Controller
                 'message' => 'Failed to complete contract: ' . $e->getMessage(),
             ], Response::HTTP_BAD_REQUEST);
         }
-    }
-
-    private function resolveCityCode(string $cityName): string
-    {
-        $normalized = Str::upper(Str::substr(preg_replace('/[^A-Za-z0-9]/', '', Str::ascii($cityName)) ?: 'CTY', 0, 8));
-
-        if ($normalized === '') {
-            $normalized = 'CTY';
-        }
-
-        $candidate = $normalized;
-        $suffix = 1;
-
-        while (\App\Models\City::query()->where('code', $candidate)->exists()) {
-            $candidate = Str::substr($normalized, 0, 6) . str_pad((string) $suffix, 2, '0', STR_PAD_LEFT);
-            $suffix++;
-        }
-
-        return $candidate;
     }
 
     /**

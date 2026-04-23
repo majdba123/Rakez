@@ -148,11 +148,7 @@ class ManagerEmployeeController extends Controller
         }
     }
 
-    /**
-     * Add a review for an employee. Only managers can add reviews.
-     * POST /manager/employees/{id}/reviews
-     * Body: { "comment": "..." }
-     */
+
     public function storeReview(Request $request, int $id): JsonResponse
     {
         if ($err = $this->ensureManager($request)) {
@@ -161,14 +157,18 @@ class ManagerEmployeeController extends Controller
         try {
             $currentUser = $request->user();
             $request->validate([
-                'comment' => 'required|string|max:2000',
+                'rating' => 'required|integer|min:1|max:5',
+                'comment' => 'nullable|string|max:2000',
             ], [
-                'comment.required' => 'التعليق مطلوب',
+                'rating.required' => 'التقييم مطلوب',
+                'rating.min' => 'التقييم يجب أن يكون بين 1 و 5',
+                'rating.max' => 'التقييم يجب أن يكون بين 1 و 5',
             ]);
 
             $review = $this->managerEmployeeService->addReview(
                 $currentUser,
                 $id,
+                (int) $request->input('rating'),
                 $request->input('comment')
             );
 
@@ -179,6 +179,7 @@ class ManagerEmployeeController extends Controller
                     'id' => $review->id,
                     'employee_id' => $review->employee_id,
                     'manager_id' => $review->manager_id,
+                    'rating' => $review->rating,
                     'comment' => $review->comment,
                     'created_at' => $review->created_at?->toIso8601String(),
                 ],
@@ -271,14 +272,26 @@ class ManagerEmployeeController extends Controller
         try {
             $currentUser = $request->user();
             $request->validate([
-                'comment' => 'required|string|max:2000',
-            ], ['comment.required' => 'التعليق مطلوب']);
+                'rating' => 'sometimes|required|integer|min:1|max:5',
+                'comment' => 'nullable|string|max:2000',
+            ], [
+                'rating.min' => 'التقييم يجب أن يكون بين 1 و 5',
+                'rating.max' => 'التقييم يجب أن يكون بين 1 و 5',
+            ]);
+
+            $data = [];
+            if ($request->has('rating')) {
+                $data['rating'] = (int) $request->input('rating');
+            }
+            if ($request->has('comment')) {
+                $data['comment'] = $request->input('comment');
+            }
 
             $review = $this->managerEmployeeService->updateReview(
                 $currentUser,
                 $employeeId,
                 $reviewId,
-                $request->input('comment')
+                $data
             );
 
             return response()->json([
@@ -325,6 +338,7 @@ class ManagerEmployeeController extends Controller
             'id' => $review->id,
             'employee_id' => $review->employee_id,
             'manager_id' => $review->manager_id,
+            'rating' => $review->rating,
             'comment' => $review->comment,
             'manager' => $review->manager ? ['id' => $review->manager->id, 'name' => $review->manager->name] : null,
             'employee' => $review->employee ? ['id' => $review->employee->id, 'name' => $review->employee->name] : null,

@@ -4,16 +4,13 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\StoreTaskRequest;
 use App\Models\Task;
-use App\Services\Workflow\WorkflowTaskAdminService;
+use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 
 class MyTasksController extends Controller
 {
-    public function __construct(
-        protected WorkflowTaskAdminService $taskAdminService
-    ) {}
-
     /**
      * Create a new task.
      * POST /api/tasks
@@ -26,7 +23,18 @@ class MyTasksController extends Controller
         }
         $data = $request->validated();
 
-        $task = $this->taskAdminService->create($data, $user);
+        // Ensure section and team_id are consistent with the assignee
+        $assignee = User::findOrFail($data['assigned_to']);
+        $data['section'] = $data['section'] ?? $assignee->type;
+        if (empty($data['team_id']) && $assignee->team_id) {
+            $data['team_id'] = $assignee->team_id;
+        }
+
+        // Default status to in_progress; creator does not need to choose it
+        $data['status'] = Task::STATUS_IN_PROGRESS;
+        $data['created_by'] = $user->id;
+        $task = Task::create($data);
+        $task->load(['team:id,name', 'assignee:id,name', 'creator:id,name']);
 
         return response()->json([
             'success' => true,
@@ -118,12 +126,25 @@ class MyTasksController extends Controller
         }
         $task = Task::where('assigned_to', $user->id)->findOrFail($id);
 
-        $task = $this->taskAdminService->updateStatus($task, $request->all());
+        $validated = $request->validate([
+            'status' => ['required', 'string', Rule::in([
+                Task::STATUS_IN_PROGRESS,
+                Task::STATUS_COMPLETED,
+                Task::STATUS_COULD_NOT_COMPLETE,
+            ])],
+            'cannot_complete_reason' => ['nullable', 'string', 'max:1000'],
+        ]);
+
+        $task->status = $validated['status'];
+        if (isset($validated['cannot_complete_reason'])) {
+            $task->cannot_complete_reason = $validated['cannot_complete_reason'];
+        }
+        $task->save();
 
         return response()->json([
             'success' => true,
             'message' => __('Task status updated.'),
-            'data' => $task,
+            'data' => $task->fresh(['team:id,name', 'creator:id,name']),
         ], 200);
     }
 }

@@ -44,6 +44,7 @@ class ContractIndexResource extends JsonResource
             'total_price' => (float) $totalPrice,
 
             'status' => $this->status,
+            'is_complete_second' => (bool) $this->is_complete_second,
             'developer_requiment' => $this->developer_requiment,
             'has_photography_data' => $this->photographyDepartment ? 1 : 0,
             'has_montage_data' => $this->montageDepartment ? 1 : 0,

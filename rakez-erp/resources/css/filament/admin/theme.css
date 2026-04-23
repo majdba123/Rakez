@@ -1,0 +1,182 @@
+@import '../../../../vendor/filament/filament/resources/css/theme.css';
+
+@source '../../../../app/Filament/Admin/**/*';
+@source '../../../../resources/views/filament/admin/**/*';
+
+:root {
+    --rakez-ink: #0f0d0a;
+    --rakez-ink-soft: #201b15;
+    --rakez-sand: #c9baa8;
+    --rakez-sand-strong: #b5a38e;
+    --rakez-stone: #877460;
+    --rakez-cream: #f5efe7;
+    --rakez-panel: #16120f;
+    --rakez-panel-2: #211a14;
+    --rakez-border: rgba(201, 186, 168, 0.22);
+    --rakez-shadow: 0 20px 60px rgba(15, 13, 10, 0.18);
+}
+
+html,
+body {
+    font-family: "IBM Plex Sans Arabic", "Noto Sans Arabic", "Segoe UI", sans-serif;
+    background:
+        radial-gradient(circle at top right, rgba(201, 186, 168, 0.2), transparent 28%),
+        radial-gradient(circle at bottom left, rgba(135, 116, 96, 0.18), transparent 24%),
+        linear-gradient(180deg, #fcfaf7 0%, #f4ede4 100%);
+}
+
+body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    background-image:
+        linear-gradient(rgba(15, 13, 10, 0.025) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(15, 13, 10, 0.025) 1px, transparent 1px);
+    background-size: 32px 32px;
+    mask-image: radial-gradient(circle at center, black 38%, transparent 88%);
+    opacity: 0.5;
+}
+
+.fi-layout,
+.fi-page {
+    position: relative;
+}
+
+.fi-sidebar {
+    background:
+        linear-gradient(180deg, rgba(15, 13, 10, 0.96) 0%, rgba(28, 22, 18, 0.98) 100%);
+    border-inline-end: 1px solid rgba(201, 186, 168, 0.16);
+    box-shadow: 18px 0 40px rgba(15, 13, 10, 0.16);
+}
+
+.fi-sidebar-header,
+.fi-topbar {
+    backdrop-filter: blur(18px);
+}
+
+.fi-topbar {
+    background: rgba(252, 250, 247, 0.82);
+    border-bottom: 1px solid rgba(135, 116, 96, 0.14);
+}
+
+.fi-sidebar-nav,
+.fi-sidebar-header,
+.fi-topbar nav {
+    color: #f8f4ef;
+}
+
+.fi-sidebar-item-button,
+.fi-sidebar-group-button {
+    border-radius: 18px;
+    transition: transform 180ms ease, background-color 180ms ease, border-color 180ms ease;
+}
+
+.fi-sidebar-item-button:hover,
+.fi-sidebar-group-button:hover {
+    transform: translateX(-4px);
+    background: rgba(201, 186, 168, 0.12);
+}
+
+.fi-sidebar-item-active .fi-sidebar-item-button {
+    background: linear-gradient(135deg, rgba(201, 186, 168, 0.22), rgba(135, 116, 96, 0.18));
+    border: 1px solid rgba(201, 186, 168, 0.22);
+}
+
+.fi-main {
+    animation: rakez-page-enter 260ms ease-out;
+}
+
+.fi-section,
+.fi-ta,
+.fi-wi-stats-overview-stat,
+.fi-modal-window,
+.fi-dropdown-panel,
+.fi-in-entry-item {
+    border-radius: 24px;
+    border-color: rgba(135, 116, 96, 0.16) !important;
+    box-shadow: var(--rakez-shadow);
+}
+
+.fi-section,
+.fi-ta,
+.fi-modal-window,
+.fi-dropdown-panel {
+    background: rgba(255, 252, 248, 0.9);
+}
+
+.fi-wi-stats-overview-stat {
+    background: linear-gradient(180deg, rgba(255, 250, 244, 0.94), rgba(246, 238, 228, 0.92));
+}
+
+.fi-section-header-heading,
+.fi-ta-header-heading,
+.fi-page-header-heading {
+    color: var(--rakez-ink);
+    letter-spacing: -0.02em;
+}
+
+.fi-btn.fi-color-primary {
+    --c-400: var(--rakez-sand) !important;
+    --c-500: var(--rakez-sand-strong) !important;
+    --c-600: var(--rakez-stone) !important;
+}
+
+.fi-input-wrp,
+.fi-select-input,
+.fi-text-input,
+.fi-fo-field-wrp {
+    border-radius: 16px;
+}
+
+.fi-input-wrp {
+    background: rgba(255, 250, 244, 0.86);
+}
+
+.fi-rakez-stepper-item {
+    position: relative;
+    overflow: hidden;
+}
+
+.fi-rakez-stepper-item::after {
+    content: "";
+    position: absolute;
+    inset-inline-end: -30%;
+    top: -30%;
+    width: 72px;
+    height: 72px;
+    background: radial-gradient(circle, rgba(201, 186, 168, 0.22), transparent 68%);
+}
+
+.fi-rakez-stepper-badge {
+    box-shadow: 0 10px 20px rgba(15, 13, 10, 0.12);
+}
+
+.fi-simple-main-ctn {
+    background:
+        radial-gradient(circle at top right, rgba(201, 186, 168, 0.28), transparent 28%),
+        linear-gradient(135deg, rgba(15, 13, 10, 0.98), rgba(33, 26, 20, 0.96));
+}
+
+.fi-simple-main {
+    background: rgba(255, 251, 246, 0.96);
+    border: 1px solid rgba(201, 186, 168, 0.18);
+    border-radius: 28px;
+    box-shadow: 0 30px 80px rgba(0, 0, 0, 0.24);
+}
+
+.fi-logo {
+    filter: drop-shadow(0 12px 30px rgba(15, 13, 10, 0.22));
+}
+
+@keyframes rakez-page-enter {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}

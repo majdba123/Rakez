@@ -2,34 +2,30 @@
 
 namespace Tests\Feature\Credit;
 
+use App\Models\SalesReservation;
+use App\Models\User;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 use Tests\Traits\TestsWithPermissions;
-use App\Models\User;
-use App\Models\SalesReservation;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 
 class AccountingConfirmationTest extends TestCase
 {
-    use RefreshDatabase, TestsWithPermissions;
+    use RefreshDatabase;
+    use TestsWithPermissions;
 
     protected User $accountingUser;
+
     protected User $adminUser;
 
     protected function setUp(): void
     {
         parent::setUp();
 
-        // Create accounting role with required permission
-        $this->createRoleWithPermissions('accounting', [
-            'accounting.down_payment.confirm',
-        ]);
+        $depositPerms = ['accounting.deposits.view', 'accounting.deposits.manage'];
 
-        // Create admin role with required permission
-        $this->createRoleWithPermissions('admin', [
-            'accounting.down_payment.confirm',
-        ]);
+        $this->createRoleWithPermissions('accounting', $depositPerms);
+        $this->createRoleWithPermissions('admin', $depositPerms);
 
-        // Create users
         $this->accountingUser = User::factory()->create(['type' => 'accounting']);
         $this->accountingUser->assignRole('accounting');
 
@@ -45,7 +41,6 @@ class AccountingConfirmationTest extends TestCase
             'down_payment_confirmed' => false,
         ]);
 
-        // Cash payments don't need confirmation
         SalesReservation::factory()->create([
             'status' => 'confirmed',
             'payment_method' => 'cash',
@@ -68,7 +63,7 @@ class AccountingConfirmationTest extends TestCase
         ]);
 
         $response = $this->actingAs($this->accountingUser)
-            ->postJson("/api/accounting/confirm/{$reservation->id}");
+            ->postJson("/api/accounting/confirmations/{$reservation->id}/confirm");
 
         $response->assertStatus(200)
             ->assertJson(['success' => true]);
@@ -89,7 +84,7 @@ class AccountingConfirmationTest extends TestCase
         ]);
 
         $response = $this->actingAs($this->accountingUser)
-            ->postJson("/api/accounting/confirm/{$reservation->id}");
+            ->postJson("/api/accounting/confirmations/{$reservation->id}/confirm");
 
         $response->assertStatus(400);
     }
@@ -103,7 +98,7 @@ class AccountingConfirmationTest extends TestCase
         ]);
 
         $response = $this->actingAs($this->accountingUser)
-            ->postJson("/api/accounting/confirm/{$reservation->id}");
+            ->postJson("/api/accounting/confirmations/{$reservation->id}/confirm");
 
         $response->assertStatus(400);
     }
@@ -134,7 +129,7 @@ class AccountingConfirmationTest extends TestCase
         ]);
 
         $response = $this->actingAs($this->adminUser)
-            ->postJson("/api/accounting/confirm/{$reservation->id}");
+            ->postJson("/api/accounting/confirmations/{$reservation->id}/confirm");
 
         $response->assertStatus(200)
             ->assertJson(['success' => true]);
@@ -150,4 +145,3 @@ class AccountingConfirmationTest extends TestCase
         $response->assertStatus(403);
     }
 }
-

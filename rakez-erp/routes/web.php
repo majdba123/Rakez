@@ -4,6 +4,7 @@ use Illuminate\Support\Facades\Route;
 use App\Events\UserNotificationEvent;
 use App\Events\PublicNotificationEvent;
 use App\Events\AdminNotificationEvent;
+use App\Http\Controllers\Filament\ProjectManagementPdfController;
 
 Route::get('/', function () {
     return view('welcome');
@@ -70,3 +71,14 @@ Route::get('/chat/test', function () {
 
     return view('chat.test');
 })->middleware('auth');
+
+Route::middleware('auth')
+    ->prefix(config('governance.panel_path'))
+    ->group(function (): void {
+        Route::get('/contracts/{contractId}/pdf/contract-info', [ProjectManagementPdfController::class, 'contractInfo'])
+            ->name('filament.pm.contracts.contract_info_pdf');
+        Route::get('/contracts/{contractId}/pdf/second-party', [ProjectManagementPdfController::class, 'secondParty'])
+            ->name('filament.pm.contracts.second_party_pdf');
+        Route::get('/exclusive-project-requests/{requestId}/pdf/contract', [ProjectManagementPdfController::class, 'exclusiveContract'])
+            ->name('filament.pm.exclusive.contract_pdf');
+    });

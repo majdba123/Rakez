@@ -28,7 +28,18 @@ class SalesDashboardController extends Controller
         }
 
         try {
-            $scope = $request->query('scope', 'me');
+            $defaultScope = 'me';
+            if ($user->hasRole('admin')) {
+                $defaultScope = 'all';
+            } elseif ($user->isSalesLeader()) {
+                // Leaders rarely appear as marketing_employee on reservations; default to team (or org-wide if no team).
+                $defaultScope = $user->team_id ? 'team' : 'all';
+            }
+
+            $rawScope = $request->query('scope');
+            $scope = ($rawScope === null || $rawScope === '')
+                ? $defaultScope
+                : $this->dashboardService->normalizeDashboardScope((string) $rawScope, $defaultScope);
             $from = $request->query('from');
             $to = $request->query('to');
 

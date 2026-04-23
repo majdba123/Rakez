@@ -39,6 +39,7 @@ class SalesReservation extends Model
         'credit_status',
         'purchase_mechanism',
         'voucher_pdf_path',
+        'receipt_voucher_path',
         'snapshot',
         'confirmed_at',
         'cancelled_at',
@@ -304,6 +305,14 @@ class SalesReservation extends Model
     public function isBankFinancing(): bool
     {
         return in_array($this->purchase_mechanism, ['supported_bank', 'unsupported_bank']);
+    }
+
+    /**
+     * Confirmed bookings that use the credit department workflow (bank financing or cash pipeline).
+     */
+    public function eligibleForCreditFinancingWorkflow(): bool
+    {
+        return $this->isBankFinancing() || $this->isCashPurchase();
     }
 
     /**

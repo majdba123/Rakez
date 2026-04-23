@@ -2,20 +2,57 @@
 
 namespace App\Services\Contract;
 
+use App\Enums\ContractWorkflowStatus;
 use App\Models\Contract;
 use App\Models\ContractInfo;
 use App\Models\MarketingProject;
+use App\Models\SalesProjectAssignment;
 use App\Models\Team;
+use App\Models\User;
+use App\Services\Sales\SalesProjectService;
+use App\Services\Sales\SalesTeamService;
+use App\Services\Governance\GovernanceAuditLogger;
 use App\Support\ContractCodeGenerator;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Pagination\Paginator;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 use Exception;
 
 class ContractService
 {
+    public function __construct(
+        private SalesTeamService $salesTeamService,
+        private SalesProjectService $salesProjectService,
+        private GovernanceAuditLogger $governanceAuditLogger,
+    ) {}
+
+    /**
+     * Unified governance status transition path used by Filament list/view actions.
+     */
+    public function transitionStatusForGovernance(
+        int $contractId,
+        string $targetStatus,
+        string $event,
+        User $actor,
+        bool $viaProjectManagementPath = false,
+    ): Contract {
+        $before = Contract::query()->findOrFail($contractId);
+        $beforeStatus = $before->status;
+
+        $updated = $viaProjectManagementPath
+            ? $this->updateContractStatusByProjectManagement($contractId, $targetStatus)
+            : $this->updateContractStatus($contractId, $targetStatus);
+
+        $this->governanceAuditLogger->log($event, $updated, [
+            'before' => ['status' => $beforeStatus],
+            'after' => ['status' => $updated->status],
+        ], $actor);
+
+        return $updated;
+    }
 
     public function getContracts(array $filters = [], int $perPage = 15): LengthAwarePaginator
     {
@@ -382,6 +419,54 @@ class ContractService
             $existingTeamIds = Team::whereIn('id', $teamIds)->pluck('id')->toArray();
             $contract->teams()->syncWithoutDetaching($existingTeamIds);
 
+            $assignerId = Auth::id() ?? $contract->user_id;
+            if ($assignerId && $contract->status === ContractWorkflowStatus::Completed->value) {
+                foreach ($existingTeamIds as $teamId) {
+                    $team = Team::find($teamId);
+                    if (!$team) {
+                        continue;
+                    }
+                    $primaryLeader = $this->salesTeamService->getDefaultSalesLeadersForTeam($team)->first();
+                    if (!$primaryLeader) {
+                        continue;
+                    }
+                    $already = SalesProjectAssignment::query()
+                        ->where('contract_id', $contract->id)
+                        ->where('leader_id', $primaryLeader->id)
+                        ->active()
+                        ->exists();
+                    if ($already) {
+                        continue;
+                    }
+                    try {
+                        $this->salesProjectService->assignProjectToLeader(
+                            $primaryLeader->id,
+                            $contract->id,
+                            (int) $assignerId
+                        );
+                    } catch (ValidationException) {
+                        continue;
+                    } catch (\Throwable) {
+                        continue;
+                    }
+                }
+            }
+
+            if (count($existingTeamIds) === 1) {
+                $marketingProject = MarketingProject::query()
+                    ->where('contract_id', $contract->id)
+                    ->first();
+                if ($marketingProject && $marketingProject->assigned_team_leader === null) {
+                    $team = Team::find($existingTeamIds[0]);
+                    if ($team) {
+                        $leader = $this->salesTeamService->getDefaultSalesLeadersForTeam($team)->first();
+                        if ($leader) {
+                            $marketingProject->update(['assigned_team_leader' => $leader->id]);
+                        }
+                    }
+                }
+            }
+
             DB::commit();
             return $contract->load('teams');
         } catch (Exception $e) {
@@ -456,10 +541,11 @@ class ContractService
         $isProjectManagementManager = $authUser && $authUser->isProjectManagementManager();
         $isProjectManagement = $authUser && (($authUser->type ?? '') === 'project_management' || $authUser->hasRole('project_management'));
         $isEditor = !$forContractInfo && $authUser && (($authUser->type ?? '') === 'editor' || $authUser->hasRole('editor'));
+        $isGovernanceContractApprover = $authUser && $authUser->can('contracts.approve');
 
         if ($forContractInfo) {
-            // Store/update contract info: only owner, admin, or project_management manager (is_manager=true)
-            if (!$contract->isOwnedBy($userId) && !$isAdmin && !$isProjectManagementManager) {
+            // Store/update contract info: owner, admin, PM manager, or governance contract approver.
+            if (!$contract->isOwnedBy($userId) && !$isAdmin && !$isProjectManagementManager && !$isGovernanceContractApprover) {
                 throw new Exception('Unauthorized to access this contract.');
             }
         } elseif (!$contract->isOwnedBy($userId) && !$isAdmin && !$isProjectManagement && !$isEditor) {
@@ -605,12 +691,11 @@ class ContractService
             }
 
             // Contract must be approved
-            if (!$contract->isApproved()) {
+            if (! $contract->isApprovedOrCompleted()) {
                 throw new Exception('Contract must be approved before storing info.');
             }
 
-            // Authorization: owner or admin only
-            $this->authorizeContractAccess($contract, Auth::id());
+            $this->authorizeContractAccess($contract, Auth::id(), forContractInfo: true);
 
             // Set contract id
             $data['contract_id'] = $contract->id;
@@ -634,6 +719,7 @@ class ContractService
             $data = array_merge($data, $fixed);
 
             $info = $contract->info()->create($data);
+            $this->markContractCompletedWhenInfoExists($contract->fresh(['info']));
 
             DB::commit();
             return $info;
@@ -644,6 +730,59 @@ class ContractService
     }
 
     /**
+     * CSV import: create {@see ContractInfo} when missing; otherwise merge only non-empty CSV fields into the existing row (never overwrite stored values with null/blank from a new file).
+     */
+    public function upsertContractInfoFromCsvImport(int $contractId, array $merged, ?Contract $contract = null): ContractInfo
+    {
+        if (! $contract) {
+            $contract = Contract::with(['user', 'info'])->findOrFail($contractId);
+        }
+
+        if (! $contract->isApprovedOrCompleted()) {
+            throw new Exception('Contract must be approved before storing info.');
+        }
+
+        $this->authorizeContractAccess($contract, Auth::id());
+
+        $protected = ['contract_number', 'first_party_name', 'first_party_cr_number',
+            'first_party_signatory', 'first_party_phone', 'first_party_email'];
+
+        foreach ($protected as $field) {
+            unset($merged[$field]);
+        }
+
+        if (! $contract->info) {
+            return $this->storeContractInfo($contractId, $merged, $contract);
+        }
+
+        $info = $contract->info;
+        $fillable = array_flip($info->getFillable());
+        $patch = [];
+
+        foreach ($merged as $key => $value) {
+            if ($key === 'contract_id') {
+                continue;
+            }
+            if (! isset($fillable[$key])) {
+                continue;
+            }
+            if (in_array($key, $protected, true)) {
+                continue;
+            }
+            if (! $this->isMeaningfulCsvMergeValue($value)) {
+                continue;
+            }
+            $patch[$key] = $value;
+        }
+
+        if ($patch !== []) {
+            $info->update($patch);
+        }
+
+        return $info->fresh();
+    }
+
+    /**
      * Update contract info (only owner, admin, project_management)
      */
     public function updateContractInfo(int $contractId, array $data, int $userId = null): ContractInfo
@@ -651,6 +790,10 @@ class ContractService
         DB::beginTransaction();
         try {
             $contract = Contract::with(['user', 'info'])->findOrFail($contractId);
+
+            if (! $contract->isApprovedOrCompleted()) {
+                throw new Exception('Contract must be approved before storing info.');
+            }
 
             // Authorization: only owner, admin, project_management
             if ($userId) {
@@ -672,8 +815,7 @@ class ContractService
                 $info->update($data);
             }
 
-            // If contract has info and status is still approved, mark as completed
-
+            $this->markContractCompletedWhenInfoExists($contract->fresh(['info']));
 
             DB::commit();
             return $info->fresh();
@@ -693,8 +835,8 @@ class ContractService
             $contract = Contract::with(['user', 'info'])->findOrFail($id);
 
             // Validate status
-            $validStatuses = ['pending', 'approved', 'rejected', 'completed'];
-            if (!in_array($status, $validStatuses)) {
+            $validStatuses = ContractWorkflowStatus::values();
+            if (! in_array($status, $validStatuses, true)) {
                 throw new Exception('Invalid status. Must be one of: ' . implode(', ', $validStatuses));
             }
 
@@ -740,7 +882,7 @@ class ContractService
                 throw new Exception('الحالة يجب أن تكون: جاهز أو مرفوض');
             }
 
-            if (!$contract->isApproved()) {
+            if (! $contract->isApprovedOrCompleted()) {
                 throw new Exception('يمكن فقط تحديث العقود الموافق عليها');
             }
 
@@ -783,4 +925,24 @@ class ContractService
             throw $e;
         }
     }
+
+    private function isMeaningfulCsvMergeValue(mixed $value): bool
+    {
+        if ($value === null) {
+            return false;
+        }
+        if (is_string($value) && trim($value) === '') {
+            return false;
+        }
+
+        return true;
+    }
+
+    private function markContractCompletedWhenInfoExists(Contract $contract): void
+    {
+        if ($contract->status === ContractWorkflowStatus::Approved->value && $contract->info) {
+            $contract->update(['status' => ContractWorkflowStatus::Completed->value]);
+        }
+    }
 }
+

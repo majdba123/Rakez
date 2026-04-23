@@ -5,13 +5,16 @@ namespace App\Services\Sales;
 use App\Models\Contract;
 use App\Models\SalesAttendanceSchedule;
 use App\Models\User;
-use App\Services\Governance\GovernanceAuditLogger;
 use Carbon\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 
 class SalesAttendanceService
 {
+    public function __construct(
+        private readonly SalesTeamService $teamService
+    ) {}
+
     /**
      * Get my attendance schedules.
      */
@@ -39,10 +42,15 @@ class SalesAttendanceService
      */
     public function getTeamAttendance(User $leader, array $filters): Collection
     {
-        if (!$leader->team_id) {
+        if ($leader->team_id) {
+            $teamMemberIds = User::where('team_id', (int) $leader->team_id)->pluck('id');
+        } else {
+            $teamMemberIds = $this->teamService->getTeamMembers($leader)->pluck('id')->values();
+        }
+
+        if ($teamMemberIds->isEmpty()) {
             return collect([]);
         }
-        $teamMemberIds = User::where('team_id', $leader->team_id)->pluck('id');
 
         $query = SalesAttendanceSchedule::whereIn('user_id', $teamMemberIds)
             ->with(['user', 'contract.city', 'contract.district']);
@@ -133,7 +141,7 @@ class SalesAttendanceService
     {
         $contract = Contract::with(['city', 'district'])->findOrFail($contractId);
 
-        $teamMembers = $this->getLeaderTeamMembers($leader);
+        $teamMembers = $this->teamService->getTeamMembers($leader);
         $memberIds = $teamMembers->pluck('id');
 
         $existingSchedules = SalesAttendanceSchedule::where('contract_id', $contractId)
@@ -175,21 +183,6 @@ class SalesAttendanceService
     }
 
     /**
-     * Team members for the leader (same team_id, type sales, exclude leader).
-     */
-    private function getLeaderTeamMembers(User $leader): Collection
-    {
-        if (!$leader->team_id) {
-            return collect([]);
-        }
-        return User::where('team_id', $leader->team_id)
-            ->where('type', 'sales')
-            ->where('id', '!=', $leader->id)
-            ->select('id', 'name', 'email')
-            ->get();
-    }
-
-    /**
      * Arabic day name for a date (for display in project schedule view).
      */
     private function dayNameArabic(Carbon $date): string
@@ -216,7 +209,7 @@ class SalesAttendanceService
         $schedules = $data['schedules'];
         $contract = Contract::with(['city', 'district'])->findOrFail($contractId);
 
-        $teamMemberIds = $this->getLeaderTeamMembers($leader)->pluck('id')->toArray();
+        $teamMemberIds = $this->teamService->getTeamMembers($leader)->pluck('id')->toArray();
 
         $created = [];
         $updated = [];
@@ -279,27 +272,5 @@ class SalesAttendanceService
             'updated' => $updated,
             'removed' => $removed,
         ];
-    }
-
-    /**
-     * Governance Filament: delete any schedule when actor has sales.attendance.manage (oversight).
-     */
-    public function governanceDeleteSchedule(int $scheduleId, User $actor): void
-    {
-        abort_unless($actor->can('sales.attendance.manage'), 403);
-
-        $schedule = SalesAttendanceSchedule::query()->findOrFail($scheduleId);
-
-        app(GovernanceAuditLogger::class)->log('governance.sales.attendance.schedule_deleted', $schedule, [
-            'before' => [
-                'contract_id' => $schedule->contract_id,
-                'user_id' => $schedule->user_id,
-                'schedule_date' => $schedule->schedule_date?->format('Y-m-d'),
-                'start_time' => $schedule->start_time,
-                'end_time' => $schedule->end_time,
-            ],
-        ], $actor);
-
-        $schedule->delete();
     }
 }

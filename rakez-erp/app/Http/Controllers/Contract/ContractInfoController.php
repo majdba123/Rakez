@@ -2,26 +2,87 @@
 
 namespace App\Http\Controllers\Contract;
 
+use App\Http\Controllers\Concerns\RespondsWithCsvImportUpload;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Contract\StoreContractInfoRequest;
 use App\Http\Requests\Contract\UpdateContractInfoRequest;
+use App\Http\Requests\Contract\ImportContractInfoCsv;
 use App\Http\Resources\Contract\ContractResource;
 use App\Http\Resources\Contract\ContractInfoResource;
+use App\Jobs\ProcessContractInfoCsv;
 use App\Models\ContractInfo;
 use App\Models\Contract;
+use App\Models\CsvImport;
 use App\Services\Contract\ContractService;
+use App\Services\Pdf\ContractPdfDataService;
+use App\Services\Pdf\PdfFactory;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
+use Mpdf\MpdfException;
 use Exception;
 
 class ContractInfoController extends Controller
 {
+    use RespondsWithCsvImportUpload;
+
     protected ContractService $contractService;
 
-    public function __construct(ContractService $contractService)
-    {
+    public function __construct(
+        ContractService $contractService,
+        protected ContractPdfDataService $contractPdfDataService
+    ) {
         $this->contractService = $contractService;
+    }
+
+    /**
+     * PDF: contract_infos only (معلومات العقد فقط، عربي).
+     * GET /api/contracts/info/{contractId}/pdf
+     */
+    public function downloadPdf(int $contractId): Response|JsonResponse
+    {
+        try {
+            $contract = $this->contractService->getContractById($contractId, null);
+            $this->authorize('view', $contract);
+
+            $info = ContractInfo::query()->where('contract_id', $contractId)->first();
+            if (!$info) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'لا توجد بيانات معلومات العقد لهذا العقد',
+                ], 404);
+            }
+
+            $data = $this->contractPdfDataService->buildContractInfoOnlyPdfPayload($info);
+            $filename = sprintf('contract_info_%d_%s.pdf', $info->id, now()->format('Y-m-d'));
+
+            return PdfFactory::download('pdfs.contract_info_only', $data, $filename);
+        } catch (\Illuminate\Auth\Access\AuthorizationException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage(),
+            ], 403);
+        } catch (MpdfException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'تعذر إنشاء ملف PDF: ' . $e->getMessage(),
+            ], 500);
+        } catch (\RuntimeException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage(),
+            ], 404);
+        } catch (Exception $e) {
+            $message = $e->getMessage();
+            $notFound = str_contains($message, 'not found') || str_contains($message, 'No query results');
+
+            return response()->json([
+                'success' => false,
+                'message' => $message,
+            ], $notFound ? 404 : 500);
+        }
     }
 
     /**
@@ -52,9 +113,6 @@ class ContractInfoController extends Controller
             }
 
             $info = $this->contractService->storeContractInfo($contractId, $data, $contract);
-
-            // Change contract status to complete
-            $contract->update(['status' => 'completed']);
 
             return response()->json([
                 'success' => true,
@@ -181,5 +239,55 @@ class ContractInfoController extends Controller
                 'message' => $e->getMessage(),
             ], 500);
         }
+    }
+
+    /**
+     * Upload CSV with contract info fields for a specific contract (ID from URL).
+     * CSV should have exactly one data row with the info columns.
+     */
+    public function import_csv(ImportContractInfoCsv $request, int $contractId): JsonResponse
+    {
+        $contract = Contract::with('info')->find($contractId);
+
+        if (!$contract) {
+            return response()->json(['success' => false, 'message' => 'العقد غير موجود'], 404);
+        }
+
+        if ($contract->info) {
+            return response()->json(['success' => false, 'message' => 'بيانات العقد موجودة بالفعل ولا يمكن إنشاؤها مرة أخرى'], 422);
+        }
+
+        if ($contract->status !== 'approved') {
+            return response()->json(['success' => false, 'message' => 'يمكن فقط حفظ بيانات العقد عندما تكون حالته موافق عليها'], 422);
+        }
+
+        $file = $request->file('file');
+
+        $handle = fopen($file->getRealPath(), 'r');
+        if ($handle === false) {
+            return response()->json(['success' => false, 'message' => 'Unable to read the CSV file.'], 422);
+        }
+
+        $header = fgetcsv($handle);
+        fclose($handle);
+
+        if (!$header) {
+            return response()->json(['success' => false, 'message' => 'CSV file is empty or has no header row.'], 422);
+        }
+
+        $storedPath = $file->store('csv-imports', 'local');
+
+        $csvImport = CsvImport::create([
+            'type' => CsvImport::TYPE_CONTRACT_INFO,
+            'uploaded_by' => Auth::id(),
+            'file_path' => $storedPath,
+            'status' => CsvImport::STATUS_PENDING,
+        ]);
+
+        return $this->runCsvImport(
+            $csvImport,
+            fn () => ProcessContractInfoCsv::dispatchSync($csvImport->id, Auth::id(), $contractId),
+            fn () => ProcessContractInfoCsv::dispatch($csvImport->id, Auth::id(), $contractId)
+        );
     }
 }

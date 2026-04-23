@@ -12,7 +12,12 @@ class ManagerEmployeeReview extends Model
     protected $fillable = [
         'employee_id',
         'manager_id',
+        'rating',
         'comment',
+    ];
+
+    protected $casts = [
+        'rating' => 'integer',
     ];
 
     public function employee(): BelongsTo

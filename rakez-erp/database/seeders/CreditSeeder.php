@@ -91,7 +91,7 @@ class CreditSeeder extends Seeder
                 $deadlines = $this->completedTrackerDeadlines();
             } else {
                 $overallStatus = 'in_progress';
-                $currentStage = ($index % 5) + 1;
+                $currentStage = ($index % 6) + 1;
                 $stageStatuses = $this->inProgressStages($currentStage);
                 $deadlines = $this->inProgressDeadlines($currentStage, $isSupportedBank);
             }
@@ -210,6 +210,9 @@ class CreditSeeder extends Seeder
             'stage_5_status' => 'completed',
             'stage_5_completed_at' => $now->copy()->subDays(2),
             'stage_5_deadline' => $now->copy()->subDays(4),
+            'stage_6_status' => 'completed',
+            'stage_6_completed_at' => $now->copy()->subDay(),
+            'stage_6_deadline' => $now->copy()->subDays(3),
         ];
     }
 
@@ -226,6 +229,7 @@ class CreditSeeder extends Seeder
             'stage_3_status' => 'pending',
             'stage_4_status' => 'pending',
             'stage_5_status' => 'pending',
+            'stage_6_status' => 'pending',
         ];
     }
 
@@ -245,7 +249,7 @@ class CreditSeeder extends Seeder
     {
         $now = now();
         $out = ['bank_name' => 'بنك الأهلي'];
-        for ($i = 1; $i <= 5; $i++) {
+        for ($i = 1; $i <= 6; $i++) {
             if ($i < $currentStage) {
                 $out["stage_{$i}_status"] = 'completed';
                 $out["stage_{$i}_completed_at"] = $now->copy()->subDays(20 - $i * 3);
@@ -263,11 +267,15 @@ class CreditSeeder extends Seeder
     {
         $now = now();
         $out = [];
-        $extraHours = $isSupportedBank ? (5 * 24) : 0;
-        $deadlines = [1 => 48, 2 => 120, 3 => 72, 4 => 48, 5 => 120];
-        for ($i = 1; $i <= 5; $i++) {
-            $hours = $deadlines[$i] + ($i === 5 ? $extraHours : 0);
-            $out["stage_{$i}_deadline"] = $now->copy()->addHours($hours);
+        for ($i = 1; $i <= 6; $i++) {
+            if ($i < $currentStage) {
+                $out["stage_{$i}_deadline"] = $now->copy()->subDay();
+            } elseif ($i === $currentStage) {
+                $days = CreditFinancingTracker::durationDaysForStage($i, $isSupportedBank, false);
+                $out["stage_{$i}_deadline"] = $now->copy()->addDays($days);
+            } else {
+                $out["stage_{$i}_deadline"] = null;
+            }
         }
         return $out;
     }

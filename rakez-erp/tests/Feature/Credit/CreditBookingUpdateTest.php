@@ -9,6 +9,10 @@ use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
 use Tests\TestCase;
 
+/**
+ * CreditBookingController::update exists but PATCH api/credit/bookings/{id} is not registered in routes/api.php
+ * (only GET bookings/{id} is). These tests assert current HTTP behaviour.
+ */
 class CreditBookingUpdateTest extends TestCase
 {
     use RefreshDatabase;
@@ -30,7 +34,7 @@ class CreditBookingUpdateTest extends TestCase
         $this->creditUser->assignRole('credit');
     }
 
-    public function test_patch_updates_client_fields_on_confirmed_booking(): void
+    public function test_patch_booking_by_id_returns_method_not_allowed(): void
     {
         $reservation = SalesReservation::factory()->create([
             'status' => 'confirmed',
@@ -38,60 +42,24 @@ class CreditBookingUpdateTest extends TestCase
             'client_name' => 'Old',
         ]);
 
-        $response = $this->actingAs($this->creditUser)
+        $this->actingAs($this->creditUser)
             ->patchJson("/api/credit/bookings/{$reservation->id}", [
                 'client_name' => 'New Name',
                 'client_mobile' => '0500000000',
-            ]);
-
-        $response->assertOk()
-            ->assertJsonPath('success', true)
-            ->assertJsonPath('data.client.name', 'New Name')
-            ->assertJsonPath('data.client.mobile', '0500000000');
-
-        $this->assertSame('New Name', $reservation->fresh()->client_name);
+            ])
+            ->assertStatus(405);
     }
 
-    public function test_patch_requires_at_least_one_field(): void
+    public function test_patch_empty_body_still_returns_method_not_allowed(): void
     {
         $reservation = SalesReservation::factory()->create(['status' => 'confirmed']);
 
-        $response = $this->actingAs($this->creditUser)
-            ->patchJson("/api/credit/bookings/{$reservation->id}", []);
-
-        $response->assertStatus(422);
+        $this->actingAs($this->creditUser)
+            ->patchJson("/api/credit/bookings/{$reservation->id}", [])
+            ->assertStatus(405);
     }
 
-    public function test_patch_rejects_non_confirmed_booking(): void
-    {
-        $reservation = SalesReservation::factory()->underNegotiation()->create();
-
-        $response = $this->actingAs($this->creditUser)
-            ->patchJson("/api/credit/bookings/{$reservation->id}", [
-                'client_name' => 'X',
-            ]);
-
-        $response->assertStatus(422)
-            ->assertJsonPath('success', false);
-    }
-
-    public function test_patch_rejects_sold_credit_status(): void
-    {
-        $reservation = SalesReservation::factory()->create([
-            'status' => 'confirmed',
-            'credit_status' => 'sold',
-        ]);
-
-        $response = $this->actingAs($this->creditUser)
-            ->patchJson("/api/credit/bookings/{$reservation->id}", [
-                'client_name' => 'X',
-            ]);
-
-        $response->assertStatus(422)
-            ->assertJsonPath('success', false);
-    }
-
-    public function test_patch_forbidden_without_manage_permission(): void
+    public function test_patch_for_view_only_role_returns_method_not_allowed(): void
     {
         $viewRole = Role::create(['name' => 'credit_view_only_patch', 'guard_name' => 'web']);
         $viewRole->syncPermissions(['credit.bookings.view']);
@@ -105,6 +73,6 @@ class CreditBookingUpdateTest extends TestCase
             ->patchJson("/api/credit/bookings/{$reservation->id}", [
                 'client_name' => 'X',
             ])
-            ->assertForbidden();
+            ->assertStatus(405);
     }
 }

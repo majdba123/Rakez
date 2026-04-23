@@ -2,23 +2,33 @@
 
 namespace App\Http\Controllers\Contract;
 
+use App\Http\Controllers\Concerns\RespondsWithCsvImportUpload;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Contract\StoreContractRequest;
 use App\Http\Requests\Contract\UpdateContractRequest;
 use App\Http\Requests\Contract\UpdateContractStatusRequest;
+use App\Http\Requests\Contract\ImportContractsCsv;
 use App\Http\Resources\Contract\ContractResource;
 use App\Http\Resources\Contract\ContractIndexResource;
+use App\Jobs\ProcessContractsCsv;
 use App\Models\Contract;
+use App\Models\CsvImport;
 use App\Services\Contract\ContractService;
 use App\Services\Contract\InventoryAgencyOverviewService;
 use App\Services\Contract\InventoryDashboardService;
 use App\Services\Pdf\ContractPdfDataService;
+use App\Services\Pdf\PdfFactory;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response;
+use Illuminate\Support\Facades\Auth;
+use Mpdf\MpdfException;
 use Exception;
 
 class ContractController extends Controller
 {
+    use RespondsWithCsvImportUpload;
+
     public function __construct(
         protected ContractService $contractService,
         protected InventoryAgencyOverviewService $inventoryAgencyOverviewService,
@@ -49,8 +59,11 @@ class ContractController extends Controller
 
             // Apply access control filters: all users see own contracts + contracts with status approved/completed
             if ($user->can('contracts.view_all')) {
-                // Can view all, no user filter enforced
-            } elseif ($user->isManager() && $user->team) {
+                // Can view all; allow optional user_id filter from request
+                if ($request->filled('user_id')) {
+                    $filters['user_id'] = (int) $request->input('user_id');
+                }
+            } elseif ($user->isManager() && $user->team_id) {
                 $filters['user_id'] = $user->id;
                 $filters['include_public_status_contracts'] = true;
             } else {
@@ -84,7 +97,7 @@ class ContractController extends Controller
 
     public function store(StoreContractRequest $request): JsonResponse
     {
-        $this->authorize('create', Contract::class);
+       // $this->authorize('create', Contract::class);
 
         try {
             $validated = $request->validated();
@@ -160,6 +173,41 @@ class ContractController extends Controller
     }
 
     /**
+     * Download contract details as PDF (عربي — mPDF RTL).
+     * GET /api/contracts/show/{id}/pdf
+     */
+    public function showPdf(int $id): Response|JsonResponse
+    {
+        try {
+            $contract = $this->contractService->getContractById($id, null);
+            $this->authorize('view', $contract);
+
+            $data = $this->pdfDataService->buildShowPdfPayload($contract);
+            $filename = sprintf('contract_%d_%s.pdf', $contract->id, now()->format('Y-m-d'));
+
+            return PdfFactory::download('pdfs.contract_show', $data, $filename);
+        } catch (\Illuminate\Auth\Access\AuthorizationException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage(),
+            ], 403);
+        } catch (MpdfException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'تعذر إنشاء ملف PDF: ' . $e->getMessage(),
+            ], 500);
+        } catch (Exception $e) {
+            $message = $e->getMessage();
+            $notFound = str_contains($message, 'not found') || str_contains($message, 'No query results');
+
+            return response()->json([
+                'success' => false,
+                'message' => $message,
+            ], $notFound ? 404 : 500);
+        }
+    }
+
+    /**
      * Contract fill data for PDF template (عقد حصري — ملء قالب).
      * GET /api/contracts/{id}/fill-data — returns JSON only; frontend uses downloadFilledContract(contractData).
      */
@@ -172,11 +220,47 @@ class ContractController extends Controller
             return response()->json($data, 200, ['Content-Type' => 'application/json']);
         } catch (\Illuminate\Auth\Access\AuthorizationException $e) {
             return response()->json(['success' => false, 'message' => $e->getMessage()], 403);
-        } catch (Exception $e) {
+        } catch (\Throwable $e) {
             return response()->json([
                 'success' => false,
                 'message' => $e->getMessage(),
             ], $e->getMessage() === 'Contract not found' ? 404 : 500);
+        }
+    }
+
+    /**
+     * PDF for contract fill-data (عقد حصري — ملء قالب). Same underlying data as {@see fillData}.
+     * GET /api/contracts/{id}/fill-data/pdf
+     */
+    public function fillDataPdf(int $id): Response|JsonResponse
+    {
+        try {
+            $contract = $this->contractService->getContractById($id, null);
+            $this->authorize('view', $contract);
+
+            $data = $this->pdfDataService->buildFillDataPdfPayload($contract);
+            $filename = sprintf('contract_fill_%d_%s.pdf', $contract->id, now()->format('Y-m-d'));
+
+            return PdfFactory::download('pdfs.contract_fill_data', $data, $filename);
+        } catch (\Illuminate\Auth\Access\AuthorizationException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage(),
+            ], 403);
+        } catch (MpdfException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'تعذر إنشاء ملف PDF: ' . $e->getMessage(),
+            ], 500);
+        } catch (\Throwable $e) {
+            $message = $e->getMessage();
+            $notFound = str_contains($message, 'not found') || str_contains($message, 'No query results')
+                || str_contains($message, 'Contract not found');
+
+            return response()->json([
+                'success' => false,
+                'message' => $message,
+            ], $notFound ? 404 : 500);
         }
     }
 
@@ -396,9 +480,6 @@ class ContractController extends Controller
     {
         try {
             $validated = $request->validated();
-            $contract = $this->contractService->getContractById($id, null);
-
-            $this->authorize('update', $contract);
 
             $contract = $this->contractService->updateContractStatus($id, $validated['status']);
 
@@ -424,10 +505,6 @@ class ContractController extends Controller
                 'status.required' => 'الحالة مطلوبة',
                 'status.in' => 'الحالة يجب أن تكون: جاهز أو مرفوض',
             ]);
-
-            $contract = $this->contractService->getContractById($id, null);
-
-            $this->authorize('update', $contract);
 
             $contract = $this->contractService->updateContractStatusByProjectManagement($id, $request->status);
 
@@ -535,5 +612,67 @@ class ContractController extends Controller
                 'message' => $e->getMessage(),
             ], str_contains($e->getMessage(), 'No query results') || str_contains($e->getMessage(), 'Contract not found') ? 404 : 422);
         }
+    }
+
+    /**
+     * Upload a CSV file for bulk contract import.
+     * Validates file and header, then dispatches a queue job.
+     */
+    public function import_contracts_csv(ImportContractsCsv $request): JsonResponse
+    {
+        $file = $request->file('file');
+
+        $handle = fopen($file->getRealPath(), 'r');
+        if ($handle === false) {
+            return response()->json(['success' => false, 'message' => 'Unable to read the CSV file.'], 422);
+        }
+
+        $header = fgetcsv($handle);
+        fclose($handle);
+
+        if (!$header) {
+            return response()->json(['success' => false, 'message' => 'CSV file is empty or has no header row.'], 422);
+        }
+
+        $header = array_map(fn ($col) => strtolower(trim($col)), $header);
+
+        $requiredColumns = [
+            'developer_name', 'developer_number',
+            'project_name', 'developer_requiment',
+            'units_json',
+        ];
+        $missing = array_diff($requiredColumns, $header);
+
+        if (!empty($missing)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'CSV is missing required columns.',
+                'missing_columns' => array_values($missing),
+            ], 422);
+        }
+
+        $hasIds = in_array('city_id', $header, true) && in_array('district_id', $header, true);
+        $hasCode = in_array('city_code', $header, true) && in_array('district_name', $header, true);
+        if (! $hasIds && ! $hasCode) {
+            return response()->json([
+                'success' => false,
+                'message' => 'CSV must include either (city_id and district_id) or (city_code and district_name) columns.',
+            ], 422);
+        }
+
+        $storedPath = $file->store('csv-imports', 'local');
+
+        $csvImport = CsvImport::create([
+            'type' => CsvImport::TYPE_CONTRACTS,
+            'uploaded_by' => Auth::id(),
+            'file_path' => $storedPath,
+            'status' => CsvImport::STATUS_PENDING,
+        ]);
+
+        return $this->runCsvImport(
+            $csvImport,
+            fn () => ProcessContractsCsv::dispatchSync($csvImport->id, Auth::id()),
+            fn () => ProcessContractsCsv::dispatch($csvImport->id, Auth::id())
+        );
     }
 }

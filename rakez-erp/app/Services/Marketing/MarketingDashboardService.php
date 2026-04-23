@@ -13,7 +13,7 @@ class MarketingDashboardService
 {
     public function getDashboardKPIs()
     {
-        $expectedSalesService = new ExpectedSalesService();
+        $expectedSalesService = app(ExpectedSalesService::class);
         return [
             'total_leads' => $this->getTotalLeads(),
             'available_units_value' => $this->getAvailableUnitsValue(),

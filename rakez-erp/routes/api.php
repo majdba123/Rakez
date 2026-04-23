@@ -64,6 +64,7 @@ use App\Http\Controllers\Credit\CreditBookingController;
 use App\Http\Controllers\Credit\CreditDashboardController;
 use App\Http\Controllers\Credit\CreditFinancingController;
 use App\Http\Controllers\Credit\CreditNotificationController;
+use App\Http\Controllers\Credit\OrderMarketingDeveloperController;
 use App\Http\Controllers\Credit\TitleTransferController;
 use App\Http\Controllers\AI\AiCallController;
 use App\Http\Controllers\AI\AssistantChatController;
@@ -84,12 +85,14 @@ use App\Http\Controllers\HR\ManagerEmployeeController;
 use App\Http\Controllers\HR\ManagerTaskController;
 use App\Http\Controllers\HR\HrDashboardController;
 use App\Http\Controllers\HR\HrReportController;
+use App\Http\Controllers\HR\HrTargetController;
 use App\Http\Controllers\HR\EmployeeContractController;
 use App\Http\Controllers\HR\EmployeeWarningController;
 use App\Http\Controllers\HR\MarketerPerformanceController;
 use App\Http\Controllers\MyTasksController;
 use App\Http\Controllers\TaskMetaController;
 use App\Http\Controllers\Admin\CityController;
+use App\Http\Controllers\Admin\CsvImportController;
 use App\Http\Controllers\Admin\DistrictController;
 use App\Http\Controllers\Access\AccessProfileController;
 use App\Http\Controllers\Auth\CurrentUserController;
@@ -198,30 +201,46 @@ Route::middleware(['auth:sanctum', 'check_status'])->group(function () {
         Route::get('/contracts/index', [ContractController::class, 'index']);
         Route::post('/contracts/store', [ContractController::class, 'store']);
         Route::get('/contracts/show/{id}', [ContractController::class, 'show']);
+        Route::get('/contracts/show/{id}/pdf', [ContractController::class, 'showPdf'])->whereNumber('id');
         Route::get('/contracts/{id}/fill-data', [ContractController::class, 'fillData']);
+        Route::get('/contracts/{id}/fill-data/pdf', [ContractController::class, 'fillDataPdf'])->whereNumber('id');
         Route::get('/contracts/{id}/summary-pdf-data', [ContractController::class, 'summaryPdfData']);
         Route::put('/contracts/update/{id}', [ContractController::class, 'update']);
         Route::delete('/contracts/{id}', [ContractController::class, 'destroy']);
 
         Route::post('/contracts/store/info/{id}', [ContractInfoController::class, 'store']);
         Route::put('/contracts/update/info/{id}', [ContractInfoController::class, 'update']);
+        Route::get('/contracts/info/{contractId}/pdf', [ContractInfoController::class, 'downloadPdf'])->whereNumber('contractId');
 
         // Sales / project-tracker: view second-party-data and photography-department (authorized via ContractPolicy in controller)
         Route::get('/second-party-data/show/{id}', [SecondPartyDataController::class, 'show']);
+        Route::get('/second-party-data/{contractId}/pdf', [SecondPartyDataController::class, 'downloadPdf'])->whereNumber('contractId');
         Route::get('/photography-department/show/{contractId}', [PhotographyDepartmentController::class, 'show']);
 
 
         Route::prefix('user/notifications')->group(function () {
             Route::get('/private', [NotificationController::class, 'getUserPrivateNotifications']);
             Route::get('/public', [NotificationController::class, 'getPublicNotifications']);
-            Route::patch('/mark-all-read', [NotificationController::class, 'userMarkAllAsRead']);
-            Route::patch('/{id}/read', [NotificationController::class, 'userMarkAsRead']);
+            Route::match(['patch', 'post'], '/mark-all-read', [NotificationController::class, 'userMarkAllAsRead']);
+            Route::match(['patch', 'post', 'put'], '/{id}/read', [NotificationController::class, 'userMarkAsRead'])
+                ->where('id', '[A-Za-z0-9\\-]+');
+        });
+
+        Route::prefix('cities')->group(function () {
+            Route::get('/', [CityController::class, 'index']);
+            Route::get('/{id}', [CityController::class, 'show'])->whereNumber('id');
+        });
+
+        Route::prefix('districts')->group(function () {
+            Route::get('/', [DistrictController::class, 'index']);
+            Route::get('/{id}', [DistrictController::class, 'show'])->whereNumber('id');
         });
 
         // Shorthand /api/notifications -> returns private notifications for the authenticated user
         Route::get('/notifications', [NotificationController::class, 'getUserPrivateNotifications']);
-        Route::patch('/notifications/mark-all-read', [NotificationController::class, 'userMarkAllAsRead']);
-        Route::patch('/notifications/{id}/read', [NotificationController::class, 'userMarkAsRead']);
+        Route::match(['patch', 'post'], '/notifications/mark-all-read', [NotificationController::class, 'userMarkAllAsRead']);
+        Route::match(['patch', 'post', 'put'], '/notifications/{id}/read', [NotificationController::class, 'userMarkAsRead'])
+            ->where('id', '[A-Za-z0-9\\-]+');
     });
 
     Route::middleware(['auth:sanctum', 'role:project_management|admin'])->group(function () {
@@ -234,6 +253,7 @@ Route::middleware(['auth:sanctum', 'check_status'])->group(function () {
             // GET show/{id} is only on the auth-only group above (line ~127) so sales/sales_leader can use it; controller authorizes via ContractPolicy
             Route::post('store/{id}', [SecondPartyDataController::class, 'store'])->middleware('permission:second_party.edit');
             Route::put('update/{id}', [SecondPartyDataController::class, 'update'])->middleware('permission:second_party.edit');
+            Route::get('{contractId}/pdf', [SecondPartyDataController::class, 'downloadPdf'])->whereNumber('contractId')->middleware('permission:second_party.view');
 
             Route::get('/second-parties', [ContractInfoController::class, 'getAllSecondParties'])->middleware('permission:second_party.view');
             Route::get('/contracts-by-email', [ContractInfoController::class, 'getContractsBySecondPartyEmail'])->middleware('permission:second_party.view');
@@ -509,6 +529,24 @@ Route::middleware(['auth:sanctum', 'check_status'])->group(function () {
                 Route::patch('/{id}', [DistrictController::class, 'update'])->whereNumber('id');
                 Route::delete('/{id}', [DistrictController::class, 'destroy'])->whereNumber('id');
             });
+
+            Route::prefix('csv')->group(function () {
+                Route::get('types', [CsvImportController::class, 'types']);
+                Route::get('imports', [CsvImportController::class, 'index']);
+                Route::post('contracts/import_csv', [ContractController::class, 'import_contracts_csv']);
+                Route::post('contracts/import_info_csv/{contractId}', [ContractInfoController::class, 'import_csv'])->whereNumber('contractId');
+                Route::post('second-party-data/import_csv/{contractId}', [SecondPartyDataController::class, 'import_csv'])->whereNumber('contractId');
+                Route::post('teams/import_csv', [TeamController::class, 'import_csv']);
+                Route::post('employees/import_employees_csv', [RegisterController::class, 'import_employees_csv'])->middleware('permission:employees.manage');
+                Route::post('cities/import_csv', [CityController::class, 'import_csv']);
+                Route::post('districts/import_csv', [DistrictController::class, 'import_csv']);
+            });
+
+            Route::prefix('order-marketing-developers')->group(function () {
+                Route::get('/', [OrderMarketingDeveloperController::class, 'index']);
+                Route::get('/{id}', [OrderMarketingDeveloperController::class, 'show'])->whereNumber('id');
+                Route::patch('/{id}/status', [OrderMarketingDeveloperController::class, 'updateStatus'])->whereNumber('id');
+            });
         });
 
     // ==========================================
@@ -538,6 +576,7 @@ Route::middleware(['auth:sanctum', 'check_status'])->group(function () {
 
         // Developer Plans
         Route::get('developer-plans/{contractId}', [DeveloperMarketingPlanController::class, 'show'])->middleware('permission:marketing.plans.create');
+        Route::get('developer-plans/{contractId}/pdf', [DeveloperMarketingPlanController::class, 'downloadPdf'])->middleware('permission:marketing.plans.create')->whereNumber('contractId');
         Route::get('reports/developer-plan/{contractId}/pdf-data', [DeveloperMarketingPlanController::class, 'pdfData'])->middleware('permission:marketing.reports.view')->whereNumber('contractId');
         Route::post('developer-plans/calculate-budget', [DeveloperMarketingPlanController::class, 'calculateBudget'])->middleware('permission:marketing.plans.create');
         Route::post('developer-plans', [DeveloperMarketingPlanController::class, 'store'])->middleware('permission:marketing.plans.create');
@@ -678,6 +717,12 @@ Route::middleware(['auth:sanctum', 'check_status'])->group(function () {
             Route::get('/ended-contracts', [HrReportController::class, 'endedContracts']);
         });
 
+        Route::prefix('targets')->group(function () {
+            Route::get('/statistics/{marketerId}', [HrTargetController::class, 'statistics'])->whereNumber('marketerId');
+            Route::get('/marketers', [HrTargetController::class, 'marketers']);
+            Route::get('/reservation-statistics/{marketerId}', [HrTargetController::class, 'reservationStatistics'])->whereNumber('marketerId');
+        });
+
     });
 
 
@@ -804,6 +849,12 @@ Route::prefix('credit')->middleware(['auth:sanctum', 'check_status', 'role:credi
     // Dashboard
     Route::get('dashboard', [CreditDashboardController::class, 'index'])->middleware('permission:credit.dashboard.view');
     Route::post('dashboard/refresh', [CreditDashboardController::class, 'refresh'])->middleware('permission:credit.dashboard.view');
+
+    Route::get('order-marketing-developers', [OrderMarketingDeveloperController::class, 'index'])->middleware('permission:credit.bookings.view');
+    Route::post('order-marketing-developers', [OrderMarketingDeveloperController::class, 'store'])->middleware('permission:credit.bookings.manage');
+    Route::get('order-marketing-developers/{id}', [OrderMarketingDeveloperController::class, 'show'])->middleware('permission:credit.bookings.view');
+    Route::put('order-marketing-developers/{id}', [OrderMarketingDeveloperController::class, 'update'])->middleware('permission:credit.bookings.manage');
+    Route::delete('order-marketing-developers/{id}', [OrderMarketingDeveloperController::class, 'destroy'])->middleware('permission:credit.bookings.manage');
 
     // Bookings
     Route::get('bookings', [CreditBookingController::class, 'index'])->middleware('permission:credit.bookings.view');

@@ -15,6 +15,11 @@ use Illuminate\Validation\ValidationException;
 
 class SalesProjectService
 {
+    protected function isSalesOrLeader(User $user): bool
+    {
+        return $user->hasAnyRole(['sales', 'sales_leader']) || $user->type === 'sales';
+    }
+
     /**
      * Count units for a contract using the eager-loaded relation when present (avoids N+1).
      */
@@ -412,14 +417,14 @@ class SalesProjectService
             return false;
         }
         // Sales leaders + sales staff can access completed contracts.
-        if ($contract->status === ContractWorkflowStatus::Completed->value && $user->type === 'sales') {
+        if ($contract->status === ContractWorkflowStatus::Completed->value && $this->isSalesOrLeader($user)) {
             return true;
         }
         return false;
     }
 
     /**
-     * Get team projects for a leader from PM team linkage only.
+     * Get team projects for a leader: PM team linkage (contract_team) and/or direct sales assignment.
      */
     public function getTeamProjects(User $leader): \Illuminate\Database\Eloquent\Collection
     {
@@ -448,17 +453,13 @@ class SalesProjectService
     }
 
     /**
-     * Get team members for a leader (same team_id).
+     * Get team members for a leader (delegates to shared Sales team logic).
      */
     public function getTeamMembers(User $leader): \Illuminate\Database\Eloquent\Collection
     {
-        if (!$leader->team_id) {
-            return new \Illuminate\Database\Eloquent\Collection([]);
-        }
-        return User::where('team_id', $leader->team_id)
-            ->where('type', 'sales')
-            ->where('id', '!=', $leader->id)
-            ->get();
+        return new \Illuminate\Database\Eloquent\Collection(
+            app(\App\Services\Sales\SalesTeamService::class)->getTeamMembers($leader)->all()
+        );
     }
 
     /**
@@ -490,31 +491,40 @@ class SalesProjectService
     }
 
     /**
-     * Base query for projects linked to the leader team from project management.
+     * Base query: completed contracts tied to the leader's HR team (contract_team) or assigned to this leader.
+     * Assignment-only projects (no PM pivot row) were previously omitted and produced empty team/project UIs.
      */
     protected function baseTeamProjectsQuery(User $leader): Builder
     {
-        $query = Contract::query()
-            ->where('status', ContractWorkflowStatus::Completed->value)
-            ->with([
-                'contractUnits',
-                'salesProjectAssignments.leader',
-                'user',
-                'city',
-                'district',
-            ]);
+        $teamId = $leader->team_id ? (int) $leader->team_id : null;
 
-        if (!$leader->team_id) {
-            return $query->whereRaw('1 = 0');
+        $with = [
+            'contractUnits',
+            'salesProjectAssignments.leader',
+            'user',
+            'city',
+            'district',
+        ];
+        if ($teamId) {
+            $with['teams'] = fn ($teams) => $teams->where('teams.id', $teamId);
         }
 
-        return $query
-            ->whereHas('teams', function (Builder $teams) use ($leader) {
-                $teams->where('teams.id', $leader->team_id);
-            })
-            ->with([
-                'teams' => fn ($teams) => $teams->where('teams.id', $leader->team_id),
-            ]);
+        $query = Contract::query()
+            ->where('status', ContractWorkflowStatus::Completed->value)
+            ->with($with);
+
+        $query->where(function (Builder $outer) use ($leader, $teamId) {
+            if ($teamId) {
+                $outer->whereHas('teams', function (Builder $teams) use ($teamId) {
+                    $teams->where('teams.id', $teamId);
+                });
+            }
+            $outer->orWhereHas('salesProjectAssignments', function (Builder $aq) use ($leader) {
+                $aq->where('leader_id', (int) $leader->id);
+            });
+        });
+
+        return $query;
     }
 
     /**

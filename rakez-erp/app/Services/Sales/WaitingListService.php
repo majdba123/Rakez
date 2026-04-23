@@ -37,6 +37,14 @@ class WaitingListService
             $expiryDays = config('sales.waiting_list_expiry_days', 30);
             $expiresAt = now()->addDays($expiryDays);
 
+            // Determine next priority automatically for this unit (1,2,3,...) based on active (waiting) entries only
+            $nextPriority = (int) SalesWaitingList::where('contract_unit_id', $data['contract_unit_id'])
+                ->where('status', 'waiting')
+                ->max('priority') + 1;
+            if ($nextPriority < 1) {
+                $nextPriority = 1;
+            }
+
             // Create waiting list entry
             $waitingEntry = SalesWaitingList::create([
                 'contract_id' => $data['contract_id'],
@@ -45,7 +53,7 @@ class WaitingListService
                 'client_name' => $data['client_name'],
                 'client_mobile' => $data['client_mobile'],
                 'client_email' => $data['client_email'] ?? null,
-                'priority' => $data['priority'] ?? 1,
+                'priority' => $nextPriority,
                 'status' => 'waiting',
                 'notes' => $data['notes'] ?? null,
                 'expires_at' => $expiresAt,

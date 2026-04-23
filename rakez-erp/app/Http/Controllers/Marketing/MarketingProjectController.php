@@ -48,25 +48,25 @@ class MarketingProjectController extends Controller
     {
         $details = $this->projectService->getProjectDetails($contractId);
         $durationStatus = $this->projectService->getContractDurationStatus($contractId);
+        $responsibleSalesTeams = $this->projectService->buildResponsibleSalesTeams($details);
+        $detailEnrichment = $this->projectService->enrichContractDetailForMarketingApi($details);
+        
+        // Get canonical shared metrics
+        $canonicalMetrics = $this->projectService->getCanonicalMetrics($details);
 
         return response()->json([
             'success' => true,
-            'data' => array_merge($details->toArray(), [
-                'duration_status' => $durationStatus
-            ])
-        ]);
-    }
-
-    public function calculateBudget(\App\Http\Requests\Marketing\CalculateBudgetRequest $request): JsonResponse
-    {
-        $validated = $request->validated();
-
-        return response()->json([
-            'success' => true,
-            'data' => $this->projectService->calculateCampaignBudget(
-                $validated['contract_id'],
-                $validated
-            )
+            'data' => array_merge(
+                $canonicalMetrics,
+                $details->toArray(), 
+                $detailEnrichment, 
+                [
+                    'duration_status' => $durationStatus,
+                    'responsible_sales_teams' => $responsibleSalesTeams,
+                    /** Canonical contract/pricing source — no campaign budget math (use POST …/developer-plans/calculate-budget). */
+                    'pricing_source' => $this->projectService->buildPricingSourceForContract($details),
+                ]
+            ),
         ]);
     }
 }

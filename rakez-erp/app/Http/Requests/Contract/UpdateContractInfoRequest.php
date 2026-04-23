@@ -23,7 +23,6 @@ class UpdateContractInfoRequest extends FormRequest
             'agency_date' => 'nullable|date',
             'avg_property_value' => 'nullable|numeric|min:0',
             'release_date' => 'nullable|date',
-            'second_party_developer_id' => 'nullable|integer|exists:users,id',
             'second_party_name' => 'nullable|string|max:255',
             'second_party_address' => 'nullable|string',
             'second_party_cr_number' => 'nullable|string|max:255',
@@ -31,6 +30,7 @@ class UpdateContractInfoRequest extends FormRequest
             'second_party_id_number' => 'nullable|string|max:255',
             'second_party_role' => 'nullable|string|max:255',
             'second_party_phone' => 'nullable|string|max:255',
+            'second_party_email' => 'nullable|string|email|max:255',
         ];
     }
 }

@@ -173,4 +173,84 @@ class AccountingCommissionTest extends TestCase
                 ],
             ]);
     }
+
+    /** @test */
+    public function commission_distributions_can_sum_below_100_with_remainder_metadata(): void
+    {
+        Sanctum::actingAs($this->accountingUser);
+
+        $payee = User::factory()->create(['type' => 'sales', 'is_active' => true]);
+        $commission = Commission::factory()->create([
+            'status' => 'pending',
+            'net_amount' => 10000,
+        ]);
+
+        $response = $this->putJson("/api/accounting/commissions/{$commission->id}/distributions", [
+            'distributions' => [
+                [
+                    'type' => 'closing',
+                    'percentage' => 40,
+                    'user_id' => $payee->id,
+                ],
+            ],
+        ]);
+
+        $response->assertStatus(200)
+            ->assertJsonPath('data.remaining_percentage', 60)
+            ->assertJsonPath('data.remaining_amount', 6000)
+            ->assertJsonPath('data.total_distributed_percentage', 40);
+
+        $commission->refresh();
+        $this->assertCount(1, $commission->distributions);
+        $this->assertEquals(4000.0, (float) $commission->distributions->first()->amount);
+    }
+
+    /** @test */
+    public function commission_distributions_empty_array_clears_rows_and_full_remainder_to_company(): void
+    {
+        Sanctum::actingAs($this->accountingUser);
+
+        $commission = Commission::factory()->create([
+            'status' => 'pending',
+            'net_amount' => 5000,
+        ]);
+        CommissionDistribution::factory()->create([
+            'commission_id' => $commission->id,
+            'percentage' => 50,
+            'amount' => 2500,
+            'status' => 'pending',
+        ]);
+
+        $response = $this->putJson("/api/accounting/commissions/{$commission->id}/distributions", [
+            'distributions' => [],
+        ]);
+
+        $response->assertStatus(200)
+            ->assertJsonPath('data.remaining_percentage', 100)
+            ->assertJsonPath('data.remaining_amount', 5000);
+
+        $this->assertCount(0, $commission->fresh()->distributions);
+    }
+
+    /** @test */
+    public function commission_distributions_reject_total_over_100(): void
+    {
+        Sanctum::actingAs($this->accountingUser);
+
+        $u1 = User::factory()->create(['type' => 'sales', 'is_active' => true]);
+        $u2 = User::factory()->create(['type' => 'sales', 'is_active' => true]);
+        $commission = Commission::factory()->create([
+            'status' => 'pending',
+            'net_amount' => 10000,
+        ]);
+
+        $response = $this->putJson("/api/accounting/commissions/{$commission->id}/distributions", [
+            'distributions' => [
+                ['type' => 'closing', 'percentage' => 60, 'user_id' => $u1->id],
+                ['type' => 'persuasion', 'percentage' => 50, 'user_id' => $u2->id],
+            ],
+        ]);
+
+        $response->assertStatus(400);
+    }
 }

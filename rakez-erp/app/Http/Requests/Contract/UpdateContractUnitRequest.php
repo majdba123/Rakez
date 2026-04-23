@@ -23,6 +23,7 @@ class UpdateContractUnitRequest extends FormRequest
             'bedrooms' => 'nullable|integer|min:0',
             'bathrooms' => 'nullable|integer|min:0',
             'private_area_m2' => 'nullable|numeric|min:0',
+            'street_width' => 'nullable|numeric|min:0',
             'view' => 'nullable|string|max:100',
             'description_en' => 'nullable|string|max:1000',
             'description_ar' => 'nullable|string|max:1000',

@@ -4,6 +4,8 @@ namespace Tests\Feature;
 
 use Tests\TestCase;
 use PHPUnit\Framework\Attributes\Test;
+use App\Models\City;
+use App\Models\District;
 use App\Models\User;
 use App\Models\ExclusiveProjectRequest;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -192,10 +194,18 @@ class ExclusiveProjectTest extends TestCase
     #[Test]
     public function can_complete_contract_for_approved_request()
     {
+        $city = City::factory()->create(['name' => 'Riyadh']);
+        District::factory()->create([
+            'city_id' => $city->id,
+            'name' => 'Al Olaya',
+        ]);
+
         $request = ExclusiveProjectRequest::factory()->create([
             'requested_by' => $this->salesStaff->id,
             'status' => 'approved',
             'approved_by' => $this->projectManager->id,
+            'location_city' => 'Riyadh',
+            'location_district' => 'Al Olaya',
         ]);
 
         $data = [

@@ -62,10 +62,9 @@ class DistributeCommissionRequest extends FormRequest
         $validator->after(function ($validator) {
             $distributions = $this->input('distributions', []);
             
-            // Validate total percentage equals 100%
             $totalPercentage = array_sum(array_column($distributions, 'percentage'));
-            if (abs($totalPercentage - 100) > 0.01) {
-                $validator->errors()->add('distributions', 'مجموع نسب التوزيع يجب أن يساوي 100%');
+            if ($totalPercentage > 100 + 0.0001) {
+                $validator->errors()->add('distributions', 'مجموع نسب التوزيع يجب ألا يتجاوز 100% (الباقي للشركة)');
             }
 
             // Check for duplicate user_id in distributions

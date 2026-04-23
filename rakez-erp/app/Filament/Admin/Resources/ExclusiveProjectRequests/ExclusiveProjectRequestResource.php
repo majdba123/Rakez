@@ -2,6 +2,7 @@
 
 namespace App\Filament\Admin\Resources\ExclusiveProjectRequests;
 
+use App\Enums\ExclusiveProjectRequestStatus;
 use App\Filament\Admin\Concerns\ChecksFilamentNavigationGroupGate;
 use App\Filament\Admin\Concerns\HasGovernanceAuthorization;
 use App\Filament\Admin\Concerns\HasReadOnlyGovernanceResource;
@@ -71,12 +72,7 @@ class ExclusiveProjectRequestResource extends Resource
             ])
             ->filters([
                 SelectFilter::make('status')
-                    ->options([
-                        'pending' => 'Pending',
-                        'approved' => 'Approved',
-                        'rejected' => 'Rejected',
-                        'contract_completed' => 'Contract Completed',
-                    ]),
+                    ->options(ExclusiveProjectRequestStatus::options()),
             ])
             ->actions([
                 ViewAction::make(),

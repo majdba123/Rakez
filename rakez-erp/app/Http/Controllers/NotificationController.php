@@ -4,20 +4,18 @@ namespace App\Http\Controllers;
 
 use App\Models\UserNotification;
 use App\Models\AdminNotification;
+use App\Events\UserNotificationEvent;
+use App\Events\PublicNotificationEvent;
 use App\Http\Resources\AdminNotificationResource;
 use App\Http\Resources\UserNotificationResource;
 use App\Http\Responses\ApiResponse;
-use App\Services\Notification\NotificationAdminService;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Support\Carbon;
 
 class NotificationController extends Controller
 {
-    public function __construct(
-        private NotificationAdminService $notificationAdminService
-    ) {}
-
     // ==========================================
     // ADMIN APIs
     // ==========================================
@@ -74,10 +72,12 @@ class NotificationController extends Controller
             'message' => 'required|string',
         ]);
 
-        $notification = $this->notificationAdminService->sendToUser(
-            (int) $request->user_id,
-            (string) $request->message
-        );
+        $notification = UserNotification::create([
+            'user_id' => $request->user_id,
+            'message' => $request->message,
+        ]);
+
+        event(new UserNotificationEvent($request->user_id, $request->message));
 
         return response()->json([
             'message' => 'Notification sent to user',
@@ -94,7 +94,12 @@ class NotificationController extends Controller
             'message' => 'required|string',
         ]);
 
-        $notification = $this->notificationAdminService->sendPublic((string) $request->message);
+        $notification = UserNotification::create([
+            'user_id' => null,
+            'message' => $request->message,
+        ]);
+
+        event(new PublicNotificationEvent($request->message));
 
         return response()->json([
             'message' => 'Public notification sent',
@@ -155,21 +160,76 @@ class NotificationController extends Controller
      */
     public function userMarkAllAsRead(Request $request): JsonResponse
     {
-        $this->notificationAdminService->markAllUserNotificationsAsRead($request->user()->id);
+        $userId = $request->user()->id;
 
-        return response()->json(['message' => 'All notifications marked as read']);
+        $updated = UserNotification::where('user_id', $userId)
+            ->where('status', '!=', 'read')
+            ->update(['status' => 'read']);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'تم تعليم جميع الإشعارات كمقروءة',
+            'updated_count' => $updated,
+        ]);
     }
 
     /**
-     * Mark specific notification as read
+     * Mark specific notification as read.
+     *
+     * Supports:
+     * - Integer ids: persisted {@see UserNotification} rows for the current user.
+     * - Client-only ids prefixed with `local-`: no DB row; returns 200 so SPA optimistic UI does not 404.
      */
-    public function userMarkAsRead(Request $request, $id): JsonResponse
+    public function userMarkAsRead(Request $request, string $id): JsonResponse
     {
+        if (str_starts_with($id, 'local-')) {
+            $readAt = Carbon::now();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'تم تعليم الإشعار كمقروء',
+                'data' => [
+                    'id' => $id,
+                    'read_at' => $readAt->toIso8601String(),
+                    'client_only' => true,
+                ],
+            ]);
+        }
+
+        if (! ctype_digit($id)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'الإشعار غير موجود أو لا يخصك',
+            ], 404);
+        }
+
         $notification = UserNotification::where('user_id', $request->user()->id)
-            ->findOrFail($id);
+            ->whereKey((int) $id)
+            ->first();
 
-        $this->notificationAdminService->markUserNotificationAsRead($notification);
+        if (! $notification) {
+            return response()->json([
+                'success' => false,
+                'message' => 'الإشعار غير موجود أو لا يخصك',
+            ], 404);
+        }
 
-        return response()->json(['message' => 'Notification marked as read']);
+        if ($notification->status !== 'read') {
+            $notification->update(['status' => 'read']);
+        }
+
+        $fresh = $notification->fresh();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'تم تعليم الإشعار كمقروء',
+            'data' => array_merge(
+                (new UserNotificationResource($fresh))->resolve(),
+                [
+                    'read_at' => ($fresh->updated_at ?? Carbon::now())->toIso8601String(),
+                    'client_only' => false,
+                ]
+            ),
+        ]);
     }
 }

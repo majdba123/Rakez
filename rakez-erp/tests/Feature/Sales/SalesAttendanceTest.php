@@ -4,6 +4,7 @@ namespace Tests\Feature\Sales;
 
 use App\Models\Contract;
 use App\Models\SalesAttendanceSchedule;
+use App\Models\Team;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -15,6 +16,7 @@ class SalesAttendanceTest extends TestCase
     protected User $leader;
     protected User $employee;
     protected Contract $contract;
+    protected Team $team;
 
     protected function setUp(): void
     {
@@ -22,17 +24,19 @@ class SalesAttendanceTest extends TestCase
 
         $this->artisan('db:seed', ['--class' => 'RolesAndPermissionsSeeder']);
 
+        $this->team = Team::factory()->create(['name' => 'Team Alpha']);
+
         $this->leader = User::factory()->create([
             'type' => 'sales',
             'is_manager' => true,
-            'team' => 'Team Alpha',
+            'team_id' => $this->team->id,
         ]);
         $this->leader->assignRole('sales_leader');
 
         $this->employee = User::factory()->create([
             'type' => 'sales',
             'is_manager' => false,
-            'team' => 'Team Alpha',
+            'team_id' => $this->team->id,
         ]);
         $this->employee->assignRole('sales');
 
@@ -48,7 +52,7 @@ class SalesAttendanceTest extends TestCase
         ]);
 
         // Create schedule for another employee
-        $otherEmployee = User::factory()->create(['type' => 'sales', 'team' => 'Team Alpha']);
+        $otherEmployee = User::factory()->create(['type' => 'sales', 'team_id' => $this->team->id]);
         SalesAttendanceSchedule::factory()->create([
             'contract_id' => $this->contract->id,
             'user_id' => $otherEmployee->id,
@@ -112,7 +116,7 @@ class SalesAttendanceTest extends TestCase
 
         $anotherEmployee = User::factory()->create([
             'type' => 'sales',
-            'team' => 'Team Alpha',
+            'team_id' => $this->team->id,
         ]);
         SalesAttendanceSchedule::factory()->create([
             'contract_id' => $this->contract->id,
@@ -137,7 +141,7 @@ class SalesAttendanceTest extends TestCase
 
         $anotherEmployee = User::factory()->create([
             'type' => 'sales',
-            'team' => 'Team Alpha',
+            'team_id' => $this->team->id,
         ]);
         SalesAttendanceSchedule::factory()->create([
             'contract_id' => $this->contract->id,

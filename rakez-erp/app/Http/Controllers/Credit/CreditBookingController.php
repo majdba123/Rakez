@@ -7,8 +7,8 @@ use App\Http\Requests\Credit\StoreCreditClientContactRequest;
 use App\Http\Requests\Credit\UpdateCreditBookingRequest;
 use App\Models\SalesReservation;
 use App\Models\SalesWaitingList;
+use App\Services\Credit\CreditFinancingService;
 use App\Services\Sales\SalesReservationService;
-use App\Support\Credit\CreditProcessStepBuilder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Exception;
@@ -22,11 +22,9 @@ class CreditBookingController extends Controller
     private const CASH_CREDIT_PREPARATION_DAYS = 7;
 
     public function __construct(
-        protected ?SalesReservationService $reservationService = null,
-        protected ?CreditProcessStepBuilder $processSteps = null,
+        protected ?SalesReservationService $reservationService = null
     ) {
         $this->reservationService = $reservationService ?? app(SalesReservationService::class);
-        $this->processSteps = $processSteps ?? app(CreditProcessStepBuilder::class);
     }
 
     /**
@@ -82,6 +80,11 @@ class CreditBookingController extends Controller
     /**
      * Get confirmed bookings for credit.
      * GET /credit/bookings/confirmed
+     *
+     * Default (no credit_status): same subset as dashboard KPI `confirmed_bookings_count` —
+     * `credit_status` in pending + in_progress only (active credit pipeline).
+     * Use `credit_status=all` to list every confirmed reservation regardless of credit stage
+     * (sold, title_transfer, rejected, etc.).
      */
     public function confirmed(Request $request): JsonResponse
     {
@@ -95,9 +98,15 @@ class CreditBookingController extends Controller
             ])
                 ->confirmedForCredit();
 
-            // Filter by credit status
-            if ($request->has('credit_status')) {
-                $query->byCreditStatus($request->input('credit_status'));
+            if ($request->filled('credit_status')) {
+                $raw = $request->input('credit_status');
+                if ($raw === 'all') {
+                    // no extra credit_status filter
+                } else {
+                    $query->byCreditStatus($raw);
+                }
+            } else {
+                $query->whereIn('credit_status', ['pending', 'in_progress']);
             }
 
             // Filter by purchase mechanism
@@ -445,7 +454,7 @@ class CreditBookingController extends Controller
                     'financing' => $this->financingForUserOrNull($reservation),
                     'title_transfer' => $reservation->titleTransfer,
                     'claim_file' => $reservation->claimFile,
-                    // متابعة إجراءات الائتمان – 7 steps (التواصل مع العميل، رفع الطلب، صدور التقييم، زيارة المقيم، الإجراءات البنكية، تنفيذ العقود، فترة التجهيز)
+                    // متابعة الائتمان: تمويل بنكي = 7 خطوات واجهة؛ كاش = مرحلتان فعليتان في المتتبع (1 و6) والباقي skipped في الواجهة
                     'credit_procedure_steps' => $this->buildCreditProcedureSteps($reservation),
                     'payment_installments' => $reservation->paymentInstallments,
                     // Flags
@@ -645,8 +654,75 @@ class CreditBookingController extends Controller
      */
     private function buildCreditProcedureSteps(SalesReservation $reservation): array
     {
-        return $this->processSteps->creditProcedureStepsForApi($reservation);
+        $tracker = $reservation->financingTracker;
+        $titleTransfer = $reservation->titleTransfer;
+
+        $n = CreditFinancingService::STAGE_NAMES;
+        $steps = [
+            ['key' => 'contact_client', 'label_ar' => $n[1], 'status' => 'pending', 'date' => null],
+            ['key' => 'submit_to_bank', 'label_ar' => $n[2], 'status' => 'pending', 'date' => null],
+            ['key' => 'valuation', 'label_ar' => $n[3], 'status' => 'pending', 'date' => null],
+            ['key' => 'appraiser_visit', 'label_ar' => $n[4], 'status' => 'pending', 'date' => null],
+            ['key' => 'bank_contracts', 'label_ar' => $n[5], 'status' => 'pending', 'date' => null],
+            ['key' => 'contract_execution', 'label_ar' => 'تنفيذ العقود', 'status' => 'pending', 'date' => null],
+            ['key' => 'pre_evacuation', 'label_ar' => $n[6], 'status' => 'pending', 'date' => null],
+        ];
+
+        if ($tracker) {
+            $stageStatusMap = [
+                1 => 0,
+                2 => 1,
+                3 => 2,
+                4 => 3,
+                5 => 4,
+                6 => 6,
+            ];
+            foreach ($stageStatusMap as $stageNum => $stepIndex) {
+                $status = $tracker->{"stage_{$stageNum}_status"};
+                $steps[$stepIndex]['status'] = $status;
+                $date = $tracker->{"stage_{$stageNum}_completed_at"} ?? $tracker->{"stage_{$stageNum}_deadline"};
+                $steps[$stepIndex]['date'] = $date ? \Carbon\Carbon::parse($date)->format('Y-m-d') : null;
+            }
+
+            // Cash workflow skips bank-only middle stages in the UI (stages 2–5 in tracker are auto-completed).
+            if ($tracker->is_cash_workflow) {
+                for ($idx = 1; $idx <= 5; $idx++) {
+                    $steps[$idx]['status'] = 'skipped';
+                    $steps[$idx]['date'] = null;
+                }
+                $steps[0]['status'] = $tracker->stage_1_status;
+                $steps[0]['date'] = $tracker->stage_1_completed_at || $tracker->stage_1_deadline
+                    ? \Carbon\Carbon::parse($tracker->stage_1_completed_at ?? $tracker->stage_1_deadline)->format('Y-m-d')
+                    : null;
+                $steps[6]['status'] = $tracker->stage_6_status;
+                $steps[6]['date'] = $tracker->stage_6_completed_at || $tracker->stage_6_deadline
+                    ? \Carbon\Carbon::parse($tracker->stage_6_completed_at ?? $tracker->stage_6_deadline)->format('Y-m-d')
+                    : null;
+            }
+        }
+
+        if ($titleTransfer) {
+            $ttStatus = $titleTransfer->status;
+            $steps[5]['status'] = in_array($ttStatus, ['scheduled', 'completed'], true) ? $ttStatus : 'pending';
+            $steps[5]['date'] = $titleTransfer->scheduled_date?->format('Y-m-d') ?? $titleTransfer->completed_date?->format('Y-m-d');
+            $steps[6]['status'] = $ttStatus === 'preparation' ? 'in_progress' : ($ttStatus === 'completed' ? 'completed' : 'pending');
+            $steps[6]['date'] = $titleTransfer->completed_date?->format('Y-m-d');
+        }
+
+        // "تنفيذ العقود" (UI step index 5) has no tracker stage; not used in cash workflow.
+        if ($tracker && $tracker->is_cash_workflow) {
+            $steps[5]['status'] = 'skipped';
+            $steps[5]['date'] = null;
+        }
+
+        if ($reservation->credit_status === 'sold') {
+            $steps[5]['status'] = 'completed';
+            $steps[6]['status'] = 'completed';
+        }
+
+        return $steps;
     }
 }
+
 
 

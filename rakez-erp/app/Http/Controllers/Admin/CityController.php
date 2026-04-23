@@ -2,16 +2,23 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Http\Controllers\Concerns\RespondsWithCsvImportUpload;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\StoreCityRequest;
 use App\Http\Requests\Admin\UpdateCityRequest;
+use App\Http\Requests\Admin\ImportCitiesDistrictsCsv;
 use App\Http\Responses\ApiResponse;
+use App\Jobs\ProcessCitiesDistrictsCsv;
 use App\Models\City;
+use App\Models\CsvImport;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 
 class CityController extends Controller
 {
+    use RespondsWithCsvImportUpload;
+
     public function index(Request $request): JsonResponse
     {
         $request->validate([
@@ -139,5 +146,53 @@ class CityController extends Controller
         $city->delete();
 
         return ApiResponse::success(null, 'تم حذف المدينة بنجاح');
+    }
+
+    /**
+     * Upload CSV for bulk cities + districts import.
+     * Runs processing synchronously so the response includes final status, row_errors, and error_message.
+     */
+    public function import_csv(ImportCitiesDistrictsCsv $request): JsonResponse
+    {
+        $file = $request->file('file');
+
+        $handle = fopen($file->getRealPath(), 'r');
+        if ($handle === false) {
+            return ApiResponse::error('Unable to read the CSV file.', 422);
+        }
+
+        $header = fgetcsv($handle);
+        fclose($handle);
+
+        if (!$header) {
+            return ApiResponse::error('CSV file is empty or has no header row.', 422);
+        }
+
+        $header = array_map(fn ($col) => strtolower(trim($col)), $header);
+        $missing = array_diff(['city_name', 'city_code'], $header);
+
+        if (!empty($missing)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'CSV is missing required columns.',
+                'missing_columns' => array_values($missing),
+            ], 422);
+        }
+
+        $storedPath = $file->store('csv-imports', 'local');
+
+        $csvImport = CsvImport::create([
+            'type' => CsvImport::TYPE_CITIES_DISTRICTS,
+            'uploaded_by' => Auth::id(),
+            'file_path' => $storedPath,
+            'status' => CsvImport::STATUS_PENDING,
+        ]);
+
+        return $this->runCsvImport(
+            $csvImport,
+            fn () => ProcessCitiesDistrictsCsv::dispatchSync($csvImport->id),
+            fn () => ProcessCitiesDistrictsCsv::dispatch($csvImport->id),
+            true
+        );
     }
 }

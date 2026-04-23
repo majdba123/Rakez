@@ -83,6 +83,7 @@ class ContractUnitService
             'bedrooms' => ['bedrooms', 'غرف', 'عدد_الغرف'],
             'bathrooms' => ['bathrooms', 'حمامات', 'عدد_الحمامات'],
             'private_area_m2' => ['private_area_m2', 'private_area', 'المساحة_الخاصة', 'الشرفة'],
+            'street_width' => ['street_width', 'street width', 'width_street', 'width street', 'عرض_الشارع', 'عرض الشارع'],
             'facade' => ['view', 'facade', 'الواجهة', 'الاتجاه'],
             'description' => ['description', 'desc', 'الوصف', 'ملاحظات'],
             'description_en' => ['description_en', 'description en', 'الوصف_انجليزي'],
@@ -121,8 +122,10 @@ class ContractUnitService
                         case 'price':
                         case 'area':
                         case 'private_area_m2':
+                        case 'street_width':
                             $unitData[$field] = (float) $value;
                             break;
+                        case 'floor':
                         case 'bedrooms':
                         case 'bathrooms':
                             $unitData[$field] = (int) $value;
@@ -225,6 +228,7 @@ class ContractUnitService
                 'bedrooms',
                 'bathrooms',
                 'private_area_m2',
+                'street_width',
                 'facade',
                 'description_en',
                 'description_ar',
