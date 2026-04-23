@@ -318,7 +318,7 @@ class MarketingProjectDetailRelationsTest extends TestCase
     }
 
     #[Test]
-    public function show_uses_canonical_blocks_and_removes_redundant_top_level_unit_duplicates(): void
+    public function show_uses_canonical_blocks_while_preserving_legacy_top_level_aliases(): void
     {
         $contract = Contract::factory()->create(['status' => 'completed']);
         ContractInfo::factory()->create(['contract_id' => $contract->id]);
@@ -353,25 +353,33 @@ class MarketingProjectDetailRelationsTest extends TestCase
             'media_links',
             'responsible_sales_teams',
             'contract_units',
-            'marketing_project',
-            'teams',
-            'sales_project_assignments',
-        ] as $compatibilityAlias) {
-            $this->assertArrayHasKey($compatibilityAlias, $payload);
-        }
-
-        foreach ([
             'actual_contract_units',
             'all_contract_units',
             'available_contract_units',
             'unit_statistics',
             'units',
-            'average_unit_price_all',
+            'marketing_project',
+            'teams',
+            'sales_project_assignments',
+            'commission_value',
             'total_unit_price',
-        ] as $deprecatedDuplicate) {
-            $this->assertArrayNotHasKey($deprecatedDuplicate, $payload);
+            'average_unit_price',
+            'average_unit_price_all',
+            'average_unit_price_available',
+            'total_unit_price_all_sum',
+            'total_unit_price_available_sum',
+        ] as $compatibilityAlias) {
+            $this->assertArrayHasKey($compatibilityAlias, $payload);
         }
 
+        $this->assertSame($payload['actual_unit_data']['all_contract_units'], $payload['contract_units']);
+        $this->assertSame($payload['actual_unit_data']['all_contract_units'], $payload['actual_contract_units']);
+        $this->assertSame($payload['actual_unit_data']['all_contract_units'], $payload['all_contract_units']);
+        $this->assertSame($payload['actual_unit_data']['available_contract_units'], $payload['available_contract_units']);
+        $this->assertSame($payload['actual_unit_data']['unit_statistics'], $payload['unit_statistics']);
+        $this->assertSame($payload['legacy_summary']['legacy_contract_units_summary']['items'], $payload['units']);
+        $this->assertSame($payload['pricing_source']['average_unit_price_all'], $payload['average_unit_price_all']);
+        $this->assertSame($payload['pricing_source']['total_unit_price'], $payload['total_unit_price']);
         $this->assertArrayNotHasKey('contract', $payload['marketing_details']['marketing_project']);
         $this->assertArrayNotHasKey('contract', $payload['marketing_project']);
     }

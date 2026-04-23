@@ -117,7 +117,54 @@ class MarketingProjectDetailAssembler
             'duration' => $durationStatus,
         ];
 
-        $compatibilityAliases = array_merge(
+        $compatibilityAliases = $this->compatibilityAliases(
+            $contract,
+            $identity,
+            $metrics,
+            $location,
+            $legacySummary,
+            $unitPayload,
+            $media,
+            $teamsAndAssignments,
+            $marketingDetails,
+            $durationStatus,
+            $pricingSource,
+        );
+
+        return array_merge($conceptualBlocks, $compatibilityAliases);
+    }
+
+    /**
+     * Preserve the existing frontend-facing response shape while canonical blocks
+     * become the preferred contract. These aliases are intentionally additive and
+     * must not be removed until client usage is proven absent.
+     *
+     * @param  array<string, mixed>  $identity
+     * @param  array<string, mixed>  $metrics
+     * @param  array<string, mixed>  $location
+     * @param  array<string, mixed>  $legacySummary
+     * @param  array<string, mixed>  $unitPayload
+     * @param  array<string, mixed>  $media
+     * @param  array<string, mixed>  $teamsAndAssignments
+     * @param  array<string, mixed>  $marketingDetails
+     * @param  array<string, mixed>  $durationStatus
+     * @param  array<string, mixed>  $pricingSource
+     * @return array<string, mixed>
+     */
+    private function compatibilityAliases(
+        Contract $contract,
+        array $identity,
+        array $metrics,
+        array $location,
+        array $legacySummary,
+        array $unitPayload,
+        array $media,
+        array $teamsAndAssignments,
+        array $marketingDetails,
+        array $durationStatus,
+        array $pricingSource
+    ): array {
+        return array_merge(
             $identity,
             $metrics,
             [
@@ -125,20 +172,30 @@ class MarketingProjectDetailAssembler
                 'developer_number' => $contract->developer_number,
                 'city' => $location['city'],
                 'district' => $location['district'],
+                'units' => $contract->units ?? [],
                 'legacy_contract_units_summary' => $legacySummary,
+                'actual_contract_units' => $unitPayload['actual_contract_units'],
+                'all_contract_units' => $unitPayload['actual_contract_units'],
                 'contract_units' => $unitPayload['actual_contract_units'],
+                'available_contract_units' => $unitPayload['available_contract_units'],
+                'unit_statistics' => $unitPayload['unit_statistics'],
                 'project_media' => $media['project_media'],
                 'media_links' => $media['media_links'],
                 'teams' => $teamsAndAssignments['teams'],
-                'responsible_sales_teams' => $responsibleSalesTeams,
+                'responsible_sales_teams' => $teamsAndAssignments['responsible_sales_teams'],
                 'sales_project_assignments' => $teamsAndAssignments['sales_project_assignments'],
                 'marketing_project' => $marketingDetails['marketing_project'],
                 'duration_status' => $durationStatus,
                 'pricing_source' => $pricingSource,
+                'commission_value' => $pricingSource['commission_value'],
+                'total_unit_price' => $pricingSource['total_unit_price'],
+                'average_unit_price' => $pricingSource['average_unit_price'],
+                'average_unit_price_all' => $pricingSource['average_unit_price_all'],
+                'average_unit_price_available' => $pricingSource['average_unit_price_available'],
+                'total_unit_price_all_sum' => $pricingSource['total_unit_price_all_sum'],
+                'total_unit_price_available_sum' => $pricingSource['total_unit_price_available_sum'],
             ]
         );
-
-        return array_merge($conceptualBlocks, $compatibilityAliases);
     }
 
     /**
