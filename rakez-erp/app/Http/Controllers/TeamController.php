@@ -112,13 +112,20 @@ class TeamController extends Controller
 
     /**
      * GET /api/project_management/teams/members/{teamId}
+     * Query: per_page, team_group_id أو group_id (نفس المجموعة داخل الفريق)
      */
     public function members(Request $request, int $teamId): JsonResponse
     {
         try {
             $team = $this->teamService->getTeamById($teamId);
             $perPage = (int) $request->input('per_page', 15);
-            $members = $this->teamService->getTeamMembers($teamId, $perPage);
+            $teamGroupId = $request->filled('team_group_id')
+                ? (int) $request->input('team_group_id')
+                : ($request->filled('group_id') ? (int) $request->input('group_id') : null);
+            if ($teamGroupId !== null && $teamGroupId < 1) {
+                $teamGroupId = null;
+            }
+            $members = $this->teamService->getTeamMembers($teamId, $perPage, $teamGroupId);
 
             return response()->json([
                 'success' => true,
@@ -142,6 +149,9 @@ class TeamController extends Controller
                 || str_contains($message, 'No query results')
                 ? 404
                 : 500;
+            if (str_contains($message, 'المجموعة غير موجودة') || str_contains($message, 'لا تتبع')) {
+                $statusCode = 422;
+            }
 
             return response()->json([
                 'success' => false,

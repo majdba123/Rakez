@@ -89,16 +89,29 @@ class TeamService
     }
 
     /**
-     * Users assigned to this team (users.team_id). Team existence should be validated by caller.
+     * Users assigned to this team (users.team_id). Optionally filter to one team sub-group
+     * (users.team_group_id) — group must belong to this team.
      */
-    public function getTeamMembers(int $teamId, int $perPage = 15): LengthAwarePaginator
+    public function getTeamMembers(int $teamId, int $perPage = 15, ?int $teamGroupId = null): LengthAwarePaginator
     {
         $perPage = (int) min(100, max(1, $perPage));
 
-        return User::query()
+        $query = User::query()
             ->where('team_id', $teamId)
-            ->orderBy('name')
-            ->paginate($perPage);
+            ->orderBy('name');
+
+        if ($teamGroupId !== null) {
+            $group = TeamGroup::query()
+                ->where('id', $teamGroupId)
+                ->where('team_id', $teamId)
+                ->first();
+            if (! $group) {
+                throw new Exception('المجموعة غير موجودة أو لا تتبع هذا الفريق.');
+            }
+            $query->where('team_group_id', $teamGroupId);
+        }
+
+        return $query->paginate($perPage);
     }
 
     /**

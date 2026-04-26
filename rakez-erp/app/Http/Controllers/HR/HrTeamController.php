@@ -4,6 +4,7 @@ namespace App\Http\Controllers\HR;
 
 use App\Http\Controllers\Controller;
 use App\Models\Team;
+use App\Models\TeamGroup;
 use App\Models\User;
 use App\Services\Team\TeamService;
 use App\Http\Responses\ApiResponse;
@@ -85,16 +86,41 @@ class HrTeamController extends Controller
 
     /**
      * List members of a team.
-     * GET /hr/teams/{id}/members
+     * GET /hr/teams/{id}/members — query: team_group_id أو group_id (اختياري) لتصفية المجموعة
      */
     public function members(Request $request, int $id): JsonResponse
     {
         try {
-            $team = Team::with(['members'])->findOrFail($id);
+            $team = Team::query()->findOrFail($id);
+            $teamGroupId = $request->filled('team_group_id')
+                ? (int) $request->input('team_group_id')
+                : ($request->filled('group_id') ? (int) $request->input('group_id') : null);
+            if ($teamGroupId !== null && $teamGroupId < 1) {
+                $teamGroupId = null;
+            }
+            if ($teamGroupId !== null) {
+                $inTeam = TeamGroup::query()
+                    ->where('id', $teamGroupId)
+                    ->where('team_id', $id)
+                    ->exists();
+                if (! $inTeam) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'المجموعة غير موجودة أو لا تتبع هذا الفريق.',
+                    ], 422);
+                }
+            }
+
+            $membersQuery = $team->members();
+            if ($teamGroupId !== null) {
+                $membersQuery->where('team_group_id', $teamGroupId);
+            }
+            $members = $membersQuery->get();
+
             $year = (int) $request->input('year', now()->year);
             $month = (int) $request->input('month', now()->month);
 
-            $membersData = $team->members->map(function ($member) use ($year, $month) {
+            $membersData = $members->map(function ($member) use ($year, $month) {
                 return [
                     'id' => $member->id,
                     'name' => $member->name,
