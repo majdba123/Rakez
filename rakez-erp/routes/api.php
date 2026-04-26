@@ -38,6 +38,7 @@ use App\Http\Controllers\Api\SalesAnalyticsController;
 use App\Http\Controllers\ExclusiveProjectController;
 use App\Http\Middleware\CheckDynamicPermission;
 use App\Http\Controllers\TeamController;
+use App\Http\Controllers\TeamGroupController;
 use App\Http\Controllers\Marketing\MarketingDashboardController;
 use App\Http\Controllers\Marketing\MarketingProjectController;
 use App\Http\Controllers\Marketing\DeveloperMarketingPlanController;
@@ -317,6 +318,15 @@ use Illuminate\Support\Facades\File;  // أضف هذا السطر في الأع�
 
                             Route::get('/contracts/locations/{teamId}', [TeamController::class, 'contractLocations'])->whereNumber('teamId');
 
+                        });
+
+                        // Team sub-groups (name + description), each belongs to one team; same CRUD as /hr/team-groups
+                        Route::prefix('team-groups')->group(function () {
+                            Route::get('/', [TeamGroupController::class, 'index']);
+                            Route::post('/', [TeamGroupController::class, 'store']);
+                            Route::get('/{id}', [TeamGroupController::class, 'show'])->whereNumber('id');
+                            Route::put('/{id}', [TeamGroupController::class, 'update'])->whereNumber('id');
+                            Route::delete('/{id}', [TeamGroupController::class, 'destroy'])->whereNumber('id');
                         });
 
                         Route::get('units/{unitId}/reservation-context', [SalesReservationController::class, 'context'])->middleware('permission:sales.reservations.create');
@@ -688,6 +698,15 @@ use Illuminate\Support\Facades\File;  // أضف هذا السطر في الأع�
                 Route::get('/{id}', [HrUserController::class, 'show'])->whereNumber('id');
                 Route::put('/{id}', [HrUserController::class, 'update'])->whereNumber('id');
                 Route::delete('/{id}', [HrUserController::class, 'destroy'])->whereNumber('id');
+            });
+
+            // Sub-groups per team (CRUD) — also available under project_management/team-groups
+            Route::prefix('team-groups')->group(function () {
+                Route::get('/', [TeamGroupController::class, 'index']);
+                Route::post('/', [TeamGroupController::class, 'store']);
+                Route::get('/{id}', [TeamGroupController::class, 'show'])->whereNumber('id');
+                Route::put('/{id}', [TeamGroupController::class, 'update'])->whereNumber('id');
+                Route::delete('/{id}', [TeamGroupController::class, 'destroy'])->whereNumber('id');
             });
 
             Route::prefix('teams')->group(function () {

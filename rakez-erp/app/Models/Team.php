@@ -125,6 +125,14 @@ class Team extends Model
         return $this->belongsToMany(ExecutiveDirectorLine::class, 'executive_director_line_team')
             ->withTimestamps();
     }
+
+    /**
+     * Sub-groups (name + description) under this team; each group belongs to one team.
+     */
+    public function teamGroups(): HasMany
+    {
+        return $this->hasMany(TeamGroup::class);
+    }
 }
 
 
