@@ -3,8 +3,10 @@
 namespace App\Http\Controllers\HR;
 
 use App\Http\Controllers\Controller;
+use App\Http\Resources\Shared\UserResource;
 use App\Http\Requests\Team\AssignSalesTeamMemberRequest;
 use App\Http\Requests\Team\AssignTeamSalesLeaderRequest;
+use App\Http\Requests\Team\ListSalesLeadersRequest;
 use App\Models\Team;
 use App\Models\TeamGroup;
 use App\Models\User;
@@ -362,6 +364,78 @@ class HrTeamController extends Controller
             if (str_contains($message, 'فقط المستخدمون') || str_contains($message, 'يوجد بالفعل')) {
                 $code = 422;
             } elseif (str_contains($message, 'No query results')) {
+                $code = 404;
+            } else {
+                $code = 500;
+            }
+
+            return response()->json([
+                'success' => false,
+                'message' => $message,
+            ], $code);
+        }
+    }
+
+    /**
+     * GET /api/hr/teams/sales-leaders?team_id=&per_page=&search=
+     */
+    public function salesLeadersIndex(ListSalesLeadersRequest $request): JsonResponse
+    {
+        $v = $request->validated();
+        $teamId = array_key_exists('team_id', $v) && $v['team_id'] !== null ? (int) $v['team_id'] : null;
+        $perPage = (int) ($v['per_page'] ?? 15);
+        $search = $v['search'] ?? null;
+        if (is_string($search) && $search === '') {
+            $search = null;
+        }
+
+        $paginator = $this->teamService->paginateSalesLeaders($teamId, $perPage, $search);
+
+        $data = collect($paginator->items())->map(function ($user) {
+            return array_merge(
+                (new UserResource($user))->resolve(),
+                [
+                    'team_id' => $user->team_id,
+                    'team' => $user->team ? [
+                        'id' => $user->team->id,
+                        'name' => $user->team->name,
+                        'code' => $user->team->code,
+                    ] : null,
+                ]
+            );
+        })->values()->all();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'تم جلب قادة المبيعات بنجاح',
+            'data' => $data,
+            'meta' => [
+                'total' => $paginator->total(),
+                'count' => $paginator->count(),
+                'per_page' => $paginator->perPage(),
+                'current_page' => $paginator->currentPage(),
+                'last_page' => $paginator->lastPage(),
+            ],
+        ], 200);
+    }
+
+    /**
+     * DELETE /api/hr/teams/{id}/sales-leader/{userId}
+     */
+    public function removeSalesLeader(int $id, int $userId): JsonResponse
+    {
+        try {
+            $this->teamService->removeSalesLeaderFromTeam($id, $userId);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'تمت إزالة قائد المبيعات من الفريق بنجاح',
+            ], 200);
+        } catch (Exception $e) {
+            $message = $e->getMessage();
+            if (str_contains($message, 'ليس من نوع') || str_contains($message, 'ليس مرتبطاً')) {
+                $code = 422;
+            } elseif (str_contains($message, 'No query results') || str_contains($message, 'غير موجود')) {
                 $code = 404;
             } else {
                 $code = 500;

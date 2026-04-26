@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Http\Controllers\Concerns\RespondsWithCsvImportUpload;
 use App\Http\Requests\Team\AssignSalesTeamMemberRequest;
 use App\Http\Requests\Team\AssignTeamSalesLeaderRequest;
+use App\Http\Requests\Team\ListSalesLeadersRequest;
 use App\Http\Requests\Team\ImportTeamsCsv;
 use App\Http\Requests\Team\TeamContractsRequest;
 use App\Http\Requests\Team\StoreTeamRequest;
@@ -467,6 +468,80 @@ class TeamController extends Controller
             if (str_contains($message, 'فقط المستخدمون') || str_contains($message, 'يوجد بالفعل')) {
                 $status = 422;
             } elseif (str_contains($message, 'No query results')) {
+                $status = 404;
+            } else {
+                $status = 500;
+            }
+
+            return response()->json([
+                'success' => false,
+                'message' => $message,
+            ], $status);
+        }
+    }
+
+    /**
+     * GET /api/project_management/teams/sales-leaders?team_id=&per_page=&search=
+     * List users with type sales_leader; filter by team_id (optional), search name/email/phone.
+     */
+    public function salesLeadersIndex(ListSalesLeadersRequest $request): JsonResponse
+    {
+        $v = $request->validated();
+        $teamId = array_key_exists('team_id', $v) && $v['team_id'] !== null ? (int) $v['team_id'] : null;
+        $perPage = (int) ($v['per_page'] ?? 15);
+        $search = $v['search'] ?? null;
+        if (is_string($search) && $search === '') {
+            $search = null;
+        }
+
+        $paginator = $this->teamService->paginateSalesLeaders($teamId, $perPage, $search);
+
+        $data = collect($paginator->items())->map(function ($user) {
+            return array_merge(
+                (new UserResource($user))->resolve(),
+                [
+                    'team_id' => $user->team_id,
+                    'team' => $user->team ? [
+                        'id' => $user->team->id,
+                        'name' => $user->team->name,
+                        'code' => $user->team->code,
+                    ] : null,
+                ]
+            );
+        })->values()->all();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'تم جلب قادة المبيعات بنجاح',
+            'data' => $data,
+            'meta' => [
+                'total' => $paginator->total(),
+                'count' => $paginator->count(),
+                'per_page' => $paginator->perPage(),
+                'current_page' => $paginator->currentPage(),
+                'last_page' => $paginator->lastPage(),
+            ],
+        ], 200);
+    }
+
+    /**
+     * DELETE /api/project_management/teams/{teamId}/sales-leader/{userId}
+     * Remove sales leader from the team (user must be type sales_leader on that team).
+     */
+    public function removeSalesLeader(int $teamId, int $userId): JsonResponse
+    {
+        try {
+            $this->teamService->removeSalesLeaderFromTeam($teamId, $userId);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'تمت إزالة قائد المبيعات من الفريق بنجاح',
+            ], 200);
+        } catch (Exception $e) {
+            $message = $e->getMessage();
+            if (str_contains($message, 'ليس من نوع') || str_contains($message, 'ليس مرتبطاً')) {
+                $status = 422;
+            } elseif (str_contains($message, 'No query results') || str_contains($message, 'غير موجود')) {
                 $status = 404;
             } else {
                 $status = 500;

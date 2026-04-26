@@ -319,6 +319,74 @@ class TeamService
     }
 
     /**
+     * Remove a sales leader from a team (clears team_id and team_group_id). User must be type sales_leader on that team.
+     */
+    public function removeSalesLeaderFromTeam(int $teamId, int $userId): User
+    {
+        DB::beginTransaction();
+        try {
+            Team::findOrFail($teamId);
+            $user = User::query()
+                ->where('id', $userId)
+                ->where('team_id', $teamId)
+                ->firstOrFail();
+
+            if ($user->type !== 'sales_leader') {
+                throw new Exception('المستخدم ليس من نوع sales_leader أو ليس على هذا الفريق كقائد مبيعات.');
+            }
+
+            $user->update([
+                'team_id' => null,
+                'team_group_id' => null,
+            ]);
+
+            DB::commit();
+
+            return $user->fresh();
+        } catch (ModelNotFoundException $e) {
+            DB::rollBack();
+            throw new Exception('المستخدم غير موجود أو ليس مرتبطاً بهذا الفريق.');
+        } catch (Exception $e) {
+            DB::rollBack();
+            if (str_contains($e->getMessage(), 'ليس من نوع sales_leader')) {
+                throw $e;
+            }
+            throw new Exception('فشل إزالة قائد المبيعات: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Paginate users with type sales_leader; optional filter by team_id and name/email/phone search.
+     *
+     * @return LengthAwarePaginator<int, User>
+     */
+    public function paginateSalesLeaders(?int $teamId, int $perPage, ?string $search = null): LengthAwarePaginator
+    {
+        $perPage = (int) min(100, max(1, $perPage));
+
+        $query = User::query()
+            ->where('type', 'sales_leader')
+            ->with(['team']);
+
+        if ($teamId !== null) {
+            $query->where('team_id', $teamId);
+        }
+
+        if ($search !== null && $search !== '') {
+            $term = '%' . addcslashes($search, '%_\\') . '%';
+            $query->where(function ($q) use ($term) {
+                $q->where('name', 'like', $term)
+                    ->orWhere('email', 'like', $term)
+                    ->orWhere('phone', 'like', $term);
+            });
+        }
+
+        return $query->orderBy('name')
+            ->orderBy('id')
+            ->paginate($perPage);
+    }
+
+    /**
      * Set team + group from a team_group id, or clear both when null.
      */
     public function setUserTeamGroup(User $user, ?int $teamGroupId): void
