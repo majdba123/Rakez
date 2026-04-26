@@ -216,6 +216,30 @@ class User extends Authenticatable
     }
 
     /**
+     * Sales (or admin) user flagged as executive director in HR (dashboard / restricted APIs).
+     */
+    public function isSalesExecutiveDirector(): bool
+    {
+        if ($this->is_executive_director !== true) {
+            return false;
+        }
+
+        return $this->hasAnyRole(['sales', 'sales_leader', 'admin']);
+    }
+
+    /**
+     * Access to sales executive available-units API: admins (any), or sales with is_executive_director.
+     */
+    public function canAccessSalesExecutiveAvailableUnitsApi(): bool
+    {
+        if ($this->hasRole('admin')) {
+            return true;
+        }
+
+        return $this->isSalesExecutiveDirector();
+    }
+
+    /**
      * Check if user is a project management manager.
      */
     public function isProjectManagementManager(): bool

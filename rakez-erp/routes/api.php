@@ -23,6 +23,7 @@ use App\Http\Controllers\AI\AIAssistantController;
 use App\Http\Controllers\AI\AiV2Controller;
 use App\Http\Controllers\AI\DocumentController;
 use App\Http\Controllers\Sales\SalesDashboardController;
+use App\Http\Controllers\Sales\SalesExecutiveDashboardController;
 use App\Http\Controllers\Sales\SalesProjectController;
 use App\Http\Controllers\Sales\SalesReservationController;
 use App\Http\Controllers\Sales\SalesTargetController;
@@ -396,6 +397,10 @@ use Illuminate\Support\Facades\File;  // أضف هذا السطر في الأع�
 
             // Dashboard
             Route::get('dashboard', [SalesDashboardController::class, 'index'])->middleware('permission:sales.dashboard.view');
+
+            // Executive director: available units stock + summary by unit_type
+            Route::get('executive/available-units', [SalesExecutiveDashboardController::class, 'availableUnits'])
+                ->middleware(['sales_executive', 'permission:sales.dashboard.view']);
 
             // Projects
             Route::get('projects', [SalesProjectController::class, 'index'])->middleware('permission:sales.projects.view');
