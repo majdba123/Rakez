@@ -29,7 +29,7 @@ class ProcessEmployeesCsv implements ShouldQueue
 
     private const ALLOWED_COLUMNS = [
         'name', 'email', 'phone', 'password', 'type', 'role',
-        'is_manager', 'team', 'identity_number', 'birthday',
+        'is_manager', 'is_executive_director', 'team', 'identity_number', 'birthday',
         'date_of_works', 'contract_type', 'iban', 'salary', 'marital_status',
     ];
 
@@ -214,6 +214,7 @@ class ProcessEmployeesCsv implements ShouldQueue
             'type'            => ['required', 'integer', Rule::in(config('user_types.valid_ids', range(1, 13)))],
             'role'            => 'nullable|string|exists:roles,name',
             'is_manager'      => 'nullable|boolean',
+            'is_executive_director' => 'nullable|boolean',
             'team'            => 'nullable|integer|exists:teams,id',
             'identity_number' => ['nullable', 'string', 'max:100', 'unique:users,identity_number', Rule::notIn($otherIds)],
             'birthday'        => 'nullable|date',
@@ -253,6 +254,9 @@ class ProcessEmployeesCsv implements ShouldQueue
         }
         if (isset($row['is_manager'])) {
             $row['is_manager'] = filter_var($row['is_manager'], FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE);
+        }
+        if (isset($row['is_executive_director'])) {
+            $row['is_executive_director'] = filter_var($row['is_executive_director'], FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE);
         }
         if (isset($row['salary'])) {
             $row['salary'] = (float) $row['salary'];

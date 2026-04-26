@@ -46,6 +46,7 @@ class RegisterUser extends FormRequest
             ],
             'role' => 'nullable|string|exists:roles,name',
             'is_manager' => 'nullable|boolean',
+            'is_executive_director' => 'nullable|boolean',
             // Profile fields
             // Team should be a valid teams.id
             'team' => 'nullable|integer|exists:teams,id',
@@ -79,6 +80,7 @@ class RegisterUser extends FormRequest
             'type.in' => 'User type must be one of the accepted values.',
             'role.exists' => 'The selected role does not exist.',
             'is_manager.boolean' => 'قيمة المدير يجب أن تكون صحيحة أو خاطئة',
+            'is_executive_director.boolean' => 'قيمة المدير التنفيذي يجب أن تكون صحيحة أو خاطئة',
             'identity_number.unique' => 'Identity number has already been taken.',
             'identity_date.date' => 'Identity date must be a valid date.',
             'birthday.date' => 'Birthday must be a valid date.',

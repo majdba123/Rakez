@@ -26,6 +26,7 @@ class UserResource extends JsonResource
             'phone' => $this->phone,
             'type' => $this->type,
             'is_manager' => $this->is_manager ?? false,
+            'is_executive_director' => (bool) ($this->is_executive_director ?? false),
             'team' => $this->team_id,
             'team_name' => $this->team?->name,
             'created_at' => $this->created_at?->toDateTimeString(),

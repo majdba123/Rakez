@@ -47,6 +47,13 @@ class HrUserController extends Controller
                 $query->where('department', $request->input('department'));
             }
 
+            if ($request->has('is_executive_director')) {
+                $query->where(
+                    'is_executive_director',
+                    filter_var($request->input('is_executive_director'), FILTER_VALIDATE_BOOLEAN)
+                );
+            }
+
             if ($request->has('search')) {
                 $search = $request->input('search');
                 $query->where(function ($q) use ($search) {
@@ -119,6 +126,7 @@ class HrUserController extends Controller
                     'date_of_works' => $user->date_of_works,
                     'work_type' => $user->work_type,
                     'is_manager' => $user->is_manager,
+                    'is_executive_director' => (bool) $user->is_executive_director,
                     'is_active' => $user->is_active,
 
                     // Contact & Banking
@@ -191,6 +199,7 @@ class HrUserController extends Controller
             'iban' => 'nullable|string|max:50',
             'work_phone_approval' => 'nullable|boolean',
             'logo_usage_approval' => 'nullable|boolean',
+            'is_executive_director' => 'nullable|boolean',
         ]);
 
         try {
@@ -221,6 +230,8 @@ class HrUserController extends Controller
                     'name' => $user->name,
                     'email' => $user->email,
                     'type' => $user->type,
+                    'is_manager' => (bool) $user->is_manager,
+                    'is_executive_director' => (bool) $user->is_executive_director,
                 ],
             ], 201);
         } catch (Exception $e) {
@@ -259,6 +270,7 @@ class HrUserController extends Controller
             'logo_usage_approval' => 'nullable|boolean',
             'contract_end_date' => 'nullable|date',
             'is_manager' => 'nullable|boolean',
+            'is_executive_director' => 'nullable|boolean',
         ]);
 
         try {
@@ -271,6 +283,8 @@ class HrUserController extends Controller
                     'id' => $user->id,
                     'name' => $user->name,
                     'email' => $user->email,
+                    'is_manager' => (bool) $user->is_manager,
+                    'is_executive_director' => (bool) $user->is_executive_director,
                 ],
             ], 200);
         } catch (Exception $e) {
