@@ -14,6 +14,7 @@ use App\Http\Resources\TeamResource;
 use App\Jobs\ProcessTeamsCsv;
 use App\Models\CsvImport;
 use App\Models\Team;
+use App\Models\TeamGroup;
 use App\Services\Contract\ContractService;
 use App\Services\Team\TeamService;
 use App\Support\TabularImportReader;
@@ -157,6 +158,57 @@ class TeamController extends Controller
                 'success' => false,
                 'message' => $message,
             ], $statusCode);
+        }
+    }
+
+    /**
+     * GET /api/project_management/team-groups/{groupId}/members
+     * List members in this group; team is resolved from the group (no team id in URL).
+     */
+    public function membersOfTeamGroup(Request $request, int $groupId): JsonResponse
+    {
+        $group = TeamGroup::query()->findOrFail($groupId);
+        $request->merge(['team_group_id' => $groupId]);
+
+        return $this->members($request, (int) $group->team_id);
+    }
+
+    /**
+     * DELETE /api/project_management/team-groups/{groupId}/members/{userId}
+     * Remove user from the group only; they remain on the team.
+     */
+    public function removeMemberFromTeamGroup(int $groupId, int $userId): JsonResponse
+    {
+        try {
+            $group = TeamGroup::query()->findOrFail($groupId);
+            $user = $this->teamService->removeUserFromGroupOnly((int) $group->team_id, $groupId, $userId);
+            $team = $this->teamService->getTeamById((int) $group->team_id);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'تمت إزالة العضو من المجموعة مع بقائه ضمن الفريق.',
+                'team' => [
+                    'id' => $team->id,
+                    'name' => $team->name,
+                ],
+                'data' => [
+                    'user_id' => $user->id,
+                    'user_name' => $user->name,
+                    'team_id' => $user->team_id,
+                    'team_group_id' => $user->team_group_id,
+                ],
+            ], 200);
+        } catch (Exception $e) {
+            $message = $e->getMessage();
+            $code = 500;
+            if (str_contains($message, 'الموظف غير ضمن')) {
+                $code = 422;
+            }
+
+            return response()->json([
+                'success' => false,
+                'message' => $message,
+            ], $code);
         }
     }
 

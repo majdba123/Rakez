@@ -149,6 +149,52 @@ class HrTeamController extends Controller
     }
 
     /**
+     * GET /hr/team-groups/{groupId}/members — list members in one team group (team comes from the group).
+     */
+    public function membersOfTeamGroup(Request $request, int $groupId): JsonResponse
+    {
+        $group = TeamGroup::query()->findOrFail($groupId);
+        $request->merge(['team_group_id' => $groupId]);
+
+        return $this->members($request, (int) $group->team_id);
+    }
+
+    /**
+     * DELETE /hr/team-groups/{groupId}/members/{userId} — remove from group only, stays on team.
+     */
+    public function removeMemberFromTeamGroup(int $groupId, int $userId): JsonResponse
+    {
+        try {
+            $group = TeamGroup::query()->findOrFail($groupId);
+            $this->teamService->removeUserFromGroupOnly((int) $group->team_id, $groupId, $userId);
+            $team = Team::query()->findOrFail((int) $group->team_id);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'تمت إزالة العضو من المجموعة مع بقائه ضمن الفريق.',
+                'data' => [
+                    'user_id' => $userId,
+                    'team_id' => $team->id,
+                    'team_name' => $team->name,
+                ],
+            ], 200);
+        } catch (Exception $e) {
+            $code = 500;
+            if (str_contains($e->getMessage(), 'الموظف غير ضمن')) {
+                $code = 422;
+            }
+            if (str_contains($e->getMessage(), 'No query results')) {
+                $code = 404;
+            }
+
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage(),
+            ], $code);
+        }
+    }
+
+    /**
      * Get team details with members.
      * GET /hr/teams/{id}
      */

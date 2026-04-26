@@ -5,6 +5,7 @@ namespace App\Services\Team;
 use App\Models\Team;
 use App\Models\TeamGroup;
 use App\Models\User;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;
 use Exception;
@@ -213,6 +214,38 @@ class TeamService
                 throw $e;
             }
             throw new Exception('Failed to assign team member: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Remove user from a team group only; keeps users.team_id (still in the team).
+     */
+    public function removeUserFromGroupOnly(int $teamId, int $teamGroupId, int $userId): User
+    {
+        DB::beginTransaction();
+        try {
+            TeamGroup::query()
+                ->where('id', $teamGroupId)
+                ->where('team_id', $teamId)
+                ->firstOrFail();
+
+            $user = User::query()
+                ->where('id', $userId)
+                ->where('team_id', $teamId)
+                ->where('team_group_id', $teamGroupId)
+                ->firstOrFail();
+
+            $user->update(['team_group_id' => null]);
+
+            DB::commit();
+
+            return $user->fresh(['team', 'teamGroup']);
+        } catch (ModelNotFoundException $e) {
+            DB::rollBack();
+            throw new Exception('الموظف غير ضمن هذه المجموعة أو المجموعة لا تتبع الفريق المحدد.');
+        } catch (Exception $e) {
+            DB::rollBack();
+            throw new Exception('فشل إزالة العضو من المجموعة: ' . $e->getMessage());
         }
     }
 
