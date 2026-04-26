@@ -14,6 +14,72 @@ use Illuminate\Http\Request;
 class ExecutiveDirectorLineController extends Controller
 {
     /**
+     * Executive director lines linked to the team the current user leads (pivot executive_director_line_team).
+     * GET /api/sales/team/executive-director-lines?per_page=&status=&line_type=
+     */
+    public function forMyLedTeam(Request $request): JsonResponse
+    {
+        $user = $request->user();
+        if (! $user->isSalesLeader()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'هذه الخاصية متاحة لقادة المبيعات فقط.',
+            ], 403);
+        }
+
+        $perPage = min((int) $request->input('per_page', 20), 100);
+
+        if (! $user->team_id) {
+            return response()->json([
+                'success' => true,
+                'message' => 'لا يوجد فريق معيّن لك حالياً.',
+                'data' => [],
+                'meta' => [
+                    'current_page' => 1,
+                    'last_page' => 1,
+                    'per_page' => $perPage,
+                    'total' => 0,
+                ],
+            ], 200);
+        }
+
+        $teamId = (int) $user->team_id;
+
+        $query = ExecutiveDirectorLine::query()
+            ->with('teams')
+            ->whereHas('teams', function ($q) use ($teamId) {
+                $q->where('teams.id', $teamId);
+            })
+            ->orderByDesc('id');
+
+        if ($request->filled('status')) {
+            $query->where('status', $request->input('status'));
+        }
+        if ($request->filled('line_type')) {
+            $query->where('line_type', 'like', '%' . addcslashes((string) $request->input('line_type'), '%_\\') . '%');
+        }
+
+        $rows = $query->paginate($perPage);
+
+        $data = collect($rows->items())
+            ->map(fn ($row) => (new ExecutiveDirectorLineResource($row))->toArray($request))
+            ->values()
+            ->all();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'تم جلب سطور المدير التنفيذي المرتبطة بفريقك.',
+            'data' => $data,
+            'meta' => [
+                'current_page' => $rows->currentPage(),
+                'last_page' => $rows->lastPage(),
+                'per_page' => $rows->perPage(),
+                'total' => $rows->total(),
+            ],
+        ], 200);
+    }
+
+    /**
      * List ExecutiveDirectorLine rows (not sales targets).
      * Allowed for admin, or for sales employees with is_manager = true (no extra route middleware/permission).
      * GET /api/sales/executive/targets — query: from, to (created_at), status, line_type, per_page
