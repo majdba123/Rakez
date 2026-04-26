@@ -123,6 +123,16 @@ class ExecutiveDirectorLineController extends Controller
      */
     public function syncTeams(AssignExecutiveDirectorLineTeamsRequest $request, int $id): JsonResponse
     {
+        $user = $request->user();
+        $allowed = $user && ($user->isAdmin() || $user->hasRole('admin') || $user->isSalesTeamManager());
+        if (! $allowed) {
+            return response()->json([
+                'success' => false,
+                'message' => 'غير مصرح - الإدمن أو من نوع مبيعات ومدير (sales + is_manager) فقط.',
+            ], 403);
+        }
+
+
         $row = ExecutiveDirectorLine::query()->findOrFail($id);
         $ids = array_values(array_unique(array_map('intval', $request->validated('team_ids'))));
         $row->teams()->sync($ids);
