@@ -113,36 +113,6 @@ class SalesTargetService
     }
 
     /**
-     * Targets whose assigning leader (leader_id) is a user with is_executive_director = true.
-     */
-    public function listTargetsCreatedByExecutiveLeader(array $filters): LengthAwarePaginator
-    {
-        $perPage = (int) ($filters['per_page'] ?? 15);
-        $perPage = min(max($perPage, 1), 100);
-
-        $query = SalesTarget::query()
-            ->with(['contract.city', 'contract.district', 'contractUnit', 'contractUnits', 'leader', 'marketer'])
-            ->whereHas('leader', function (Builder $q) {
-                $q->where('is_executive_director', true);
-            });
-
-        if (! empty($filters['status'])) {
-            $query->where('status', $filters['status']);
-        }
-        if (! empty($filters['from']) || ! empty($filters['to'])) {
-            $query->dateRange($filters['from'] ?? null, $filters['to'] ?? null);
-        }
-        if (! empty($filters['contract_id'])) {
-            $query->where('contract_id', (int) $filters['contract_id']);
-        }
-        if (! empty($filters['leader_id'])) {
-            $query->where('leader_id', (int) $filters['leader_id']);
-        }
-
-        return $query->orderBy('start_date', 'desc')->paginate($perPage);
-    }
-
-    /**
      * Check if user can view targets for a given contract.
      * Leaders: PM-linked team projects only. Marketers: own targets only.
      */

@@ -6,22 +6,16 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Sales\StoreExecutiveDirectorLineRequest;
 use App\Http\Requests\Sales\UpdateExecutiveDirectorLineRequest;
 use App\Http\Resources\Sales\ExecutiveDirectorLineResource;
-use App\Http\Resources\Sales\SalesTargetResource;
 use App\Models\ExecutiveDirectorLine;
-use App\Services\Sales\SalesTargetService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class ExecutiveDirectorLineController extends Controller
 {
-    public function __construct(
-        private SalesTargetService $targetService
-    ) {}
-
     /**
-     * List sales targets where the assigner (leader) is an executive director.
+     * List ExecutiveDirectorLine rows (not sales targets).
      * Allowed for admin, or for sales employees with is_manager = true (no extra route middleware/permission).
-     * GET /api/sales/executive/targets
+     * GET /api/sales/executive/targets — query: from, to (created_at), status, line_type, per_page
      */
     public function executiveTargets(Request $request): JsonResponse
     {
@@ -35,31 +29,39 @@ class ExecutiveDirectorLineController extends Controller
         }
 
         try {
-            $filters = [
-                'from' => $request->query('from'),
-                'to' => $request->query('to'),
-                'status' => $request->query('status'),
-                'per_page' => $request->query('per_page', 15),
-                'contract_id' => $request->query('contract_id'),
-                'leader_id' => $request->query('leader_id'),
-            ];
+            $perPage = min((int) $request->query('per_page', 20), 100);
 
-            $paginator = $this->targetService->listTargetsCreatedByExecutiveLeader($filters);
+            $query = ExecutiveDirectorLine::query()->orderByDesc('id');
+
+            if ($request->filled('status')) {
+                $query->where('status', $request->query('status'));
+            }
+            if ($request->filled('line_type')) {
+                $query->where('line_type', 'like', '%'.addcslashes((string) $request->query('line_type'), '%_\\').'%');
+            }
+            if ($request->filled('from')) {
+                $query->whereDate('created_at', '>=', $request->query('from'));
+            }
+            if ($request->filled('to')) {
+                $query->whereDate('created_at', '<=', $request->query('to'));
+            }
+
+            $rows = $query->paginate($perPage);
 
             return response()->json([
                 'success' => true,
-                'data' => SalesTargetResource::collection($paginator->items()),
+                'data' => ExecutiveDirectorLineResource::collection($rows->items()),
                 'meta' => [
-                    'current_page' => $paginator->currentPage(),
-                    'last_page' => $paginator->lastPage(),
-                    'per_page' => $paginator->perPage(),
-                    'total' => $paginator->total(),
+                    'current_page' => $rows->currentPage(),
+                    'last_page' => $rows->lastPage(),
+                    'per_page' => $rows->perPage(),
+                    'total' => $rows->total(),
                 ],
             ]);
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'فشل جلب الأهداف: '.$e->getMessage(),
+                'message' => 'فشل جلب السطور: '.$e->getMessage(),
             ], 500);
         }
     }
