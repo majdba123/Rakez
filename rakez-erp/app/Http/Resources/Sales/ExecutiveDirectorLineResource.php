@@ -23,6 +23,13 @@ class ExecutiveDirectorLineResource extends JsonResource
                 'code' => $team->code,
             ])->values()->all(), []),
             'team_ids' => $this->whenLoaded('teams', fn () => $this->teams->pluck('id')->values()->all(), []),
+            'team_groups' => $this->whenLoaded('teamGroups', fn () => $this->teamGroups->map(fn ($g) => [
+                'id' => $g->id,
+                'name' => $g->name,
+                'description' => $g->description,
+                'team_id' => $g->team_id,
+            ])->values()->all(), []),
+            'team_group_ids' => $this->whenLoaded('teamGroups', fn () => $this->teamGroups->pluck('id')->values()->all(), []),
             'created_at' => $this->created_at?->toIso8601String(),
             'updated_at' => $this->updated_at?->toIso8601String(),
         ];

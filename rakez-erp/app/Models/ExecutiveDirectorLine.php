@@ -39,4 +39,13 @@ class ExecutiveDirectorLine extends Model
         return $this->belongsToMany(Team::class, 'executive_director_line_team')
             ->withTimestamps();
     }
+
+    /**
+     * Sub-groups (within assigned teams) that the sales leader links to this line for group leaders.
+     */
+    public function teamGroups(): BelongsToMany
+    {
+        return $this->belongsToMany(TeamGroup::class, 'executive_director_line_team_group')
+            ->withTimestamps();
+    }
 }

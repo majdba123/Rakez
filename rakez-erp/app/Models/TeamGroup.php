@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 
@@ -31,5 +32,11 @@ class TeamGroup extends Model
     public function members(): HasMany
     {
         return $this->hasMany(User::class, 'team_group_id');
+    }
+
+    public function executiveDirectorLines(): BelongsToMany
+    {
+        return $this->belongsToMany(ExecutiveDirectorLine::class, 'executive_director_line_team_group')
+            ->withTimestamps();
     }
 }
