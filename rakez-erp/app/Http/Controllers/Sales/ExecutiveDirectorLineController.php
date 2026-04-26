@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Sales;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Sales\AssignExecutiveDirectorLineTeamsRequest;
 use App\Http\Requests\Sales\StoreExecutiveDirectorLineRequest;
 use App\Http\Requests\Sales\UpdateExecutiveDirectorLineRequest;
 use App\Http\Resources\Sales\ExecutiveDirectorLineResource;
@@ -31,8 +32,14 @@ class ExecutiveDirectorLineController extends Controller
         try {
             $perPage = min((int) $request->query('per_page', 20), 100);
 
-            $query = ExecutiveDirectorLine::query()->orderByDesc('id');
+            $query = ExecutiveDirectorLine::query()
+                ->with('teams')
+                ->orderByDesc('id');
 
+            if ($request->filled('team_id')) {
+                $teamId = (int) $request->query('team_id');
+                $query->whereHas('teams', fn ($q) => $q->where('teams.id', $teamId));
+            }
             if ($request->filled('status')) {
                 $query->where('status', $request->query('status'));
             }
@@ -74,6 +81,7 @@ class ExecutiveDirectorLineController extends Controller
     {
         $perPage = min((int) $request->query('per_page', 20), 100);
         $rows = ExecutiveDirectorLine::query()
+            ->with('teams')
             ->orderByDesc('id')
             ->paginate($perPage);
 
@@ -105,8 +113,25 @@ class ExecutiveDirectorLineController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'تمت إضافة السطر.',
-            'data' => new ExecutiveDirectorLineResource($row->fresh()),
+            'data' => new ExecutiveDirectorLineResource($row->fresh()->load('teams')),
         ], 201);
+    }
+
+    /**
+     * Replace team assignments (one or many teams). Admin or sales manager (sales + is_manager).
+     * PUT /api/sales/executive-director-lines/{id}/teams — body: { "team_ids": [1,2,3] } (empty to clear)
+     */
+    public function syncTeams(AssignExecutiveDirectorLineTeamsRequest $request, int $id): JsonResponse
+    {
+        $row = ExecutiveDirectorLine::query()->findOrFail($id);
+        $ids = array_values(array_unique(array_map('intval', $request->validated('team_ids'))));
+        $row->teams()->sync($ids);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'تم ربط الفرق بالسطر.',
+            'data' => new ExecutiveDirectorLineResource($row->fresh()->load('teams')),
+        ]);
     }
 
     /**
@@ -114,7 +139,7 @@ class ExecutiveDirectorLineController extends Controller
      */
     public function show(int $id): JsonResponse
     {
-        $row = ExecutiveDirectorLine::query()->findOrFail($id);
+        $row = ExecutiveDirectorLine::query()->with('teams')->findOrFail($id);
 
         return response()->json([
             'success' => true,
@@ -142,7 +167,7 @@ class ExecutiveDirectorLineController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'تم تحديث السطر.',
-            'data' => new ExecutiveDirectorLineResource($row->fresh()),
+            'data' => new ExecutiveDirectorLineResource($row->fresh()->load('teams')),
         ]);
     }
 

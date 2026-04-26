@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
@@ -114,6 +115,15 @@ class Team extends Model
             ->distinct()
             ->pluck('cities.name')
             ->toArray();
+    }
+
+    /**
+     * Executive director lines assigned to this team.
+     */
+    public function executiveDirectorLines(): BelongsToMany
+    {
+        return $this->belongsToMany(ExecutiveDirectorLine::class, 'executive_director_line_team')
+            ->withTimestamps();
     }
 }
 

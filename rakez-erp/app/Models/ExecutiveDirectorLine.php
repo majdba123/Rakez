@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Enums\ExecutiveDirectorLineStatus;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 /**
  * Standalone sales executive-director line (not tied to a sales target).
@@ -29,4 +30,13 @@ class ExecutiveDirectorLine extends Model
         'value' => 'decimal:2',
         'status' => ExecutiveDirectorLineStatus::class,
     ];
+
+    /**
+     * Teams this executive line is assigned to (sales managers can assign one or many).
+     */
+    public function teams(): BelongsToMany
+    {
+        return $this->belongsToMany(Team::class, 'executive_director_line_team')
+            ->withTimestamps();
+    }
 }
