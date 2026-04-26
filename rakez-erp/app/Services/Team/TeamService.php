@@ -271,6 +271,54 @@ class TeamService
     }
 
     /**
+     * Assign the team's single sales leader (user.type must be sales_leader).
+     * Fails if another user with type sales_leader is already on this team (unless re-assigning the same user).
+     * Clears team_group_id so the leader is at team level; syncs Spatie role from type.
+     */
+    public function assignSalesLeaderToTeam(int $teamId, int $userId): User
+    {
+        DB::beginTransaction();
+        try {
+            Team::findOrFail($teamId);
+            $user = User::query()->findOrFail($userId);
+
+            if ($user->type !== 'sales_leader') {
+                throw new Exception('فقط المستخدمون من نوع sales_leader يمكن تعيينهم كقائد مبيعات للفريق.');
+            }
+
+            $otherLeader = User::query()
+                ->where('team_id', $teamId)
+                ->where('type', 'sales_leader')
+                ->where('id', '!=', $user->id)
+                ->first();
+
+            if ($otherLeader !== null) {
+                throw new Exception(
+                    'يوجد بالفعل قائد مبيعات للفريق (المستخدم رقم '.$otherLeader->id.'). أزل المستخدم من الفريق أولاً ثم عيّن القائد الجديد.'
+                );
+            }
+
+            $user->update([
+                'team_id' => $teamId,
+                'team_group_id' => null,
+            ]);
+            $user->syncRolesFromType();
+
+            DB::commit();
+
+            return $user->fresh(['team', 'teamGroup']);
+        } catch (Exception $e) {
+            DB::rollBack();
+            if (str_contains($e->getMessage(), 'فقط المستخدمون')
+                || str_contains($e->getMessage(), 'يوجد بالفعل')
+            ) {
+                throw $e;
+            }
+            throw new Exception('فشل تعيين قائد المبيعات: ' . $e->getMessage());
+        }
+    }
+
+    /**
      * Set team + group from a team_group id, or clear both when null.
      */
     public function setUserTeamGroup(User $user, ?int $teamGroupId): void

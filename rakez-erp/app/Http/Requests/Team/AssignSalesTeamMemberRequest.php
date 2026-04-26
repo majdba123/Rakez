@@ -17,10 +17,14 @@ class AssignSalesTeamMemberRequest extends FormRequest
      */
     public function rules(): array
     {
-        $teamId = (int) $this->route('teamId');
+        $teamId = (int) ($this->route('teamId') ?? $this->route('id'));
 
         return [
-            'user_id' => ['required', 'integer', 'exists:users,id'],
+            'user_id' => [
+                'required',
+                'integer',
+                Rule::exists('users', 'id')->where('type', 'sales'),
+            ],
             'team_group_id' => [
                 'required',
                 'integer',
@@ -32,6 +36,7 @@ class AssignSalesTeamMemberRequest extends FormRequest
     public function messages(): array
     {
         return [
+            'user_id.exists' => 'المستخدم يجب أن يكون من نوع sales (موظف مبيعات) لإضافته إلى الفريق.',
             'team_group_id.required' => 'يجب اختيار مجموعة داخل الفريق (team_group_id).',
             'team_group_id.exists' => 'المجموعة غير موجودة أو لا تنتمي لهذا الفريق.',
         ];

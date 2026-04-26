@@ -3,6 +3,8 @@
 namespace App\Http\Controllers\HR;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Team\AssignSalesTeamMemberRequest;
+use App\Http\Requests\Team\AssignTeamSalesLeaderRequest;
 use App\Models\Team;
 use App\Models\TeamGroup;
 use App\Models\User;
@@ -12,7 +14,6 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Exception;
-use Illuminate\Validation\Rule;
 
 class HrTeamController extends Controller
 {
@@ -334,44 +335,86 @@ class HrTeamController extends Controller
     }
 
     /**
-     * Assign a member to a team.
-     * POST /hr/teams/{id}/members
+     * POST /hr/teams/{id}/sales-leader
+     * One sales_leader (by user.type) per team; cannot assign a second while another is on the team.
      */
-    public function assignMember(Request $request, int $id): JsonResponse
+    public function assignSalesLeader(AssignTeamSalesLeaderRequest $request, int $id): JsonResponse
     {
-        $validated = $request->validate([
-            'user_id' => 'required|integer|exists:users,id',
-            'team_group_id' => [
-                'required',
-                'integer',
-                Rule::exists('team_groups', 'id')->where('team_id', $id),
-            ],
-        ]);
-
         try {
-            $team = Team::findOrFail($id);
-            $user = User::findOrFail($validated['user_id']);
-
-            $this->teamService->setUserTeamGroup($user, (int) $validated['team_group_id']);
-            $user->refresh();
+            $v = $request->validated();
+            $user = $this->teamService->assignSalesLeaderToTeam($id, (int) $v['user_id']);
+            $user->loadMissing('team');
 
             return response()->json([
                 'success' => true,
-                'message' => 'تم إضافة العضو إلى مجموعة داخل الفريق بنجاح',
+                'message' => 'تم تعيين قائد المبيعات للفريق بنجاح',
                 'data' => [
                     'user_id' => $user->id,
                     'user_name' => $user->name,
+                    'user_type' => $user->type,
                     'team_id' => $user->team_id,
-                    'team_name' => $team->name,
+                    'team_name' => $user->team?->name,
                     'team_group_id' => $user->team_group_id,
                 ],
             ], 200);
         } catch (Exception $e) {
-            $statusCode = str_contains($e->getMessage(), 'No query results') ? 404 : 500;
+            $message = $e->getMessage();
+            if (str_contains($message, 'فقط المستخدمون') || str_contains($message, 'يوجد بالفعل')) {
+                $code = 422;
+            } elseif (str_contains($message, 'No query results')) {
+                $code = 404;
+            } else {
+                $code = 500;
+            }
+
             return response()->json([
                 'success' => false,
-                'message' => $e->getMessage(),
-            ], $statusCode);
+                'message' => $message,
+            ], $code);
+        }
+    }
+
+    /**
+     * Assign a member to a team (sales users only; same rules as project_management).
+     * POST /hr/teams/{id}/members
+     */
+    public function assignMember(AssignSalesTeamMemberRequest $request, int $id): JsonResponse
+    {
+        try {
+            $v = $request->validated();
+            $user = $this->teamService->assignSalesMemberToTeamGroup(
+                $id,
+                (int) $v['team_group_id'],
+                (int) $v['user_id']
+            );
+            $user->loadMissing('team');
+
+            return response()->json([
+                'success' => true,
+                'message' => 'تم إضافة عضو المبيعات إلى المجموعة داخل الفريق بنجاح',
+                'data' => [
+                    'user_id' => $user->id,
+                    'user_name' => $user->name,
+                    'user_type' => $user->type,
+                    'team_id' => $user->team_id,
+                    'team_name' => $user->team?->name,
+                    'team_group_id' => $user->team_group_id,
+                ],
+            ], 200);
+        } catch (Exception $e) {
+            $message = $e->getMessage();
+            if (str_contains($message, 'يمكن إضافة')) {
+                $status = 422;
+            } elseif (str_contains($message, 'No query results')) {
+                $status = 404;
+            } else {
+                $status = 500;
+            }
+
+            return response()->json([
+                'success' => false,
+                'message' => $message,
+            ], $status);
         }
     }
 

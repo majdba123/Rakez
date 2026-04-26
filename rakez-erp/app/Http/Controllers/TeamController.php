@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Http\Controllers\Concerns\RespondsWithCsvImportUpload;
 use App\Http\Requests\Team\AssignSalesTeamMemberRequest;
+use App\Http\Requests\Team\AssignTeamSalesLeaderRequest;
 use App\Http\Requests\Team\ImportTeamsCsv;
 use App\Http\Requests\Team\TeamContractsRequest;
 use App\Http\Requests\Team\StoreTeamRequest;
@@ -426,6 +427,44 @@ class TeamController extends Controller
         } catch (Exception $e) {
             $message = $e->getMessage();
             if (str_contains($message, 'يمكن إضافة')) {
+                $status = 422;
+            } elseif (str_contains($message, 'No query results')) {
+                $status = 404;
+            } else {
+                $status = 500;
+            }
+
+            return response()->json([
+                'success' => false,
+                'message' => $message,
+            ], $status);
+        }
+    }
+
+    /**
+     * POST /api/project_management/teams/{teamId}/sales-leader
+     * At most one user with type sales_leader per team; user must be type sales_leader.
+     */
+    public function assignSalesLeader(AssignTeamSalesLeaderRequest $request, int $teamId): JsonResponse
+    {
+        try {
+            $v = $request->validated();
+            $user = $this->teamService->assignSalesLeaderToTeam($teamId, (int) $v['user_id']);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'تم تعيين قائد المبيعات للفريق بنجاح',
+                'data' => [
+                    'user_id' => $user->id,
+                    'user_name' => $user->name,
+                    'user_type' => $user->type,
+                    'team_id' => $user->team_id,
+                    'team_group_id' => $user->team_group_id,
+                ],
+            ], 200);
+        } catch (Exception $e) {
+            $message = $e->getMessage();
+            if (str_contains($message, 'فقط المستخدمون') || str_contains($message, 'يوجد بالفعل')) {
                 $status = 422;
             } elseif (str_contains($message, 'No query results')) {
                 $status = 404;
