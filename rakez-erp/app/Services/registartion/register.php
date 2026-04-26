@@ -36,6 +36,11 @@ class register
                 throw new \Exception('يجب أن تحتوي البيانات إما على البريد الإلكتروني أو رقم الهاتف.');
             }
 
+            // add_employee (RegisterUser) sends "team" = teams.id; we persist team_id
+            if (array_key_exists('team', $data) && $data['team'] !== null && $data['team'] !== '') {
+                $data['team_id'] = (int) $data['team'];
+            }
+
             // Optional profile fields
             $optional = [
                 'team_id', // Use team_id (foreign key) instead of deprecated 'team' string
@@ -66,6 +71,7 @@ class register
             $userData['type'] = $typeNames[$data['type']];
 
             $user = User::create($userData);
+            $user->load('team');
 
             // Sync Spatie roles
             // If a specific role is provided, use it; otherwise fall back to type-based role
