@@ -4,6 +4,8 @@ namespace App\Http\Controllers\Sales;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Sales\RateTeamMemberRequest;
+use App\Http\Resources\TeamResource;
+use App\Models\Team;
 use App\Services\Sales\SalesTeamService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -81,5 +83,45 @@ class SalesTeamController extends Controller
         } catch (\Exception $e) {
             return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
         }
+    }
+
+    /**
+     * Team the current user leads (sales_leader / sales manager on users.team_id).
+     * GET /api/sales/team/led
+     */
+    public function myLedTeam(Request $request): JsonResponse
+    {
+        $user = $request->user();
+
+        if (! $user->isSalesLeader()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'هذه الخاصية متاحة لقادة المبيعات فقط.',
+            ], 403);
+        }
+
+        if (! $user->team_id) {
+            return response()->json([
+                'success' => true,
+                'message' => 'لا يوجد فريق معيّن لك حالياً.',
+                'data' => null,
+            ], 200);
+        }
+
+        $team = Team::query()->find($user->team_id);
+
+        if (! $team) {
+            return response()->json([
+                'success' => true,
+                'message' => 'الفريق المرتبط بحسابك غير متوفر.',
+                'data' => null,
+            ], 200);
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => 'تم جلب فريقك بنجاح',
+            'data' => (new TeamResource($team))->resolve(),
+        ], 200);
     }
 }
