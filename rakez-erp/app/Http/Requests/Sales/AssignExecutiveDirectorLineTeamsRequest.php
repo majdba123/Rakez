@@ -2,8 +2,10 @@
 
 namespace App\Http\Requests\Sales;
 
+use Illuminate\Contracts\Validation\Validator;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 
 class AssignExecutiveDirectorLineTeamsRequest extends FormRequest
 {
@@ -24,5 +26,26 @@ class AssignExecutiveDirectorLineTeamsRequest extends FormRequest
                 Rule::exists('teams', 'id')->whereNull('deleted_at'),
             ],
         ];
+    }
+
+    public function messages(): array
+    {
+        return [
+            'team_ids.required' => 'يجب إرسال قائمة معرفات الفرق (team_ids).',
+            'team_ids.array' => 'قائمة الفرق غير صالحة.',
+            'team_ids.max' => 'لا يمكن ربط أكثر من 100 فريق.',
+            'team_ids.*.integer' => 'معرف الفريق يجب أن يكون رقماً صحيحاً.',
+            'team_ids.*.distinct' => 'لا تكرر نفس معرف الفريق.',
+            'team_ids.*.exists' => 'أحد الفرق المحددة غير موجود أو محذوف.',
+        ];
+    }
+
+    protected function failedValidation(Validator $validator): void
+    {
+        throw new ValidationException($validator, response()->json([
+            'success' => false,
+            'message' => 'بيانات الفرق غير صالحة: تحقق من معرفات الفرق الموجودة وغير المحذوفة.',
+            'errors' => $validator->errors(),
+        ], 422));
     }
 }

@@ -133,7 +133,14 @@ class ExecutiveDirectorLineController extends Controller
         }
 
 
-        $row = ExecutiveDirectorLine::query()->findOrFail($id);
+        $row = ExecutiveDirectorLine::query()->find($id);
+        if (! $row) {
+            return response()->json([
+                'success' => false,
+                'message' => 'سطر المدير التنفيذي غير موجود.',
+            ], 404);
+        }
+
         $ids = array_values(array_unique(array_map('intval', $request->validated('team_ids'))));
         $row->teams()->sync($ids);
 
