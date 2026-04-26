@@ -4,16 +4,20 @@ namespace App\Http\Controllers\Sales;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Sales\RateTeamMemberRequest;
+use App\Http\Resources\TeamGroupLeaderResource;
+use App\Http\Resources\TeamGroupResource;
 use App\Http\Resources\TeamResource;
 use App\Models\Team;
 use App\Services\Sales\SalesTeamService;
+use App\Services\Team\TeamGroupService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class SalesTeamController extends Controller
 {
     public function __construct(
-        private SalesTeamService $teamService
+        private SalesTeamService $teamService,
+        private TeamGroupService $teamGroupService
     ) {}
 
     /**
@@ -122,6 +126,106 @@ class SalesTeamController extends Controller
             'success' => true,
             'message' => 'تم جلب فريقك بنجاح',
             'data' => (new TeamResource($team))->resolve(),
+        ], 200);
+    }
+
+    /**
+     * All sub-groups (team_groups) for the team the current user leads.
+     * GET /api/sales/team/groups?per_page=15
+     */
+    public function myTeamGroups(Request $request): JsonResponse
+    {
+        $user = $request->user();
+        if (! $user->isSalesLeader()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'هذه الخاصية متاحة لقادة المبيعات فقط.',
+            ], 403);
+        }
+
+        $perPage = (int) min(100, max(1, (int) $request->input('per_page', 15)));
+
+        if (! $user->team_id) {
+            return response()->json([
+                'success' => true,
+                'message' => 'لا يوجد فريق معيّن لك حالياً.',
+                'data' => [],
+                'meta' => [
+                    'current_page' => 1,
+                    'last_page' => 1,
+                    'per_page' => $perPage,
+                    'total' => 0,
+                ],
+            ], 200);
+        }
+
+        $rows = $this->teamGroupService->paginate((int) $user->team_id, $perPage);
+
+        $data = collect($rows->items())
+            ->map(fn ($g) => (new TeamGroupResource($g))->toArray($request))
+            ->values()
+            ->all();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'تم جلب مجموعات فريقك بنجاح',
+            'data' => $data,
+            'meta' => [
+                'current_page' => $rows->currentPage(),
+                'last_page' => $rows->lastPage(),
+                'per_page' => $rows->perPage(),
+                'total' => $rows->total(),
+            ],
+        ], 200);
+    }
+
+    /**
+     * All sub-group leader assignments (team_group_leaders) for groups under the team the user leads.
+     * GET /api/sales/team/group-leaders?per_page=15
+     */
+    public function myTeamGroupLeaders(Request $request): JsonResponse
+    {
+        $user = $request->user();
+        if (! $user->isSalesLeader()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'هذه الخاصية متاحة لقادة المبيعات فقط.',
+            ], 403);
+        }
+
+        $perPage = (int) min(100, max(1, (int) $request->input('per_page', 15)));
+
+        if (! $user->team_id) {
+            return response()->json([
+                'success' => true,
+                'message' => 'لا يوجد فريق معيّن لك حالياً.',
+                'data' => [],
+                'meta' => [
+                    'current_page' => 1,
+                    'last_page' => 1,
+                    'per_page' => $perPage,
+                    'total' => 0,
+                ],
+            ], 200);
+        }
+
+        $rows = $this->teamGroupService->paginateGroupLeadersForTeam((int) $user->team_id, $perPage);
+
+        $data = collect($rows->items())
+            ->map(fn ($row) => (new TeamGroupLeaderResource($row))->toArray($request))
+            ->values()
+            ->all();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'تم جلب قادة مجموعات فريقك بنجاح',
+            'data' => $data,
+            'meta' => [
+                'current_page' => $rows->currentPage(),
+                'last_page' => $rows->lastPage(),
+                'per_page' => $rows->perPage(),
+                'total' => $rows->total(),
+            ],
         ], 200);
     }
 }

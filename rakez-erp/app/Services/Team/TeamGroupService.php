@@ -21,6 +21,24 @@ class TeamGroupService
         return $query->paginate($perPage);
     }
 
+    /**
+     * Sub-group leader rows (team_group_leaders) for all groups that belong to this team.
+     *
+     * @return LengthAwarePaginator<int, TeamGroupLeader>
+     */
+    public function paginateGroupLeadersForTeam(int $teamId, int $perPage = 15): LengthAwarePaginator
+    {
+        $perPage = (int) min(100, max(1, $perPage));
+
+        return TeamGroupLeader::query()
+            ->whereHas('teamGroup', function ($q) use ($teamId) {
+                $q->where('team_id', $teamId);
+            })
+            ->with(['user', 'teamGroup.team'])
+            ->orderByDesc('id')
+            ->paginate($perPage);
+    }
+
     public function findByIdOrFail(int $id): TeamGroup
     {
         return TeamGroup::query()->with(['team', 'teamGroupLeader.user'])->findOrFail($id);
