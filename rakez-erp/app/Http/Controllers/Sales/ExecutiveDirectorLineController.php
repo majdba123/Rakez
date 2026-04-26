@@ -6,12 +6,63 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Sales\StoreExecutiveDirectorLineRequest;
 use App\Http\Requests\Sales\UpdateExecutiveDirectorLineRequest;
 use App\Http\Resources\Sales\ExecutiveDirectorLineResource;
+use App\Http\Resources\Sales\SalesTargetResource;
 use App\Models\ExecutiveDirectorLine;
+use App\Services\Sales\SalesTargetService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class ExecutiveDirectorLineController extends Controller
 {
+    public function __construct(
+        private SalesTargetService $targetService
+    ) {}
+
+    /**
+     * List sales targets where the assigner (leader) is an executive director.
+     * Allowed only for employees with type = sales and is_manager = true (no extra route middleware/permission).
+     * GET /api/sales/executive/targets
+     */
+    public function executiveTargets(Request $request): JsonResponse
+    {
+        $user = $request->user();
+        if (! $user?->isSalesTeamManager()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'غير مصرح - يجب أن تكون من نوع مبيعات ومدير (sales + is_manager).',
+            ], 403);
+        }
+
+        try {
+            $filters = [
+                'from' => $request->query('from'),
+                'to' => $request->query('to'),
+                'status' => $request->query('status'),
+                'per_page' => $request->query('per_page', 15),
+                'contract_id' => $request->query('contract_id'),
+                'leader_id' => $request->query('leader_id'),
+            ];
+
+            $paginator = $this->targetService->listTargetsCreatedByExecutiveLeader($filters);
+
+            return response()->json([
+                'success' => true,
+                'data' => SalesTargetResource::collection($paginator->items()),
+                'meta' => [
+                    'current_page' => $paginator->currentPage(),
+                    'last_page' => $paginator->lastPage(),
+                    'per_page' => $paginator->perPage(),
+                    'total' => $paginator->total(),
+                ],
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'فشل جلب الأهداف: '.$e->getMessage(),
+            ], 500);
+        }
+    }
+
     /**
      * List all lines (no sales target).
      * GET /api/sales/executive-director-lines

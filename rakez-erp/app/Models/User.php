@@ -216,6 +216,14 @@ class User extends Authenticatable
     }
 
     /**
+     * Sales employee who is a team manager (type sales + is_manager), for sales manager-only APIs.
+     */
+    public function isSalesTeamManager(): bool
+    {
+        return $this->type === 'sales' && $this->is_manager === true;
+    }
+
+    /**
      * Sales (or admin) user flagged as executive director in HR (dashboard / restricted APIs).
      */
     public function isSalesExecutiveDirector(): bool
@@ -253,7 +261,7 @@ class User extends Authenticatable
     public function getEffectivePermissions(): array
     {
         $permissions = $this->getAllPermissions()->pluck('name')->toArray();
-        
+
         // Add manager-specific permissions dynamically
         if ($this->isProjectManagementManager()) {
             $managerPermissions = [
@@ -403,7 +411,7 @@ class User extends Authenticatable
     public function getWarningsCount(?int $year = null): int
     {
         $query = $this->warnings();
-        
+
         if ($year) {
             $query->whereYear('warning_date', $year);
         }
