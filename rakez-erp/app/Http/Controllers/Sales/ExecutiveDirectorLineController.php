@@ -20,16 +20,17 @@ class ExecutiveDirectorLineController extends Controller
 
     /**
      * List sales targets where the assigner (leader) is an executive director.
-     * Allowed only for employees with type = sales and is_manager = true (no extra route middleware/permission).
+     * Allowed for admin, or for sales employees with is_manager = true (no extra route middleware/permission).
      * GET /api/sales/executive/targets
      */
     public function executiveTargets(Request $request): JsonResponse
     {
         $user = $request->user();
-        if (! $user?->isSalesTeamManager()) {
+        $allowed = $user && ($user->isAdmin() || $user->hasRole('admin') || $user->isSalesTeamManager());
+        if (! $allowed) {
             return response()->json([
                 'success' => false,
-                'message' => 'غير مصرح - يجب أن تكون من نوع مبيعات ومدير (sales + is_manager).',
+                'message' => 'غير مصرح - الإدمن أو من نوع مبيعات ومدير (sales + is_manager) فقط.',
             ], 403);
         }
 
