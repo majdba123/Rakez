@@ -86,6 +86,16 @@ class User extends Authenticatable
         return $this->belongsTo(TeamGroup::class, 'team_group_id');
     }
 
+    public function teamGroupLeaderRecord()
+    {
+        return $this->hasOne(TeamGroupLeader::class, 'user_id');
+    }
+
+    public function assignedExecutiveDirectorLines()
+    {
+        return $this->belongsToMany(ExecutiveDirectorLine::class, 'executive_director_line_user')
+            ->withTimestamps();
+    }
 
     // User notifications (private + can access public)
     public function userNotifications()

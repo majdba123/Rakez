@@ -3,12 +3,15 @@
 namespace App\Http\Controllers\Sales;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Sales\AssignExecutiveDirectorLineGroupMembersRequest;
 use App\Http\Requests\Sales\AssignExecutiveDirectorLineTeamGroupsRequest;
 use App\Http\Requests\Sales\AssignExecutiveDirectorLineTeamsRequest;
 use App\Http\Requests\Sales\StoreExecutiveDirectorLineRequest;
 use App\Http\Requests\Sales\UpdateExecutiveDirectorLineRequest;
 use App\Http\Resources\Sales\ExecutiveDirectorLineResource;
 use App\Models\ExecutiveDirectorLine;
+use App\Models\TeamGroupLeader;
+use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -116,6 +119,188 @@ class ExecutiveDirectorLineController extends Controller
             'success' => true,
             'message' => 'تم ربط سطر المدير التنفيذي بمجموعات الفريق (قادة المجموعات).',
             'data' => new ExecutiveDirectorLineResource($line->fresh()->load(['teams', 'teamGroups'])),
+        ], 200);
+    }
+
+    /**
+     * List executive lines the sales team leader assigned to this group. Optional team_group_id if user leads more than one group.
+     * GET /api/sales/team-group/executive-director-lines?per_page=20&team_group_id=
+     */
+    public function forGroupLeader(Request $request): JsonResponse
+    {
+        $ctx = $this->groupLeaderContext($request);
+        if ($ctx['error'] !== null) {
+            return $ctx['error'];
+        }
+        $groupId = (int) $ctx['teamGroupId'];
+        $perPage = min((int) $request->input('per_page', 20), 100);
+
+        $query = ExecutiveDirectorLine::query()
+            ->whereHas('teamGroups', function ($q) use ($groupId) {
+                $q->where('team_groups.id', $groupId);
+            })
+            ->with([
+                'teams',
+                'teamGroups',
+                'memberUsers' => function ($q) use ($groupId) {
+                    $q->where('users.team_group_id', $groupId);
+                },
+            ])
+            ->orderByDesc('id');
+
+        if ($request->filled('status')) {
+            $query->where('status', $request->input('status'));
+        }
+        if ($request->filled('line_type')) {
+            $query->where('line_type', 'like', '%' . addcslashes((string) $request->input('line_type'), '%_\\') . '%');
+        }
+
+        $rows = $query->paginate($perPage);
+
+        $data = collect($rows->items())
+            ->map(fn ($row) => (new ExecutiveDirectorLineResource($row))->toArray($request))
+            ->values()
+            ->all();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'تم جلب سطور المدير التنفيذي لمجموعتك.',
+            'data' => $data,
+            'meta' => [
+                'team_group_id' => $groupId,
+                'current_page' => $rows->currentPage(),
+                'last_page' => $rows->lastPage(),
+                'per_page' => $rows->perPage(),
+                'total' => $rows->total(),
+            ],
+        ], 200);
+    }
+
+    /**
+     * Assign line to sales members in this group (pivot executive_director_line_user). Replaces current assignments in this group only.
+     * POST /api/sales/team-group/executive-director-lines/{id}/members — body: { "user_ids": [1,2], "team_group_id"?: 5 }
+     */
+    public function syncMembersForGroupLeader(AssignExecutiveDirectorLineGroupMembersRequest $request, int $id): JsonResponse
+    {
+        $ctx = $this->groupLeaderContext($request);
+        if ($ctx['error'] !== null) {
+            return $ctx['error'];
+        }
+        $groupId = (int) $ctx['teamGroupId'];
+
+        $line = ExecutiveDirectorLine::query()
+            ->whereHas('teamGroups', function ($q) use ($groupId) {
+                $q->where('team_groups.id', $groupId);
+            })
+            ->find($id);
+
+        if (! $line) {
+            return response()->json([
+                'success' => false,
+                'message' => 'سطر المدير التنفيذي غير معيّن لمجموعتك.',
+            ], 404);
+        }
+
+        $userIds = array_values(array_unique(array_map('intval', $request->validated('user_ids'))));
+        if ($userIds === []) {
+            $this->detachGroupMembersForLine($line, $groupId);
+            $line->load(['teams', 'teamGroups', 'memberUsers']);
+
+            return $this->groupLeaderMemberSyncResponse($line, $request, $groupId);
+        }
+
+        $validCount = User::query()
+            ->whereIn('id', $userIds)
+            ->where('team_group_id', $groupId)
+            ->where('type', 'sales')
+            ->count();
+        if ($validCount !== count($userIds)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'يُسمح بموظفي المبيعات (type=sales) التابعين لنفس المجموعة فقط.',
+            ], 422);
+        }
+
+        $this->detachGroupMembersForLine($line, $groupId);
+        $line->memberUsers()->attach($userIds);
+        $line->load(['teams', 'teamGroups', 'memberUsers' => function ($q) use ($groupId) {
+            $q->where('users.team_group_id', $groupId);
+        }]);
+
+        return $this->groupLeaderMemberSyncResponse($line, $request, $groupId);
+    }
+
+    /**
+     * @return array{error: ?JsonResponse, teamGroupId: ?int}
+     */
+    protected function groupLeaderContext(Request $request): array
+    {
+        $user = $request->user();
+        $base = TeamGroupLeader::query()->where('user_id', $user->id);
+        $count = (clone $base)->count();
+        if ($count === 0) {
+            return [
+                'error' => response()->json([
+                    'success' => false,
+                    'message' => 'لست قائد مجموعة. لا يوجد سجل قائد لمجموعة.',
+                ], 403),
+                'teamGroupId' => null,
+            ];
+        }
+        if ($count > 1 && ! $request->filled('team_group_id')) {
+            return [
+                'error' => response()->json([
+                    'success' => false,
+                    'message' => 'لديك أكثر من مجموعة كقائد. أرسل team_group_id في الطلب.',
+                ], 422),
+                'teamGroupId' => null,
+            ];
+        }
+        $q = (clone $base);
+        if ($request->filled('team_group_id')) {
+            $q->where('team_group_id', (int) $request->input('team_group_id'));
+        }
+        $row = $q->first();
+        if (! $row) {
+            return [
+                'error' => response()->json([
+                    'success' => false,
+                    'message' => 'المجموعة غير صالحة أو لست قائدها.',
+                ], 404),
+                'teamGroupId' => null,
+            ];
+        }
+
+        return [
+            'error' => null,
+            'teamGroupId' => (int) $row->team_group_id,
+        ];
+    }
+
+    private function detachGroupMembersForLine(ExecutiveDirectorLine $line, int $groupId): void
+    {
+        $old = User::query()
+            ->where('team_group_id', $groupId)
+            ->whereIn('id', function ($q) use ($line) {
+                $q->select('user_id')
+                    ->from('executive_director_line_user')
+                    ->where('executive_director_line_id', $line->id);
+            })
+            ->pluck('id');
+        if ($old->isNotEmpty()) {
+            $line->memberUsers()->detach($old->all());
+        }
+    }
+
+    private function groupLeaderMemberSyncResponse(ExecutiveDirectorLine $line, Request $request, int $groupId): JsonResponse
+    {
+        return response()->json([
+            'success' => true,
+            'message' => 'تم تحديث تعيين السطر لأعضاء المجموعة.',
+            'data' => (new ExecutiveDirectorLineResource($line))->toArray($request),
+            'meta' => [
+                'team_group_id' => $groupId,
+            ],
         ], 200);
     }
 
