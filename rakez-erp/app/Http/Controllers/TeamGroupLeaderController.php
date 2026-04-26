@@ -59,21 +59,24 @@ class TeamGroupLeaderController extends Controller
         try {
             $userId = (int) $request->validated('user_id');
             $row = $this->teamGroupLeaderService->assignLeader($id, $userId);
+            $message = $row->wasRecentlyCreated
+                ? 'تم تعيين قائد المجموعة بنجاح.'
+                : 'تم تحديث قائد المجموعة بنجاح.';
 
             return response()->json([
                 'success' => true,
-                'message' => 'تم تعيين قائد المجموعة بنجاح',
+                'message' => $message,
                 'data' => new TeamGroupLeaderResource($row),
             ]);
         } catch (ModelNotFoundException) {
             return response()->json([
                 'success' => false,
-                'message' => 'المجموعة غير موجودة.',
+                'message' => 'المجموعة غير موجودة. لا يمكن تعيين قائد.',
             ], 404);
         } catch (Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => $e->getMessage(),
+                'message' => 'فشل تعيين قائد المجموعة: '.$e->getMessage(),
             ], 500);
         }
     }
@@ -84,21 +87,27 @@ class TeamGroupLeaderController extends Controller
     public function remove(int $id): JsonResponse
     {
         try {
-            $this->teamGroupLeaderService->removeLeader($id);
+            $deleted = $this->teamGroupLeaderService->removeLeader($id);
+            if ($deleted === 0) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'لا يوجد قائد معيّن لهذه المجموعة، لا شيء لإزالته.',
+                ], 422);
+            }
 
             return response()->json([
                 'success' => true,
-                'message' => 'تم إلغاء تعيين قائد المجموعة.',
+                'message' => 'تم إلغاء تعيين قائد المجموعة بنجاح.',
             ]);
         } catch (ModelNotFoundException) {
             return response()->json([
                 'success' => false,
-                'message' => 'المجموعة غير موجودة.',
+                'message' => 'المجموعة غير موجودة. لا يمكن إلغاء التعيين.',
             ], 404);
         } catch (Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => $e->getMessage(),
+                'message' => 'فشل إلغاء تعيين القائد: '.$e->getMessage(),
             ], 500);
         }
     }

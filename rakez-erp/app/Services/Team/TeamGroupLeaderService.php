@@ -47,9 +47,13 @@ class TeamGroupLeaderService
         });
     }
 
-    public function removeLeader(int $teamGroupId): void
+    /**
+     * @return int Number of leader rows removed (0 if none)
+     */
+    public function removeLeader(int $teamGroupId): int
     {
         $group = TeamGroup::query()->findOrFail($teamGroupId);
-        TeamGroupLeader::query()->where('team_group_id', $group->id)->delete();
+
+        return TeamGroupLeader::query()->where('team_group_id', $group->id)->delete();
     }
 }

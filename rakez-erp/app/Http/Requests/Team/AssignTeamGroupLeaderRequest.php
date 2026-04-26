@@ -4,8 +4,10 @@ namespace App\Http\Requests\Team;
 
 use App\Models\TeamGroup;
 use App\Models\User;
+use Illuminate\Contracts\Validation\Validator;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 
 class AssignTeamGroupLeaderRequest extends FormRequest
 {
@@ -28,9 +30,26 @@ class AssignTeamGroupLeaderRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'user_id.required' => 'معرّف الموظف مطلوب',
-            'user_id.exists' => 'الموظف غير موجود أو محذوف',
+            'user_id.required' => 'معرّف الموظف (user_id) مطلوب.',
+            'user_id.integer' => 'معرّف الموظف يجب أن يكون رقماً صحيحاً.',
+            'user_id.exists' => 'الموظف غير موجود أو محذوف.',
         ];
+    }
+
+    public function attributes(): array
+    {
+        return [
+            'user_id' => 'الموظف',
+        ];
+    }
+
+    protected function failedValidation(Validator $validator): void
+    {
+        throw new ValidationException($validator, response()->json([
+            'success' => false,
+            'message' => 'تعذر تعيين قائد المجموعة. راجع شروط الموظف والمجموعة.',
+            'errors' => $validator->errors(),
+        ], 422));
     }
 
     public function withValidator($validator): void
