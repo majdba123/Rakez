@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\registartion;
 
+use App\Models\TeamGroup;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Contracts\Validation\Validator;
 use Illuminate\Http\Exceptions\HttpResponseException;
@@ -16,6 +17,25 @@ class RegisterUser extends FormRequest
     public function authorize(): bool
     {
         return true;
+    }
+
+    /**
+     * When a team group is chosen, team id must be the parent team of that group (single source of truth).
+     */
+    protected function prepareForValidation(): void
+    {
+        if (! $this->filled('team_group_id')) {
+            return;
+        }
+
+        $group = TeamGroup::query()->find($this->input('team_group_id'));
+        if ($group === null) {
+            return;
+        }
+
+        $this->merge([
+            'team' => $group->team_id,
+        ]);
     }
 
     /**
@@ -47,8 +67,7 @@ class RegisterUser extends FormRequest
             'role' => 'nullable|string|exists:roles,name',
             'is_manager' => 'nullable|boolean',
             'is_executive_director' => 'nullable|boolean',
-            // Profile fields
-            // Prefer team_group_id (sub-group); else legacy `team` = teams.id
+            // Profile: team_group_id defines the sub-group; `team` is merged from the group in prepareForValidation()
             'team_group_id' => 'nullable|integer|exists:team_groups,id',
             'team' => 'nullable|integer|exists:teams,id',
             // Employee files
