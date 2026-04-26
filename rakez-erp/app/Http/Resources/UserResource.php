@@ -29,6 +29,8 @@ class UserResource extends JsonResource
             'is_executive_director' => (bool) ($this->is_executive_director ?? false),
             'team' => $this->team_id,
             'team_name' => $this->team?->name,
+            'team_group_id' => $this->team_group_id,
+            'team_group_name' => $this->teamGroup?->name,
             'created_at' => $this->created_at?->toDateTimeString(),
             'updated_at' => $this->updated_at?->toDateTimeString(),
         ];

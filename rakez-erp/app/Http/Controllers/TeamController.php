@@ -343,16 +343,22 @@ class TeamController extends Controller
     public function assignMember(AssignSalesTeamMemberRequest $request, int $teamId): JsonResponse
     {
         try {
-            $user = $this->teamService->assignSalesMemberToTeam($teamId, (int) $request->validated('user_id'));
+            $v = $request->validated();
+            $user = $this->teamService->assignSalesMemberToTeamGroup(
+                $teamId,
+                (int) $v['team_group_id'],
+                (int) $v['user_id']
+            );
 
             return response()->json([
                 'success' => true,
-                'message' => 'تم إضافة عضو المبيعات إلى الفريق بنجاح',
+                'message' => 'تم إضافة عضو المبيعات إلى المجموعة داخل الفريق بنجاح',
                 'data' => [
                     'user_id' => $user->id,
                     'user_name' => $user->name,
                     'user_type' => $user->type,
-                    'team_id' => $teamId,
+                    'team_id' => $user->team_id,
+                    'team_group_id' => $user->team_group_id,
                 ],
             ], 200);
         } catch (Exception $e) {

@@ -46,8 +46,9 @@ class UpdateUser extends FormRequest
             'is_manager' => 'nullable|boolean',
             'is_executive_director' => 'nullable|boolean',
             // Profile fields
-            // Team should be a valid teams.id
             'team' => 'sometimes|integer|exists:teams,id',
+            'team_group_id' => 'sometimes|nullable|integer|exists:team_groups,id',
+            'team_id' => 'sometimes|nullable|integer|exists:teams,id',
             // Employee files
             'cv' => 'sometimes|file|mimes:pdf,doc,docx|max:10240', // max 10MB
             'contract' => 'sometimes|file|mimes:pdf,doc,docx|max:10240', // max 10MB

@@ -23,7 +23,8 @@ class User extends Authenticatable
         'phone',
         'email',
         'password',
-        'team_id', // Foreign key to teams table (replaces deprecated 'team' string field)
+        'team_id', // Kept in sync with team_group.team_id when using team groups
+        'team_group_id',
         'cv_path',
         'contract_path',
         'identity_number',
@@ -78,6 +79,11 @@ class User extends Authenticatable
     public function team()
     {
         return $this->belongsTo(Team::class, 'team_id');
+    }
+
+    public function teamGroup()
+    {
+        return $this->belongsTo(TeamGroup::class, 'team_group_id');
     }
 
 

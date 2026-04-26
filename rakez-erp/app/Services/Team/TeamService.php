@@ -3,6 +3,7 @@
 namespace App\Services\Team;
 
 use App\Models\Team;
+use App\Models\TeamGroup;
 use App\Models\User;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;
@@ -101,7 +102,7 @@ class TeamService
     }
 
     /**
-     * Sales users not assigned to any team (team_id IS NULL). Same pool allowed by assignSalesMemberToTeam.
+     * Sales users not assigned to any team (team_id IS NULL). Same pool allowed by assignSalesMemberToTeamGroup.
      */
     public function getSalesUsersWithoutTeam(int $perPage = 15, ?string $search = null): LengthAwarePaginator
     {
@@ -168,24 +169,31 @@ class TeamService
     }
 
     /**
-     * Assign a user to a team (project management): only users with type "sales" (مبيعات).
+     * Assign a sales user to a team **group** under the given team; syncs users.team_id from the group.
      */
-    public function assignSalesMemberToTeam(int $teamId, int $userId): User
+    public function assignSalesMemberToTeamGroup(int $teamId, int $teamGroupId, int $userId): User
     {
         DB::beginTransaction();
         try {
             Team::findOrFail($teamId);
+            $group = TeamGroup::query()
+                ->where('id', $teamGroupId)
+                ->where('team_id', $teamId)
+                ->firstOrFail();
             $user = User::findOrFail($userId);
 
             if ($user->type !== 'sales') {
                 throw new Exception('يمكن إضافة موظفي المبيعات فقط (نوع المستخدم: sales).');
             }
 
-            $user->update(['team_id' => $teamId]);
+            $user->update([
+                'team_group_id' => $group->id,
+                'team_id' => $group->team_id,
+            ]);
 
             DB::commit();
 
-            return $user->fresh();
+            return $user->fresh(['team', 'teamGroup']);
         } catch (Exception $e) {
             DB::rollBack();
             if (str_contains($e->getMessage(), 'يمكن إضافة')) {
@@ -196,7 +204,7 @@ class TeamService
     }
 
     /**
-     * Remove a user from a team if they belong to that team.
+     * Remove a user from a team (clears both team and team group assignment).
      */
     public function removeMemberFromTeam(int $teamId, int $userId): void
     {
@@ -204,13 +212,37 @@ class TeamService
         try {
             Team::findOrFail($teamId);
             $user = User::query()->where('id', $userId)->where('team_id', $teamId)->firstOrFail();
-            $user->update(['team_id' => null]);
+            $user->update([
+                'team_id' => null,
+                'team_group_id' => null,
+            ]);
 
             DB::commit();
         } catch (Exception $e) {
             DB::rollBack();
             throw new Exception('Failed to remove team member: ' . $e->getMessage());
         }
+    }
+
+    /**
+     * Set team + group from a team_group id, or clear both when null.
+     */
+    public function setUserTeamGroup(User $user, ?int $teamGroupId): void
+    {
+        if ($teamGroupId === null) {
+            $user->update([
+                'team_group_id' => null,
+                'team_id' => null,
+            ]);
+
+            return;
+        }
+
+        $group = TeamGroup::query()->findOrFail($teamGroupId);
+        $user->update([
+            'team_group_id' => $group->id,
+            'team_id' => $group->team_id,
+        ]);
     }
 
     /**

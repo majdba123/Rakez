@@ -2,6 +2,7 @@
 
 namespace App\Services\registartion;
 
+use App\Models\TeamGroup;
 use App\Models\User;
 use App\Models\AdminNotification;
 use App\Events\AdminNotificationEvent;
@@ -36,14 +37,18 @@ class register
                 throw new \Exception('يجب أن تحتوي البيانات إما على البريد الإلكتروني أو رقم الهاتف.');
             }
 
-            // add_employee (RegisterUser) sends "team" = teams.id; we persist team_id
-            if (array_key_exists('team', $data) && $data['team'] !== null && $data['team'] !== '') {
+            // team_group_id wins: user joins a sub-group; team_id is derived from the group
+            if (! empty($data['team_group_id'])) {
+                $g = TeamGroup::query()->findOrFail((int) $data['team_group_id']);
+                $data['team_id'] = $g->team_id;
+            } elseif (array_key_exists('team', $data) && $data['team'] !== null && $data['team'] !== '') {
                 $data['team_id'] = (int) $data['team'];
             }
 
             // Optional profile fields
             $optional = [
-                'team_id', // Use team_id (foreign key) instead of deprecated 'team' string
+                'team_id',
+                'team_group_id',
                 'identity_number',
                 'birthday',
                 'date_of_works',
@@ -71,7 +76,7 @@ class register
             $userData['type'] = $typeNames[$data['type']];
 
             $user = User::create($userData);
-            $user->load('team');
+            $user->load(['team', 'teamGroup']);
 
             // Sync Spatie roles
             // If a specific role is provided, use it; otherwise fall back to type-based role
@@ -108,7 +113,7 @@ class register
 
         // Select only the columns used by the API resource to reduce payload
         $select = [
-            'id', 'name', 'email', 'phone', 'type', 'is_manager', 'is_executive_director', 'team_id', 'identity_number',
+            'id', 'name', 'email', 'phone', 'type', 'is_manager', 'is_executive_director', 'team_id', 'team_group_id', 'identity_number',
              'birthday', 'date_of_works', 'contract_type',
             'iban', 'salary', 'marital_status', 'created_at', 'updated_at'
         ];
@@ -210,9 +215,30 @@ class register
             if (isset($data['email'])) $updateData['email'] = $data['email'];
             if (isset($data['phone'])) $updateData['phone'] = $data['phone'];
 
+            if (array_key_exists('team', $data)) {
+                if ($data['team'] === null || $data['team'] === '') {
+                    $data['team_id'] = null;
+                } else {
+                    $data['team_id'] = (int) $data['team'];
+                }
+            }
+
+            if (array_key_exists('team_group_id', $data)) {
+                if ($data['team_group_id'] === null || $data['team_group_id'] === '') {
+                    $data['team_id'] = null;
+                    $data['team_group_id'] = null;
+                } else {
+                    $g = TeamGroup::query()->findOrFail((int) $data['team_group_id']);
+                    $data['team_id'] = $g->team_id;
+                }
+            } elseif (array_key_exists('team_id', $data) && ! array_key_exists('team_group_id', $data)) {
+                $data['team_group_id'] = null;
+            }
+
             // Update optional profile fields
             $profileFields = [
-                'team_id', // Use team_id (foreign key) instead of deprecated 'team' string
+                'team_id',
+                'team_group_id',
                 'identity_number',
                 'birthday',
                 'date_of_works',

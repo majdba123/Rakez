@@ -48,7 +48,8 @@ class RegisterUser extends FormRequest
             'is_manager' => 'nullable|boolean',
             'is_executive_director' => 'nullable|boolean',
             // Profile fields
-            // Team should be a valid teams.id
+            // Prefer team_group_id (sub-group); else legacy `team` = teams.id
+            'team_group_id' => 'nullable|integer|exists:team_groups,id',
             'team' => 'nullable|integer|exists:teams,id',
             // Employee files
             'cv' => 'nullable|file|mimes:pdf,doc,docx|max:10240', // max 10MB

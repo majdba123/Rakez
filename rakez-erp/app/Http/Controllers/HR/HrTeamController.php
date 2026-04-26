@@ -11,6 +11,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Exception;
+use Illuminate\Validation\Rule;
 
 class HrTeamController extends Controller
 {
@@ -268,22 +269,29 @@ class HrTeamController extends Controller
     {
         $validated = $request->validate([
             'user_id' => 'required|integer|exists:users,id',
+            'team_group_id' => [
+                'required',
+                'integer',
+                Rule::exists('team_groups', 'id')->where('team_id', $id),
+            ],
         ]);
 
         try {
             $team = Team::findOrFail($id);
             $user = User::findOrFail($validated['user_id']);
 
-            $user->update(['team_id' => $team->id]);
+            $this->teamService->setUserTeamGroup($user, (int) $validated['team_group_id']);
+            $user->refresh();
 
             return response()->json([
                 'success' => true,
-                'message' => 'تم إضافة العضو إلى الفريق بنجاح',
+                'message' => 'تم إضافة العضو إلى مجموعة داخل الفريق بنجاح',
                 'data' => [
                     'user_id' => $user->id,
                     'user_name' => $user->name,
-                    'team_id' => $team->id,
+                    'team_id' => $user->team_id,
                     'team_name' => $team->name,
+                    'team_group_id' => $user->team_group_id,
                 ],
             ], 200);
         } catch (Exception $e) {
