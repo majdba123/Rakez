@@ -78,14 +78,6 @@ class SalesTarget extends Model
     }
 
     /**
-     * Executive director lines (type, value, status) for this target.
-     */
-    public function executiveDirectors()
-    {
-        return $this->hasMany(SalesTargetExecutiveDirector::class);
-    }
-
-    /**
      * Scope a query to filter by marketer.
      */
     public function scopeByMarketer($query, $marketerId)

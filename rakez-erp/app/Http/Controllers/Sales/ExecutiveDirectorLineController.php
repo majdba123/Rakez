@@ -1,0 +1,108 @@
+<?php
+
+namespace App\Http\Controllers\Sales;
+
+use App\Http\Controllers\Controller;
+use App\Http\Requests\Sales\StoreExecutiveDirectorLineRequest;
+use App\Http\Requests\Sales\UpdateExecutiveDirectorLineRequest;
+use App\Http\Resources\Sales\ExecutiveDirectorLineResource;
+use App\Models\ExecutiveDirectorLine;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
+
+class ExecutiveDirectorLineController extends Controller
+{
+    /**
+     * List all lines (no sales target).
+     * GET /api/sales/executive-director-lines
+     */
+    public function index(Request $request): JsonResponse
+    {
+        $perPage = min((int) $request->query('per_page', 20), 100);
+        $rows = ExecutiveDirectorLine::query()
+            ->orderByDesc('id')
+            ->paginate($perPage);
+
+        return response()->json([
+            'success' => true,
+            'data' => ExecutiveDirectorLineResource::collection($rows->items()),
+            'meta' => [
+                'current_page' => $rows->currentPage(),
+                'last_page' => $rows->lastPage(),
+                'per_page' => $rows->perPage(),
+                'total' => $rows->total(),
+            ],
+        ]);
+    }
+
+    /**
+     * POST /api/sales/executive-director-lines
+     * Body: line_type, value, status (status defaults to pending)
+     */
+    public function store(StoreExecutiveDirectorLineRequest $request): JsonResponse
+    {
+        $v = $request->validated();
+        $row = ExecutiveDirectorLine::query()->create([
+            'line_type' => $v['line_type'],
+            'value' => $v['value'] ?? null,
+            'status' => $v['status'] ?? 'pending',
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'تمت إضافة السطر.',
+            'data' => new ExecutiveDirectorLineResource($row->fresh()),
+        ], 201);
+    }
+
+    /**
+     * GET /api/sales/executive-director-lines/{id}
+     */
+    public function show(int $id): JsonResponse
+    {
+        $row = ExecutiveDirectorLine::query()->findOrFail($id);
+
+        return response()->json([
+            'success' => true,
+            'data' => new ExecutiveDirectorLineResource($row),
+        ]);
+    }
+
+    /**
+     * PUT /api/sales/executive-director-lines/{id}
+     * Body: line_type, value, status (status optional; omit to keep current)
+     */
+    public function update(UpdateExecutiveDirectorLineRequest $request, int $id): JsonResponse
+    {
+        $row = ExecutiveDirectorLine::query()->findOrFail($id);
+        $v = $request->validated();
+        $payload = [
+            'line_type' => $v['line_type'],
+            'value' => $v['value'] ?? null,
+        ];
+        if (array_key_exists('status', $v) && $v['status'] !== null) {
+            $payload['status'] = $v['status'];
+        }
+        $row->update($payload);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'تم تحديث السطر.',
+            'data' => new ExecutiveDirectorLineResource($row->fresh()),
+        ]);
+    }
+
+    /**
+     * DELETE /api/sales/executive-director-lines/{id}
+     */
+    public function destroy(int $id): JsonResponse
+    {
+        $row = ExecutiveDirectorLine::query()->findOrFail($id);
+        $row->delete();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'تم حذف السطر.',
+        ]);
+    }
+}

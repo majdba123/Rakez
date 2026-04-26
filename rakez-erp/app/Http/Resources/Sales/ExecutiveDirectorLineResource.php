@@ -6,7 +6,7 @@ use BackedEnum;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
-class SalesTargetExecutiveDirectorResource extends JsonResource
+class ExecutiveDirectorLineResource extends JsonResource
 {
     public function toArray(Request $request): array
     {
@@ -14,10 +14,11 @@ class SalesTargetExecutiveDirectorResource extends JsonResource
 
         return [
             'id' => $this->id,
-            'sales_target_id' => $this->sales_target_id,
-            'type' => $this->line_type,
+            'line_type' => $this->line_type,
             'value' => $this->value !== null ? (float) $this->value : null,
             'status' => $st instanceof BackedEnum ? $st->value : (string) $st,
+            'created_at' => $this->created_at?->toIso8601String(),
+            'updated_at' => $this->updated_at?->toIso8601String(),
         ];
     }
 }

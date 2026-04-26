@@ -2,10 +2,7 @@
 
 namespace App\Enums;
 
-/**
- * Status of an executive-director line under a sales target.
- */
-enum SalesTargetExecutiveDirectorStatus: string
+enum ExecutiveDirectorLineStatus: string
 {
     case Pending = 'pending';
     case Approved = 'approved';

@@ -2,11 +2,11 @@
 
 namespace App\Http\Requests\Sales;
 
-use App\Enums\SalesTargetExecutiveDirectorStatus;
+use App\Enums\ExecutiveDirectorLineStatus;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
-class StoreSalesTargetExecutiveDirectorRequest extends FormRequest
+class UpdateExecutiveDirectorLineRequest extends FormRequest
 {
     public function authorize(): bool
     {
@@ -19,10 +19,10 @@ class StoreSalesTargetExecutiveDirectorRequest extends FormRequest
 
     public function rules(): array
     {
-        $statuses = array_map(fn (SalesTargetExecutiveDirectorStatus $c) => $c->value, SalesTargetExecutiveDirectorStatus::cases());
+        $statuses = array_map(fn (ExecutiveDirectorLineStatus $c) => $c->value, ExecutiveDirectorLineStatus::cases());
 
         return [
-            'type' => 'required|string|max:100',
+            'line_type' => 'required|string|max:100',
             'value' => 'nullable|numeric|min:0',
             'status' => ['nullable', 'string', Rule::in($statuses)],
         ];

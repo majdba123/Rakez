@@ -8,20 +8,26 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::create('sales_target_executive_directors', function (Blueprint $table) {
+        if (Schema::hasTable('executive_director_lines')) {
+            return;
+        }
+
+        // Fresh installs only (legacy `sales_target_executive_directors` is handled in 000001).
+        if (Schema::hasTable('sales_target_executive_directors')) {
+            return;
+        }
+
+        Schema::create('executive_director_lines', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('sales_target_id')->constrained('sales_targets')->cascadeOnDelete();
             $table->string('line_type', 100);
             $table->decimal('value', 15, 2)->nullable();
             $table->string('status', 32)->default('pending');
             $table->timestamps();
-
-            $table->index(['sales_target_id', 'status']);
         });
     }
 
     public function down(): void
     {
-        Schema::dropIfExists('sales_target_executive_directors');
+        Schema::dropIfExists('executive_director_lines');
     }
 };

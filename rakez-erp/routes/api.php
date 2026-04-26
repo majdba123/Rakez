@@ -27,7 +27,7 @@ use App\Http\Controllers\Sales\SalesExecutiveDashboardController;
 use App\Http\Controllers\Sales\SalesProjectController;
 use App\Http\Controllers\Sales\SalesReservationController;
 use App\Http\Controllers\Sales\SalesTargetController;
-use App\Http\Controllers\Sales\SalesTargetExecutiveDirectorController;
+use App\Http\Controllers\Sales\ExecutiveDirectorLineController;
 use App\Http\Controllers\Sales\SalesAttendanceController;
 use App\Http\Controllers\Sales\MarketingTaskController;
 use App\Http\Controllers\Sales\SalesTeamController;
@@ -403,23 +403,13 @@ use Illuminate\Support\Facades\File;  // أضف هذا السطر في الأع�
             Route::get('executive/available-units', [SalesExecutiveDashboardController::class, 'availableUnits'])
                 ->middleware(['sales_executive', 'permission:sales.dashboard.view']);
 
-            $executiveTargetLineMiddleware = ['sales_executive', 'permission:sales.dashboard.view'];
-            // CRUD: executive-director lines on a sales target (separate resource)
-            Route::get('targets/{salesTargetId}/executive-director-lines', [SalesTargetExecutiveDirectorController::class, 'index'])
-                ->whereNumber('salesTargetId')
-                ->middleware($executiveTargetLineMiddleware);
-            Route::post('targets/{salesTargetId}/executive-director-lines', [SalesTargetExecutiveDirectorController::class, 'store'])
-                ->whereNumber('salesTargetId')
-                ->middleware($executiveTargetLineMiddleware);
-            Route::get('executive-director-lines/{id}', [SalesTargetExecutiveDirectorController::class, 'show'])
-                ->whereNumber('id')
-                ->middleware($executiveTargetLineMiddleware);
-            Route::put('executive-director-lines/{id}', [SalesTargetExecutiveDirectorController::class, 'update'])
-                ->whereNumber('id')
-                ->middleware($executiveTargetLineMiddleware);
-            Route::delete('executive-director-lines/{id}', [SalesTargetExecutiveDirectorController::class, 'destroy'])
-                ->whereNumber('id')
-                ->middleware($executiveTargetLineMiddleware);
+            $executiveLineMiddleware = ['sales_executive'];
+            // Standalone executive-director lines (line_type + value only; not linked to sales targets)
+            Route::get('executive-director-lines', [ExecutiveDirectorLineController::class, 'index'])->middleware($executiveLineMiddleware);
+            Route::post('executive-director-lines', [ExecutiveDirectorLineController::class, 'store'])->middleware($executiveLineMiddleware);
+            Route::get('executive-director-lines/{id}', [ExecutiveDirectorLineController::class, 'show'])->whereNumber('id')->middleware($executiveLineMiddleware);
+            Route::put('executive-director-lines/{id}', [ExecutiveDirectorLineController::class, 'update'])->whereNumber('id')->middleware($executiveLineMiddleware);
+            Route::delete('executive-director-lines/{id}', [ExecutiveDirectorLineController::class, 'destroy'])->whereNumber('id')->middleware($executiveLineMiddleware);
 
             // Projects
             Route::get('projects', [SalesProjectController::class, 'index'])->middleware('permission:sales.projects.view');
