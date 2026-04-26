@@ -24,6 +24,31 @@ class TeamGroupResource extends JsonResource
                     'code' => $this->team->code,
                 ];
             }),
+            'leader' => $this->when(
+                $this->relationLoaded('teamGroupLeader'),
+                function () {
+                    $l = $this->teamGroupLeader;
+                    if (! $l) {
+                        return null;
+                    }
+                    if ($l->relationLoaded('user') && $l->user) {
+                        return [
+                            'id' => $l->id,
+                            'user_id' => $l->user_id,
+                            'user' => [
+                                'id' => $l->user->id,
+                                'name' => $l->user->name,
+                                'email' => $l->user->email,
+                            ],
+                        ];
+                    }
+
+                    return [
+                        'id' => $l->id,
+                        'user_id' => $l->user_id,
+                    ];
+                }
+            ),
             'created_at' => $this->created_at?->toIso8601String(),
             'updated_at' => $this->updated_at?->toIso8601String(),
         ];

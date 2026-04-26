@@ -39,6 +39,7 @@ use App\Http\Controllers\ExclusiveProjectController;
 use App\Http\Middleware\CheckDynamicPermission;
 use App\Http\Controllers\TeamController;
 use App\Http\Controllers\TeamGroupController;
+use App\Http\Controllers\TeamGroupLeaderController;
 use App\Http\Controllers\Marketing\MarketingDashboardController;
 use App\Http\Controllers\Marketing\MarketingProjectController;
 use App\Http\Controllers\Marketing\DeveloperMarketingPlanController;
@@ -324,10 +325,14 @@ use Illuminate\Support\Facades\File;  // أضف هذا السطر في الأع�
                         Route::prefix('team-groups')->group(function () {
                             Route::get('/', [TeamGroupController::class, 'index']);
                             Route::post('/', [TeamGroupController::class, 'store']);
+                            Route::put('/{id}/leader', [TeamGroupLeaderController::class, 'assign'])->whereNumber('id');
+                            Route::delete('/{id}/leader', [TeamGroupLeaderController::class, 'remove'])->whereNumber('id');
                             Route::get('/{id}', [TeamGroupController::class, 'show'])->whereNumber('id');
                             Route::put('/{id}', [TeamGroupController::class, 'update'])->whereNumber('id');
                             Route::delete('/{id}', [TeamGroupController::class, 'destroy'])->whereNumber('id');
                         });
+
+                        Route::get('team-group-leaders', [TeamGroupLeaderController::class, 'index']);
 
                         Route::get('units/{unitId}/reservation-context', [SalesReservationController::class, 'context'])->middleware('permission:sales.reservations.create');
 
@@ -704,10 +709,14 @@ use Illuminate\Support\Facades\File;  // أضف هذا السطر في الأع�
             Route::prefix('team-groups')->group(function () {
                 Route::get('/', [TeamGroupController::class, 'index']);
                 Route::post('/', [TeamGroupController::class, 'store']);
+                Route::put('/{id}/leader', [TeamGroupLeaderController::class, 'assign'])->whereNumber('id');
+                Route::delete('/{id}/leader', [TeamGroupLeaderController::class, 'remove'])->whereNumber('id');
                 Route::get('/{id}', [TeamGroupController::class, 'show'])->whereNumber('id');
                 Route::put('/{id}', [TeamGroupController::class, 'update'])->whereNumber('id');
                 Route::delete('/{id}', [TeamGroupController::class, 'destroy'])->whereNumber('id');
             });
+
+            Route::get('team-group-leaders', [TeamGroupLeaderController::class, 'index']);
 
             Route::prefix('teams')->group(function () {
                 Route::get('/contracts/{teamId}', [TeamController::class, 'contracts'])->whereNumber('teamId');

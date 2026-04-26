@@ -3,6 +3,7 @@
 namespace App\Services\Team;
 
 use App\Models\TeamGroup;
+use App\Models\TeamGroupLeader;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;
 
@@ -12,7 +13,7 @@ class TeamGroupService
     {
         $perPage = (int) min(100, max(1, $perPage));
 
-        $query = TeamGroup::query()->with('team')->orderByDesc('id');
+        $query = TeamGroup::query()->with(['team', 'teamGroupLeader.user'])->orderByDesc('id');
         if ($teamId !== null) {
             $query->where('team_id', $teamId);
         }
@@ -22,7 +23,7 @@ class TeamGroupService
 
     public function findByIdOrFail(int $id): TeamGroup
     {
-        return TeamGroup::query()->with('team')->findOrFail($id);
+        return TeamGroup::query()->with(['team', 'teamGroupLeader.user'])->findOrFail($id);
     }
 
     public function create(array $data): TeamGroup
@@ -32,7 +33,7 @@ class TeamGroupService
                 'team_id' => $data['team_id'],
                 'name' => $data['name'],
                 'description' => $data['description'] ?? null,
-            ])->load('team');
+            ])->load(['team', 'teamGroupLeader.user']);
         });
     }
 
@@ -40,7 +41,11 @@ class TeamGroupService
     {
         return DB::transaction(function () use ($group, $data) {
             if (array_key_exists('team_id', $data)) {
+                $oldTeamId = $group->team_id;
                 $group->team_id = $data['team_id'];
+                if ((int) $oldTeamId !== (int) $data['team_id']) {
+                    TeamGroupLeader::query()->where('team_group_id', $group->id)->delete();
+                }
             }
             if (array_key_exists('name', $data)) {
                 $group->name = $data['name'];
@@ -50,7 +55,7 @@ class TeamGroupService
             }
             $group->save();
 
-            return $group->fresh()->load('team');
+            return $group->fresh()->load(['team', 'teamGroupLeader.user']);
         });
     }
 
