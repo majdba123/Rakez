@@ -14,10 +14,10 @@ return new class () extends Migration {
         Schema::create('executive_director_line_team_group', function (Blueprint $table) {
             $table->id();
             $table->foreignId('executive_director_line_id')
-                ->constrained('executive_director_lines')
+                ->constrained('executive_director_lines', indexName: 'edl_tg_edl_id_fk')
                 ->cascadeOnDelete();
             $table->foreignId('team_group_id')
-                ->constrained('team_groups')
+                ->constrained('team_groups', indexName: 'edl_tg_group_id_fk')
                 ->cascadeOnDelete();
             $table->timestamps();
             $table->unique(
