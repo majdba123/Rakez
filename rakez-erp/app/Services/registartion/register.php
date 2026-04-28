@@ -15,6 +15,26 @@ use Illuminate\Database\Eloquent\ModelNotFoundException;
 
 class register
 {
+    private function assertSingleSalesLeaderPerTeam(?int $teamId, ?int $exceptUserId = null): void
+    {
+        if (! $teamId) {
+            return;
+        }
+
+        $q = User::query()
+            ->where('type', 'sales_leader')
+            ->where('team_id', $teamId);
+
+        if ($exceptUserId !== null) {
+            $q->where('id', '!=', $exceptUserId);
+        }
+
+        $exists = $q->exists();
+        if ($exists) {
+            throw new \Exception('لا يمكن تعيين أكثر من قائد مبيعات واحد لنفس الفريق.');
+        }
+    }
+
     /**
      * Register a new user and create related records based on user type.
      *
@@ -74,6 +94,21 @@ class register
             }
 
             $userData['type'] = $typeNames[$data['type']];
+
+            // Rules:
+            // - sales_leader: cannot be assigned to team_group_id; and only one sales_leader per team
+            // - sales with is_manager or is_executive_director: cannot be assigned to team_group_id
+            if ($userData['type'] === 'sales_leader') {
+                $userData['team_group_id'] = null;
+                $this->assertSingleSalesLeaderPerTeam(isset($userData['team_id']) ? (int) $userData['team_id'] : null);
+            }
+            if ($userData['type'] === 'sales') {
+                $isManager = (bool) ($userData['is_manager'] ?? false);
+                $isExecutive = (bool) ($userData['is_executive_director'] ?? false);
+                if ($isManager || $isExecutive) {
+                    $userData['team_group_id'] = null;
+                }
+            }
 
             $user = User::create($userData);
             $user->load(['team', 'teamGroup']);
@@ -270,6 +305,25 @@ class register
                 }
 
                 $updateData['type'] = $typeNames[$data['type']];
+            }
+
+            // Enforce team_group_id rules using the *resulting* type/flags after update
+            $finalType = $updateData['type'] ?? $user->type;
+            $finalIsManager = array_key_exists('is_manager', $updateData) ? (bool) $updateData['is_manager'] : (bool) ($user->is_manager ?? false);
+            $finalIsExecutive = array_key_exists('is_executive_director', $updateData) ? (bool) $updateData['is_executive_director'] : (bool) ($user->is_executive_director ?? false);
+
+            if ($finalType === 'sales_leader') {
+                $updateData['team_group_id'] = null;
+
+                $teamIdToCheck = array_key_exists('team_id', $updateData)
+                    ? ($updateData['team_id'] !== null ? (int) $updateData['team_id'] : null)
+                    : ($user->team_id !== null ? (int) $user->team_id : null);
+
+                $this->assertSingleSalesLeaderPerTeam($teamIdToCheck, (int) $user->id);
+            }
+
+            if ($finalType === 'sales' && ($finalIsManager || $finalIsExecutive)) {
+                $updateData['team_group_id'] = null;
             }
 
             $user->update($updateData);

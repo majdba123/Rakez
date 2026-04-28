@@ -55,7 +55,7 @@ class ExecutiveDirectorLine extends Model
     public function memberUsers(): BelongsToMany
     {
         return $this->belongsToMany(User::class, 'executive_director_line_user')
-            ->withPivot('value_target')
+            ->withPivot('value_target', 'line_type_flag')
             ->withTimestamps();
     }
 }

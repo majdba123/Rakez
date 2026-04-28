@@ -10,6 +10,7 @@ use App\Http\Requests\Sales\StoreExecutiveDirectorLineRequest;
 use App\Http\Requests\Sales\UpdateExecutiveDirectorLineRequest;
 use App\Http\Resources\Sales\ExecutiveDirectorLineResource;
 use App\Models\ExecutiveDirectorLine;
+use App\Models\TeamGroup;
 use App\Models\TeamGroupLeader;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
@@ -214,10 +215,13 @@ class ExecutiveDirectorLineController extends Controller
 
         $lineValue = (float) ($line->value ?? 0);
         $totalAssignedValue = (float) $members->sum(fn ($member) => (float) $member['value_target']);
-        if ($totalAssignedValue > $lineValue) {
+
+        $lineCents = (int) round($lineValue * 100);
+        $assignedCents = (int) round($totalAssignedValue * 100);
+        if ($assignedCents !== $lineCents) {
             return response()->json([
                 'success' => false,
-                'message' => 'مجموع value_target للأعضاء لا يمكن أن يتجاوز قيمة السطر.',
+                'message' => 'مجموع value_target للأعضاء يجب أن يساوي قيمة السطر تماماً (لا أكثر ولا أقل).',
                 'errors' => [
                     'members' => [
                         'مجموع value_target يساوي '.$totalAssignedValue.' بينما قيمة السطر '.$lineValue.'.',
@@ -243,6 +247,7 @@ class ExecutiveDirectorLineController extends Controller
         foreach ($members as $member) {
             $attachPayload[(int) $member['user_id']] = [
                 'value_target' => round((float) $member['value_target'], 2),
+                'line_type_flag' => $line->line_type,
             ];
         }
         $line->memberUsers()->attach($attachPayload);
@@ -259,6 +264,35 @@ class ExecutiveDirectorLineController extends Controller
     protected function groupLeaderContext(Request $request): array
     {
         $user = $request->user();
+        if ($user && ($user->isAdmin() || $user->hasRole('admin'))) {
+            if (! $request->filled('team_group_id')) {
+                return [
+                    'error' => response()->json([
+                        'success' => false,
+                        'message' => 'للإدمن يجب إرسال team_group_id في الطلب.',
+                    ], 422),
+                    'teamGroupId' => null,
+                ];
+            }
+
+            $groupId = (int) $request->input('team_group_id');
+            $exists = TeamGroup::query()->whereKey($groupId)->exists();
+            if (! $exists) {
+                return [
+                    'error' => response()->json([
+                        'success' => false,
+                        'message' => 'المجموعة غير موجودة.',
+                    ], 404),
+                    'teamGroupId' => null,
+                ];
+            }
+
+            return [
+                'error' => null,
+                'teamGroupId' => $groupId,
+            ];
+        }
+
         $base = TeamGroupLeader::query()->where('user_id', $user->id);
         $count = (clone $base)->count();
         if ($count === 0) {

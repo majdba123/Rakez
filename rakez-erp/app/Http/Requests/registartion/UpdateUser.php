@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\registartion;
 
+use App\Models\User;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\Rule;
@@ -47,7 +48,42 @@ class UpdateUser extends FormRequest
             'is_executive_director' => 'nullable|boolean',
             // Profile fields
             'team' => 'sometimes|integer|exists:teams,id',
-            'team_group_id' => 'sometimes|nullable|integer|exists:team_groups,id',
+            'team_group_id' => [
+                'sometimes',
+                'nullable',
+                'integer',
+                'exists:team_groups,id',
+                function (string $attribute, mixed $value, \Closure $fail) {
+                    if ($value === null || $value === '') {
+                        return;
+                    }
+
+                    $targetId = (int) $this->route('id');
+                    $targetUser = User::query()->find($targetId);
+                    if (! $targetUser) {
+                        return;
+                    }
+
+                    $typeName = $targetUser->type;
+                    if ($this->filled('type')) {
+                        $typeId = (int) $this->input('type');
+                        $typeName = config('user_types.numeric_map', [])[$typeId] ?? $typeName;
+                    }
+
+                    $isManager = $this->filled('is_manager') ? (bool) $this->input('is_manager') : (bool) ($targetUser->is_manager ?? false);
+                    $isExecutive = $this->filled('is_executive_director') ? (bool) $this->input('is_executive_director') : (bool) ($targetUser->is_executive_director ?? false);
+
+                    if ($typeName === 'sales_leader') {
+                        $fail('قائد المبيعات (sales_leader) لا يمكن تعيينه داخل مجموعة فريق (team_group_id).');
+                        return;
+                    }
+
+                    if ($typeName === 'sales' && ($isManager || $isExecutive)) {
+                        $fail('موظف المبيعات المدير/المدير التنفيذي لا يمكن تعيينه داخل مجموعة فريق (team_group_id).');
+                        return;
+                    }
+                },
+            ],
             'team_id' => 'sometimes|nullable|integer|exists:teams,id',
             // Employee files
             'cv' => 'sometimes|file|mimes:pdf,doc,docx|max:10240', // max 10MB

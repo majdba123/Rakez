@@ -37,6 +37,7 @@ class ExecutiveDirectorLineResource extends JsonResource
                 'phone' => $u->phone,
                 'type' => $u->type,
                 'value_target' => isset($u->pivot?->value_target) ? (float) $u->pivot->value_target : null,
+                'line_type_flag' => $u->pivot?->line_type_flag,
             ])->values()->all(), []),
             'created_at' => $this->created_at?->toIso8601String(),
             'updated_at' => $this->updated_at?->toIso8601String(),

@@ -94,7 +94,7 @@ class User extends Authenticatable
     public function assignedExecutiveDirectorLines()
     {
         return $this->belongsToMany(ExecutiveDirectorLine::class, 'executive_director_line_user')
-            ->withPivot('value_target')
+            ->withPivot('value_target', 'line_type_flag')
             ->withTimestamps();
     }
 
