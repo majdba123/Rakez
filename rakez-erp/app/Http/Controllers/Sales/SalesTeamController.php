@@ -8,6 +8,8 @@ use App\Http\Resources\TeamGroupLeaderResource;
 use App\Http\Resources\TeamGroupResource;
 use App\Http\Resources\TeamResource;
 use App\Models\Team;
+use App\Models\TeamGroup;
+use App\Models\TeamGroupLeader;
 use App\Services\Sales\SalesTeamService;
 use App\Services\Team\TeamGroupService;
 use Illuminate\Http\JsonResponse;
@@ -226,6 +228,78 @@ class SalesTeamController extends Controller
                 'per_page' => $rows->perPage(),
                 'total' => $rows->total(),
             ],
+        ], 200);
+    }
+
+    /**
+     * Team(s) that the current user leads as a team-group leader.
+     * If the user leads multiple groups across multiple teams, returns an array.
+     * GET /api/sales/team-group/led-team
+     */
+    public function myLedTeamAsGroupLeader(Request $request): JsonResponse
+    {
+        $user = $request->user();
+
+        $groupIds = TeamGroupLeader::query()
+            ->where('user_id', $user->id)
+            ->pluck('team_group_id')
+            ->map(fn ($id) => (int) $id)
+            ->values();
+
+        if ($groupIds->isEmpty()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'لست قائد مجموعة حالياً.',
+            ], 403);
+        }
+
+        $teams = Team::query()
+            ->whereIn('id', TeamGroup::query()->whereIn('id', $groupIds)->pluck('team_id'))
+            ->orderBy('name')
+            ->get();
+
+        $data = $teams->map(fn ($t) => (new TeamResource($t))->resolve())->values()->all();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'تم جلب فريقك بنجاح',
+            'data' => count($data) === 1 ? $data[0] : $data,
+        ], 200);
+    }
+
+    /**
+     * List team-groups that the current user leads.
+     * GET /api/sales/team-group/led-groups
+     */
+    public function myLedGroups(Request $request): JsonResponse
+    {
+        $user = $request->user();
+
+        $groupIds = TeamGroupLeader::query()
+            ->where('user_id', $user->id)
+            ->pluck('team_group_id')
+            ->map(fn ($id) => (int) $id)
+            ->values();
+
+        if ($groupIds->isEmpty()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'لست قائد مجموعة حالياً.',
+            ], 403);
+        }
+
+        $groups = TeamGroup::query()
+            ->whereIn('id', $groupIds->all())
+            ->with(['team', 'teamGroupLeader.user'])
+            ->orderBy('name')
+            ->get();
+
+        $data = $groups->map(fn ($g) => (new TeamGroupResource($g))->toArray($request))->values()->all();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'تم جلب مجموعاتك بنجاح',
+            'data' => $data,
         ], 200);
     }
 }
