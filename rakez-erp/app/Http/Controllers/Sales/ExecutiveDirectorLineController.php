@@ -15,6 +15,7 @@ use App\Models\TeamGroupLeader;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Schema;
 
 class ExecutiveDirectorLineController extends Controller
 {
@@ -34,6 +35,12 @@ class ExecutiveDirectorLineController extends Controller
 
         $perPage = min((int) $request->input('per_page', 20), 100);
 
+        $hasProgressFields = Schema::hasColumns('executive_director_line_user', [
+            'achieved_value',
+            'member_status',
+            'completed_at',
+        ]);
+
         $query = ExecutiveDirectorLine::query()
             ->select([
                 'executive_director_lines.id',
@@ -42,14 +49,21 @@ class ExecutiveDirectorLineController extends Controller
                 'executive_director_lines.status',
                 'executive_director_line_user.value_target',
                 'executive_director_line_user.line_type_flag',
-                'executive_director_line_user.achieved_value',
-                'executive_director_line_user.member_status',
-                'executive_director_line_user.completed_at',
                 'executive_director_line_user.created_at as assigned_at',
             ])
             ->join('executive_director_line_user', 'executive_director_line_user.executive_director_line_id', '=', 'executive_director_lines.id')
             ->where('executive_director_line_user.user_id', (int) $user->id)
             ->orderByDesc('id');
+
+        if ($hasProgressFields) {
+            $query->addSelect([
+                'executive_director_line_user.achieved_value',
+                'executive_director_line_user.member_status',
+                'executive_director_line_user.completed_at',
+            ]);
+        } else {
+            $query->selectRaw('NULL as achieved_value, ? as member_status, NULL as completed_at', ['in_progress']);
+        }
 
         if ($request->filled('status')) {
             $query->where('status', $request->input('status'));
