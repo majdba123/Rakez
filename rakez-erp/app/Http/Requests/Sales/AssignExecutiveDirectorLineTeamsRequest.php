@@ -19,7 +19,7 @@ class AssignExecutiveDirectorLineTeamsRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'team_ids' => 'required|array|max:100',
+            'team_ids' => 'required|array|max:1',
             'team_ids.*' => [
                 'integer',
                 'distinct',
@@ -33,7 +33,7 @@ class AssignExecutiveDirectorLineTeamsRequest extends FormRequest
         return [
             'team_ids.required' => 'يجب إرسال قائمة معرفات الفرق (team_ids).',
             'team_ids.array' => 'قائمة الفرق غير صالحة.',
-            'team_ids.max' => 'لا يمكن ربط أكثر من 100 فريق.',
+            'team_ids.max' => 'يُسمح بإرسال فريق واحد فقط داخل team_ids.',
             'team_ids.*.integer' => 'معرف الفريق يجب أن يكون رقماً صحيحاً.',
             'team_ids.*.distinct' => 'لا تكرر نفس معرف الفريق.',
             'team_ids.*.exists' => 'أحد الفرق المحددة غير موجود أو محذوف.',

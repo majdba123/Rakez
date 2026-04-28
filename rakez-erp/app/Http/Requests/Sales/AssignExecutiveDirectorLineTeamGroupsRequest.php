@@ -21,7 +21,7 @@ class AssignExecutiveDirectorLineTeamGroupsRequest extends FormRequest
         $teamId = (int) ($this->user()->team_id ?? 0);
 
         return [
-            'team_group_ids' => 'required|array|max:100',
+            'team_group_ids' => 'required|array|max:1',
             'team_group_ids.*' => [
                 'integer',
                 'distinct',
@@ -35,7 +35,7 @@ class AssignExecutiveDirectorLineTeamGroupsRequest extends FormRequest
         return [
             'team_group_ids.required' => 'يجب إرسال قائمة معرفات المجموعات (team_group_ids).',
             'team_group_ids.array' => 'قائمة المجموعات غير صالحة.',
-            'team_group_ids.max' => 'لا يمكن ربط أكثر من 100 مجموعة.',
+            'team_group_ids.max' => 'يُسمح بإرسال مجموعة واحدة فقط داخل team_group_ids.',
             'team_group_ids.*.integer' => 'معرف المجموعة يجب أن يكون رقماً.',
             'team_group_ids.*.distinct' => 'لا تكرر نفس معرف المجموعة.',
             'team_group_ids.*.exists' => 'أحد المجموعات ليس تابعاً لفريقك أو غير موجود.',

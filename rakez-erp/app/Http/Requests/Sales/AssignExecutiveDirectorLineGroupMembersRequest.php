@@ -15,15 +15,23 @@ class AssignExecutiveDirectorLineGroupMembersRequest extends FormRequest
     {
         return [
             'team_group_id' => ['nullable', 'integer', 'exists:team_groups,id'],
-            'user_ids' => ['required', 'array', 'max:100'],
-            'user_ids.*' => ['integer', 'distinct'],
+            'members' => ['required', 'array', 'max:100'],
+            'members.*.user_id' => ['required', 'integer', 'distinct'],
+            'members.*.value_target' => ['required', 'numeric', 'min:0'],
         ];
     }
 
     public function messages(): array
     {
         return [
-            'user_ids.required' => 'يجب إرسال قائمة (user_ids) للأعضاء.',
+            'members.required' => 'يجب إرسال قائمة (members) للأعضاء.',
+            'members.array' => 'قائمة الأعضاء غير صالحة.',
+            'members.*.user_id.required' => 'حقل user_id مطلوب لكل عضو.',
+            'members.*.user_id.integer' => 'user_id يجب أن يكون رقماً صحيحاً.',
+            'members.*.user_id.distinct' => 'لا يمكن تكرار نفس المستخدم.',
+            'members.*.value_target.required' => 'حقل value_target مطلوب لكل عضو.',
+            'members.*.value_target.numeric' => 'value_target يجب أن يكون قيمة رقمية.',
+            'members.*.value_target.min' => 'value_target لا يمكن أن يكون أقل من صفر.',
         ];
     }
 }

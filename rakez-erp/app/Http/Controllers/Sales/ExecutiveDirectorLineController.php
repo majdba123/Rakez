@@ -84,8 +84,8 @@ class ExecutiveDirectorLineController extends Controller
     }
 
     /**
-     * Link an executive line (already assigned to the leader’s team) to one or more sub-groups (for group leaders).
-     * POST /api/sales/team/executive-director-lines/{id}/team-groups — body: { "team_group_ids": [1,2,3] } (empty to clear)
+     * Link an executive line (already assigned to the leader’s team) to a single sub-group in array form.
+     * POST /api/sales/team/executive-director-lines/{id}/team-groups — body: { "team_group_ids": [1] }
      */
     public function syncTeamGroupsForMyLedTeam(AssignExecutiveDirectorLineTeamGroupsRequest $request, int $id): JsonResponse
     {
@@ -177,8 +177,10 @@ class ExecutiveDirectorLineController extends Controller
     }
 
     /**
-     * Assign line to sales members in this group (pivot executive_director_line_user). Replaces current assignments in this group only.
-     * POST /api/sales/team-group/executive-director-lines/{id}/members — body: { "user_ids": [1,2], "team_group_id"?: 5 }
+     * Assign line to sales members in this group with per-member value_target (pivot executive_director_line_user).
+     * Replaces current assignments in this group only.
+     * POST /api/sales/team-group/executive-director-lines/{id}/members
+     * body: { "members": [ { "user_id": 1, "value_target": 300 }, { "user_id": 2, "value_target": 200 } ], "team_group_id"?: 5 }
      */
     public function syncMembersForGroupLeader(AssignExecutiveDirectorLineGroupMembersRequest $request, int $id): JsonResponse
     {
@@ -201,12 +203,27 @@ class ExecutiveDirectorLineController extends Controller
             ], 404);
         }
 
-        $userIds = array_values(array_unique(array_map('intval', $request->validated('user_ids'))));
+        $members = collect($request->validated('members'));
+        $userIds = $members->pluck('user_id')->map(fn ($v) => (int) $v)->values()->all();
         if ($userIds === []) {
             $this->detachGroupMembersForLine($line, $groupId);
             $line->load(['teams', 'teamGroups', 'memberUsers']);
 
             return $this->groupLeaderMemberSyncResponse($line, $request, $groupId);
+        }
+
+        $lineValue = (float) ($line->value ?? 0);
+        $totalAssignedValue = (float) $members->sum(fn ($member) => (float) $member['value_target']);
+        if ($totalAssignedValue > $lineValue) {
+            return response()->json([
+                'success' => false,
+                'message' => 'مجموع value_target للأعضاء لا يمكن أن يتجاوز قيمة السطر.',
+                'errors' => [
+                    'members' => [
+                        'مجموع value_target يساوي '.$totalAssignedValue.' بينما قيمة السطر '.$lineValue.'.',
+                    ],
+                ],
+            ], 422);
         }
 
         $validCount = User::query()
@@ -222,7 +239,13 @@ class ExecutiveDirectorLineController extends Controller
         }
 
         $this->detachGroupMembersForLine($line, $groupId);
-        $line->memberUsers()->attach($userIds);
+        $attachPayload = [];
+        foreach ($members as $member) {
+            $attachPayload[(int) $member['user_id']] = [
+                'value_target' => round((float) $member['value_target'], 2),
+            ];
+        }
+        $line->memberUsers()->attach($attachPayload);
         $line->load(['teams', 'teamGroups', 'memberUsers' => function ($q) use ($groupId) {
             $q->where('users.team_group_id', $groupId);
         }]);
@@ -409,8 +432,8 @@ class ExecutiveDirectorLineController extends Controller
     }
 
     /**
-     * Replace team assignments (one or many teams). Admin or sales manager (sales + is_manager).
-     * PUT /api/sales/executive-director-lines/{id}/teams — body: { "team_ids": [1,2,3] } (empty to clear)
+     * Replace team assignment (single team in array). Admin or sales manager (sales + is_manager).
+     * POST /api/sales/executive-director-lines/{id}/teams — body: { "team_ids": [1] }
      */
     public function syncTeams(AssignExecutiveDirectorLineTeamsRequest $request, int $id): JsonResponse
     {
