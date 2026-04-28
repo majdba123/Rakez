@@ -140,9 +140,6 @@ class ExecutiveDirectorLineController extends Controller
             ->whereHas('teamGroups', function ($q) use ($groupId) {
                 $q->where('team_groups.id', $groupId);
             })
-            ->whereHas('memberUsers', function ($q) use ($groupId) {
-                $q->where('users.team_group_id', $groupId);
-            })
             ->with([
                 'teams',
                 'teamGroups',
