@@ -6,6 +6,7 @@ use App\Application\Ads\SyncCampaignStructure;
 use App\Domain\Ads\Ports\AdsReadPort;
 use App\Domain\Ads\Ports\InsightStorePort;
 use App\Domain\Ads\ValueObjects\Platform;
+use App\Infrastructure\Ads\Persistence\Models\AdsSyncRun;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
@@ -30,11 +31,34 @@ class SyncCampaignStructureJob implements ShouldQueue
 
     public function handle(InsightStorePort $store): void
     {
-        $reader = app(AdsReadPort::class . '.' . $this->platform);
+        $run = AdsSyncRun::create([
+            'type' => 'campaigns',
+            'platform' => $this->platform,
+            'account_id' => $this->accountId,
+            'status' => 'running',
+            'started_at' => now(),
+        ]);
 
-        $useCase = new SyncCampaignStructure($reader, $store);
-        $useCase->execute($this->accountId);
+        try {
+            $reader = app(AdsReadPort::class . '.' . $this->platform);
 
-        Log::info("Synced campaign structure for {$this->platform}:{$this->accountId}");
+            $useCase = new SyncCampaignStructure($reader, $store);
+            $useCase->execute($this->accountId);
+
+            $run->update([
+                'status' => 'completed',
+                'finished_at' => now(),
+            ]);
+
+            Log::info("Synced campaign structure for {$this->platform}:{$this->accountId}");
+        } catch (\Throwable $e) {
+            $run->update([
+                'status' => 'failed',
+                'finished_at' => now(),
+                'error' => $e->getMessage(),
+            ]);
+
+            throw $e;
+        }
     }
 }

@@ -6,15 +6,16 @@ use App\Infrastructure\Ads\Persistence\Models\AdsPlatformAccount;
 use App\Jobs\Ads\PublishOutcomeEventsJob;
 use App\Jobs\Ads\SyncCampaignStructureJob;
 use App\Jobs\Ads\SyncInsightsJob;
+use App\Jobs\Ads\SyncLeadsJob;
 use Illuminate\Console\Command;
 
 class AdsSyncCommand extends Command
 {
     protected $signature = 'ads:sync
-        {action : sync-campaigns|sync-insights|publish-outcomes}
+        {action : sync-campaigns|sync-insights|sync-leads|publish-outcomes}
         {--platform= : meta|snap|tiktok (empty = all active)}
         {--account= : specific account ID}
-        {--days= : lookback days for insights (default from config ads_platforms.sync.insights_lookback_days)}';
+        {--days= : lookback days for insights/leads (default from config ads_platforms.sync.*_lookback_days)}';
 
     protected $description = 'Dispatch Ads platform sync jobs';
 
@@ -58,6 +59,16 @@ class AdsSyncCommand extends Command
                     now()->subDays((int) ($this->option('days') ?: config('ads_platforms.sync.insights_lookback_days', 30)))->toDateString(),
                     now()->toDateString(),
                     ['campaign', 'adset', 'ad'],
+                ),
+                'sync-leads' => SyncLeadsJob::dispatch(
+                    $account->platform,
+                    $account->account_id,
+                    null,
+                    null,
+                    null,
+                    null,
+                    now()->subDays((int) ($this->option('days') ?: config('ads_platforms.sync.leads_lookback_days', 7)))->toDateString(),
+                    now()->toDateString(),
                 ),
                 default => $this->error("Unknown action: {$action}"),
             };

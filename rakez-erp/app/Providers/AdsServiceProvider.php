@@ -3,6 +3,7 @@
 namespace App\Providers;
 
 use App\Domain\Ads\Ports\InsightStorePort;
+use App\Domain\Ads\Ports\LeadStorePort;
 use App\Domain\Ads\Ports\OutcomeStorePort;
 use App\Domain\Ads\Ports\TokenStorePort;
 use App\Infrastructure\Ads\Meta\MetaInsightsReader;
@@ -13,6 +14,7 @@ use App\Infrastructure\Ads\Snap\SnapConversionsWriter;
 use App\Infrastructure\Ads\TikTok\TikTokInsightsReader;
 use App\Infrastructure\Ads\TikTok\TikTokEventsWriter;
 use App\Infrastructure\Ads\Persistence\EloquentInsightStore;
+use App\Infrastructure\Ads\Persistence\EloquentLeadStore;
 use App\Infrastructure\Ads\Persistence\EloquentOutcomeStore;
 use App\Infrastructure\Ads\Persistence\EloquentTokenStore;
 use App\Infrastructure\Ads\Services\EventIdGenerator;
@@ -43,6 +45,7 @@ class AdsServiceProvider extends ServiceProvider
 
         $this->app->singleton(TokenStorePort::class, EloquentTokenStore::class);
         $this->app->singleton(InsightStorePort::class, EloquentInsightStore::class);
+        $this->app->singleton(LeadStorePort::class, EloquentLeadStore::class);
         $this->app->singleton(OutcomeStorePort::class, EloquentOutcomeStore::class);
 
         $this->app->singleton(AdsReadPort::class . '.meta', fn () => $this->app->make(MetaInsightsReader::class));
@@ -71,6 +74,9 @@ class AdsServiceProvider extends ServiceProvider
             $schedule->command("ads:sync sync-campaigns")->cron("0 */{$hours} * * *");
 
             $schedule->command("ads:sync sync-insights")->dailyAt('04:00');
+
+            $leadHours = (int) config('ads_platforms.sync.leads_interval_hours', 6);
+            $schedule->command("ads:sync sync-leads")->cron("15 */{$leadHours} * * *");
 
             $seconds = (int) config('ads_platforms.sync.outcome_publish_interval_seconds', 60);
             $schedule->command("ads:sync publish-outcomes")->everyMinute();
