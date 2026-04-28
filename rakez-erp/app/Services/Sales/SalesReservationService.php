@@ -38,7 +38,7 @@ class SalesReservationService
         }
 
         $value = strtolower(trim($contractCommissionFrom));
-        
+
         // Map Arabic values
         if (str_contains($value, 'مالك') || $value === 'مالك') {
             return 'owner';
@@ -49,7 +49,7 @@ class SalesReservationService
         if (str_contains($value, 'طرفين') || $value === 'الطرفين') {
             return 'owner'; // Default to owner if both parties
         }
-        
+
         // Map English values
         if ($value === 'owner') {
             return 'owner';
@@ -57,7 +57,7 @@ class SalesReservationService
         if ($value === 'buyer') {
             return 'buyer';
         }
-        
+
         // Fallback to owner
         return 'owner';
     }
@@ -68,7 +68,7 @@ class SalesReservationService
     public function createReservation(array $data, User $user): SalesReservation
     {
         DB::beginTransaction();
-        
+
         try {
             // Lock the unit row to prevent concurrent reservations
             $unit = ContractUnit::where('id', $data['contract_unit_id'])
@@ -92,8 +92,8 @@ class SalesReservationService
             $contract = Contract::with(['info', 'secondPartyData', 'city', 'district'])->findOrFail($data['contract_id']);
 
             // Determine initial status based on reservation type
-            $status = $data['reservation_type'] === 'negotiation' 
-                ? 'under_negotiation' 
+            $status = $data['reservation_type'] === 'negotiation'
+                ? 'under_negotiation'
                 : 'confirmed';
 
             // Create snapshot of data for voucher
@@ -132,8 +132,8 @@ class SalesReservationService
             ];
 
             // Set approval deadline for negotiation reservations (48 hours)
-            $approvalDeadline = $data['reservation_type'] === 'negotiation' 
-                ? now()->addHours(48) 
+            $approvalDeadline = $data['reservation_type'] === 'negotiation'
+                ? now()->addHours(48)
                 : null;
 
             // Create reservation

@@ -35,16 +35,20 @@ class ExecutiveDirectorLineController extends Controller
         $perPage = min((int) $request->input('per_page', 20), 100);
 
         $query = ExecutiveDirectorLine::query()
-            ->whereHas('memberUsers', function ($q) use ($user) {
-                $q->where('users.id', (int) $user->id);
-            })
-            ->with([
-                'teams',
-                'teamGroups',
-                'memberUsers' => function ($q) use ($user) {
-                    $q->where('users.id', (int) $user->id);
-                },
+            ->select([
+                'executive_director_lines.id',
+                'executive_director_lines.line_type',
+                'executive_director_lines.value',
+                'executive_director_lines.status',
+                'executive_director_line_user.value_target',
+                'executive_director_line_user.line_type_flag',
+                'executive_director_line_user.achieved_value',
+                'executive_director_line_user.member_status',
+                'executive_director_line_user.completed_at',
+                'executive_director_line_user.created_at as assigned_at',
             ])
+            ->join('executive_director_line_user', 'executive_director_line_user.executive_director_line_id', '=', 'executive_director_lines.id')
+            ->where('executive_director_line_user.user_id', (int) $user->id)
             ->orderByDesc('id');
 
         if ($request->filled('status')) {
@@ -57,13 +61,29 @@ class ExecutiveDirectorLineController extends Controller
         $rows = $query->paginate($perPage);
 
         $data = collect($rows->items())
-            ->map(fn ($row) => (new ExecutiveDirectorLineResource($row))->toArray($request))
+            ->map(function ($row) {
+                return [
+                    'line_id' => (int) $row->id,
+                    'line_type' => $row->line_type,
+                    'line_value' => $row->value !== null ? (float) $row->value : null,
+                    'line_status' => (string) $row->status,
+                    'target_value' => isset($row->value_target) ? (float) $row->value_target : null,
+                    'achieved_value' => isset($row->achieved_value) ? (float) $row->achieved_value : null,
+                    'remaining_value' => isset($row->value_target, $row->achieved_value)
+                        ? max(0.0, round((float) $row->value_target - (float) $row->achieved_value, 2))
+                        : null,
+                    'member_status' => $row->member_status,
+                    'line_type_flag' => $row->line_type_flag,
+                    'completed_at' => $row->completed_at,
+                    'assigned_at' => $row->assigned_at,
+                ];
+            })
             ->values()
             ->all();
 
         return response()->json([
             'success' => true,
-            'message' => 'تم جلب سطور المدير التنفيذي المعيّنة لك.',
+            'message' => 'تم جلب أهدافك المعيّنة بنجاح.',
             'data' => $data,
             'meta' => [
                 'current_page' => $rows->currentPage(),
