@@ -3,7 +3,12 @@
 namespace App\Http\Controllers\HR;
 
 use App\Http\Controllers\Controller;
+use App\Http\Resources\Shared\UserResource;
+use App\Http\Requests\Team\AssignSalesTeamMemberRequest;
+use App\Http\Requests\Team\AssignTeamSalesLeaderRequest;
+use App\Http\Requests\Team\ListSalesLeadersRequest;
 use App\Models\Team;
+use App\Models\TeamGroup;
 use App\Models\User;
 use App\Services\Team\TeamService;
 use App\Http\Responses\ApiResponse;
@@ -84,16 +89,41 @@ class HrTeamController extends Controller
 
     /**
      * List members of a team.
-     * GET /hr/teams/{id}/members
+     * GET /hr/teams/{id}/members — query: team_group_id أو group_id (اختياري) لتصفية المجموعة
      */
     public function members(Request $request, int $id): JsonResponse
     {
         try {
-            $team = Team::with(['members'])->findOrFail($id);
+            $team = Team::query()->findOrFail($id);
+            $teamGroupId = $request->filled('team_group_id')
+                ? (int) $request->input('team_group_id')
+                : ($request->filled('group_id') ? (int) $request->input('group_id') : null);
+            if ($teamGroupId !== null && $teamGroupId < 1) {
+                $teamGroupId = null;
+            }
+            if ($teamGroupId !== null) {
+                $inTeam = TeamGroup::query()
+                    ->where('id', $teamGroupId)
+                    ->where('team_id', $id)
+                    ->exists();
+                if (! $inTeam) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'المجموعة غير موجودة أو لا تتبع هذا الفريق.',
+                    ], 422);
+                }
+            }
+
+            $membersQuery = $team->members();
+            if ($teamGroupId !== null) {
+                $membersQuery->where('team_group_id', $teamGroupId);
+            }
+            $members = $membersQuery->get();
+
             $year = (int) $request->input('year', now()->year);
             $month = (int) $request->input('month', now()->month);
 
-            $membersData = $team->members->map(function ($member) use ($year, $month) {
+            $membersData = $members->map(function ($member) use ($year, $month) {
                 return [
                     'id' => $member->id,
                     'name' => $member->name,
@@ -118,6 +148,52 @@ class HrTeamController extends Controller
                 'success' => false,
                 'message' => $e->getMessage(),
             ], $statusCode);
+        }
+    }
+
+    /**
+     * GET /hr/team-groups/{groupId}/members — list members in one team group (team comes from the group).
+     */
+    public function membersOfTeamGroup(Request $request, int $groupId): JsonResponse
+    {
+        $group = TeamGroup::query()->findOrFail($groupId);
+        $request->merge(['team_group_id' => $groupId]);
+
+        return $this->members($request, (int) $group->team_id);
+    }
+
+    /**
+     * DELETE /hr/team-groups/{groupId}/members/{userId} — remove from group only, stays on team.
+     */
+    public function removeMemberFromTeamGroup(int $groupId, int $userId): JsonResponse
+    {
+        try {
+            $group = TeamGroup::query()->findOrFail($groupId);
+            $this->teamService->removeUserFromGroupOnly((int) $group->team_id, $groupId, $userId);
+            $team = Team::query()->findOrFail((int) $group->team_id);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'تمت إزالة العضو من المجموعة مع بقائه ضمن الفريق.',
+                'data' => [
+                    'user_id' => $userId,
+                    'team_id' => $team->id,
+                    'team_name' => $team->name,
+                ],
+            ], 200);
+        } catch (Exception $e) {
+            $code = 500;
+            if (str_contains($e->getMessage(), 'الموظف غير ضمن')) {
+                $code = 422;
+            }
+            if (str_contains($e->getMessage(), 'No query results')) {
+                $code = 404;
+            }
+
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage(),
+            ], $code);
         }
     }
 
@@ -261,37 +337,158 @@ class HrTeamController extends Controller
     }
 
     /**
-     * Assign a member to a team.
-     * POST /hr/teams/{id}/members
+     * POST /hr/teams/{id}/sales-leader
+     * One sales_leader (by user.type) per team; cannot assign a second while another is on the team.
      */
-    public function assignMember(Request $request, int $id): JsonResponse
+    public function assignSalesLeader(AssignTeamSalesLeaderRequest $request, int $id): JsonResponse
     {
-        $validated = $request->validate([
-            'user_id' => 'required|integer|exists:users,id',
-        ]);
-
         try {
-            $team = Team::findOrFail($id);
-            $user = User::findOrFail($validated['user_id']);
-
-            $user->update(['team_id' => $team->id]);
+            $v = $request->validated();
+            $user = $this->teamService->assignSalesLeaderToTeam($id, (int) $v['user_id']);
+            $user->loadMissing('team');
 
             return response()->json([
                 'success' => true,
-                'message' => 'تم إضافة العضو إلى الفريق بنجاح',
+                'message' => 'تم تعيين قائد المبيعات للفريق بنجاح',
                 'data' => [
                     'user_id' => $user->id,
                     'user_name' => $user->name,
-                    'team_id' => $team->id,
-                    'team_name' => $team->name,
+                    'user_type' => $user->type,
+                    'team_id' => $user->team_id,
+                    'team_name' => $user->team?->name,
+                    'team_group_id' => $user->team_group_id,
                 ],
             ], 200);
         } catch (Exception $e) {
-            $statusCode = str_contains($e->getMessage(), 'No query results') ? 404 : 500;
+            $message = $e->getMessage();
+            if (str_contains($message, 'فقط المستخدمون') || str_contains($message, 'يوجد بالفعل')) {
+                $code = 422;
+            } elseif (str_contains($message, 'No query results')) {
+                $code = 404;
+            } else {
+                $code = 500;
+            }
+
             return response()->json([
                 'success' => false,
-                'message' => $e->getMessage(),
-            ], $statusCode);
+                'message' => $message,
+            ], $code);
+        }
+    }
+
+    /**
+     * GET /api/hr/teams/sales-leaders?team_id=&per_page=&search=
+     */
+    public function salesLeadersIndex(ListSalesLeadersRequest $request): JsonResponse
+    {
+        $v = $request->validated();
+        $teamId = array_key_exists('team_id', $v) && $v['team_id'] !== null ? (int) $v['team_id'] : null;
+        $perPage = (int) ($v['per_page'] ?? 15);
+        $search = $v['search'] ?? null;
+        if (is_string($search) && $search === '') {
+            $search = null;
+        }
+
+        $paginator = $this->teamService->paginateSalesLeaders($teamId, $perPage, $search);
+
+        $data = collect($paginator->items())->map(function ($user) {
+            return array_merge(
+                (new UserResource($user))->resolve(),
+                [
+                    'team_id' => $user->team_id,
+                    'team' => $user->team ? [
+                        'id' => $user->team->id,
+                        'name' => $user->team->name,
+                        'code' => $user->team->code,
+                    ] : null,
+                ]
+            );
+        })->values()->all();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'تم جلب قادة المبيعات بنجاح',
+            'data' => $data,
+            'meta' => [
+                'total' => $paginator->total(),
+                'count' => $paginator->count(),
+                'per_page' => $paginator->perPage(),
+                'current_page' => $paginator->currentPage(),
+                'last_page' => $paginator->lastPage(),
+            ],
+        ], 200);
+    }
+
+    /**
+     * DELETE /api/hr/teams/{id}/sales-leader/{userId}
+     */
+    public function removeSalesLeader(int $id, int $userId): JsonResponse
+    {
+        try {
+            $this->teamService->removeSalesLeaderFromTeam($id, $userId);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'تمت إزالة قائد المبيعات من الفريق بنجاح',
+            ], 200);
+        } catch (Exception $e) {
+            $message = $e->getMessage();
+            if (str_contains($message, 'ليس من نوع') || str_contains($message, 'ليس مرتبطاً')) {
+                $code = 422;
+            } elseif (str_contains($message, 'No query results') || str_contains($message, 'غير موجود')) {
+                $code = 404;
+            } else {
+                $code = 500;
+            }
+
+            return response()->json([
+                'success' => false,
+                'message' => $message,
+            ], $code);
+        }
+    }
+
+    /**
+     * Assign a member to a team (sales users only; same rules as project_management).
+     * POST /hr/teams/{id}/members
+     */
+    public function assignMember(AssignSalesTeamMemberRequest $request, int $id): JsonResponse
+    {
+        try {
+            $v = $request->validated();
+            $user = $this->teamService->assignSalesMemberToTeamGroup(
+                $id,
+                (int) $v['team_group_id'],
+                (int) $v['user_id']
+            );
+            $user->loadMissing('team');
+
+            return response()->json([
+                'success' => true,
+                'message' => 'تم إضافة عضو المبيعات إلى المجموعة داخل الفريق بنجاح',
+                'data' => [
+                    'user_id' => $user->id,
+                    'user_name' => $user->name,
+                    'user_type' => $user->type,
+                    'team_id' => $user->team_id,
+                    'team_name' => $user->team?->name,
+                    'team_group_id' => $user->team_group_id,
+                ],
+            ], 200);
+        } catch (Exception $e) {
+            $message = $e->getMessage();
+            if (str_contains($message, 'يمكن إضافة')) {
+                $status = 422;
+            } elseif (str_contains($message, 'No query results')) {
+                $status = 404;
+            } else {
+                $status = 500;
+            }
+
+            return response()->json([
+                'success' => false,
+                'message' => $message,
+            ], $status);
         }
     }
 

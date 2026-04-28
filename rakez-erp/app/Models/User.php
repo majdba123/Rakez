@@ -20,10 +20,12 @@ class User extends Authenticatable
         'name',
         'type',
         'is_manager',
+        'is_executive_director',
         'phone',
         'email',
         'password',
-        'team_id', // Foreign key to teams table (replaces deprecated 'team' string field)
+        'team_id', // Kept in sync with team_group.team_id when using team groups
+        'team_group_id',
         'cv_path',
         'contract_path',
         'identity_number',
@@ -64,6 +66,7 @@ class User extends Authenticatable
         'salary' => 'decimal:2',
         'commission_eligibility' => 'boolean',
         'is_manager' => 'boolean',
+        'is_executive_director' => 'boolean',
         'work_phone_approval' => 'boolean',
         'logo_usage_approval' => 'boolean',
         'is_active' => 'boolean',
@@ -79,6 +82,22 @@ class User extends Authenticatable
         return $this->belongsTo(Team::class, 'team_id');
     }
 
+    public function teamGroup()
+    {
+        return $this->belongsTo(TeamGroup::class, 'team_group_id');
+    }
+
+    public function teamGroupLeaderRecord()
+    {
+        return $this->hasOne(TeamGroupLeader::class, 'user_id');
+    }
+
+    public function assignedExecutiveDirectorLines()
+    {
+        return $this->belongsToMany(ExecutiveDirectorLine::class, 'executive_director_line_user')
+            ->withPivot('value_target', 'line_type_flag')
+            ->withTimestamps();
+    }
 
     // User notifications (private + can access public)
     public function userNotifications()
@@ -215,6 +234,38 @@ class User extends Authenticatable
     }
 
     /**
+     * Sales employee who is a team manager (type sales + is_manager), for sales manager-only APIs.
+     */
+    public function isSalesTeamManager(): bool
+    {
+        return $this->type === 'sales' && $this->is_manager === true;
+    }
+
+    /**
+     * Sales (or admin) user flagged as executive director in HR (dashboard / restricted APIs).
+     */
+    public function isSalesExecutiveDirector(): bool
+    {
+        if ($this->is_executive_director !== true) {
+            return false;
+        }
+
+        return $this->hasAnyRole(['sales', 'sales_leader', 'admin']);
+    }
+
+    /**
+     * Access to sales executive available-units API: admins (any), or sales with is_executive_director.
+     */
+    public function canAccessSalesExecutiveAvailableUnitsApi(): bool
+    {
+        if ($this->hasRole('admin')) {
+            return true;
+        }
+
+        return $this->isSalesExecutiveDirector();
+    }
+
+    /**
      * Check if user is a project management manager.
      */
     public function isProjectManagementManager(): bool
@@ -228,7 +279,7 @@ class User extends Authenticatable
     public function getEffectivePermissions(): array
     {
         $permissions = $this->getAllPermissions()->pluck('name')->toArray();
-        
+
         // Add manager-specific permissions dynamically
         if ($this->isProjectManagementManager()) {
             $managerPermissions = [
@@ -378,7 +429,7 @@ class User extends Authenticatable
     public function getWarningsCount(?int $year = null): int
     {
         $query = $this->warnings();
-        
+
         if ($year) {
             $query->whereYear('warning_date', $year);
         }

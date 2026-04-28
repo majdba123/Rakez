@@ -23,9 +23,11 @@ use App\Http\Controllers\AI\AIAssistantController;
 use App\Http\Controllers\AI\AiV2Controller;
 use App\Http\Controllers\AI\DocumentController;
 use App\Http\Controllers\Sales\SalesDashboardController;
+use App\Http\Controllers\Sales\SalesExecutiveDashboardController;
 use App\Http\Controllers\Sales\SalesProjectController;
 use App\Http\Controllers\Sales\SalesReservationController;
 use App\Http\Controllers\Sales\SalesTargetController;
+use App\Http\Controllers\Sales\ExecutiveDirectorLineController;
 use App\Http\Controllers\Sales\SalesAttendanceController;
 use App\Http\Controllers\Sales\MarketingTaskController;
 use App\Http\Controllers\Sales\SalesTeamController;
@@ -36,6 +38,8 @@ use App\Http\Controllers\Api\SalesAnalyticsController;
 use App\Http\Controllers\ExclusiveProjectController;
 use App\Http\Middleware\CheckDynamicPermission;
 use App\Http\Controllers\TeamController;
+use App\Http\Controllers\TeamGroupController;
+use App\Http\Controllers\TeamGroupLeaderController;
 use App\Http\Controllers\Marketing\MarketingDashboardController;
 use App\Http\Controllers\Marketing\MarketingProjectController;
 use App\Http\Controllers\Marketing\DeveloperMarketingPlanController;
@@ -234,6 +238,18 @@ use Illuminate\Support\Facades\File;  // أضف هذا السطر في الأع�
                 Route::get('/second-parties', [ContractInfoController::class, 'getAllSecondParties'])->middleware('permission:second_party.view');
                 Route::get('/contracts-by-email', [ContractInfoController::class, 'getContractsBySecondPartyEmail'])->middleware('permission:second_party.view');
             });
+
+
+            Route::get('order-marketing-developers', [OrderMarketingDeveloperController::class, 'index']);
+            Route::post('order-marketing-developers', [OrderMarketingDeveloperController::class, 'store']);
+            Route::get('order-marketing-developers/{id}', [OrderMarketingDeveloperController::class, 'show']);
+            Route::put('order-marketing-developers/{id}', [OrderMarketingDeveloperController::class, 'update']);
+            Route::delete('order-marketing-developers/{id}', [OrderMarketingDeveloperController::class, 'destroy']);
+
+            Route::get('team_group/list', [TeamGroupController::class, 'index']);
+            Route::get('team-group-leaders/list', [TeamGroupLeaderController::class, 'index']);
+
+
         });
 
         Route::middleware(['auth:sanctum', 'role:project_management|admin'])->group(function () {
@@ -294,8 +310,11 @@ use Illuminate\Support\Facades\File;  // أضف هذا السطر في الأع�
                             Route::get('/show/{id}', [TeamController::class, 'show']);
 
                             Route::get('sales-without-team', [TeamController::class, 'salesWithoutTeam']);
+                            Route::get('sales-leaders', [TeamController::class, 'salesLeadersIndex']);
                             Route::get('members/{teamId}', [TeamController::class, 'members'])->whereNumber('teamId');
                             Route::post('members/{teamId}/', [TeamController::class, 'assignMember'])->whereNumber('teamId');
+                            Route::post('{teamId}/sales-leader', [TeamController::class, 'assignSalesLeader'])->whereNumber('teamId');
+                            Route::delete('{teamId}/sales-leader/{userId}', [TeamController::class, 'removeSalesLeader'])->whereNumber(['teamId', 'userId']);
                             Route::delete('members/{teamId}/{userId}', [TeamController::class, 'removeMember'])->whereNumber(['teamId', 'userId']);
 
                             Route::get('/index/{contractId}', [ContractController::class, 'getTeamsForContract_HR']);
@@ -307,6 +326,21 @@ use Illuminate\Support\Facades\File;  // أضف هذا السطر في الأع�
                             Route::get('/contracts/locations/{teamId}', [TeamController::class, 'contractLocations'])->whereNumber('teamId');
 
                         });
+
+                        // Team sub-groups (name + description), each belongs to one team; same CRUD as /hr/team-groups
+                        Route::prefix('team-groups')->group(function () {
+                            Route::get('{groupId}/members', [TeamController::class, 'membersOfTeamGroup'])->whereNumber('groupId');
+                            Route::delete('{groupId}/members/{userId}', [TeamController::class, 'removeMemberFromTeamGroup'])->whereNumber(['groupId', 'userId']);
+                            Route::get('/', [TeamGroupController::class, 'index']);
+                            Route::post('/', [TeamGroupController::class, 'store']);
+                            Route::post('/{id}/leader', [TeamGroupLeaderController::class, 'assign'])->whereNumber('id');
+                            Route::delete('/{id}/leader', [TeamGroupLeaderController::class, 'remove'])->whereNumber('id');
+                            Route::get('/{id}', [TeamGroupController::class, 'show'])->whereNumber('id');
+                            Route::put('/{id}', [TeamGroupController::class, 'update'])->whereNumber('id');
+                            Route::delete('/{id}', [TeamGroupController::class, 'destroy'])->whereNumber('id');
+                        });
+
+                        Route::get('team-group-leaders', [TeamGroupLeaderController::class, 'index']);
 
                         Route::get('units/{unitId}/reservation-context', [SalesReservationController::class, 'context'])->middleware('permission:sales.reservations.create');
 
@@ -387,6 +421,38 @@ use Illuminate\Support\Facades\File;  // أضف هذا السطر في الأع�
 
             // Dashboard
             Route::get('dashboard', [SalesDashboardController::class, 'index'])->middleware('permission:sales.dashboard.view');
+
+            // Executive director: available units stock + summary by unit_type
+            Route::get('executive/available-units', [SalesExecutiveDashboardController::class, 'availableUnits'])
+                ->middleware(['sales_executive', 'permission:sales.dashboard.view']);
+
+            // ExecutiveDirectorLine list (admin or sales+manager); same resource as executive-director-lines, different access
+            Route::get('executive/targets', [ExecutiveDirectorLineController::class, 'executiveTargets']);
+            Route::post('executive-director-lines/{id}/teams', [ExecutiveDirectorLineController::class, 'syncTeams'])->whereNumber('id');
+            Route::get('team/index', [HrTeamController::class, 'index']);
+            Route::get('team/led', [SalesTeamController::class, 'myLedTeam']);
+            Route::get('team/groups', [SalesTeamController::class, 'myTeamGroups']);
+            Route::get('team/group-leaders', [SalesTeamController::class, 'myTeamGroupLeaders']);
+            Route::get('team/executive-director-lines', [ExecutiveDirectorLineController::class, 'forMyLedTeam']);
+            Route::post('team/executive-director-lines/{id}/team-groups', [ExecutiveDirectorLineController::class, 'syncTeamGroupsForMyLedTeam'])->whereNumber('id');
+            Route::get('member/executive-director-lines', [ExecutiveDirectorLineController::class, 'forSalesMember']);
+
+            // Team-group leader context
+            Route::get('team-group/led-team', [SalesTeamController::class, 'myLedTeamAsGroupLeader']);
+            Route::get('team-group/led-groups', [SalesTeamController::class, 'myLedGroups']);
+            Route::get('team-group/members', [SalesTeamController::class, 'myGroupMembers']);
+
+            Route::get('team-group/executive-director-lines', [ExecutiveDirectorLineController::class, 'forGroupLeader']);
+            Route::post('team-group/executive-director-lines/{id}/members', [ExecutiveDirectorLineController::class, 'syncMembersForGroupLeader'])->whereNumber('id');
+
+            $executiveLineMiddleware = ['sales_executive'];
+            // Standalone executive-director lines (line_type + value only; not linked to sales targets)
+            Route::get('executive-director-lines', [ExecutiveDirectorLineController::class, 'index'])->middleware($executiveLineMiddleware);
+            Route::post('executive-director-lines', [ExecutiveDirectorLineController::class, 'store'])->middleware($executiveLineMiddleware);
+            // Assign line to one or many teams: admin or sales+manager; not restricted to sales_executive
+            Route::get('executive-director-lines/{id}', [ExecutiveDirectorLineController::class, 'show'])->whereNumber('id')->middleware($executiveLineMiddleware);
+            Route::put('executive-director-lines/{id}', [ExecutiveDirectorLineController::class, 'update'])->whereNumber('id')->middleware($executiveLineMiddleware);
+            Route::delete('executive-director-lines/{id}', [ExecutiveDirectorLineController::class, 'destroy'])->whereNumber('id')->middleware($executiveLineMiddleware);
 
             // Projects
             Route::get('projects', [SalesProjectController::class, 'index'])->middleware('permission:sales.projects.view');
@@ -661,6 +727,21 @@ use Illuminate\Support\Facades\File;  // أضف هذا السطر في الأع�
                 Route::delete('/{id}', [HrUserController::class, 'destroy'])->whereNumber('id');
             });
 
+            // Sub-groups per team (CRUD) — also available under project_management/team-groups
+            Route::prefix('team-groups')->group(function () {
+                Route::get('{groupId}/members', [HrTeamController::class, 'membersOfTeamGroup'])->whereNumber('groupId');
+                Route::delete('{groupId}/members/{userId}', [HrTeamController::class, 'removeMemberFromTeamGroup'])->whereNumber(['groupId', 'userId']);
+                Route::get('/', [TeamGroupController::class, 'index']);
+                Route::post('/', [TeamGroupController::class, 'store']);
+                Route::post('/{id}/leader', [TeamGroupLeaderController::class, 'assign'])->whereNumber('id');
+                Route::delete('/{id}/leader', [TeamGroupLeaderController::class, 'remove'])->whereNumber('id');
+                Route::get('/{id}', [TeamGroupController::class, 'show'])->whereNumber('id');
+                Route::put('/{id}', [TeamGroupController::class, 'update'])->whereNumber('id');
+                Route::delete('/{id}', [TeamGroupController::class, 'destroy'])->whereNumber('id');
+            });
+
+            Route::get('team-group-leaders', [TeamGroupLeaderController::class, 'index']);
+
             Route::prefix('teams')->group(function () {
                 Route::get('/contracts/{teamId}', [TeamController::class, 'contracts'])->whereNumber('teamId');
                 Route::get('/contracts/locations/{teamId}', [TeamController::class, 'contractLocations'])->whereNumber('teamId');
@@ -669,8 +750,11 @@ use Illuminate\Support\Facades\File;  // أضف هذا السطر في الأع�
 
                 Route::get('/', [HrTeamController::class, 'index']);
                 Route::post('/', [HrTeamController::class, 'store']);
+                Route::get('sales-leaders', [HrTeamController::class, 'salesLeadersIndex']);
                 Route::get('/{id}/members', [HrTeamController::class, 'members'])->whereNumber('id');
                 Route::post('/{id}/members', [HrTeamController::class, 'assignMember'])->whereNumber('id');
+                Route::post('/{id}/sales-leader', [HrTeamController::class, 'assignSalesLeader'])->whereNumber('id');
+                Route::delete('/{id}/sales-leader/{userId}', [HrTeamController::class, 'removeSalesLeader'])->whereNumber(['id', 'userId']);
                 Route::delete('/{id}/members/{userId}', [HrTeamController::class, 'removeMember'])->whereNumber(['id', 'userId']);
                 Route::get('/{id}', [HrTeamController::class, 'show'])->whereNumber('id');
                 Route::put('/{id}', [HrTeamController::class, 'update'])->whereNumber('id');

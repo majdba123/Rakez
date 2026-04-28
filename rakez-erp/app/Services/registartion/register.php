@@ -2,6 +2,7 @@
 
 namespace App\Services\registartion;
 
+use App\Models\TeamGroup;
 use App\Models\User;
 use App\Models\AdminNotification;
 use App\Events\AdminNotificationEvent;
@@ -14,6 +15,26 @@ use Illuminate\Database\Eloquent\ModelNotFoundException;
 
 class register
 {
+    private function assertSingleSalesLeaderPerTeam(?int $teamId, ?int $exceptUserId = null): void
+    {
+        if (! $teamId) {
+            return;
+        }
+
+        $q = User::query()
+            ->where('type', 'sales_leader')
+            ->where('team_id', $teamId);
+
+        if ($exceptUserId !== null) {
+            $q->where('id', '!=', $exceptUserId);
+        }
+
+        $exists = $q->exists();
+        if ($exists) {
+            throw new \Exception('لا يمكن تعيين أكثر من قائد مبيعات واحد لنفس الفريق.');
+        }
+    }
+
     /**
      * Register a new user and create related records based on user type.
      *
@@ -36,9 +57,18 @@ class register
                 throw new \Exception('يجب أن تحتوي البيانات إما على البريد الإلكتروني أو رقم الهاتف.');
             }
 
+            // team_group_id wins: user joins a sub-group; team_id is derived from the group
+            if (! empty($data['team_group_id'])) {
+                $g = TeamGroup::query()->findOrFail((int) $data['team_group_id']);
+                $data['team_id'] = $g->team_id;
+            } elseif (array_key_exists('team', $data) && $data['team'] !== null && $data['team'] !== '') {
+                $data['team_id'] = (int) $data['team'];
+            }
+
             // Optional profile fields
             $optional = [
-                'team_id', // Use team_id (foreign key) instead of deprecated 'team' string
+                'team_id',
+                'team_group_id',
                 'identity_number',
                 'birthday',
                 'date_of_works',
@@ -47,6 +77,7 @@ class register
                 'salary',
                 'marital_status',
                 'is_manager',
+                'is_executive_director',
             ];
 
             foreach ($optional as $key) {
@@ -64,7 +95,23 @@ class register
 
             $userData['type'] = $typeNames[$data['type']];
 
+            // Rules:
+            // - sales_leader: cannot be assigned to team_group_id; and only one sales_leader per team
+            // - sales with is_manager or is_executive_director: cannot be assigned to team_group_id
+            if ($userData['type'] === 'sales_leader') {
+                $userData['team_group_id'] = null;
+                $this->assertSingleSalesLeaderPerTeam(isset($userData['team_id']) ? (int) $userData['team_id'] : null);
+            }
+            if ($userData['type'] === 'sales') {
+                $isManager = (bool) ($userData['is_manager'] ?? false);
+                $isExecutive = (bool) ($userData['is_executive_director'] ?? false);
+                if ($isManager || $isExecutive) {
+                    $userData['team_group_id'] = null;
+                }
+            }
+
             $user = User::create($userData);
+            $user->load(['team', 'teamGroup']);
 
             // Sync Spatie roles
             // If a specific role is provided, use it; otherwise fall back to type-based role
@@ -101,7 +148,7 @@ class register
 
         // Select only the columns used by the API resource to reduce payload
         $select = [
-            'id', 'name', 'email', 'phone', 'type', 'is_manager', 'team_id', 'identity_number',
+            'id', 'name', 'email', 'phone', 'type', 'is_manager', 'is_executive_director', 'team_id', 'team_group_id', 'identity_number',
              'birthday', 'date_of_works', 'contract_type',
             'iban', 'salary', 'marital_status', 'created_at', 'updated_at'
         ];
@@ -203,9 +250,30 @@ class register
             if (isset($data['email'])) $updateData['email'] = $data['email'];
             if (isset($data['phone'])) $updateData['phone'] = $data['phone'];
 
+            if (array_key_exists('team', $data)) {
+                if ($data['team'] === null || $data['team'] === '') {
+                    $data['team_id'] = null;
+                } else {
+                    $data['team_id'] = (int) $data['team'];
+                }
+            }
+
+            if (array_key_exists('team_group_id', $data)) {
+                if ($data['team_group_id'] === null || $data['team_group_id'] === '') {
+                    $data['team_id'] = null;
+                    $data['team_group_id'] = null;
+                } else {
+                    $g = TeamGroup::query()->findOrFail((int) $data['team_group_id']);
+                    $data['team_id'] = $g->team_id;
+                }
+            } elseif (array_key_exists('team_id', $data) && ! array_key_exists('team_group_id', $data)) {
+                $data['team_group_id'] = null;
+            }
+
             // Update optional profile fields
             $profileFields = [
-                'team_id', // Use team_id (foreign key) instead of deprecated 'team' string
+                'team_id',
+                'team_group_id',
                 'identity_number',
                 'birthday',
                 'date_of_works',
@@ -214,6 +282,7 @@ class register
                 'salary',
                 'marital_status',
                 'is_manager',
+                'is_executive_director',
             ];
 
             foreach ($profileFields as $pf) {
@@ -236,6 +305,25 @@ class register
                 }
 
                 $updateData['type'] = $typeNames[$data['type']];
+            }
+
+            // Enforce team_group_id rules using the *resulting* type/flags after update
+            $finalType = $updateData['type'] ?? $user->type;
+            $finalIsManager = array_key_exists('is_manager', $updateData) ? (bool) $updateData['is_manager'] : (bool) ($user->is_manager ?? false);
+            $finalIsExecutive = array_key_exists('is_executive_director', $updateData) ? (bool) $updateData['is_executive_director'] : (bool) ($user->is_executive_director ?? false);
+
+            if ($finalType === 'sales_leader') {
+                $updateData['team_group_id'] = null;
+
+                $teamIdToCheck = array_key_exists('team_id', $updateData)
+                    ? ($updateData['team_id'] !== null ? (int) $updateData['team_id'] : null)
+                    : ($user->team_id !== null ? (int) $user->team_id : null);
+
+                $this->assertSingleSalesLeaderPerTeam($teamIdToCheck, (int) $user->id);
+            }
+
+            if ($finalType === 'sales' && ($finalIsManager || $finalIsExecutive)) {
+                $updateData['team_group_id'] = null;
             }
 
             $user->update($updateData);

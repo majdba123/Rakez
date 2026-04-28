@@ -4,6 +4,8 @@ namespace App\Http\Controllers;
 
 use App\Http\Controllers\Concerns\RespondsWithCsvImportUpload;
 use App\Http\Requests\Team\AssignSalesTeamMemberRequest;
+use App\Http\Requests\Team\AssignTeamSalesLeaderRequest;
+use App\Http\Requests\Team\ListSalesLeadersRequest;
 use App\Http\Requests\Team\ImportTeamsCsv;
 use App\Http\Requests\Team\TeamContractsRequest;
 use App\Http\Requests\Team\StoreTeamRequest;
@@ -14,6 +16,7 @@ use App\Http\Resources\TeamResource;
 use App\Jobs\ProcessTeamsCsv;
 use App\Models\CsvImport;
 use App\Models\Team;
+use App\Models\TeamGroup;
 use App\Services\Contract\ContractService;
 use App\Services\Team\TeamService;
 use App\Support\TabularImportReader;
@@ -112,13 +115,20 @@ class TeamController extends Controller
 
     /**
      * GET /api/project_management/teams/members/{teamId}
+     * Query: per_page, team_group_id أو group_id (نفس المجموعة داخل الفريق)
      */
     public function members(Request $request, int $teamId): JsonResponse
     {
         try {
             $team = $this->teamService->getTeamById($teamId);
             $perPage = (int) $request->input('per_page', 15);
-            $members = $this->teamService->getTeamMembers($teamId, $perPage);
+            $teamGroupId = $request->filled('team_group_id')
+                ? (int) $request->input('team_group_id')
+                : ($request->filled('group_id') ? (int) $request->input('group_id') : null);
+            if ($teamGroupId !== null && $teamGroupId < 1) {
+                $teamGroupId = null;
+            }
+            $members = $this->teamService->getTeamMembers($teamId, $perPage, $teamGroupId);
 
             return response()->json([
                 'success' => true,
@@ -142,11 +152,65 @@ class TeamController extends Controller
                 || str_contains($message, 'No query results')
                 ? 404
                 : 500;
+            if (str_contains($message, 'المجموعة غير موجودة') || str_contains($message, 'لا تتبع')) {
+                $statusCode = 422;
+            }
 
             return response()->json([
                 'success' => false,
                 'message' => $message,
             ], $statusCode);
+        }
+    }
+
+    /**
+     * GET /api/project_management/team-groups/{groupId}/members
+     * List members in this group; team is resolved from the group (no team id in URL).
+     */
+    public function membersOfTeamGroup(Request $request, int $groupId): JsonResponse
+    {
+        $group = TeamGroup::query()->findOrFail($groupId);
+        $request->merge(['team_group_id' => $groupId]);
+
+        return $this->members($request, (int) $group->team_id);
+    }
+
+    /**
+     * DELETE /api/project_management/team-groups/{groupId}/members/{userId}
+     * Remove user from the group only; they remain on the team.
+     */
+    public function removeMemberFromTeamGroup(int $groupId, int $userId): JsonResponse
+    {
+        try {
+            $group = TeamGroup::query()->findOrFail($groupId);
+            $user = $this->teamService->removeUserFromGroupOnly((int) $group->team_id, $groupId, $userId);
+            $team = $this->teamService->getTeamById((int) $group->team_id);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'تمت إزالة العضو من المجموعة مع بقائه ضمن الفريق.',
+                'team' => [
+                    'id' => $team->id,
+                    'name' => $team->name,
+                ],
+                'data' => [
+                    'user_id' => $user->id,
+                    'user_name' => $user->name,
+                    'team_id' => $user->team_id,
+                    'team_group_id' => $user->team_group_id,
+                ],
+            ], 200);
+        } catch (Exception $e) {
+            $message = $e->getMessage();
+            $code = 500;
+            if (str_contains($message, 'الموظف غير ضمن')) {
+                $code = 422;
+            }
+
+            return response()->json([
+                'success' => false,
+                'message' => $message,
+            ], $code);
         }
     }
 
@@ -343,16 +407,22 @@ class TeamController extends Controller
     public function assignMember(AssignSalesTeamMemberRequest $request, int $teamId): JsonResponse
     {
         try {
-            $user = $this->teamService->assignSalesMemberToTeam($teamId, (int) $request->validated('user_id'));
+            $v = $request->validated();
+            $user = $this->teamService->assignSalesMemberToTeamGroup(
+                $teamId,
+                (int) $v['team_group_id'],
+                (int) $v['user_id']
+            );
 
             return response()->json([
                 'success' => true,
-                'message' => 'تم إضافة عضو المبيعات إلى الفريق بنجاح',
+                'message' => 'تم إضافة عضو المبيعات إلى المجموعة داخل الفريق بنجاح',
                 'data' => [
                     'user_id' => $user->id,
                     'user_name' => $user->name,
                     'user_type' => $user->type,
-                    'team_id' => $teamId,
+                    'team_id' => $user->team_id,
+                    'team_group_id' => $user->team_group_id,
                 ],
             ], 200);
         } catch (Exception $e) {
@@ -360,6 +430,118 @@ class TeamController extends Controller
             if (str_contains($message, 'يمكن إضافة')) {
                 $status = 422;
             } elseif (str_contains($message, 'No query results')) {
+                $status = 404;
+            } else {
+                $status = 500;
+            }
+
+            return response()->json([
+                'success' => false,
+                'message' => $message,
+            ], $status);
+        }
+    }
+
+    /**
+     * POST /api/project_management/teams/{teamId}/sales-leader
+     * At most one user with type sales_leader per team; user must be type sales_leader.
+     */
+    public function assignSalesLeader(AssignTeamSalesLeaderRequest $request, int $teamId): JsonResponse
+    {
+        try {
+            $v = $request->validated();
+            $user = $this->teamService->assignSalesLeaderToTeam($teamId, (int) $v['user_id']);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'تم تعيين قائد المبيعات للفريق بنجاح',
+                'data' => [
+                    'user_id' => $user->id,
+                    'user_name' => $user->name,
+                    'user_type' => $user->type,
+                    'team_id' => $user->team_id,
+                    'team_group_id' => $user->team_group_id,
+                ],
+            ], 200);
+        } catch (Exception $e) {
+            $message = $e->getMessage();
+            if (str_contains($message, 'فقط المستخدمون') || str_contains($message, 'يوجد بالفعل')) {
+                $status = 422;
+            } elseif (str_contains($message, 'No query results')) {
+                $status = 404;
+            } else {
+                $status = 500;
+            }
+
+            return response()->json([
+                'success' => false,
+                'message' => $message,
+            ], $status);
+        }
+    }
+
+    /**
+     * GET /api/project_management/teams/sales-leaders?team_id=&per_page=&search=
+     * List users with type sales_leader; filter by team_id (optional), search name/email/phone.
+     */
+    public function salesLeadersIndex(ListSalesLeadersRequest $request): JsonResponse
+    {
+        $v = $request->validated();
+        $teamId = array_key_exists('team_id', $v) && $v['team_id'] !== null ? (int) $v['team_id'] : null;
+        $perPage = (int) ($v['per_page'] ?? 15);
+        $search = $v['search'] ?? null;
+        if (is_string($search) && $search === '') {
+            $search = null;
+        }
+
+        $paginator = $this->teamService->paginateSalesLeaders($teamId, $perPage, $search);
+
+        $data = collect($paginator->items())->map(function ($user) {
+            return array_merge(
+                (new UserResource($user))->resolve(),
+                [
+                    'team_id' => $user->team_id,
+                    'team' => $user->team ? [
+                        'id' => $user->team->id,
+                        'name' => $user->team->name,
+                        'code' => $user->team->code,
+                    ] : null,
+                ]
+            );
+        })->values()->all();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'تم جلب قادة المبيعات بنجاح',
+            'data' => $data,
+            'meta' => [
+                'total' => $paginator->total(),
+                'count' => $paginator->count(),
+                'per_page' => $paginator->perPage(),
+                'current_page' => $paginator->currentPage(),
+                'last_page' => $paginator->lastPage(),
+            ],
+        ], 200);
+    }
+
+    /**
+     * DELETE /api/project_management/teams/{teamId}/sales-leader/{userId}
+     * Remove sales leader from the team (user must be type sales_leader on that team).
+     */
+    public function removeSalesLeader(int $teamId, int $userId): JsonResponse
+    {
+        try {
+            $this->teamService->removeSalesLeaderFromTeam($teamId, $userId);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'تمت إزالة قائد المبيعات من الفريق بنجاح',
+            ], 200);
+        } catch (Exception $e) {
+            $message = $e->getMessage();
+            if (str_contains($message, 'ليس من نوع') || str_contains($message, 'ليس مرتبطاً')) {
+                $status = 422;
+            } elseif (str_contains($message, 'No query results') || str_contains($message, 'غير موجود')) {
                 $status = 404;
             } else {
                 $status = 500;

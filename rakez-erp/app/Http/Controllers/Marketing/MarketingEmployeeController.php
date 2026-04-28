@@ -53,6 +53,7 @@ class MarketingEmployeeController extends Controller
                 'job_title' => $u->job_title,
                 'is_active' => $u->is_active,
                 'is_manager' => $u->is_manager,
+                'is_executive_director' => (bool) $u->is_executive_director,
                 'team' => $u->team ? [
                     'id' => $u->team->id,
                     'name' => $u->team->name,
@@ -90,6 +91,7 @@ class MarketingEmployeeController extends Controller
                 'department' => $user->department,
                 'is_active' => $user->is_active,
                 'is_manager' => $user->is_manager,
+                'is_executive_director' => (bool) $user->is_executive_director,
                 'date_of_works' => $user->date_of_works,
                 'team' => $user->team ? [
                     'id' => $user->team->id,

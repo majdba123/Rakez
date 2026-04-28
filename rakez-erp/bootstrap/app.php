@@ -26,6 +26,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'admin' => AdminMiddleware::class,
             'project_management' => ProjectManagementMiddleware::class,
+            'sales_executive' => \App\Http\Middleware\EnsureSalesExecutiveDirector::class,
             'sales_leader' => EnsureSalesLeader::class,
             'hr' => HrMiddleware::class,
             'editor' => EditorMiddleware::class,

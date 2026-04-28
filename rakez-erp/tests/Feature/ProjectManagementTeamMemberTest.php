@@ -78,4 +78,39 @@ class ProjectManagementTeamMemberTest extends TestCase
         $response->assertStatus(200)->assertJsonPath('success', true);
         $this->assertDatabaseHas('users', ['id' => $sales->id, 'team_id' => null]);
     }
+
+    public function test_project_management_can_assign_team_sales_leader_once(): void
+    {
+        $pm = User::factory()->create(['type' => 'project_management']);
+        $pm->assignRole('project_management');
+
+        $team = Team::factory()->create(['created_by' => $pm->id]);
+        $leader = User::factory()->create([
+            'type' => 'sales_leader',
+            'team_id' => null,
+        ]);
+        if (method_exists($leader, 'assignRole')) {
+            $leader->assignRole('sales_leader');
+        }
+
+        $r = $this->actingAs($pm)->postJson("/api/project_management/teams/{$team->id}/sales-leader", [
+            'user_id' => $leader->id,
+        ]);
+        $r->assertStatus(200)->assertJsonPath('success', true);
+        $this->assertDatabaseHas('users', [
+            'id' => $leader->id,
+            'team_id' => $team->id,
+            'team_group_id' => null,
+        ]);
+
+        $other = User::factory()->create(['type' => 'sales_leader', 'team_id' => null]);
+        if (method_exists($other, 'assignRole')) {
+            $other->assignRole('sales_leader');
+        }
+
+        $r2 = $this->actingAs($pm)->postJson("/api/project_management/teams/{$team->id}/sales-leader", [
+            'user_id' => $other->id,
+        ]);
+        $r2->assertStatus(422)->assertJsonPath('success', false);
+    }
 }

@@ -3,7 +3,9 @@
 namespace App\Services\Team;
 
 use App\Models\Team;
+use App\Models\TeamGroup;
 use App\Models\User;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;
 use Exception;
@@ -88,20 +90,33 @@ class TeamService
     }
 
     /**
-     * Users assigned to this team (users.team_id). Team existence should be validated by caller.
+     * Users assigned to this team (users.team_id). Optionally filter to one team sub-group
+     * (users.team_group_id) — group must belong to this team.
      */
-    public function getTeamMembers(int $teamId, int $perPage = 15): LengthAwarePaginator
+    public function getTeamMembers(int $teamId, int $perPage = 15, ?int $teamGroupId = null): LengthAwarePaginator
     {
         $perPage = (int) min(100, max(1, $perPage));
 
-        return User::query()
+        $query = User::query()
             ->where('team_id', $teamId)
-            ->orderBy('name')
-            ->paginate($perPage);
+            ->orderBy('name');
+
+        if ($teamGroupId !== null) {
+            $group = TeamGroup::query()
+                ->where('id', $teamGroupId)
+                ->where('team_id', $teamId)
+                ->first();
+            if (! $group) {
+                throw new Exception('المجموعة غير موجودة أو لا تتبع هذا الفريق.');
+            }
+            $query->where('team_group_id', $teamGroupId);
+        }
+
+        return $query->paginate($perPage);
     }
 
     /**
-     * Sales users not assigned to any team (team_id IS NULL). Same pool allowed by assignSalesMemberToTeam.
+     * Sales users not assigned to any team (team_id IS NULL). Same pool allowed by assignSalesMemberToTeamGroup.
      */
     public function getSalesUsersWithoutTeam(int $perPage = 15, ?string $search = null): LengthAwarePaginator
     {
@@ -168,24 +183,31 @@ class TeamService
     }
 
     /**
-     * Assign a user to a team (project management): only users with type "sales" (مبيعات).
+     * Assign a sales user to a team **group** under the given team; syncs users.team_id from the group.
      */
-    public function assignSalesMemberToTeam(int $teamId, int $userId): User
+    public function assignSalesMemberToTeamGroup(int $teamId, int $teamGroupId, int $userId): User
     {
         DB::beginTransaction();
         try {
             Team::findOrFail($teamId);
+            $group = TeamGroup::query()
+                ->where('id', $teamGroupId)
+                ->where('team_id', $teamId)
+                ->firstOrFail();
             $user = User::findOrFail($userId);
 
             if ($user->type !== 'sales') {
                 throw new Exception('يمكن إضافة موظفي المبيعات فقط (نوع المستخدم: sales).');
             }
 
-            $user->update(['team_id' => $teamId]);
+            $user->update([
+                'team_group_id' => $group->id,
+                'team_id' => $group->team_id,
+            ]);
 
             DB::commit();
 
-            return $user->fresh();
+            return $user->fresh(['team', 'teamGroup']);
         } catch (Exception $e) {
             DB::rollBack();
             if (str_contains($e->getMessage(), 'يمكن إضافة')) {
@@ -196,7 +218,39 @@ class TeamService
     }
 
     /**
-     * Remove a user from a team if they belong to that team.
+     * Remove user from a team group only; keeps users.team_id (still in the team).
+     */
+    public function removeUserFromGroupOnly(int $teamId, int $teamGroupId, int $userId): User
+    {
+        DB::beginTransaction();
+        try {
+            TeamGroup::query()
+                ->where('id', $teamGroupId)
+                ->where('team_id', $teamId)
+                ->firstOrFail();
+
+            $user = User::query()
+                ->where('id', $userId)
+                ->where('team_id', $teamId)
+                ->where('team_group_id', $teamGroupId)
+                ->firstOrFail();
+
+            $user->update(['team_group_id' => null]);
+
+            DB::commit();
+
+            return $user->fresh(['team', 'teamGroup']);
+        } catch (ModelNotFoundException $e) {
+            DB::rollBack();
+            throw new Exception('الموظف غير ضمن هذه المجموعة أو المجموعة لا تتبع الفريق المحدد.');
+        } catch (Exception $e) {
+            DB::rollBack();
+            throw new Exception('فشل إزالة العضو من المجموعة: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Remove a user from a team (clears both team and team group assignment).
      */
     public function removeMemberFromTeam(int $teamId, int $userId): void
     {
@@ -204,13 +258,153 @@ class TeamService
         try {
             Team::findOrFail($teamId);
             $user = User::query()->where('id', $userId)->where('team_id', $teamId)->firstOrFail();
-            $user->update(['team_id' => null]);
+            $user->update([
+                'team_id' => null,
+                'team_group_id' => null,
+            ]);
 
             DB::commit();
         } catch (Exception $e) {
             DB::rollBack();
             throw new Exception('Failed to remove team member: ' . $e->getMessage());
         }
+    }
+
+    /**
+     * Assign the team's single sales leader (user.type must be sales_leader).
+     * Fails if another user with type sales_leader is already on this team (unless re-assigning the same user).
+     * Clears team_group_id so the leader is at team level; syncs Spatie role from type.
+     */
+    public function assignSalesLeaderToTeam(int $teamId, int $userId): User
+    {
+        DB::beginTransaction();
+        try {
+            Team::findOrFail($teamId);
+            $user = User::query()->findOrFail($userId);
+
+            if ($user->type !== 'sales_leader') {
+                throw new Exception('فقط المستخدمون من نوع sales_leader يمكن تعيينهم كقائد مبيعات للفريق.');
+            }
+
+            $otherLeader = User::query()
+                ->where('team_id', $teamId)
+                ->where('type', 'sales_leader')
+                ->where('id', '!=', $user->id)
+                ->first();
+
+            if ($otherLeader !== null) {
+                throw new Exception(
+                    'يوجد بالفعل قائد مبيعات للفريق (المستخدم رقم '.$otherLeader->id.'). أزل المستخدم من الفريق أولاً ثم عيّن القائد الجديد.'
+                );
+            }
+
+            $user->update([
+                'team_id' => $teamId,
+                'team_group_id' => null,
+            ]);
+            $user->syncRolesFromType();
+
+            DB::commit();
+
+            return $user->fresh(['team', 'teamGroup']);
+        } catch (Exception $e) {
+            DB::rollBack();
+            if (str_contains($e->getMessage(), 'فقط المستخدمون')
+                || str_contains($e->getMessage(), 'يوجد بالفعل')
+            ) {
+                throw $e;
+            }
+            throw new Exception('فشل تعيين قائد المبيعات: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Remove a sales leader from a team (clears team_id and team_group_id). User must be type sales_leader on that team.
+     */
+    public function removeSalesLeaderFromTeam(int $teamId, int $userId): User
+    {
+        DB::beginTransaction();
+        try {
+            Team::findOrFail($teamId);
+            $user = User::query()
+                ->where('id', $userId)
+                ->where('team_id', $teamId)
+                ->firstOrFail();
+
+            if ($user->type !== 'sales_leader') {
+                throw new Exception('المستخدم ليس من نوع sales_leader أو ليس على هذا الفريق كقائد مبيعات.');
+            }
+
+            $user->update([
+                'team_id' => null,
+                'team_group_id' => null,
+            ]);
+
+            DB::commit();
+
+            return $user->fresh();
+        } catch (ModelNotFoundException $e) {
+            DB::rollBack();
+            throw new Exception('المستخدم غير موجود أو ليس مرتبطاً بهذا الفريق.');
+        } catch (Exception $e) {
+            DB::rollBack();
+            if (str_contains($e->getMessage(), 'ليس من نوع sales_leader')) {
+                throw $e;
+            }
+            throw new Exception('فشل إزالة قائد المبيعات: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Paginate users with type sales_leader; optional filter by team_id and name/email/phone search.
+     *
+     * @return LengthAwarePaginator<int, User>
+     */
+    public function paginateSalesLeaders(?int $teamId, int $perPage, ?string $search = null): LengthAwarePaginator
+    {
+        $perPage = (int) min(100, max(1, $perPage));
+
+        $query = User::query()
+            ->where('type', 'sales_leader')
+            ->with(['team']);
+
+        if ($teamId !== null) {
+            $query->where('team_id', $teamId);
+        }
+
+        if ($search !== null && $search !== '') {
+            $term = '%' . addcslashes($search, '%_\\') . '%';
+            $query->where(function ($q) use ($term) {
+                $q->where('name', 'like', $term)
+                    ->orWhere('email', 'like', $term)
+                    ->orWhere('phone', 'like', $term);
+            });
+        }
+
+        return $query->orderBy('name')
+            ->orderBy('id')
+            ->paginate($perPage);
+    }
+
+    /**
+     * Set team + group from a team_group id, or clear both when null.
+     */
+    public function setUserTeamGroup(User $user, ?int $teamGroupId): void
+    {
+        if ($teamGroupId === null) {
+            $user->update([
+                'team_group_id' => null,
+                'team_id' => null,
+            ]);
+
+            return;
+        }
+
+        $group = TeamGroup::query()->findOrFail($teamGroupId);
+        $user->update([
+            'team_group_id' => $group->id,
+            'team_id' => $group->team_id,
+        ]);
     }
 
     /**

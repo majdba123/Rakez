@@ -5,6 +5,7 @@ namespace App\Http\Controllers\HR;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Services\registartion\register as RegisterService;
+use App\Services\Team\TeamService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -16,9 +17,12 @@ class HrUserController extends Controller
 {
     protected RegisterService $registerService;
 
-    public function __construct(RegisterService $registerService)
+    protected TeamService $teamService;
+
+    public function __construct(RegisterService $registerService, TeamService $teamService)
     {
         $this->registerService = $registerService;
+        $this->teamService = $teamService;
     }
 
     /**
@@ -45,6 +49,13 @@ class HrUserController extends Controller
 
             if ($request->has('department')) {
                 $query->where('department', $request->input('department'));
+            }
+
+            if ($request->has('is_executive_director')) {
+                $query->where(
+                    'is_executive_director',
+                    filter_var($request->input('is_executive_director'), FILTER_VALIDATE_BOOLEAN)
+                );
             }
 
             if ($request->has('search')) {
@@ -119,6 +130,7 @@ class HrUserController extends Controller
                     'date_of_works' => $user->date_of_works,
                     'work_type' => $user->work_type,
                     'is_manager' => $user->is_manager,
+                    'is_executive_director' => (bool) $user->is_executive_director,
                     'is_active' => $user->is_active,
 
                     // Contact & Banking
@@ -178,6 +190,7 @@ class HrUserController extends Controller
             'type' => ['required', 'integer', Rule::in(config('user_types.valid_ids', range(1, 13)))],
             'is_manager' => 'nullable|boolean',
             'team_id' => 'nullable|integer|exists:teams,id',
+            'team_group_id' => 'nullable|integer|exists:team_groups,id',
             'identity_number' => 'nullable|string|max:20',
             'birthday' => 'nullable|date',
             'nationality' => 'nullable|string|max:100',
@@ -191,6 +204,7 @@ class HrUserController extends Controller
             'iban' => 'nullable|string|max:50',
             'work_phone_approval' => 'nullable|boolean',
             'logo_usage_approval' => 'nullable|boolean',
+            'is_executive_director' => 'nullable|boolean',
         ]);
 
         try {
@@ -213,6 +227,8 @@ class HrUserController extends Controller
                 $user->update($updateData);
             }
 
+            $user->refresh();
+
             return response()->json([
                 'success' => true,
                 'message' => 'تم إنشاء الموظف بنجاح',
@@ -221,6 +237,10 @@ class HrUserController extends Controller
                     'name' => $user->name,
                     'email' => $user->email,
                     'type' => $user->type,
+                    'is_manager' => (bool) $user->is_manager,
+                    'is_executive_director' => (bool) $user->is_executive_director,
+                    'team_id' => $user->team_id,
+                    'team_group_id' => $user->team_group_id,
                 ],
             ], 201);
         } catch (Exception $e) {
@@ -244,6 +264,7 @@ class HrUserController extends Controller
             'email' => ['sometimes', 'email', Rule::unique('users', 'email')->ignore($id)],
             'phone' => 'sometimes|string|max:20',
             'team_id' => 'nullable|integer|exists:teams,id',
+            'team_group_id' => 'nullable|integer|exists:team_groups,id',
             'identity_number' => 'nullable|string|max:20',
             'birthday' => 'nullable|date',
             'nationality' => 'nullable|string|max:100',
@@ -259,10 +280,27 @@ class HrUserController extends Controller
             'logo_usage_approval' => 'nullable|boolean',
             'contract_end_date' => 'nullable|date',
             'is_manager' => 'nullable|boolean',
+            'is_executive_director' => 'nullable|boolean',
         ]);
 
         try {
-            $user->update($validated);
+            $payload = $validated;
+            if (array_key_exists('team_group_id', $payload)) {
+                $gid = $payload['team_group_id'] !== null && $payload['team_group_id'] !== '' ? (int) $payload['team_group_id'] : null;
+                unset($payload['team_id'], $payload['team_group_id']);
+                $this->teamService->setUserTeamGroup($user, $gid);
+            } elseif (array_key_exists('team_id', $payload)) {
+                if ($payload['team_id'] === null) {
+                    $this->teamService->setUserTeamGroup($user, null);
+                } else {
+                    $user->update(['team_id' => $payload['team_id'], 'team_group_id' => null]);
+                }
+                unset($payload['team_id']);
+            }
+            if (!empty($payload)) {
+                $user->update($payload);
+            }
+            $user->refresh();
 
             return response()->json([
                 'success' => true,
@@ -271,6 +309,10 @@ class HrUserController extends Controller
                     'id' => $user->id,
                     'name' => $user->name,
                     'email' => $user->email,
+                    'is_manager' => (bool) $user->is_manager,
+                    'is_executive_director' => (bool) $user->is_executive_director,
+                    'team_id' => $user->team_id,
+                    'team_group_id' => $user->team_group_id,
                 ],
             ], 200);
         } catch (Exception $e) {

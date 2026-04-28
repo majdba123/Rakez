@@ -110,6 +110,7 @@ class ManagerEmployeeController extends Controller
                     'date_of_works' => $user->date_of_works,
                     'work_type' => $user->work_type,
                     'is_manager' => $user->is_manager,
+                    'is_executive_director' => (bool) $user->is_executive_director,
                     'is_active' => $user->is_active,
                     'email' => $user->email,
                     'iban' => $user->iban,

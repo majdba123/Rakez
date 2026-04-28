@@ -49,13 +49,13 @@ class OrderMarketingDeveloperService
         return $this->isAdminOrCreditDepartmentManager($user);
     }
 
-    protected function isAdminOrCreditDepartmentManager(User $user): bool
+    protected function isAdminOrCreditDepartmentManager(User $user)
     {
         if ($user->hasRole('admin') || $user->isAdmin()) {
             return true;
         }
 
-        return $user->type === 'credit' && $user->isManager();
+     //   return  $user->isManager();
     }
 
     /**
