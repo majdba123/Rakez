@@ -19,6 +19,62 @@ use Illuminate\Http\Request;
 class ExecutiveDirectorLineController extends Controller
 {
     /**
+     * List executive lines assigned to the current sales member (pivot executive_director_line_user).
+     * GET /api/sales/member/executive-director-lines?per_page=&status=&line_type=
+     */
+    public function forSalesMember(Request $request): JsonResponse
+    {
+        $user = $request->user();
+        if (! $user || $user->type !== 'sales' || $user->is_manager) {
+            return response()->json([
+                'success' => false,
+                'message' => 'هذه الخاصية متاحة لموظف المبيعات فقط.',
+            ], 403);
+        }
+
+        $perPage = min((int) $request->input('per_page', 20), 100);
+
+        $query = ExecutiveDirectorLine::query()
+            ->whereHas('memberUsers', function ($q) use ($user) {
+                $q->where('users.id', (int) $user->id);
+            })
+            ->with([
+                'teams',
+                'teamGroups',
+                'memberUsers' => function ($q) use ($user) {
+                    $q->where('users.id', (int) $user->id);
+                },
+            ])
+            ->orderByDesc('id');
+
+        if ($request->filled('status')) {
+            $query->where('status', $request->input('status'));
+        }
+        if ($request->filled('line_type')) {
+            $query->where('line_type', 'like', '%' . addcslashes((string) $request->input('line_type'), '%_\\') . '%');
+        }
+
+        $rows = $query->paginate($perPage);
+
+        $data = collect($rows->items())
+            ->map(fn ($row) => (new ExecutiveDirectorLineResource($row))->toArray($request))
+            ->values()
+            ->all();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'تم جلب سطور المدير التنفيذي المعيّنة لك.',
+            'data' => $data,
+            'meta' => [
+                'current_page' => $rows->currentPage(),
+                'last_page' => $rows->lastPage(),
+                'per_page' => $rows->perPage(),
+                'total' => $rows->total(),
+            ],
+        ], 200);
+    }
+
+    /**
      * Executive director lines linked to the team the current user leads (pivot executive_director_line_team).
      * GET /api/sales/team/executive-director-lines?per_page=&status=&line_type=
      */
