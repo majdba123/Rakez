@@ -150,18 +150,6 @@ class ExecutiveDirectorLineController extends Controller
             ->select('users.id')
             ->selectRaw('COUNT(executive_director_line_user.id) as assigned_lines');
 
-        if ($hasProgressFields) {
-            $rankingQuery
-                ->selectRaw("SUM(CASE WHEN executive_director_line_user.member_status = 'complete' THEN 1 ELSE 0 END) as completed_lines")
-                ->selectRaw('COALESCE(SUM(executive_director_line_user.achieved_value), 0) as achieved_total')
-                ->orderByDesc('completed_lines')
-                ->orderByDesc('achieved_total');
-        } else {
-            $rankingQuery
-                ->selectRaw('0 as completed_lines')
-                ->selectRaw('0 as achieved_total');
-        }
-
         $rankingRows = $rankingQuery
             ->orderByDesc('assigned_lines')
             ->orderBy('users.id')
