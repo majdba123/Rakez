@@ -34,6 +34,7 @@ use App\Http\Controllers\Sales\SalesTeamController;
 use App\Http\Controllers\Sales\WaitingListController;
 use App\Http\Controllers\Sales\SalesInsightsController;
 use App\Http\Controllers\Sales\SalesUnitSearchController;
+use App\Http\Controllers\Sales\SalesUnitSearchAlertController;
 use App\Http\Controllers\Api\SalesAnalyticsController;
 use App\Http\Controllers\ExclusiveProjectController;
 use App\Http\Middleware\CheckDynamicPermission;
@@ -468,6 +469,11 @@ use Illuminate\Support\Facades\File;  // أضف هذا السطر في الأع�
             // Unit Search (cross-project)
             Route::get('units/search', [SalesUnitSearchController::class, 'search'])->middleware('permission:sales.projects.view');
             Route::get('units/filters', [SalesUnitSearchController::class, 'filters'])->middleware('permission:sales.projects.view');
+            Route::get('units/search-alerts', [SalesUnitSearchAlertController::class, 'index'])->middleware('permission:sales.search_alerts.view');
+            Route::post('units/search-alerts', [SalesUnitSearchAlertController::class, 'store'])->middleware('permission:sales.search_alerts.view');
+            Route::get('units/search-alerts/{alert}', [SalesUnitSearchAlertController::class, 'show'])->middleware('permission:sales.search_alerts.view');
+            Route::patch('units/search-alerts/{alert}', [SalesUnitSearchAlertController::class, 'update'])->middleware('permission:sales.search_alerts.view');
+            Route::delete('units/search-alerts/{alert}', [SalesUnitSearchAlertController::class, 'destroy'])->middleware('permission:sales.search_alerts.view');
 
             // Reservation context
             Route::get('units/{unitId}/reservation-context', [SalesReservationController::class, 'context'])->middleware('permission:sales.reservations.create');

@@ -350,6 +350,11 @@ class User extends Authenticatable
         return $this->hasMany(\App\Models\SalesWaitingList::class, 'sales_staff_id');
     }
 
+    public function unitSearchAlerts()
+    {
+        return $this->hasMany(\App\Models\SalesUnitSearchAlert::class, 'sales_staff_id');
+    }
+
     /**
      * Get warnings issued to this employee.
      */

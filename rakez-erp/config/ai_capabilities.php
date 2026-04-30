@@ -13,6 +13,7 @@ $salesBasePermissions = [
     'sales.reservations.confirm',
     'sales.reservations.cancel',
     'sales.waiting_list.create',
+    'sales.search_alerts.view',
     'sales.goals.view',
     'sales.schedule.view',
     'sales.targets.view',
@@ -29,6 +30,7 @@ $salesBasePermissions = [
 
 $salesLeaderExtraPermissions = [
     'sales.waiting_list.convert',
+    'sales.search_alerts.manage',
     'sales.goals.create',
     'sales.team.manage',
     'sales.attendance.manage',
@@ -89,6 +91,8 @@ return [
         'sales.reservations.cancel' => 'Cancel reservations.',
         'sales.waiting_list.create' => 'Create waiting list booking.',
         'sales.waiting_list.convert' => 'Convert waiting to confirmed (Leader only).',
+        'sales.search_alerts.view' => 'View and manage own unit search alerts.',
+        'sales.search_alerts.manage' => 'Manage team or all sales unit search alerts.',
         'sales.goals.view' => 'View assigned goals.',
         'sales.goals.create' => 'Create goals for team (Leader only).',
         'sales.schedule.view' => 'View work schedule.',

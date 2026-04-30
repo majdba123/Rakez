@@ -283,15 +283,39 @@ class SalesReservationService
                 ->exists();
 
             // If no other active reservations, mark unit as available
+            $unitReturnedToAvailable = false;
             if (!$otherActiveReservations) {
                 $reservation->contractUnit->update(['status' => 'available']);
+                $unitReturnedToAvailable = true;
             }
 
             DB::commit();
+
+            if ($unitReturnedToAvailable) {
+                $this->dispatchUnitSearchAlertMatchingSafely((int) $reservation->contract_unit_id, (int) $reservation->id);
+            }
+
             return $reservation->fresh();
         } catch (Exception $e) {
             DB::rollBack();
             throw $e;
+        }
+    }
+
+    private function dispatchUnitSearchAlertMatchingSafely(int $contractUnitId, int $reservationId): void
+    {
+        try {
+            app(DispatchUnitSearchAlertMatching::class)->dispatchManySafely([$contractUnitId], [
+                'source' => 'sales_reservation_cancellation',
+                'reservation_id' => $reservationId,
+            ]);
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::warning('Unit search alert matching dispatch helper failed', [
+                'source' => 'sales_reservation_cancellation',
+                'reservation_id' => $reservationId,
+                'contract_unit_id' => $contractUnitId,
+                'error' => $e->getMessage(),
+            ]);
         }
     }
 

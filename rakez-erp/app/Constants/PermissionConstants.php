@@ -60,6 +60,8 @@ class PermissionConstants
     const SALES_RESERVATIONS_CANCEL = 'sales.reservations.cancel';
     const SALES_WAITING_LIST_CREATE = 'sales.waiting_list.create';
     const SALES_WAITING_LIST_CONVERT = 'sales.waiting_list.convert';
+    const SALES_SEARCH_ALERTS_VIEW = 'sales.search_alerts.view';
+    const SALES_SEARCH_ALERTS_MANAGE = 'sales.search_alerts.manage';
     const SALES_GOALS_VIEW = 'sales.goals.view';
     const SALES_GOALS_CREATE = 'sales.goals.create';
     const SALES_SCHEDULE_VIEW = 'sales.schedule.view';

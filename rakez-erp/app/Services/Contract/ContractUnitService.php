@@ -4,22 +4,24 @@ namespace App\Services\Contract;
 
 use App\Models\Contract;
 use App\Models\ContractUnit;
+use App\Services\Sales\DispatchUnitSearchAlertMatching;
+use Exception;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
-use Exception;
+use Illuminate\Support\Facades\Log;
+use Throwable;
 
 class ContractUnitService
 {
-
     public function uploadCsvByContractId(int $contractId, UploadedFile $file): array
     {
         DB::beginTransaction();
         try {
             $contract = Contract::with(['secondPartyData', 'info'])->findOrFail($contractId);
 
-            if (!$contract->info) {
+            if (! $contract->info) {
                 throw new Exception('يجب أن يكون العقد لديه معلومات قبل إضافة الوحدات');
             }
 
@@ -35,15 +37,17 @@ class ContractUnitService
                 ]);
             }
 
-            $unitsCreated = $this->processCsvFile($file, $contractId);
+            $createdUnitIds = $this->processCsvFile($file, $contractId);
 
             DB::commit();
+
+            $this->dispatchSearchAlertMatching($createdUnitIds);
 
             return [
                 'message' => 'تم رفع ومعالجة الملف بنجاح',
                 'status' => 'completed',
                 'contract_id' => $contractId,
-                'units_created' => $unitsCreated,
+                'units_created' => count($createdUnitIds),
             ];
         } catch (Exception $e) {
             DB::rollBack();
@@ -54,7 +58,7 @@ class ContractUnitService
     /**
      * Process CSV file directly (no queue)
      */
-    private function processCsvFile(UploadedFile $file, int $contractId): int
+    private function processCsvFile(UploadedFile $file, int $contractId): array
     {
         $handle = fopen($file->getRealPath(), 'r');
 
@@ -102,7 +106,7 @@ class ContractUnitService
             }
         }
 
-        $unitsCreated = 0;
+        $createdUnitIds = [];
 
         while (($row = fgetcsv($handle)) !== false) {
             if (empty(array_filter($row))) {
@@ -143,13 +147,12 @@ class ContractUnitService
                 unset($unitData['description']);
             }
 
-            ContractUnit::create($unitData);
-            $unitsCreated++;
+            $createdUnitIds[] = ContractUnit::create($unitData)->id;
         }
 
         fclose($handle);
 
-        return $unitsCreated;
+        return $createdUnitIds;
     }
 
     public function getUnitsByContractId(int $contractId, int $perPage = 15): LengthAwarePaginator
@@ -187,7 +190,7 @@ class ContractUnitService
         try {
             $contract = Contract::with(['secondPartyData', 'info'])->findOrFail($contractId);
 
-            if (!$contract->info) {
+            if (! $contract->info) {
                 throw new Exception('يجب أن يكون العقد لديه معلومات قبل إضافة الوحدات');
             }
 
@@ -195,13 +198,15 @@ class ContractUnitService
 
             $data['contract_id'] = $contractId;
 
-            if (!isset($data['status'])) {
+            if (! isset($data['status'])) {
                 $data['status'] = 'pending';
             }
 
             $unit = ContractUnit::create($data);
 
             DB::commit();
+
+            $this->dispatchSearchAlertMatching([$unit->id]);
 
             return $unit;
         } catch (Exception $e) {
@@ -241,6 +246,8 @@ class ContractUnitService
 
             DB::commit();
 
+            $this->dispatchSearchAlertMatching([$unit->id]);
+
             return $unit->fresh();
         } catch (Exception $e) {
             DB::rollBack();
@@ -264,6 +271,21 @@ class ContractUnitService
         } catch (Exception $e) {
             DB::rollBack();
             throw $e;
+        }
+    }
+
+    private function dispatchSearchAlertMatching(array $unitIds): void
+    {
+        try {
+            app(DispatchUnitSearchAlertMatching::class)->dispatchManySafely($unitIds, [
+                'source' => 'contract_unit_service',
+            ]);
+        } catch (Throwable $e) {
+            Log::warning('Unit search alert matching dispatch helper failed', [
+                'source' => 'contract_unit_service',
+                'unit_count' => count(array_unique(array_filter($unitIds))),
+                'error' => $e->getMessage(),
+            ]);
         }
     }
 }

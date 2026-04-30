@@ -45,6 +45,8 @@ class PermissionConstants
     const SALES_RESERVATIONS_VIEW = 'sales.reservations.view';
     const SALES_RESERVATIONS_CONFIRM = 'sales.reservations.confirm';
     const SALES_RESERVATIONS_CANCEL = 'sales.reservations.cancel';
+    const SALES_SEARCH_ALERTS_VIEW = 'sales.search_alerts.view';
+    const SALES_SEARCH_ALERTS_MANAGE = 'sales.search_alerts.manage';
     const SALES_TARGETS_VIEW = 'sales.targets.view';
     const SALES_TARGETS_UPDATE = 'sales.targets.update';
     const SALES_TEAM_MANAGE = 'sales.team.manage';

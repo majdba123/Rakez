@@ -2,7 +2,6 @@
 
 namespace App\Services\Sales;
 
-use App\Models\ContractUnit;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Pagination\LengthAwarePaginator;
@@ -10,30 +9,24 @@ use Illuminate\Support\Facades\DB;
 
 class SalesUnitSearchService
 {
-    protected function isSalesOrLeader(User $user): bool
-    {
-        return $user->hasAnyRole(['sales', 'sales_leader']) || $user->type === 'sales';
-    }
+    public function __construct(
+        private UnitSearchQueryBuilder $searchQueryBuilder
+    ) {}
 
     public function search(array $filters, User $user): LengthAwarePaginator
     {
-        $query = ContractUnit::query()
-            ->join('contracts', 'contract_units.contract_id', '=', 'contracts.id')
-            ->whereNull('contracts.deleted_at')
-            ->select('contract_units.*');
+        $query = $this->searchQueryBuilder->baseQuery();
 
-        $this->applyAuthorizationScope($query, $user);
-        $this->applyFilters($query, $filters);
-        $this->applySorting($query, $filters);
+        $this->searchQueryBuilder->applyAuthorizationScope($query, $user);
+        $this->searchQueryBuilder->applyCriteria($query, $filters);
+        $this->searchQueryBuilder->applySorting($query, $filters);
 
         $perPage = (int) ($filters['per_page'] ?? 20);
         $perPage = min(max($perPage, 1), 100);
 
         $units = $query->paginate($perPage);
 
-        $units->load(['secondPartyData.contract' => function ($q) {
-            $q->with(['city', 'district']);
-        }]);
+        $units->load(['contract.city', 'contract.district']);
 
         return $units;
     }
@@ -89,7 +82,7 @@ class SalesUnitSearchService
             ->selectRaw('MIN(contract_units.bedrooms) as min_val, MAX(contract_units.bedrooms) as max_val')
             ->first();
 
-        $areaExpr = 'COALESCE(contract_units.total_area_m2, CAST(contract_units.area AS DECIMAL(12,2)))';
+        $areaExpr = $this->searchQueryBuilder->areaExpression();
         $areaRange = (clone $query)
             ->whereRaw("$areaExpr IS NOT NULL AND $areaExpr > 0")
             ->selectRaw("MIN($areaExpr) as min_val, MAX($areaExpr) as max_val")
@@ -110,105 +103,33 @@ class SalesUnitSearchService
             ->all();
 
         return [
-            'cities'         => $cities,
-            'districts'      => $districts,
-            'unit_types'     => $unitTypes,
+            'cities' => $cities,
+            'districts' => $districts,
+            'unit_types' => $unitTypes,
             'bedrooms_range' => [
                 'min' => $bedroomsRange?->min_val ? (int) $bedroomsRange->min_val : null,
                 'max' => $bedroomsRange?->max_val ? (int) $bedroomsRange->max_val : null,
             ],
-            'area_range'     => [
+            'area_range' => [
                 'min' => $areaRange?->min_val ? round((float) $areaRange->min_val, 2) : null,
                 'max' => $areaRange?->max_val ? round((float) $areaRange->max_val, 2) : null,
             ],
-            'price_range'    => [
+            'price_range' => [
                 'min' => $priceRange?->min_val ? (float) $priceRange->min_val : null,
                 'max' => $priceRange?->max_val ? (float) $priceRange->max_val : null,
             ],
-            'statuses'       => $statuses,
+            'statuses' => $statuses,
         ];
     }
 
     protected function applyFilters(Builder $query, array $filters): void
     {
-        if (!empty($filters['city_id'])) {
-            $query->where('contracts.city_id', (int) $filters['city_id']);
-        } elseif (!empty($filters['city'])) {
-            $ids = DB::table('cities')->where('name', 'like', '%' . $filters['city'] . '%')->pluck('id')->all();
-            $query->whereIn('contracts.city_id', $ids ?: [0]);
-        }
-
-        if (!empty($filters['district_id'])) {
-            $query->where('contracts.district_id', (int) $filters['district_id']);
-        } elseif (!empty($filters['district'])) {
-            $ids = DB::table('districts')->where('name', 'like', '%' . $filters['district'] . '%')->pluck('id')->all();
-            $query->whereIn('contracts.district_id', $ids ?: [0]);
-        }
-
-        // Intentionally ignore project_id to allow searching units across all completed contracts.
-        // (The endpoint already applies authorization scope + optional q/city/district filters.)
-
-        if (!empty($filters['status'])) {
-            $query->where('contract_units.status', $filters['status']);
-        }
-
-        if (!empty($filters['unit_type'])) {
-            $query->where('contract_units.unit_type', $filters['unit_type']);
-        }
-
-        if (isset($filters['floor']) && $filters['floor'] !== '' && $filters['floor'] !== null) {
-            $query->where('contract_units.floor', $filters['floor']);
-        }
-
-        if (isset($filters['min_price']) && $filters['min_price'] !== null) {
-            $query->where('contract_units.price', '>=', $filters['min_price']);
-        }
-
-        if (isset($filters['max_price']) && $filters['max_price'] !== null) {
-            $query->where('contract_units.price', '<=', $filters['max_price']);
-        }
-
-        if (isset($filters['min_bedrooms']) && $filters['min_bedrooms'] !== null) {
-            $query->where('contract_units.bedrooms', '>=', $filters['min_bedrooms']);
-        }
-
-        if (isset($filters['max_bedrooms']) && $filters['max_bedrooms'] !== null) {
-            $query->where('contract_units.bedrooms', '<=', $filters['max_bedrooms']);
-        }
-
-        $areaExpr = 'COALESCE(contract_units.total_area_m2, CAST(contract_units.area AS DECIMAL(12,2)))';
-
-        if (isset($filters['min_area']) && $filters['min_area'] !== null) {
-            $query->whereRaw("$areaExpr >= ?", [$filters['min_area']]);
-        }
-
-        if (isset($filters['max_area']) && $filters['max_area'] !== null) {
-            $query->whereRaw("$areaExpr <= ?", [$filters['max_area']]);
-        }
-
-        if (!empty($filters['q'])) {
-            $search = $filters['q'];
-            $query->where(function (Builder $q) use ($search) {
-                $q->where('contract_units.unit_number', 'LIKE', '%' . $search . '%')
-                  ->orWhere('contracts.project_name', 'LIKE', '%' . $search . '%');
-            });
-        }
+        $this->searchQueryBuilder->applyCriteria($query, $filters);
     }
 
     protected function applySorting(Builder $query, array $filters): void
     {
-        $sortBy = $filters['sort_by'] ?? 'created_at';
-        $sortDir = $filters['sort_dir'] ?? 'desc';
-
-        $sortColumnMap = [
-            'price'      => 'contract_units.price',
-            'area'       => DB::raw('COALESCE(contract_units.total_area_m2, CAST(contract_units.area AS DECIMAL(12,2)))'),
-            'bedrooms'   => 'contract_units.bedrooms',
-            'created_at' => 'contract_units.created_at',
-        ];
-
-        $column = $sortColumnMap[$sortBy] ?? 'contract_units.created_at';
-        $query->orderBy($column, $sortDir);
+        $this->searchQueryBuilder->applySorting($query, $filters);
     }
 
     /**
@@ -217,13 +138,7 @@ class SalesUnitSearchService
      */
     protected function applyAuthorizationScope(Builder $query, User $user): void
     {
-        if ($user->hasRole('admin')) {
-            return;
-        }
-
-        $accessibleContractIds = $this->getAccessibleContractIds($user);
-
-        $query->whereIn('contracts.id', $accessibleContractIds);
+        $this->searchQueryBuilder->applyAuthorizationScope($query, $user);
     }
 
     /**
@@ -231,25 +146,6 @@ class SalesUnitSearchService
      */
     protected function applyAuthorizationScopeRaw($query, User $user): void
     {
-        if ($user->hasRole('admin')) {
-            return;
-        }
-
-        $accessibleContractIds = $this->getAccessibleContractIds($user);
-
-        $query->whereIn('contracts.id', $accessibleContractIds);
-    }
-
-    /**
-     * Contract IDs the user can access. Sales/sales_leader: all completed contracts (no assignment condition).
-     */
-    protected function getAccessibleContractIds(User $user): array
-    {
-        // Sales users (leaders + staff) can search across all completed contracts' units,
-        // regardless of whether a specific project/contract is assigned to them.
-        if ($this->isSalesOrLeader($user)) {
-            return \App\Models\Contract::where('status', 'completed')->pluck('id')->all();
-        }
-        return [];
+        $this->searchQueryBuilder->applyAuthorizationScopeRaw($query, $user);
     }
 }

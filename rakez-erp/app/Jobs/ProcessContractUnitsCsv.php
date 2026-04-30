@@ -3,6 +3,8 @@
 namespace App\Jobs;
 
 use App\Models\ContractUnit;
+use App\Services\Sales\DispatchUnitSearchAlertMatching;
+use Exception;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
@@ -11,16 +13,18 @@ use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
-use Exception;
+use Throwable;
 
 class ProcessContractUnitsCsv implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
     public int $tries = 3;
+
     public int $timeout = 300; // 5 minutes
 
     protected int $contractId;
+
     protected string $filePath;
 
     /**
@@ -41,7 +45,7 @@ class ProcessContractUnitsCsv implements ShouldQueue
         try {
             $fullPath = Storage::disk('local')->path($this->filePath);
 
-            if (!file_exists($fullPath)) {
+            if (! file_exists($fullPath)) {
                 throw new Exception('ملف CSV غير موجود');
             }
 
@@ -95,6 +99,7 @@ class ProcessContractUnitsCsv implements ShouldQueue
 
             $rowCount = 0;
             $errors = [];
+            $createdUnitIds = [];
 
             while (($row = fgetcsv($file)) !== false) {
                 $rowCount++;
@@ -140,11 +145,11 @@ class ProcessContractUnitsCsv implements ShouldQueue
                         throw new Exception('يتطلب الأعمدة unit_type و unit_number و price');
                     }
 
-                    ContractUnit::create($unitData);
+                    $createdUnitIds[] = ContractUnit::create($unitData)->id;
 
                 } catch (Exception $e) {
-                    $errors[] = "صف {$rowCount}: " . $e->getMessage();
-                    Log::warning("CSV Row {$rowCount} error: " . $e->getMessage());
+                    $errors[] = "صف {$rowCount}: ".$e->getMessage();
+                    Log::warning("CSV Row {$rowCount} error: ".$e->getMessage());
                 }
             }
 
@@ -154,10 +159,12 @@ class ProcessContractUnitsCsv implements ShouldQueue
 
             DB::commit();
 
+            $this->dispatchSearchAlertMatching($createdUnitIds);
+
             Log::info("CSV processed successfully for contract ID: {$this->contractId}. Rows: {$rowCount}");
 
-            if (!empty($errors)) {
-                Log::warning("CSV processing completed with errors", ['errors' => $errors]);
+            if (! empty($errors)) {
+                Log::warning('CSV processing completed with errors', ['errors' => $errors]);
             }
 
         } catch (Exception $e) {
@@ -167,7 +174,7 @@ class ProcessContractUnitsCsv implements ShouldQueue
                 Storage::disk('local')->delete($this->filePath);
             }
 
-            Log::error("CSV processing failed for contract ID: {$this->contractId}. Error: " . $e->getMessage());
+            Log::error("CSV processing failed for contract ID: {$this->contractId}. Error: ".$e->getMessage());
 
             throw $e;
         }
@@ -183,5 +190,22 @@ class ProcessContractUnitsCsv implements ShouldQueue
             'error' => $exception->getMessage(),
             'trace' => $exception->getTraceAsString(),
         ]);
+    }
+
+    private function dispatchSearchAlertMatching(array $unitIds): void
+    {
+        try {
+            app(DispatchUnitSearchAlertMatching::class)->dispatchManySafely($unitIds, [
+                'source' => 'process_contract_units_csv',
+                'contract_id' => $this->contractId,
+            ]);
+        } catch (Throwable $e) {
+            Log::warning('Unit search alert matching dispatch helper failed', [
+                'source' => 'process_contract_units_csv',
+                'contract_id' => $this->contractId,
+                'unit_count' => count(array_unique(array_filter($unitIds))),
+                'error' => $e->getMessage(),
+            ]);
+        }
     }
 }

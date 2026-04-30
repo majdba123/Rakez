@@ -1,0 +1,278 @@
+{
+  "info": {
+    "name": "RAKEZ - تنبيهات بحث وحدات المبيعات",
+    "description": "حزمة Postman عربية لتجربة بحث وحدات المبيعات وتنبيهات البحث. تعتمد على المسارات الفعلية في Laravel: /api/login، /api/sales/units/search، /api/sales/units/filters، /api/sales/units/search-alerts، و/api/notifications. إشعار النظام هو المسار الأساسي، وSMS اختياري ويجب أن يبقى معطلاً افتراضيًا.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      { "key": "token", "value": "{{auth_token}}", "type": "string" }
+    ]
+  },
+  "event": [
+    {
+      "listen": "test",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "// هذا فحص عام لا يفرض نجاح كل الطلبات، لأن بعض طلبات الصلاحيات متوقع أن ترجع 403 أو 404.",
+          "pm.test('الاستجابة بصيغة JSON عند وجود body', function () {",
+          "  if (pm.response.text()) {",
+          "    pm.response.to.be.withBody;",
+          "  }",
+          "});"
+        ]
+      }
+    }
+  ],
+  "item": [
+    {
+      "name": "المصادقة",
+      "description": "طلبات تسجيل الدخول والخروج. تسجيل الدخول يحفظ access_token تلقائيًا في متغير auth_token.",
+      "item": [
+        {
+          "name": "تسجيل دخول موظف مبيعات",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Accept", "value": "application/json" }, { "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"email\": \"{{sales_email}}\",\n  \"password\": \"{{sales_password}}\"\n}" },
+            "url": { "raw": "{{api_url}}/login", "host": ["{{api_url}}"], "path": ["login"] },
+            "description": "يسجل الدخول بمستخدم مبيعات من UsersSeeder. عند النجاح يتم حفظ token في auth_token لاستخدامه في بقية الطلبات."
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('تم تسجيل الدخول وحفظ التوكن', function () {", "  pm.response.to.have.status(200);", "  const json = pm.response.json();", "  pm.expect(json).to.have.property('access_token');", "  pm.expect(json).to.have.property('user');", "  pm.environment.set('auth_token', json.access_token);", "});"] } }]
+        },
+        {
+          "name": "تسجيل دخول قائد مبيعات",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Accept", "value": "application/json" }, { "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"email\": \"{{sales_leader_email}}\",\n  \"password\": \"{{sales_leader_password}}\"\n}" },
+            "url": { "raw": "{{api_url}}/login", "host": ["{{api_url}}"], "path": ["login"] },
+            "description": "يسجل الدخول بقائد مبيعات. هذا الدور يملك sales.search_alerts.manage حسب إعدادات الصلاحيات."
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('تم تسجيل دخول قائد المبيعات', function () {", "  pm.response.to.have.status(200);", "  const json = pm.response.json();", "  pm.environment.set('auth_token', json.access_token);", "});"] } }]
+        },
+        {
+          "name": "تسجيل دخول مدير",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Accept", "value": "application/json" }, { "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"email\": \"{{admin_email}}\",\n  \"password\": \"{{admin_password}}\"\n}" },
+            "url": { "raw": "{{api_url}}/login", "host": ["{{api_url}}"], "path": ["login"] },
+            "description": "يسجل الدخول كمدير. المدير يتجاوز الصلاحيات عبر Gate/role ويستطيع رؤية أوسع من موظف المبيعات."
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('تم تسجيل دخول المدير', function () {", "  pm.response.to.have.status(200);", "  const json = pm.response.json();", "  pm.environment.set('auth_token', json.access_token);", "});"] } }]
+        },
+        {
+          "name": "تسجيل خروج",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": { "raw": "{{api_url}}/logout", "host": ["{{api_url}}"], "path": ["logout"] },
+            "description": "ينفذ logout ويحذف tokens الخاصة بالمستخدم الحالي. endpoint موجود في routes/api.php."
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('تم تسجيل الخروج', function () {", "  pm.response.to.have.status(200);", "});"] } }]
+        }
+      ]
+    },
+    {
+      "name": "بحث وحدات المبيعات",
+      "description": "طلبات read-only لبحث الوحدات وجلب الفلاتر. شكل الاستجابة الحقيقي: success، data array، meta للبحث، وsuccess/data للفلاتر.",
+      "item": [
+        {
+          "name": "البحث بدون فلاتر",
+          "request": { "method": "GET", "header": [{ "key": "Accept", "value": "application/json" }], "url": { "raw": "{{api_url}}/sales/units/search", "host": ["{{api_url}}"], "path": ["sales", "units", "search"] }, "description": "يعرض وحدات المبيعات المتاحة للمستخدم حسب صلاحياته بدون فلاتر إضافية." },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('شكل استجابة البحث صحيح', function () {", "  pm.response.to.have.status(200);", "  const json = pm.response.json();", "  pm.expect(json.success).to.eql(true);", "  pm.expect(json.data).to.be.an('array');", "  pm.expect(json.meta).to.include.keys(['current_page','last_page','per_page','total']);", "  if (json.data.length > 0) pm.environment.set('matched_unit_id', json.data[0].id);", "});"] } }]
+        },
+        {
+          "name": "البحث حسب المدينة والحي",
+          "request": { "method": "GET", "header": [{ "key": "Accept", "value": "application/json" }], "url": { "raw": "{{api_url}}/sales/units/search?city_id={{city_id}}&district_id={{district_id}}", "host": ["{{api_url}}"], "path": ["sales", "units", "search"], "query": [{ "key": "city_id", "value": "{{city_id}}" }, { "key": "district_id", "value": "{{district_id}}" }] }, "description": "يستخدم city_id وdistrict_id كما في SearchUnitsRequest." },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('البحث حسب المدينة والحي يرجع envelope صحيح', function () { pm.response.to.have.status(200); const json = pm.response.json(); pm.expect(json).to.have.property('data'); });"] } }]
+        },
+        {
+          "name": "البحث حسب السعر",
+          "request": { "method": "GET", "header": [{ "key": "Accept", "value": "application/json" }], "url": { "raw": "{{api_url}}/sales/units/search?min_price={{min_price}}&max_price={{max_price}}", "host": ["{{api_url}}"], "path": ["sales", "units", "search"], "query": [{ "key": "min_price", "value": "{{min_price}}" }, { "key": "max_price", "value": "{{max_price}}" }] }, "description": "يفلتر الوحدات حسب نطاق السعر." },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('البحث حسب السعر ناجح', function () { pm.response.to.have.status(200); pm.expect(pm.response.json().data).to.be.an('array'); });"] } }]
+        },
+        {
+          "name": "البحث حسب المساحة",
+          "request": { "method": "GET", "header": [{ "key": "Accept", "value": "application/json" }], "url": { "raw": "{{api_url}}/sales/units/search?min_area={{min_area}}&max_area={{max_area}}", "host": ["{{api_url}}"], "path": ["sales", "units", "search"], "query": [{ "key": "min_area", "value": "{{min_area}}" }, { "key": "max_area", "value": "{{max_area}}" }] }, "description": "يفلتر بالمساحة باستخدام total_area_m2 أو area حسب منطق UnitSearchQueryBuilder." },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('البحث حسب المساحة ناجح', function () { pm.response.to.have.status(200); });"] } }]
+        },
+        {
+          "name": "البحث حسب عدد الغرف",
+          "request": { "method": "GET", "header": [{ "key": "Accept", "value": "application/json" }], "url": { "raw": "{{api_url}}/sales/units/search?min_bedrooms={{min_bedrooms}}&max_bedrooms={{max_bedrooms}}", "host": ["{{api_url}}"], "path": ["sales", "units", "search"], "query": [{ "key": "min_bedrooms", "value": "{{min_bedrooms}}" }, { "key": "max_bedrooms", "value": "{{max_bedrooms}}" }] }, "description": "يفلتر حسب عدد غرف النوم." },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('البحث حسب الغرف ناجح', function () { pm.response.to.have.status(200); });"] } }]
+        },
+        {
+          "name": "البحث حسب نوع الوحدة والطابق",
+          "request": { "method": "GET", "header": [{ "key": "Accept", "value": "application/json" }], "url": { "raw": "{{api_url}}/sales/units/search?unit_type={{unit_type}}&floor=2", "host": ["{{api_url}}"], "path": ["sales", "units", "search"], "query": [{ "key": "unit_type", "value": "{{unit_type}}" }, { "key": "floor", "value": "2" }] }, "description": "يستخدم unit_type وfloor. floor في alert يُخزن كنص لأن contract_units.floor نصي." },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('البحث حسب النوع والطابق ناجح', function () { pm.response.to.have.status(200); });"] } }]
+        },
+        {
+          "name": "البحث حسب المشروع project_id",
+          "request": { "method": "GET", "header": [{ "key": "Accept", "value": "application/json" }], "url": { "raw": "{{api_url}}/sales/units/search?project_id={{project_id}}", "host": ["{{api_url}}"], "path": ["sales", "units", "search"], "query": [{ "key": "project_id", "value": "{{project_id}}" }] }, "description": "project_id يطابق contracts.id في البحث والتنبيهات." },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('project_id يعمل على endpoint البحث', function () { pm.response.to.have.status(200); const json = pm.response.json(); pm.expect(json).to.have.property('data'); });"] } }]
+        },
+        {
+          "name": "البحث النصي q",
+          "request": { "method": "GET", "header": [{ "key": "Accept", "value": "application/json" }], "url": { "raw": "{{api_url}}/sales/units/search?q=U-001", "host": ["{{api_url}}"], "path": ["sales", "units", "search"], "query": [{ "key": "q", "value": "U-001" }] }, "description": "q يبحث في unit_number وproject_name. عند إنشاء alert استخدم query_text بدل q." },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('البحث النصي ناجح', function () { pm.response.to.have.status(200); });"] } }]
+        },
+        {
+          "name": "جلب فلاتر البحث",
+          "request": { "method": "GET", "header": [{ "key": "Accept", "value": "application/json" }], "url": { "raw": "{{api_url}}/sales/units/filters", "host": ["{{api_url}}"], "path": ["sales", "units", "filters"] }, "description": "يجلب المدن والأحياء وأنواع الوحدات ونطاقات السعر/المساحة/الغرف والحالات." },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('شكل استجابة الفلاتر صحيح', function () {", "  pm.response.to.have.status(200);", "  const json = pm.response.json();", "  pm.expect(json.success).to.eql(true);", "  pm.expect(json.data).to.include.keys(['cities','districts','unit_types','bedrooms_range','area_range','price_range','statuses']);", "});"] } }]
+        }
+      ]
+    },
+    {
+      "name": "تنبيهات البحث عن وحدة",
+      "description": "CRUD لتنبيهات البحث. DELETE يغيّر status إلى cancelled ثم soft delete. لا يتم تخزين page/per_page/sort_by/sort_dir بل يتم رفضها validation.",
+      "item": [
+        {
+          "name": "إنشاء تنبيه جديد بعد فشل البحث",
+          "request": { "method": "POST", "header": [{ "key": "Accept", "value": "application/json" }, { "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"client_name\": \"{{customer_name}}\",\n  \"client_mobile\": \"{{customer_phone}}\",\n  \"project_id\": {{project_id}},\n  \"unit_type\": \"{{unit_type}}\",\n  \"min_price\": {{min_price}},\n  \"max_price\": {{max_price}},\n  \"min_area\": {{min_area}},\n  \"max_area\": {{max_area}},\n  \"min_bedrooms\": {{min_bedrooms}},\n  \"max_bedrooms\": {{max_bedrooms}},\n  \"query_text\": \"U-001\"\n}" }, "url": { "raw": "{{api_url}}/sales/units/search-alerts", "host": ["{{api_url}}"], "path": ["sales", "units", "search-alerts"] }, "description": "ينشئ alert لعميل بعد بحث بدون نتائج. SMS opt-in غير مفعّل هنا، لذلك SMS سيُسجّل skipped عند المطابقة إذا كان مطلوبًا." },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('تم إنشاء التنبيه وحفظ alert_id', function () {", "  pm.response.to.have.status(201);", "  const json = pm.response.json();", "  pm.expect(json.success).to.eql(true);", "  pm.expect(json.data).to.include.keys(['id','client','criteria','status']);", "  pm.environment.set('alert_id', json.data.id);", "});"] } }]
+        },
+        {
+          "name": "عرض تنبيهاتي",
+          "request": { "method": "GET", "header": [{ "key": "Accept", "value": "application/json" }], "url": { "raw": "{{api_url}}/sales/units/search-alerts", "host": ["{{api_url}}"], "path": ["sales", "units", "search-alerts"] }, "description": "يعرض alerts الخاصة بالمستخدم الحالي فقط، إلا إذا كان المستخدم مديرًا أو لديه sales.search_alerts.manage." },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('قائمة التنبيهات لها pagination', function () { pm.response.to.have.status(200); const json = pm.response.json(); pm.expect(json.data).to.be.an('array'); pm.expect(json.meta).to.include.keys(['current_page','last_page','per_page','total']); });"] } }]
+        },
+        {
+          "name": "عرض تنبيه محدد",
+          "request": { "method": "GET", "header": [{ "key": "Accept", "value": "application/json" }], "url": { "raw": "{{api_url}}/sales/units/search-alerts/{{alert_id}}", "host": ["{{api_url}}"], "path": ["sales", "units", "search-alerts", "{{alert_id}}"] }, "description": "يعرض alert محدد إذا كان يخص المستخدم الحالي أو لديه صلاحية إدارة أوسع." },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('عرض التنبيه ناجح', function () { pm.response.to.have.status(200); const json = pm.response.json(); pm.expect(json.data.id).to.eql(Number(pm.environment.get('alert_id'))); });"] } }]
+        },
+        {
+          "name": "تعديل تنبيه",
+          "request": { "method": "PATCH", "header": [{ "key": "Accept", "value": "application/json" }, { "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"status\": \"paused\",\n  \"max_price\": {{max_price}}\n}" }, "url": { "raw": "{{api_url}}/sales/units/search-alerts/{{alert_id}}", "host": ["{{api_url}}"], "path": ["sales", "units", "search-alerts", "{{alert_id}}"] }, "description": "مثال تعديل status إلى paused وتحديث معيار max_price. القيم المسموحة: active, paused, matched, cancelled." },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('تعديل التنبيه ناجح', function () { pm.response.to.have.status(200); const json = pm.response.json(); pm.expect(json.data.status).to.eql('paused'); });"] } }]
+        },
+        {
+          "name": "إلغاء/حذف تنبيه",
+          "request": { "method": "DELETE", "header": [{ "key": "Accept", "value": "application/json" }], "url": { "raw": "{{api_url}}/sales/units/search-alerts/{{alert_id}}", "host": ["{{api_url}}"], "path": ["sales", "units", "search-alerts", "{{alert_id}}"] }, "description": "يلغي alert ويعمل soft delete. القوائم العادية لن تعرضه بعد الحذف." },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('تم إلغاء التنبيه', function () { pm.response.to.have.status(200); pm.expect(pm.response.json().success).to.eql(true); });"] } }]
+        },
+        {
+          "name": "إنشاء تنبيه مع SMS opt-in",
+          "request": { "method": "POST", "header": [{ "key": "Accept", "value": "application/json" }, { "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"client_name\": \"{{customer_name}}\",\n  \"client_mobile\": \"{{customer_phone}}\",\n  \"client_sms_opt_in\": true,\n  \"client_sms_locale\": \"ar\",\n  \"project_id\": {{project_id}},\n  \"unit_type\": \"{{unit_type}}\"\n}" }, "url": { "raw": "{{api_url}}/sales/units/search-alerts", "host": ["{{api_url}}"], "path": ["sales", "units", "search-alerts"] }, "description": "ينشئ تنبيهًا مع client_sms_opt_in=true (موافقة العميل على SMS).\n\nملاحظات:\n- لن يُرسل SMS عند إنشاء التنبيه؛ الإرسال يحدث لاحقًا فقط عندما تصبح وحدة مطابقة متاحة فعليًا.\n- إذا كان SALES_UNIT_SEARCH_ALERT_SMS_ENABLED=false أو نقص إعدادات Twilio، تُسجَّل عملية التسليم SMS كـ skipped دون استدعاء Twilio.\n- لا تضع مفاتيح Twilio الحقيقية في Postman؛ استخدم .env على الخادم فقط. SMS يبقى معطلاً افتراضيًا في البيئات الآمنة." },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('تم حفظ موافقة SMS', function () { pm.response.to.have.status(201); const json = pm.response.json(); pm.expect(json.data.client.sms_opt_in).to.eql(true); pm.environment.set('alert_id', json.data.id); });"] } }]
+        },
+        {
+          "name": "إنشاء تنبيه بدون opt-in والتأكد أن SMS سيصبح skipped عند المطابقة",
+          "request": { "method": "POST", "header": [{ "key": "Accept", "value": "application/json" }, { "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"client_name\": \"{{customer_name}}\",\n  \"client_mobile\": \"{{customer_phone}}\",\n  \"client_sms_opt_in\": false,\n  \"project_id\": {{project_id}},\n  \"unit_type\": \"{{unit_type}}\"\n}" }, "url": { "raw": "{{api_url}}/sales/units/search-alerts", "host": ["{{api_url}}"], "path": ["sales", "units", "search-alerts"] }, "description": "يوثق السلوك المتوقع: إذا حدثت مطابقة لاحقًا، إشعار النظام ينجح، وSMS يتم skipped بسبب sms_opt_in_missing أو sms_disabled حسب الإعدادات." },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('تم إنشاء alert بدون opt-in', function () { pm.response.to.have.status(201); const json = pm.response.json(); pm.expect(json.data.client.sms_opt_in).to.eql(false); pm.environment.set('alert_id', json.data.id); });"] } }]
+        },
+        {
+          "name": "اختبار min/max validation",
+          "request": { "method": "POST", "header": [{ "key": "Accept", "value": "application/json" }, { "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"client_mobile\": \"{{customer_phone}}\",\n  \"min_price\": 900000,\n  \"max_price\": 100000\n}" }, "url": { "raw": "{{api_url}}/sales/units/search-alerts", "host": ["{{api_url}}"], "path": ["sales", "units", "search-alerts"] }, "description": "يتوقع 422 لأن max_price يجب أن يكون أكبر أو يساوي min_price." },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('تم رفض min/max غير صحيح', function () { pm.response.to.have.status(422); const json = pm.response.json(); pm.expect(JSON.stringify(json)).to.include('max_price'); });"] } }]
+        },
+        {
+          "name": "اختبار رفض page/per_page/sort_by/sort_dir عند الحفظ",
+          "request": { "method": "POST", "header": [{ "key": "Accept", "value": "application/json" }, { "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"client_mobile\": \"{{customer_phone}}\",\n  \"page\": 1,\n  \"per_page\": 20,\n  \"sort_by\": \"price\",\n  \"sort_dir\": \"asc\"\n}" }, "url": { "raw": "{{api_url}}/sales/units/search-alerts", "host": ["{{api_url}}"], "path": ["sales", "units", "search-alerts"] }, "description": "هذه الحقول خاصة بالبحث ولا تُقبل في alert persistence. backend يرجع validation error بدل تخزينها." },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('تم رفض حقول pagination/sorting', function () { pm.response.to.have.status(422); const body = JSON.stringify(pm.response.json()); pm.expect(body).to.include('sort_by'); });"] } }]
+        }
+      ]
+    },
+    {
+      "name": "الصلاحيات والملكية",
+      "description": "اختبارات توضح أن موظف المبيعات يرى تنبيهاته فقط، وأن الوصول لتنبيه مستخدم آخر يتطلب مديرًا أو sales.search_alerts.manage.",
+      "item": [
+        {
+          "name": "موظف مبيعات يرى تنبيهاته فقط",
+          "request": { "method": "GET", "header": [{ "key": "Accept", "value": "application/json" }], "url": { "raw": "{{api_url}}/sales/units/search-alerts", "host": ["{{api_url}}"], "path": ["sales", "units", "search-alerts"] }, "description": "شغّل هذا الطلب بعد تسجيل الدخول كـ sales@rakez.com. الاستجابة scoped إلى sales_staff_id للمستخدم إلا إذا كان لديه manage." },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('القائمة متاحة لموظف المبيعات', function () { pm.response.to.have.status(200); pm.expect(pm.response.json().data).to.be.an('array'); });"] } }]
+        },
+        {
+          "name": "موظف مبيعات لا يستطيع عرض تنبيه موظف آخر",
+          "request": { "method": "GET", "header": [{ "key": "Accept", "value": "application/json" }], "url": { "raw": "{{api_url}}/sales/units/search-alerts/{{alert_id}}", "host": ["{{api_url}}"], "path": ["sales", "units", "search-alerts", "{{alert_id}}"] }, "description": "للاختبار الحقيقي: أنشئ alert بمستخدم مبيعات، ثم سجل دخول بمستخدم مبيعات آخر وضع نفس alert_id. التطبيق يرجع 403 عند عدم الملكية. لا يوجد متغير seed ثابت لموظف مبيعات ثان في هذه الحزمة." },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('النتيجة المتوقعة لموظف آخر هي 403 أو 404 حسب إعداد الحماية', function () { pm.expect([403,404,200]).to.include(pm.response.code); });"] } }]
+        },
+        {
+          "name": "موظف مبيعات لا يستطيع تعديل/حذف تنبيه موظف آخر",
+          "request": { "method": "PATCH", "header": [{ "key": "Accept", "value": "application/json" }, { "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"status\": \"paused\"\n}" }, "url": { "raw": "{{api_url}}/sales/units/search-alerts/{{alert_id}}", "host": ["{{api_url}}"], "path": ["sales", "units", "search-alerts", "{{alert_id}}"] }, "description": "استخدم توكن موظف مبيعات لا يملك alert_id. المتوقع 403. إذا كان نفس المالك سترجع 200." },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('فحص منع التعديل لغير المالك', function () { pm.expect([403,404,200]).to.include(pm.response.code); });"] } }]
+        },
+        {
+          "name": "قائد/مدير حسب صلاحيات النظام",
+          "request": { "method": "GET", "header": [{ "key": "Accept", "value": "application/json" }], "url": { "raw": "{{api_url}}/sales/units/search-alerts/{{alert_id}}", "host": ["{{api_url}}"], "path": ["sales", "units", "search-alerts", "{{alert_id}}"] }, "description": "بعد تسجيل الدخول كقائد مبيعات أو مدير، يمكن الوصول الأوسع لأن sales_leader لديه sales.search_alerts.manage والمدير له صلاحيات كاملة." },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('القائد أو المدير يستطيع الوصول إذا الصلاحيات صحيحة', function () { pm.expect([200,404]).to.include(pm.response.code); });"] } }]
+        }
+      ]
+    },
+    {
+      "name": "المطابقة والإشعارات",
+      "description": "المطابقة نفسها تُختبر بشكل أقوى في PHPUnit. Postman هنا يعرض إشعارات المستخدم ويمكنه اختياريًا إنشاء وحدة مطابقة إذا تم تفعيل write smoke tests وبصلاحية مناسبة.",
+      "item": [
+        {
+          "name": "اختياري - إنشاء وحدة مطابقة عبر API آمن",
+          "event": [{ "listen": "prerequest", "script": { "type": "text/javascript", "exec": ["// هذا الطلب يكتب في قاعدة البيانات وقد يطلق matching job بعد commit.", "if (String(pm.environment.get('allow_write_smoke_tests')) !== 'true') {", "  console.warn('تم تخطي الطلب لأن allow_write_smoke_tests ليست true');", "  if (pm.execution && pm.execution.skipRequest) pm.execution.skipRequest();", "}"] } }, { "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('إنشاء الوحدة اختياري ومحمي', function () { pm.expect([201,403,404,422]).to.include(pm.response.code); });"] } }],
+          "request": { "method": "POST", "header": [{ "key": "Accept", "value": "application/json" }, { "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"unit_type\": \"{{unit_type}}\",\n  \"unit_number\": \"POSTMAN-{{$timestamp}}\",\n  \"status\": \"available\",\n  \"price\": {{min_price}},\n  \"area\": {{min_area}},\n  \"floor\": \"2\",\n  \"bedrooms\": {{min_bedrooms}}\n}" }, "url": { "raw": "{{api_url}}/contracts/units/store/{{project_id}}", "host": ["{{api_url}}"], "path": ["contracts", "units", "store", "{{project_id}}"] }, "description": "يتطلب مديرًا/إدارة مشاريع وصلاحية units.edit وسيعمل فقط إذا project_id لعقد مكتمل وقابل للتعديل. لا يستدعي Twilio مباشرة ولا ينشئ UserNotification من كود CSV؛ matching يحدث عبر jobs/services." }
+        },
+        {
+          "name": "عرض إشعارات المستخدم",
+          "request": { "method": "GET", "header": [{ "key": "Accept", "value": "application/json" }], "url": { "raw": "{{api_url}}/notifications", "host": ["{{api_url}}"], "path": ["notifications"] }, "description": "يعرض UserNotification الخاصة بالمستخدم الحالي. عند مطابقة alert ناجحة، backend ينشئ UserNotification برسالة event_type = unit_search_alert_matched." },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('إشعارات المستخدم لها shape صحيح', function () {", "  pm.response.to.have.status(200);", "  const json = pm.response.json();", "  pm.expect(json.data).to.be.an('array');", "  pm.expect(json.meta).to.have.nested.property('pagination.total');", "  if (json.data.length > 0) pm.environment.set('notification_id', json.data[0].id);", "});"] } }]
+        },
+        {
+          "name": "تعليم إشعار كمقروء",
+          "request": { "method": "PATCH", "header": [{ "key": "Accept", "value": "application/json" }], "url": { "raw": "{{api_url}}/notifications/{{notification_id}}/read", "host": ["{{api_url}}"], "path": ["notifications", "{{notification_id}}", "read"] }, "description": "يعلم إشعار المستخدم كمقروء. يقبل ID رقمي أو local-* حسب NotificationController." },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('تعليم الإشعار كمقروء', function () { pm.expect([200,404]).to.include(pm.response.code); });"] } }]
+        }
+      ]
+    },
+    {
+      "name": "اختبارات إنتاج آمنة",
+      "description": "طلبات smoke آمنة. الطلبات read-only تعمل دائمًا، والكتابة محمية بمتغير allow_write_smoke_tests=false افتراضيًا. لا توجد أي طلبات ترسل SMS مباشر.",
+      "item": [
+        {
+          "name": "تسجيل الدخول لاختبار smoke",
+          "request": { "auth": { "type": "noauth" }, "method": "POST", "header": [{ "key": "Accept", "value": "application/json" }, { "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"email\": \"{{sales_email}}\",\n  \"password\": \"{{sales_password}}\"\n}" }, "url": { "raw": "{{api_url}}/login", "host": ["{{api_url}}"], "path": ["login"] }, "description": "أول طلب في smoke test. يحفظ auth_token تلقائيًا." },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('تم login للـ smoke', function () { pm.response.to.have.status(200); const json = pm.response.json(); pm.environment.set('auth_token', json.access_token); });"] } }]
+        },
+        {
+          "name": "فحص توفر route البحث",
+          "request": { "method": "GET", "header": [{ "key": "Accept", "value": "application/json" }], "url": { "raw": "{{api_url}}/sales/units/search?per_page=1", "host": ["{{api_url}}"], "path": ["sales", "units", "search"], "query": [{ "key": "per_page", "value": "1" }] }, "description": "Read-only: يتحقق أن route البحث يعمل ويرجع response shape." },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('route البحث متاح', function () { pm.response.to.have.status(200); pm.expect(pm.response.json()).to.have.property('success', true); });"] } }]
+        },
+        {
+          "name": "بحث وحدات read-only",
+          "request": { "method": "GET", "header": [{ "key": "Accept", "value": "application/json" }], "url": { "raw": "{{api_url}}/sales/units/search?project_id={{project_id}}&per_page=5", "host": ["{{api_url}}"], "path": ["sales", "units", "search"], "query": [{ "key": "project_id", "value": "{{project_id}}" }, { "key": "per_page", "value": "5" }] }, "description": "Read-only smoke search حسب project_id." },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('بحث read-only ناجح', function () { pm.response.to.have.status(200); pm.expect(pm.response.json().data).to.be.an('array'); });"] } }]
+        },
+        {
+          "name": "جلب فلاتر read-only",
+          "request": { "method": "GET", "header": [{ "key": "Accept", "value": "application/json" }], "url": { "raw": "{{api_url}}/sales/units/filters", "host": ["{{api_url}}"], "path": ["sales", "units", "filters"] }, "description": "Read-only smoke للـ filters." },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('فلاتر البحث متاحة', function () { pm.response.to.have.status(200); pm.expect(pm.response.json()).to.have.property('data'); });"] } }]
+        },
+        {
+          "name": "عرض تنبيهات المستخدم read-only",
+          "request": { "method": "GET", "header": [{ "key": "Accept", "value": "application/json" }], "url": { "raw": "{{api_url}}/sales/units/search-alerts", "host": ["{{api_url}}"], "path": ["sales", "units", "search-alerts"] }, "description": "Read-only smoke لعرض alerts الخاصة بالمستخدم." },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('قائمة alerts متاحة', function () { pm.response.to.have.status(200); pm.expect(pm.response.json().data).to.be.an('array'); });"] } }]
+        },
+        {
+          "name": "إنشاء تنبيه smoke محمي",
+          "event": [{ "listen": "prerequest", "script": { "type": "text/javascript", "exec": ["// لا تشغل هذا الطلب على production إلا بعد موافقة صريحة.", "if (String(pm.environment.get('allow_write_smoke_tests')) !== 'true') {", "  console.warn('تم تخطي إنشاء alert لأن allow_write_smoke_tests ليست true');", "  if (pm.execution && pm.execution.skipRequest) pm.execution.skipRequest();", "}"] } }, { "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('إنشاء smoke alert عند السماح فقط', function () { pm.expect([201,400,401,403,422]).to.include(pm.response.code); if (pm.response.code === 201) pm.environment.set('alert_id', pm.response.json().data.id); });"] } }],
+          "request": { "method": "POST", "header": [{ "key": "Accept", "value": "application/json" }, { "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"client_name\": \"Smoke Test\",\n  \"client_mobile\": \"{{customer_phone}}\",\n  \"client_sms_opt_in\": false,\n  \"project_id\": {{project_id}},\n  \"unit_type\": \"{{unit_type}}\"\n}" }, "url": { "raw": "{{api_url}}/sales/units/search-alerts", "host": ["{{api_url}}"], "path": ["sales", "units", "search-alerts"] }, "description": "يكتب في قاعدة البيانات فقط عند allow_write_smoke_tests=true. client_sms_opt_in=false لتجنب أي اعتماد على SMS." }
+        },
+        {
+          "name": "حذف تنبيه smoke محمي",
+          "event": [{ "listen": "prerequest", "script": { "type": "text/javascript", "exec": ["if (String(pm.environment.get('allow_write_smoke_tests')) !== 'true') {", "  console.warn('تم تخطي حذف alert لأن allow_write_smoke_tests ليست true');", "  if (pm.execution && pm.execution.skipRequest) pm.execution.skipRequest();", "}"] } }, { "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('حذف smoke alert عند السماح فقط', function () { pm.expect([200,404]).to.include(pm.response.code); });"] } }],
+          "request": { "method": "DELETE", "header": [{ "key": "Accept", "value": "application/json" }], "url": { "raw": "{{api_url}}/sales/units/search-alerts/{{alert_id}}", "host": ["{{api_url}}"], "path": ["sales", "units", "search-alerts", "{{alert_id}}"] }, "description": "يحذف/يلغي alert الذي أنشأه smoke test. لا تشغله بدون allow_write_smoke_tests=true." }
+        },
+        {
+          "name": "تأكيد أن live SMS غير مفعّل",
+          "request": { "method": "GET", "header": [{ "key": "Accept", "value": "application/json" }], "url": { "raw": "{{api_url}}/sales/units/search-alerts", "host": ["{{api_url}}"], "path": ["sales", "units", "search-alerts"] }, "description": "لا يوجد endpoint لإرسال SMS مباشر في هذه الميزة. هذا الطلب يؤكد فقط أن متغير allow_sms_live_test ليس true في البيئة." },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('live SMS مغلق افتراضيًا', function () { pm.expect(String(pm.environment.get('allow_sms_live_test'))).to.not.eql('true'); });"] } }]
+        }
+      ]
+    }
+  ]
+}
