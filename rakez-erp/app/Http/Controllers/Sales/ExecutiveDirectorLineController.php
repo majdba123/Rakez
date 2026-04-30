@@ -139,7 +139,7 @@ class ExecutiveDirectorLineController extends Controller
                 : 0.0;
         }
 
-        $rankingRows = DB::table('users')
+        $rankingQuery = DB::table('users')
             ->leftJoin('executive_director_line_user', 'executive_director_line_user.user_id', '=', 'users.id')
             ->where('users.type', 'sales')
             ->where(function ($q) {
@@ -148,11 +148,22 @@ class ExecutiveDirectorLineController extends Controller
             })
             ->groupBy('users.id')
             ->select('users.id')
-            ->selectRaw('COUNT(executive_director_line_user.id) as assigned_lines')
-            ->selectRaw("SUM(CASE WHEN executive_director_line_user.member_status = 'complete' THEN 1 ELSE 0 END) as completed_lines")
-            ->selectRaw('COALESCE(SUM(executive_director_line_user.achieved_value), 0) as achieved_total')
-            ->orderByDesc('completed_lines')
-            ->orderByDesc('achieved_total')
+            ->selectRaw('COUNT(executive_director_line_user.id) as assigned_lines');
+
+        if ($hasProgressFields) {
+            $rankingQuery
+                ->selectRaw("SUM(CASE WHEN executive_director_line_user.member_status = 'complete' THEN 1 ELSE 0 END) as completed_lines")
+                ->selectRaw('COALESCE(SUM(executive_director_line_user.achieved_value), 0) as achieved_total')
+                ->orderByDesc('completed_lines')
+                ->orderByDesc('achieved_total');
+        } else {
+            $rankingQuery
+                ->selectRaw('0 as completed_lines')
+                ->selectRaw('0 as achieved_total');
+        }
+
+        $rankingRows = $rankingQuery
+            ->orderByDesc('assigned_lines')
             ->orderBy('users.id')
             ->get();
 
