@@ -279,6 +279,8 @@ class ExecutiveDirectorLineController extends Controller
         foreach ($groups as $group) {
             $syncPayload[(int) $group['team_group_id']] = [
                 'value_target' => round((float) $group['value_target'], 2),
+                'group_status' => 'pending',
+                'completed_at' => null,
             ];
         }
         $line->teamGroups()->sync($syncPayload);
@@ -461,12 +463,23 @@ class ExecutiveDirectorLineController extends Controller
         }
 
         $this->detachGroupMembersForLine($line, $groupId);
+        $hasProgressFields = Schema::hasColumns('executive_director_line_user', [
+            'achieved_value',
+            'member_status',
+            'completed_at',
+        ]);
         $attachPayload = [];
         foreach ($members as $member) {
-            $attachPayload[(int) $member['user_id']] = [
+            $payload = [
                 'value_target' => round((float) $member['value_target'], 2),
                 'line_type_flag' => $line->line_type,
             ];
+            if ($hasProgressFields) {
+                $payload['achieved_value'] = 0;
+                $payload['member_status'] = 'pending';
+                $payload['completed_at'] = null;
+            }
+            $attachPayload[(int) $member['user_id']] = $payload;
         }
         $line->memberUsers()->attach($attachPayload);
         $line->load(['teams', 'teamGroups', 'memberUsers' => function ($q) use ($groupId) {
@@ -727,6 +740,8 @@ class ExecutiveDirectorLineController extends Controller
         foreach ($teams as $team) {
             $syncPayload[(int) $team['team_id']] = [
                 'value_target' => round((float) $team['value_target'], 2),
+                'team_status' => 'pending',
+                'completed_at' => null,
             ];
         }
         $row->teams()->sync($syncPayload);

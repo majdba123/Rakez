@@ -12,6 +12,7 @@ use App\Models\UserNotification;
 use App\Events\UserNotificationEvent;
 use App\Exceptions\UnitAlreadyReservedException;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Exception;
 
@@ -177,6 +178,9 @@ class SalesReservationService
 
             // Update unit status to reserved
             $unit->update(['status' => 'reserved']);
+
+            // Progress target for type=6 (sales) members based on reserved unit price.
+            $this->updateExecutiveLineMemberProgressForReservation($user, $unit);
 
             // Create deposit if reservation is confirmed (immediate deposit flow)
             if ($status === 'confirmed' && $data['down_payment_amount'] > 0) {
@@ -498,5 +502,177 @@ class SalesReservationService
             ]);
             event(new UserNotificationEvent($user->id, $message));
         }
+    }
+
+    private function updateExecutiveLineMemberProgressForReservation(User $user, ContractUnit $unit): void
+    {
+        $isTypeSixSales = $user->type === 'sales' || (string) $user->type === '6';
+        if (! $isTypeSixSales) {
+            return;
+        }
+
+        if (! Schema::hasColumns('executive_director_line_user', ['achieved_value', 'member_status', 'completed_at'])) {
+            return;
+        }
+
+        $unitPrice = round((float) ($unit->price ?? 0), 2);
+        if ($unitPrice <= 0) {
+            return;
+        }
+
+        $rows = DB::table('executive_director_line_user')
+            ->join('executive_director_lines', 'executive_director_lines.id', '=', 'executive_director_line_user.executive_director_line_id')
+            ->where('executive_director_line_user.user_id', (int) $user->id)
+            ->where('executive_director_line_user.line_type_flag', (string) $unit->unit_type)
+            ->select([
+                'executive_director_line_user.executive_director_line_id',
+                'executive_director_line_user.achieved_value',
+                'executive_director_line_user.value_target',
+            ])
+            ->get();
+
+        $touchedLineIds = [];
+        foreach ($rows as $row) {
+            $oldAchieved = round((float) ($row->achieved_value ?? 0), 2);
+            $target = round((float) ($row->value_target ?? 0), 2);
+            $newAchieved = round($oldAchieved + $unitPrice, 2);
+            $isCompleted = $target > 0 && $newAchieved >= $target;
+            $lineId = (int) $row->executive_director_line_id;
+            $touchedLineIds[] = $lineId;
+
+            DB::table('executive_director_line_user')
+                ->where('executive_director_line_id', $lineId)
+                ->where('user_id', (int) $user->id)
+                ->update([
+                    'achieved_value' => $newAchieved,
+                    'member_status' => $isCompleted ? 'complete' : 'pending',
+                    'completed_at' => $isCompleted ? now() : null,
+                    'updated_at' => now(),
+                ]);
+        }
+
+        if (! empty($user->team_group_id) && $touchedLineIds !== []) {
+            $this->syncTeamGroupStatusFromMembers((int) $user->team_group_id, array_values(array_unique($touchedLineIds)));
+        }
+    }
+
+    /**
+     * Mark group-line status complete only when all assigned members are complete.
+     *
+     * @param  array<int, int>  $lineIds
+     */
+    private function syncTeamGroupStatusFromMembers(int $teamGroupId, array $lineIds): void
+    {
+        if (! Schema::hasColumns('executive_director_line_team_group', ['group_status', 'completed_at'])) {
+            return;
+        }
+        if (! Schema::hasColumn('executive_director_line_user', 'member_status')) {
+            return;
+        }
+
+        foreach ($lineIds as $lineId) {
+            $assigned = DB::table('executive_director_line_user')
+                ->join('users', 'users.id', '=', 'executive_director_line_user.user_id')
+                ->where('executive_director_line_user.executive_director_line_id', $lineId)
+                ->where('users.team_group_id', $teamGroupId)
+                ->count();
+
+            $incomplete = DB::table('executive_director_line_user')
+                ->join('users', 'users.id', '=', 'executive_director_line_user.user_id')
+                ->where('executive_director_line_user.executive_director_line_id', $lineId)
+                ->where('users.team_group_id', $teamGroupId)
+                ->where(function ($q) {
+                    $q->whereNull('executive_director_line_user.member_status')
+                        ->orWhere('executive_director_line_user.member_status', '!=', 'complete');
+                })
+                ->count();
+
+            $groupCompleted = $assigned > 0 && $incomplete === 0;
+
+            DB::table('executive_director_line_team_group')
+                ->where('executive_director_line_id', $lineId)
+                ->where('team_group_id', $teamGroupId)
+                ->update([
+                    'group_status' => $groupCompleted ? 'complete' : 'pending',
+                    'completed_at' => $groupCompleted ? now() : null,
+                    'updated_at' => now(),
+                ]);
+
+            $this->syncTeamStatusFromGroups($lineId, $teamGroupId);
+        }
+    }
+
+    private function syncTeamStatusFromGroups(int $lineId, int $teamGroupId): void
+    {
+        if (! Schema::hasColumns('executive_director_line_team', ['team_status', 'completed_at'])) {
+            return;
+        }
+        if (! Schema::hasColumn('executive_director_line_team_group', 'group_status')) {
+            return;
+        }
+
+        $teamId = DB::table('team_groups')
+            ->where('id', $teamGroupId)
+            ->value('team_id');
+        if (! $teamId) {
+            return;
+        }
+
+        $assignedGroups = DB::table('executive_director_line_team_group')
+            ->join('team_groups', 'team_groups.id', '=', 'executive_director_line_team_group.team_group_id')
+            ->where('executive_director_line_team_group.executive_director_line_id', $lineId)
+            ->where('team_groups.team_id', (int) $teamId)
+            ->count();
+
+        $incompleteGroups = DB::table('executive_director_line_team_group')
+            ->join('team_groups', 'team_groups.id', '=', 'executive_director_line_team_group.team_group_id')
+            ->where('executive_director_line_team_group.executive_director_line_id', $lineId)
+            ->where('team_groups.team_id', (int) $teamId)
+            ->where(function ($q) {
+                $q->whereNull('executive_director_line_team_group.group_status')
+                    ->orWhere('executive_director_line_team_group.group_status', '!=', 'complete');
+            })
+            ->count();
+
+        $teamCompleted = $assignedGroups > 0 && $incompleteGroups === 0;
+
+        DB::table('executive_director_line_team')
+            ->where('executive_director_line_id', $lineId)
+            ->where('team_id', (int) $teamId)
+            ->update([
+                'team_status' => $teamCompleted ? 'complete' : 'pending',
+                'completed_at' => $teamCompleted ? now() : null,
+                'updated_at' => now(),
+            ]);
+
+        $this->syncLineStatusFromTeams($lineId);
+    }
+
+    private function syncLineStatusFromTeams(int $lineId): void
+    {
+        if (! Schema::hasColumn('executive_director_line_team', 'team_status')) {
+            return;
+        }
+
+        $assignedTeams = DB::table('executive_director_line_team')
+            ->where('executive_director_line_id', $lineId)
+            ->count();
+
+        $incompleteTeams = DB::table('executive_director_line_team')
+            ->where('executive_director_line_id', $lineId)
+            ->where(function ($q) {
+                $q->whereNull('team_status')
+                    ->orWhere('team_status', '!=', 'complete');
+            })
+            ->count();
+
+        $lineCompleted = $assignedTeams > 0 && $incompleteTeams === 0;
+
+        DB::table('executive_director_lines')
+            ->where('id', $lineId)
+            ->update([
+                'status' => $lineCompleted ? 'completed' : 'pending',
+                'updated_at' => now(),
+            ]);
     }
 }

@@ -22,6 +22,8 @@ class ExecutiveDirectorLineResource extends JsonResource
                 'name' => $team->name,
                 'code' => $team->code,
                 'value_target' => isset($team->pivot?->value_target) ? (float) $team->pivot->value_target : null,
+                'team_status' => $team->pivot?->team_status,
+                'completed_at' => $team->pivot?->completed_at,
             ])->values()->all(), []),
             'team_ids' => $this->whenLoaded('teams', fn () => $this->teams->pluck('id')->values()->all(), []),
             'team_groups' => $this->whenLoaded('teamGroups', fn () => $this->teamGroups->map(fn ($g) => [
@@ -30,6 +32,8 @@ class ExecutiveDirectorLineResource extends JsonResource
                 'description' => $g->description,
                 'team_id' => $g->team_id,
                 'value_target' => isset($g->pivot?->value_target) ? (float) $g->pivot->value_target : null,
+                'group_status' => $g->pivot?->group_status,
+                'completed_at' => $g->pivot?->completed_at,
             ])->values()->all(), []),
             'team_group_ids' => $this->whenLoaded('teamGroups', fn () => $this->teamGroups->pluck('id')->values()->all(), []),
             'member_users' => $this->whenLoaded('memberUsers', fn () => $this->memberUsers->map(fn ($u) => [

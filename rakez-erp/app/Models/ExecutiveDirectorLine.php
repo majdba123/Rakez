@@ -37,7 +37,7 @@ class ExecutiveDirectorLine extends Model
     public function teams(): BelongsToMany
     {
         return $this->belongsToMany(Team::class, 'executive_director_line_team')
-            ->withPivot('value_target')
+            ->withPivot('value_target', 'team_status', 'completed_at')
             ->withTimestamps();
     }
 
@@ -47,7 +47,7 @@ class ExecutiveDirectorLine extends Model
     public function teamGroups(): BelongsToMany
     {
         return $this->belongsToMany(TeamGroup::class, 'executive_director_line_team_group')
-            ->withPivot('value_target')
+            ->withPivot('value_target', 'group_status', 'completed_at')
             ->withTimestamps();
     }
 
