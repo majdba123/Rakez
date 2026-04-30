@@ -611,13 +611,13 @@ class ExecutiveDirectorLineController extends Controller
         $teams = collect($request->validated('teams'));
         $totalAssignedToTeams = (float) $teams->sum(fn ($team) => (float) $team['value_target']);
         $lineValue = (float) ($row->value ?? 0);
-        if ((int) round($totalAssignedToTeams * 100) > (int) round($lineValue * 100)) {
+        if ((int) round($totalAssignedToTeams * 100) !== (int) round($lineValue * 100)) {
             return response()->json([
                 'success' => false,
-                'message' => 'مجموع value_target للفرق لا يمكن أن يتجاوز قيمة السطر.',
+                'message' => 'مجموع value_target للفرق يجب أن يساوي قيمة السطر تماماً (لا أقل ولا أكثر).',
                 'errors' => [
                     'teams' => [
-                        'مجموع الفرق '.$totalAssignedToTeams.' بينما قيمة السطر '.$lineValue.'.',
+                        'مجموع الفرق '.$totalAssignedToTeams.' بينما قيمة السطر '.$lineValue.'. يجب التطابق التام.',
                     ],
                 ],
             ], 422);
