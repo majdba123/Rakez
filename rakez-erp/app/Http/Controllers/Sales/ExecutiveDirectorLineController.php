@@ -230,13 +230,13 @@ class ExecutiveDirectorLineController extends Controller
 
         $groups = collect($request->validated('team_groups'));
         $totalAssignedToGroups = (float) $groups->sum(fn ($group) => (float) $group['value_target']);
-        if ((int) round($totalAssignedToGroups * 100) > (int) round($teamTargetValue * 100)) {
+        if ((int) round($totalAssignedToGroups * 100) !== (int) round($teamTargetValue * 100)) {
             return response()->json([
                 'success' => false,
-                'message' => 'مجموع value_target للمجموعات لا يمكن أن يتجاوز حصة الفريق في هذا السطر.',
+                'message' => 'مجموع value_target للمجموعات يجب أن يساوي حصة الفريق في هذا السطر تماماً (لا أقل ولا أكثر).',
                 'errors' => [
                     'team_groups' => [
-                        'مجموع المجموعات '.$totalAssignedToGroups.' بينما حصة الفريق '.$teamTargetValue.'.',
+                        'مجموع المجموعات '.$totalAssignedToGroups.' بينما حصة الفريق '.$teamTargetValue.'. يجب التطابق التام.',
                     ],
                 ],
             ], 422);
