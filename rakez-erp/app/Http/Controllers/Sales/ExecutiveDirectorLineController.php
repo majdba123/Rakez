@@ -175,8 +175,9 @@ class ExecutiveDirectorLineController extends Controller
     }
 
     /**
-     * Link an executive line (already assigned to the leader’s team) to a single sub-group in array form.
-     * POST /api/sales/team/executive-director-lines/{id}/team-groups — body: { "team_group_ids": [1] }
+     * Link an executive line (already assigned to the leader’s team) to one or many sub-groups with target per group.
+     * POST /api/sales/team/executive-director-lines/{id}/team-groups
+     * body: { "team_groups": [ { "team_group_id": 1, "value_target": 150 }, { "team_group_id": 2, "value_target": 150 } ] }
      */
     public function syncTeamGroupsForMyLedTeam(AssignExecutiveDirectorLineTeamGroupsRequest $request, int $id): JsonResponse
     {
@@ -203,8 +204,32 @@ class ExecutiveDirectorLineController extends Controller
             ], 404);
         }
 
-        $ids = array_values(array_unique(array_map('intval', $request->validated('team_group_ids'))));
-        $line->teamGroups()->sync($ids);
+        $teamTargetValue = (float) ($line->teams()
+            ->where('teams.id', $teamId)
+            ->first()?->pivot?->value_target ?? $line->value ?? 0);
+
+        $groups = collect($request->validated('team_groups'));
+        $totalAssignedToGroups = (float) $groups->sum(fn ($group) => (float) $group['value_target']);
+        if ((int) round($totalAssignedToGroups * 100) > (int) round($teamTargetValue * 100)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'مجموع value_target للمجموعات لا يمكن أن يتجاوز حصة الفريق في هذا السطر.',
+                'errors' => [
+                    'team_groups' => [
+                        'مجموع المجموعات '.$totalAssignedToGroups.' بينما حصة الفريق '.$teamTargetValue.'.',
+                    ],
+                ],
+            ], 422);
+        }
+
+        $ids = $groups->pluck('team_group_id')->map(fn ($v) => (int) $v)->values()->all();
+        $syncPayload = [];
+        foreach ($groups as $group) {
+            $syncPayload[(int) $group['team_group_id']] = [
+                'value_target' => round((float) $group['value_target'], 2),
+            ];
+        }
+        $line->teamGroups()->sync($syncPayload);
 
         return response()->json([
             'success' => true,
@@ -294,6 +319,10 @@ class ExecutiveDirectorLineController extends Controller
             ], 404);
         }
 
+        $groupTargetValue = (float) ($line->teamGroups()
+            ->where('team_groups.id', $groupId)
+            ->first()?->pivot?->value_target ?? $line->value ?? 0);
+
         $members = collect($request->validated('members'));
         $userIds = $members->pluck('user_id')->map(fn ($v) => (int) $v)->values()->all();
         if ($userIds === []) {
@@ -303,18 +332,17 @@ class ExecutiveDirectorLineController extends Controller
             return $this->groupLeaderMemberSyncResponse($line, $request, $groupId);
         }
 
-        $lineValue = (float) ($line->value ?? 0);
         $totalAssignedValue = (float) $members->sum(fn ($member) => (float) $member['value_target']);
 
-        $lineCents = (int) round($lineValue * 100);
+        $groupTargetCents = (int) round($groupTargetValue * 100);
         $assignedCents = (int) round($totalAssignedValue * 100);
-        if ($assignedCents !== $lineCents) {
+        if ($assignedCents > $groupTargetCents) {
             return response()->json([
                 'success' => false,
-                'message' => 'مجموع value_target للأعضاء يجب أن يساوي قيمة السطر تماماً (لا أكثر ولا أقل).',
+                'message' => 'مجموع value_target للأعضاء لا يمكن أن يتجاوز الحصة المعيّنة للمجموعة.',
                 'errors' => [
                     'members' => [
-                        'مجموع value_target يساوي '.$totalAssignedValue.' بينما قيمة السطر '.$lineValue.'.',
+                        'مجموع value_target يساوي '.$totalAssignedValue.' بينما الحد الأقصى للمجموعة '.$groupTargetValue.'.',
                     ],
                 ],
             ], 422);
@@ -556,8 +584,9 @@ class ExecutiveDirectorLineController extends Controller
     }
 
     /**
-     * Replace team assignment (single team in array). Admin or sales manager (sales + is_manager).
-     * POST /api/sales/executive-director-lines/{id}/teams — body: { "team_ids": [1] }
+     * Replace team assignment with target per team. Admin or sales manager (sales + is_manager).
+     * POST /api/sales/executive-director-lines/{id}/teams
+     * body: { "teams": [ { "team_id": 1, "value_target": 300 }, { "team_id": 2, "value_target": 300 } ] }
      */
     public function syncTeams(AssignExecutiveDirectorLineTeamsRequest $request, int $id): JsonResponse
     {
@@ -579,8 +608,28 @@ class ExecutiveDirectorLineController extends Controller
             ], 404);
         }
 
-        $ids = array_values(array_unique(array_map('intval', $request->validated('team_ids'))));
-        $row->teams()->sync($ids);
+        $teams = collect($request->validated('teams'));
+        $totalAssignedToTeams = (float) $teams->sum(fn ($team) => (float) $team['value_target']);
+        $lineValue = (float) ($row->value ?? 0);
+        if ((int) round($totalAssignedToTeams * 100) > (int) round($lineValue * 100)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'مجموع value_target للفرق لا يمكن أن يتجاوز قيمة السطر.',
+                'errors' => [
+                    'teams' => [
+                        'مجموع الفرق '.$totalAssignedToTeams.' بينما قيمة السطر '.$lineValue.'.',
+                    ],
+                ],
+            ], 422);
+        }
+
+        $syncPayload = [];
+        foreach ($teams as $team) {
+            $syncPayload[(int) $team['team_id']] = [
+                'value_target' => round((float) $team['value_target'], 2),
+            ];
+        }
+        $row->teams()->sync($syncPayload);
 
         return response()->json([
             'success' => true,
@@ -639,4 +688,5 @@ class ExecutiveDirectorLineController extends Controller
             'message' => 'تم حذف السطر.',
         ]);
     }
+
 }

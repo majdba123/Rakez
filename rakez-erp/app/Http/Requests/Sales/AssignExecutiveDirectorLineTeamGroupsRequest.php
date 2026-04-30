@@ -21,24 +21,30 @@ class AssignExecutiveDirectorLineTeamGroupsRequest extends FormRequest
         $teamId = (int) ($this->user()->team_id ?? 0);
 
         return [
-            'team_group_ids' => 'required|array|max:1',
-            'team_group_ids.*' => [
+            'team_groups' => 'required|array|min:1|max:100',
+            'team_groups.*.team_group_id' => [
+                'required',
                 'integer',
                 'distinct',
                 Rule::exists('team_groups', 'id')->where('team_id', $teamId),
             ],
+            'team_groups.*.value_target' => ['required', 'numeric', 'min:0'],
         ];
     }
 
     public function messages(): array
     {
         return [
-            'team_group_ids.required' => 'يجب إرسال قائمة معرفات المجموعات (team_group_ids).',
-            'team_group_ids.array' => 'قائمة المجموعات غير صالحة.',
-            'team_group_ids.max' => 'يُسمح بإرسال مجموعة واحدة فقط داخل team_group_ids.',
-            'team_group_ids.*.integer' => 'معرف المجموعة يجب أن يكون رقماً.',
-            'team_group_ids.*.distinct' => 'لا تكرر نفس معرف المجموعة.',
-            'team_group_ids.*.exists' => 'أحد المجموعات ليس تابعاً لفريقك أو غير موجود.',
+            'team_groups.required' => 'يجب إرسال قائمة المجموعات (team_groups).',
+            'team_groups.array' => 'قائمة المجموعات غير صالحة.',
+            'team_groups.min' => 'يجب إرسال مجموعة واحدة على الأقل داخل team_groups.',
+            'team_groups.*.team_group_id.required' => 'حقل team_group_id مطلوب لكل مجموعة.',
+            'team_groups.*.team_group_id.integer' => 'معرف المجموعة يجب أن يكون رقماً.',
+            'team_groups.*.team_group_id.distinct' => 'لا تكرر نفس معرف المجموعة.',
+            'team_groups.*.team_group_id.exists' => 'أحد المجموعات ليس تابعاً لفريقك أو غير موجود.',
+            'team_groups.*.value_target.required' => 'حقل value_target مطلوب لكل مجموعة.',
+            'team_groups.*.value_target.numeric' => 'value_target يجب أن يكون رقمياً.',
+            'team_groups.*.value_target.min' => 'value_target لا يمكن أن يكون أقل من صفر.',
         ];
     }
 

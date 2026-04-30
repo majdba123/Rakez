@@ -123,6 +123,7 @@ class Team extends Model
     public function executiveDirectorLines(): BelongsToMany
     {
         return $this->belongsToMany(ExecutiveDirectorLine::class, 'executive_director_line_team')
+            ->withPivot('value_target')
             ->withTimestamps();
     }
 
