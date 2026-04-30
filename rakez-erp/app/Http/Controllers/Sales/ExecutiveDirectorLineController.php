@@ -81,7 +81,7 @@ class ExecutiveDirectorLineController extends Controller
                     'line_id' => (int) $row->id,
                     'line_type' => $row->line_type,
                     'line_value' => $row->value !== null ? (float) $row->value : null,
-                    'line_status' => (string) $row->status,
+                    'line_status' => $row->status instanceof BackedEnum ? $row->status->value : (string) $row->status,
                     'target_value' => isset($row->value_target) ? (float) $row->value_target : null,
                     'achieved_value' => isset($row->achieved_value) ? (float) $row->achieved_value : null,
                     'remaining_value' => isset($row->value_target, $row->achieved_value)
