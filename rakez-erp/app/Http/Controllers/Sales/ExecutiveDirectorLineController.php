@@ -325,9 +325,44 @@ class ExecutiveDirectorLineController extends Controller
         }
 
         $rows = $query->paginate($perPage);
+        $lineIds = collect($rows->items())->pluck('id')->map(fn ($v) => (int) $v)->values()->all();
+
+        $membersByLine = collect();
+        if ($lineIds !== []) {
+            $membersByLine = User::query()
+                ->select([
+                    'users.id',
+                    'users.name',
+                    'users.email',
+                    'users.phone',
+                    'users.type',
+                    'executive_director_line_user.executive_director_line_id',
+                    'executive_director_line_user.value_target',
+                    'executive_director_line_user.line_type_flag',
+                ])
+                ->join('executive_director_line_user', 'executive_director_line_user.user_id', '=', 'users.id')
+                ->where('users.team_group_id', $groupId)
+                ->whereIn('executive_director_line_user.executive_director_line_id', $lineIds)
+                ->orderBy('users.id')
+                ->get()
+                ->groupBy('executive_director_line_id');
+        }
 
         $data = collect($rows->items())
-            ->map(function ($row) {
+            ->map(function ($row) use ($membersByLine) {
+                $memberUsers = collect($membersByLine->get((int) $row->id, []))
+                    ->map(fn ($member) => [
+                        'id' => (int) $member->id,
+                        'name' => $member->name,
+                        'email' => $member->email,
+                        'phone' => $member->phone,
+                        'type' => $member->type,
+                        'value_target' => $member->value_target !== null ? (float) $member->value_target : null,
+                        'line_type_flag' => $member->line_type_flag,
+                    ])
+                    ->values()
+                    ->all();
+
                 return [
                     'id' => (int) $row->id,
                     'line_type' => $row->line_type,
@@ -335,6 +370,7 @@ class ExecutiveDirectorLineController extends Controller
                     'status' => $row->status instanceof BackedEnum ? $row->status->value : (string) $row->status,
                     'group_value_target' => $row->group_value_target !== null ? (float) $row->group_value_target : null,
                     'line_total_value' => $row->value !== null ? (float) $row->value : null,
+                    'member_users' => $memberUsers,
                     'created_at' => $row->created_at instanceof \DateTimeInterface ? $row->created_at->format(\DateTimeInterface::ATOM) : $row->created_at,
                     'updated_at' => $row->updated_at instanceof \DateTimeInterface ? $row->updated_at->format(\DateTimeInterface::ATOM) : $row->updated_at,
                 ];
