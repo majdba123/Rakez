@@ -15,6 +15,7 @@ use App\Models\TeamGroupLeader;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use BackedEnum;
 
@@ -96,11 +97,89 @@ class ExecutiveDirectorLineController extends Controller
             ->values()
             ->all();
 
+        $assignedLinesCount = 0;
+        $completedLinesCount = 0;
+        $inProgressLinesCount = 0;
+        $targetTotalValue = 0.0;
+        $achievedTotalValue = 0.0;
+        $completionRate = 0.0;
+        $valueAchievementRate = 0.0;
+        $ranking = null;
+        $salesStaffCount = 0;
+
+        $memberAgg = DB::table('executive_director_line_user')
+            ->where('user_id', (int) $user->id);
+
+        if ($hasProgressFields) {
+            $memberAgg->selectRaw('COUNT(*) as assigned_lines')
+                ->selectRaw("SUM(CASE WHEN member_status = 'complete' THEN 1 ELSE 0 END) as completed_lines")
+                ->selectRaw("SUM(CASE WHEN member_status = 'complete' THEN 0 ELSE 1 END) as in_progress_lines")
+                ->selectRaw('COALESCE(SUM(value_target), 0) as target_total')
+                ->selectRaw('COALESCE(SUM(achieved_value), 0) as achieved_total');
+        } else {
+            $memberAgg->selectRaw('COUNT(*) as assigned_lines')
+                ->selectRaw('0 as completed_lines')
+                ->selectRaw('COUNT(*) as in_progress_lines')
+                ->selectRaw('COALESCE(SUM(value_target), 0) as target_total')
+                ->selectRaw('0 as achieved_total');
+        }
+
+        $memberStats = $memberAgg->first();
+        if ($memberStats) {
+            $assignedLinesCount = (int) ($memberStats->assigned_lines ?? 0);
+            $completedLinesCount = (int) ($memberStats->completed_lines ?? 0);
+            $inProgressLinesCount = (int) ($memberStats->in_progress_lines ?? 0);
+            $targetTotalValue = round((float) ($memberStats->target_total ?? 0), 2);
+            $achievedTotalValue = round((float) ($memberStats->achieved_total ?? 0), 2);
+            $completionRate = $assignedLinesCount > 0
+                ? round(($completedLinesCount / $assignedLinesCount) * 100, 2)
+                : 0.0;
+            $valueAchievementRate = $targetTotalValue > 0
+                ? round(min(100, ($achievedTotalValue / $targetTotalValue) * 100), 2)
+                : 0.0;
+        }
+
+        $rankingRows = DB::table('users')
+            ->leftJoin('executive_director_line_user', 'executive_director_line_user.user_id', '=', 'users.id')
+            ->where('users.type', 'sales')
+            ->where(function ($q) {
+                $q->whereNull('users.is_manager')
+                    ->orWhere('users.is_manager', false);
+            })
+            ->groupBy('users.id')
+            ->select('users.id')
+            ->selectRaw('COUNT(executive_director_line_user.id) as assigned_lines')
+            ->selectRaw("SUM(CASE WHEN executive_director_line_user.member_status = 'complete' THEN 1 ELSE 0 END) as completed_lines")
+            ->selectRaw('COALESCE(SUM(executive_director_line_user.achieved_value), 0) as achieved_total')
+            ->orderByDesc('completed_lines')
+            ->orderByDesc('achieved_total')
+            ->orderBy('users.id')
+            ->get();
+
+        $salesStaffCount = $rankingRows->count();
+        $ranking = $rankingRows
+            ->pluck('id')
+            ->search((int) $user->id);
+        $ranking = $ranking === false ? null : ((int) $ranking + 1);
+
         return response()->json([
             'success' => true,
             'message' => 'تم جلب أهدافك المعيّنة بنجاح.',
             'data' => $data,
             'meta' => [
+                'member_overview' => [
+                    'assigned_lines_count' => $assignedLinesCount,
+                    'in_progress_lines_count' => $inProgressLinesCount,
+                    'completed_lines_count' => $completedLinesCount,
+                    'completion_rate_percent' => $completionRate,
+                    'target_total_value' => $targetTotalValue,
+                    'achieved_total_value' => $achievedTotalValue,
+                    'value_achievement_rate_percent' => $valueAchievementRate,
+                ],
+                'ranking' => [
+                    'position' => $ranking,
+                    'total_sales_staff' => $salesStaffCount,
+                ],
                 'current_page' => $rows->currentPage(),
                 'last_page' => $rows->lastPage(),
                 'per_page' => $rows->perPage(),
