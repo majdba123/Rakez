@@ -141,10 +141,17 @@ class ExecutiveDirectorLineController extends Controller
         $teamId = (int) $user->team_id;
 
         $query = ExecutiveDirectorLine::query()
-            ->with(['teams', 'teamGroups'])
-            ->whereHas('teams', function ($q) use ($teamId) {
-                $q->where('teams.id', $teamId);
-            })
+            ->select([
+                'executive_director_lines.id',
+                'executive_director_lines.line_type',
+                'executive_director_lines.value',
+                'executive_director_lines.status',
+                'executive_director_lines.created_at',
+                'executive_director_lines.updated_at',
+                'executive_director_line_team.value_target as team_value_target',
+            ])
+            ->join('executive_director_line_team', 'executive_director_line_team.executive_director_line_id', '=', 'executive_director_lines.id')
+            ->where('executive_director_line_team.team_id', $teamId)
             ->orderByDesc('id');
 
         if ($request->filled('status')) {
@@ -157,7 +164,19 @@ class ExecutiveDirectorLineController extends Controller
         $rows = $query->paginate($perPage);
 
         $data = collect($rows->items())
-            ->map(fn ($row) => (new ExecutiveDirectorLineResource($row))->toArray($request))
+            ->map(function ($row) {
+                return [
+                    'id' => (int) $row->id,
+                    'line_type' => $row->line_type,
+                    // Sales leader should see only the value assigned to their team.
+                    'value' => $row->team_value_target !== null ? (float) $row->team_value_target : null,
+                    'status' => (string) $row->status,
+                    'team_value_target' => $row->team_value_target !== null ? (float) $row->team_value_target : null,
+                    'line_total_value' => $row->value !== null ? (float) $row->value : null,
+                    'created_at' => $row->created_at?->toIso8601String(),
+                    'updated_at' => $row->updated_at?->toIso8601String(),
+                ];
+            })
             ->values()
             ->all();
 
