@@ -67,12 +67,7 @@ class ExecutiveDirectorLineController extends Controller
             ], 404);
         }
 
-        if (! ($actor->isAdmin() || $actor->hasRole('admin')) && (int) $actor->team_id !== (int) $member->team_id) {
-            return response()->json([
-                'success' => false,
-                'message' => 'يمكنك عرض موظفي فريقك فقط.',
-            ], 403);
-        }
+
 
         return $this->buildSalesMemberLinesResponse($request, $member);
     }
