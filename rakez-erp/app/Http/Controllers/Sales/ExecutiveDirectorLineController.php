@@ -163,9 +163,40 @@ class ExecutiveDirectorLineController extends Controller
         }
 
         $rows = $query->paginate($perPage);
+        $lineIds = collect($rows->items())->pluck('id')->map(fn ($v) => (int) $v)->values()->all();
+
+        $groupsByLine = collect();
+        if ($lineIds !== []) {
+            $groupsByLine = TeamGroup::query()
+                ->select([
+                    'team_groups.id',
+                    'team_groups.name',
+                    'team_groups.description',
+                    'team_groups.team_id',
+                    'executive_director_line_team_group.executive_director_line_id',
+                    'executive_director_line_team_group.value_target',
+                ])
+                ->join('executive_director_line_team_group', 'executive_director_line_team_group.team_group_id', '=', 'team_groups.id')
+                ->where('team_groups.team_id', $teamId)
+                ->whereIn('executive_director_line_team_group.executive_director_line_id', $lineIds)
+                ->orderBy('team_groups.id')
+                ->get()
+                ->groupBy('executive_director_line_id');
+        }
 
         $data = collect($rows->items())
-            ->map(function ($row) {
+            ->map(function ($row) use ($groupsByLine) {
+                $lineGroups = collect($groupsByLine->get((int) $row->id, []))
+                    ->map(fn ($group) => [
+                        'id' => (int) $group->id,
+                        'name' => $group->name,
+                        'description' => $group->description,
+                        'team_id' => (int) $group->team_id,
+                        'value_target' => $group->value_target !== null ? (float) $group->value_target : null,
+                    ])
+                    ->values()
+                    ->all();
+
                 return [
                     'id' => (int) $row->id,
                     'line_type' => $row->line_type,
@@ -174,6 +205,7 @@ class ExecutiveDirectorLineController extends Controller
                     'status' => $row->status instanceof BackedEnum ? $row->status->value : (string) $row->status,
                     'team_value_target' => $row->team_value_target !== null ? (float) $row->team_value_target : null,
                     'line_total_value' => $row->value !== null ? (float) $row->value : null,
+                    'team_groups' => $lineGroups,
                     'created_at' => $row->created_at instanceof \DateTimeInterface ? $row->created_at->format(\DateTimeInterface::ATOM) : $row->created_at,
                     'updated_at' => $row->updated_at instanceof \DateTimeInterface ? $row->updated_at->format(\DateTimeInterface::ATOM) : $row->updated_at,
                 ];
