@@ -647,7 +647,7 @@ class ExecutiveDirectorLineController extends Controller
     {
         $perPage = min((int) $request->query('per_page', 20), 100);
         $rows = ExecutiveDirectorLine::query()
-            ->with('teams')
+            ->with(['teams', 'teamGroups', 'memberUsers'])
             ->orderByDesc('id')
             ->paginate($perPage);
 
