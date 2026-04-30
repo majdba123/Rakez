@@ -35,6 +35,50 @@ class ExecutiveDirectorLineController extends Controller
             ], 403);
         }
 
+        return $this->buildSalesMemberLinesResponse($request, $user);
+    }
+
+    /**
+     * Manager/admin view of one sales member executive lines.
+     * GET /api/sales/manager/executive-director-lines/{salesUserId}
+     */
+    public function forSalesMemberByManager(Request $request, int $salesUserId): JsonResponse
+    {
+        $actor = $request->user();
+        $allowed = $actor && ($actor->isAdmin() || $actor->hasRole('admin') || $actor->isSalesTeamManager());
+        if (! $allowed) {
+            return response()->json([
+                'success' => false,
+                'message' => 'غير مصرح - الإدمن أو مدير المبيعات فقط.',
+            ], 403);
+        }
+
+        $member = User::query()
+            ->whereKey($salesUserId)
+            ->where('type', 'sales')
+            ->where(function ($q) {
+                $q->whereNull('is_manager')->orWhere('is_manager', false);
+            })
+            ->first();
+        if (! $member) {
+            return response()->json([
+                'success' => false,
+                'message' => 'موظف المبيعات المطلوب غير موجود.',
+            ], 404);
+        }
+
+        if (! ($actor->isAdmin() || $actor->hasRole('admin')) && (int) $actor->team_id !== (int) $member->team_id) {
+            return response()->json([
+                'success' => false,
+                'message' => 'يمكنك عرض موظفي فريقك فقط.',
+            ], 403);
+        }
+
+        return $this->buildSalesMemberLinesResponse($request, $member);
+    }
+
+    private function buildSalesMemberLinesResponse(Request $request, User $member): JsonResponse
+    {
         $perPage = min((int) $request->input('per_page', 20), 100);
 
         $hasProgressFields = Schema::hasColumns('executive_director_line_user', [
@@ -54,7 +98,7 @@ class ExecutiveDirectorLineController extends Controller
                 'executive_director_line_user.created_at as assigned_at',
             ])
             ->join('executive_director_line_user', 'executive_director_line_user.executive_director_line_id', '=', 'executive_director_lines.id')
-            ->where('executive_director_line_user.user_id', (int) $user->id)
+            ->where('executive_director_line_user.user_id', (int) $member->id)
             ->orderByDesc('executive_director_lines.id');
 
         if ($hasProgressFields) {
@@ -108,7 +152,7 @@ class ExecutiveDirectorLineController extends Controller
         $salesStaffCount = 0;
 
         $memberAgg = DB::table('executive_director_line_user')
-            ->where('user_id', (int) $user->id);
+            ->where('user_id', (int) $member->id);
 
         if ($hasProgressFields) {
             $memberAgg->selectRaw('COUNT(*) as assigned_lines')
@@ -158,7 +202,7 @@ class ExecutiveDirectorLineController extends Controller
         $salesStaffCount = $rankingRows->count();
         $ranking = $rankingRows
             ->pluck('id')
-            ->search((int) $user->id);
+            ->search((int) $member->id);
         $ranking = $ranking === false ? null : ((int) $ranking + 1);
 
         return response()->json([
