@@ -16,6 +16,7 @@ use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Schema;
+use BackedEnum;
 
 class ExecutiveDirectorLineController extends Controller
 {
@@ -53,7 +54,7 @@ class ExecutiveDirectorLineController extends Controller
             ])
             ->join('executive_director_line_user', 'executive_director_line_user.executive_director_line_id', '=', 'executive_director_lines.id')
             ->where('executive_director_line_user.user_id', (int) $user->id)
-            ->orderByDesc('id');
+            ->orderByDesc('executive_director_lines.id');
 
         if ($hasProgressFields) {
             $query->addSelect([
@@ -170,11 +171,11 @@ class ExecutiveDirectorLineController extends Controller
                     'line_type' => $row->line_type,
                     // Sales leader should see only the value assigned to their team.
                     'value' => $row->team_value_target !== null ? (float) $row->team_value_target : null,
-                    'status' => (string) $row->status,
+                    'status' => $row->status instanceof BackedEnum ? $row->status->value : (string) $row->status,
                     'team_value_target' => $row->team_value_target !== null ? (float) $row->team_value_target : null,
                     'line_total_value' => $row->value !== null ? (float) $row->value : null,
-                    'created_at' => $row->created_at?->toIso8601String(),
-                    'updated_at' => $row->updated_at?->toIso8601String(),
+                    'created_at' => $row->created_at instanceof \DateTimeInterface ? $row->created_at->format(\DateTimeInterface::ATOM) : $row->created_at,
+                    'updated_at' => $row->updated_at instanceof \DateTimeInterface ? $row->updated_at->format(\DateTimeInterface::ATOM) : $row->updated_at,
                 ];
             })
             ->values()
