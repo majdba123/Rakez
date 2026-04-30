@@ -180,7 +180,15 @@ class SalesReservationService
             $unit->update(['status' => 'reserved']);
 
             // Progress target for type=6 (sales) members based on reserved unit price.
-            $this->updateExecutiveLineMemberProgressForReservation($user, $unit);
+            // This must never block reservation flow when no target exists (or target-sync fails).
+            try {
+                $this->updateExecutiveLineMemberProgressForReservation($user, $unit);
+            } catch (\Throwable $e) {
+                \Illuminate\Support\Facades\Log::warning(
+                    'Executive line member progress sync skipped: '.$e->getMessage(),
+                    ['user_id' => $user->id, 'contract_unit_id' => $unit->id]
+                );
+            }
 
             // Create deposit if reservation is confirmed (immediate deposit flow)
             if ($status === 'confirmed' && $data['down_payment_amount'] > 0) {
