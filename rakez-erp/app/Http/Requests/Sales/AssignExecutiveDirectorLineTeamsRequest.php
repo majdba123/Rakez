@@ -19,24 +19,30 @@ class AssignExecutiveDirectorLineTeamsRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'team_ids' => 'required|array|max:1',
-            'team_ids.*' => [
+            'teams' => 'required|array|min:1|max:100',
+            'teams.*.team_id' => [
+                'required',
                 'integer',
                 'distinct',
                 Rule::exists('teams', 'id')->whereNull('deleted_at'),
             ],
+            'teams.*.value_target' => ['required', 'numeric', 'min:0'],
         ];
     }
 
     public function messages(): array
     {
         return [
-            'team_ids.required' => 'يجب إرسال قائمة معرفات الفرق (team_ids).',
-            'team_ids.array' => 'قائمة الفرق غير صالحة.',
-            'team_ids.max' => 'يُسمح بإرسال فريق واحد فقط داخل team_ids.',
-            'team_ids.*.integer' => 'معرف الفريق يجب أن يكون رقماً صحيحاً.',
-            'team_ids.*.distinct' => 'لا تكرر نفس معرف الفريق.',
-            'team_ids.*.exists' => 'أحد الفرق المحددة غير موجود أو محذوف.',
+            'teams.required' => 'يجب إرسال قائمة الفرق (teams).',
+            'teams.array' => 'قائمة الفرق غير صالحة.',
+            'teams.min' => 'يجب إرسال فريق واحد على الأقل داخل teams.',
+            'teams.*.team_id.required' => 'حقل team_id مطلوب لكل فريق.',
+            'teams.*.team_id.integer' => 'معرف الفريق يجب أن يكون رقماً صحيحاً.',
+            'teams.*.team_id.distinct' => 'لا تكرر نفس معرف الفريق.',
+            'teams.*.team_id.exists' => 'أحد الفرق المحددة غير موجود أو محذوف.',
+            'teams.*.value_target.required' => 'حقل value_target مطلوب لكل فريق.',
+            'teams.*.value_target.numeric' => 'value_target يجب أن يكون رقمياً.',
+            'teams.*.value_target.min' => 'value_target لا يمكن أن يكون أقل من صفر.',
         ];
     }
 

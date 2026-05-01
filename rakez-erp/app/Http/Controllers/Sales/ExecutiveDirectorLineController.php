@@ -15,7 +15,9 @@ use App\Models\TeamGroupLeader;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
+use BackedEnum;
 
 class ExecutiveDirectorLineController extends Controller
 {
@@ -33,6 +35,45 @@ class ExecutiveDirectorLineController extends Controller
             ], 403);
         }
 
+        return $this->buildSalesMemberLinesResponse($request, $user);
+    }
+
+    /**
+     * Manager/admin view of one sales member executive lines.
+     * GET /api/sales/manager/executive-director-lines/{salesUserId}
+     */
+    public function forSalesMemberByManager(Request $request, int $salesUserId): JsonResponse
+    {
+        $actor = $request->user();
+        $allowed = $actor && ($actor->isAdmin() || $actor->hasRole('admin') || $actor->isSalesTeamManager());
+        if (! $allowed) {
+            return response()->json([
+                'success' => false,
+                'message' => 'غير مصرح - الإدمن أو مدير المبيعات فقط.',
+            ], 403);
+        }
+
+        $member = User::query()
+            ->whereKey($salesUserId)
+            ->where('type', 'sales')
+            ->where(function ($q) {
+                $q->whereNull('is_manager')->orWhere('is_manager', false);
+            })
+            ->first();
+        if (! $member) {
+            return response()->json([
+                'success' => false,
+                'message' => 'موظف المبيعات المطلوب غير موجود.',
+            ], 404);
+        }
+
+
+
+        return $this->buildSalesMemberLinesResponse($request, $member);
+    }
+
+    private function buildSalesMemberLinesResponse(Request $request, User $member): JsonResponse
+    {
         $perPage = min((int) $request->input('per_page', 20), 100);
 
         $hasProgressFields = Schema::hasColumns('executive_director_line_user', [
@@ -52,8 +93,8 @@ class ExecutiveDirectorLineController extends Controller
                 'executive_director_line_user.created_at as assigned_at',
             ])
             ->join('executive_director_line_user', 'executive_director_line_user.executive_director_line_id', '=', 'executive_director_lines.id')
-            ->where('executive_director_line_user.user_id', (int) $user->id)
-            ->orderByDesc('id');
+            ->where('executive_director_line_user.user_id', (int) $member->id)
+            ->orderByDesc('executive_director_lines.id');
 
         if ($hasProgressFields) {
             $query->addSelect([
@@ -80,7 +121,7 @@ class ExecutiveDirectorLineController extends Controller
                     'line_id' => (int) $row->id,
                     'line_type' => $row->line_type,
                     'line_value' => $row->value !== null ? (float) $row->value : null,
-                    'line_status' => (string) $row->status,
+                    'line_status' => $row->status instanceof BackedEnum ? $row->status->value : (string) $row->status,
                     'target_value' => isset($row->value_target) ? (float) $row->value_target : null,
                     'achieved_value' => isset($row->achieved_value) ? (float) $row->achieved_value : null,
                     'remaining_value' => isset($row->value_target, $row->achieved_value)
@@ -95,11 +136,88 @@ class ExecutiveDirectorLineController extends Controller
             ->values()
             ->all();
 
+        $assignedLinesCount = 0;
+        $completedLinesCount = 0;
+        $inProgressLinesCount = 0;
+        $targetTotalValue = 0.0;
+        $achievedTotalValue = 0.0;
+        $completionRate = 0.0;
+        $valueAchievementRate = 0.0;
+        $ranking = null;
+        $salesStaffCount = 0;
+
+        $memberAgg = DB::table('executive_director_line_user')
+            ->where('user_id', (int) $member->id);
+
+        if ($hasProgressFields) {
+            $memberAgg->selectRaw('COUNT(*) as assigned_lines')
+                ->selectRaw("SUM(CASE WHEN member_status = 'complete' THEN 1 ELSE 0 END) as completed_lines")
+                ->selectRaw("SUM(CASE WHEN member_status = 'complete' THEN 0 ELSE 1 END) as in_progress_lines")
+                ->selectRaw('COALESCE(SUM(value_target), 0) as target_total')
+                ->selectRaw('COALESCE(SUM(achieved_value), 0) as achieved_total');
+        } else {
+            $memberAgg->selectRaw('COUNT(*) as assigned_lines')
+                ->selectRaw('0 as completed_lines')
+                ->selectRaw('COUNT(*) as in_progress_lines')
+                ->selectRaw('COALESCE(SUM(value_target), 0) as target_total')
+                ->selectRaw('0 as achieved_total');
+        }
+
+        $memberStats = $memberAgg->first();
+        if ($memberStats) {
+            $assignedLinesCount = (int) ($memberStats->assigned_lines ?? 0);
+            $completedLinesCount = (int) ($memberStats->completed_lines ?? 0);
+            $inProgressLinesCount = (int) ($memberStats->in_progress_lines ?? 0);
+            $targetTotalValue = round((float) ($memberStats->target_total ?? 0), 2);
+            $achievedTotalValue = round((float) ($memberStats->achieved_total ?? 0), 2);
+            $completionRate = $assignedLinesCount > 0
+                ? round(($completedLinesCount / $assignedLinesCount) * 100, 2)
+                : 0.0;
+            $valueAchievementRate = $targetTotalValue > 0
+                ? round(min(100, ($achievedTotalValue / $targetTotalValue) * 100), 2)
+                : 0.0;
+        }
+
+        $rankingQuery = DB::table('users')
+            ->leftJoin('executive_director_line_user', 'executive_director_line_user.user_id', '=', 'users.id')
+            ->where('users.type', 'sales')
+            ->where(function ($q) {
+                $q->whereNull('users.is_manager')
+                    ->orWhere('users.is_manager', false);
+            })
+            ->groupBy('users.id')
+            ->select('users.id')
+            ->selectRaw('COUNT(executive_director_line_user.id) as assigned_lines');
+
+        $rankingRows = $rankingQuery
+            ->orderByDesc('assigned_lines')
+            ->orderBy('users.id')
+            ->get();
+
+        $salesStaffCount = $rankingRows->count();
+        $ranking = $rankingRows
+            ->pluck('id')
+            ->search((int) $member->id);
+        $ranking = $ranking === false ? null : ((int) $ranking + 1);
+
         return response()->json([
             'success' => true,
             'message' => 'تم جلب أهدافك المعيّنة بنجاح.',
             'data' => $data,
             'meta' => [
+                'member_overview' => [
+                    'assigned_lines_count' => $assignedLinesCount,
+                    'in_progress_lines_count' => $inProgressLinesCount,
+                    'completed_lines_count' => $completedLinesCount,
+                    'completion_rate_percent' => $completionRate,
+                    'target_total_value' => $targetTotalValue,
+                    'achieved_total_value' => $achievedTotalValue,
+                    'value_achievement_rate_percent' => $valueAchievementRate,
+                ],
+                'ranking' => [
+                    'position' => $ranking,
+                    'total_sales_staff' => $salesStaffCount,
+                ],
                 'current_page' => $rows->currentPage(),
                 'last_page' => $rows->lastPage(),
                 'per_page' => $rows->perPage(),
@@ -141,10 +259,17 @@ class ExecutiveDirectorLineController extends Controller
         $teamId = (int) $user->team_id;
 
         $query = ExecutiveDirectorLine::query()
-            ->with(['teams', 'teamGroups'])
-            ->whereHas('teams', function ($q) use ($teamId) {
-                $q->where('teams.id', $teamId);
-            })
+            ->select([
+                'executive_director_lines.id',
+                'executive_director_lines.line_type',
+                'executive_director_lines.value',
+                'executive_director_lines.status',
+                'executive_director_lines.created_at',
+                'executive_director_lines.updated_at',
+                'executive_director_line_team.value_target as team_value_target',
+            ])
+            ->join('executive_director_line_team', 'executive_director_line_team.executive_director_line_id', '=', 'executive_director_lines.id')
+            ->where('executive_director_line_team.team_id', $teamId)
             ->orderByDesc('id');
 
         if ($request->filled('status')) {
@@ -155,9 +280,53 @@ class ExecutiveDirectorLineController extends Controller
         }
 
         $rows = $query->paginate($perPage);
+        $lineIds = collect($rows->items())->pluck('id')->map(fn ($v) => (int) $v)->values()->all();
+
+        $groupsByLine = collect();
+        if ($lineIds !== []) {
+            $groupsByLine = TeamGroup::query()
+                ->select([
+                    'team_groups.id',
+                    'team_groups.name',
+                    'team_groups.description',
+                    'team_groups.team_id',
+                    'executive_director_line_team_group.executive_director_line_id',
+                    'executive_director_line_team_group.value_target',
+                ])
+                ->join('executive_director_line_team_group', 'executive_director_line_team_group.team_group_id', '=', 'team_groups.id')
+                ->where('team_groups.team_id', $teamId)
+                ->whereIn('executive_director_line_team_group.executive_director_line_id', $lineIds)
+                ->orderBy('team_groups.id')
+                ->get()
+                ->groupBy('executive_director_line_id');
+        }
 
         $data = collect($rows->items())
-            ->map(fn ($row) => (new ExecutiveDirectorLineResource($row))->toArray($request))
+            ->map(function ($row) use ($groupsByLine) {
+                $lineGroups = collect($groupsByLine->get((int) $row->id, []))
+                    ->map(fn ($group) => [
+                        'id' => (int) $group->id,
+                        'name' => $group->name,
+                        'description' => $group->description,
+                        'team_id' => (int) $group->team_id,
+                        'value_target' => $group->value_target !== null ? (float) $group->value_target : null,
+                    ])
+                    ->values()
+                    ->all();
+
+                return [
+                    'id' => (int) $row->id,
+                    'line_type' => $row->line_type,
+                    // Sales leader should see only the value assigned to their team.
+                    'value' => $row->team_value_target !== null ? (float) $row->team_value_target : null,
+                    'status' => $row->status instanceof BackedEnum ? $row->status->value : (string) $row->status,
+                    'team_value_target' => $row->team_value_target !== null ? (float) $row->team_value_target : null,
+                    'line_total_value' => $row->value !== null ? (float) $row->value : null,
+                    'team_groups' => $lineGroups,
+                    'created_at' => $row->created_at instanceof \DateTimeInterface ? $row->created_at->format(\DateTimeInterface::ATOM) : $row->created_at,
+                    'updated_at' => $row->updated_at instanceof \DateTimeInterface ? $row->updated_at->format(\DateTimeInterface::ATOM) : $row->updated_at,
+                ];
+            })
             ->values()
             ->all();
 
@@ -175,8 +344,9 @@ class ExecutiveDirectorLineController extends Controller
     }
 
     /**
-     * Link an executive line (already assigned to the leader’s team) to a single sub-group in array form.
-     * POST /api/sales/team/executive-director-lines/{id}/team-groups — body: { "team_group_ids": [1] }
+     * Link an executive line (already assigned to the leader’s team) to one or many sub-groups with target per group.
+     * POST /api/sales/team/executive-director-lines/{id}/team-groups
+     * body: { "team_groups": [ { "team_group_id": 1, "value_target": 150 }, { "team_group_id": 2, "value_target": 150 } ] }
      */
     public function syncTeamGroupsForMyLedTeam(AssignExecutiveDirectorLineTeamGroupsRequest $request, int $id): JsonResponse
     {
@@ -203,8 +373,34 @@ class ExecutiveDirectorLineController extends Controller
             ], 404);
         }
 
-        $ids = array_values(array_unique(array_map('intval', $request->validated('team_group_ids'))));
-        $line->teamGroups()->sync($ids);
+        $teamTargetValue = (float) ($line->teams()
+            ->where('teams.id', $teamId)
+            ->first()?->pivot?->value_target ?? $line->value ?? 0);
+
+        $groups = collect($request->validated('team_groups'));
+        $totalAssignedToGroups = (float) $groups->sum(fn ($group) => (float) $group['value_target']);
+        if ((int) round($totalAssignedToGroups * 100) !== (int) round($teamTargetValue * 100)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'مجموع value_target للمجموعات يجب أن يساوي حصة الفريق في هذا السطر تماماً (لا أقل ولا أكثر).',
+                'errors' => [
+                    'team_groups' => [
+                        'مجموع المجموعات '.$totalAssignedToGroups.' بينما حصة الفريق '.$teamTargetValue.'. يجب التطابق التام.',
+                    ],
+                ],
+            ], 422);
+        }
+
+        $ids = $groups->pluck('team_group_id')->map(fn ($v) => (int) $v)->values()->all();
+        $syncPayload = [];
+        foreach ($groups as $group) {
+            $syncPayload[(int) $group['team_group_id']] = [
+                'value_target' => round((float) $group['value_target'], 2),
+                'group_status' => 'pending',
+                'completed_at' => null,
+            ];
+        }
+        $line->teamGroups()->sync($syncPayload);
 
         return response()->json([
             'success' => true,
@@ -227,17 +423,18 @@ class ExecutiveDirectorLineController extends Controller
         $perPage = min((int) $request->input('per_page', 20), 100);
 
         $query = ExecutiveDirectorLine::query()
-            ->whereHas('teamGroups', function ($q) use ($groupId) {
-                $q->where('team_groups.id', $groupId);
-            })
-            ->with([
-                'teams',
-                'teamGroups',
-                'memberUsers' => function ($q) use ($groupId) {
-                    $q->where('users.team_group_id', $groupId);
-                },
+            ->select([
+                'executive_director_lines.id',
+                'executive_director_lines.line_type',
+                'executive_director_lines.value',
+                'executive_director_lines.status',
+                'executive_director_lines.created_at',
+                'executive_director_lines.updated_at',
+                'executive_director_line_team_group.value_target as group_value_target',
             ])
-            ->orderByDesc('id');
+            ->join('executive_director_line_team_group', 'executive_director_line_team_group.executive_director_line_id', '=', 'executive_director_lines.id')
+            ->where('executive_director_line_team_group.team_group_id', $groupId)
+            ->orderByDesc('executive_director_lines.id');
 
         if ($request->filled('status')) {
             $query->where('status', $request->input('status'));
@@ -247,9 +444,56 @@ class ExecutiveDirectorLineController extends Controller
         }
 
         $rows = $query->paginate($perPage);
+        $lineIds = collect($rows->items())->pluck('id')->map(fn ($v) => (int) $v)->values()->all();
+
+        $membersByLine = collect();
+        if ($lineIds !== []) {
+            $membersByLine = User::query()
+                ->select([
+                    'users.id',
+                    'users.name',
+                    'users.email',
+                    'users.phone',
+                    'users.type',
+                    'executive_director_line_user.executive_director_line_id',
+                    'executive_director_line_user.value_target',
+                    'executive_director_line_user.line_type_flag',
+                ])
+                ->join('executive_director_line_user', 'executive_director_line_user.user_id', '=', 'users.id')
+                ->where('users.team_group_id', $groupId)
+                ->whereIn('executive_director_line_user.executive_director_line_id', $lineIds)
+                ->orderBy('users.id')
+                ->get()
+                ->groupBy('executive_director_line_id');
+        }
 
         $data = collect($rows->items())
-            ->map(fn ($row) => (new ExecutiveDirectorLineResource($row))->toArray($request))
+            ->map(function ($row) use ($membersByLine) {
+                $memberUsers = collect($membersByLine->get((int) $row->id, []))
+                    ->map(fn ($member) => [
+                        'id' => (int) $member->id,
+                        'name' => $member->name,
+                        'email' => $member->email,
+                        'phone' => $member->phone,
+                        'type' => $member->type,
+                        'value_target' => $member->value_target !== null ? (float) $member->value_target : null,
+                        'line_type_flag' => $member->line_type_flag,
+                    ])
+                    ->values()
+                    ->all();
+
+                return [
+                    'id' => (int) $row->id,
+                    'line_type' => $row->line_type,
+                    'value' => $row->group_value_target !== null ? (float) $row->group_value_target : null,
+                    'status' => $row->status instanceof BackedEnum ? $row->status->value : (string) $row->status,
+                    'group_value_target' => $row->group_value_target !== null ? (float) $row->group_value_target : null,
+                    'line_total_value' => $row->value !== null ? (float) $row->value : null,
+                    'member_users' => $memberUsers,
+                    'created_at' => $row->created_at instanceof \DateTimeInterface ? $row->created_at->format(\DateTimeInterface::ATOM) : $row->created_at,
+                    'updated_at' => $row->updated_at instanceof \DateTimeInterface ? $row->updated_at->format(\DateTimeInterface::ATOM) : $row->updated_at,
+                ];
+            })
             ->values()
             ->all();
 
@@ -294,6 +538,10 @@ class ExecutiveDirectorLineController extends Controller
             ], 404);
         }
 
+        $groupTargetValue = (float) ($line->teamGroups()
+            ->where('team_groups.id', $groupId)
+            ->first()?->pivot?->value_target ?? $line->value ?? 0);
+
         $members = collect($request->validated('members'));
         $userIds = $members->pluck('user_id')->map(fn ($v) => (int) $v)->values()->all();
         if ($userIds === []) {
@@ -303,18 +551,17 @@ class ExecutiveDirectorLineController extends Controller
             return $this->groupLeaderMemberSyncResponse($line, $request, $groupId);
         }
 
-        $lineValue = (float) ($line->value ?? 0);
         $totalAssignedValue = (float) $members->sum(fn ($member) => (float) $member['value_target']);
 
-        $lineCents = (int) round($lineValue * 100);
+        $groupTargetCents = (int) round($groupTargetValue * 100);
         $assignedCents = (int) round($totalAssignedValue * 100);
-        if ($assignedCents !== $lineCents) {
+        if ($assignedCents > $groupTargetCents) {
             return response()->json([
                 'success' => false,
-                'message' => 'مجموع value_target للأعضاء يجب أن يساوي قيمة السطر تماماً (لا أكثر ولا أقل).',
+                'message' => 'مجموع value_target للأعضاء لا يمكن أن يتجاوز الحصة المعيّنة للمجموعة.',
                 'errors' => [
                     'members' => [
-                        'مجموع value_target يساوي '.$totalAssignedValue.' بينما قيمة السطر '.$lineValue.'.',
+                        'مجموع value_target يساوي '.$totalAssignedValue.' بينما الحد الأقصى للمجموعة '.$groupTargetValue.'.',
                     ],
                 ],
             ], 422);
@@ -333,12 +580,23 @@ class ExecutiveDirectorLineController extends Controller
         }
 
         $this->detachGroupMembersForLine($line, $groupId);
+        $hasProgressFields = Schema::hasColumns('executive_director_line_user', [
+            'achieved_value',
+            'member_status',
+            'completed_at',
+        ]);
         $attachPayload = [];
         foreach ($members as $member) {
-            $attachPayload[(int) $member['user_id']] = [
+            $payload = [
                 'value_target' => round((float) $member['value_target'], 2),
                 'line_type_flag' => $line->line_type,
             ];
+            if ($hasProgressFields) {
+                $payload['achieved_value'] = 0;
+                $payload['member_status'] = 'pending';
+                $payload['completed_at'] = null;
+            }
+            $attachPayload[(int) $member['user_id']] = $payload;
         }
         $line->memberUsers()->attach($attachPayload);
         $line->load(['teams', 'teamGroups', 'memberUsers' => function ($q) use ($groupId) {
@@ -471,7 +729,7 @@ class ExecutiveDirectorLineController extends Controller
             $perPage = min((int) $request->query('per_page', 20), 100);
 
             $query = ExecutiveDirectorLine::query()
-                ->with('teams')
+                ->with(['teams', 'teamGroups', 'memberUsers'])
                 ->orderByDesc('id');
 
             if ($request->filled('team_id')) {
@@ -519,7 +777,7 @@ class ExecutiveDirectorLineController extends Controller
     {
         $perPage = min((int) $request->query('per_page', 20), 100);
         $rows = ExecutiveDirectorLine::query()
-            ->with('teams')
+            ->with(['teams', 'teamGroups', 'memberUsers'])
             ->orderByDesc('id')
             ->paginate($perPage);
 
@@ -556,8 +814,9 @@ class ExecutiveDirectorLineController extends Controller
     }
 
     /**
-     * Replace team assignment (single team in array). Admin or sales manager (sales + is_manager).
-     * POST /api/sales/executive-director-lines/{id}/teams — body: { "team_ids": [1] }
+     * Replace team assignment with target per team. Admin or sales manager (sales + is_manager).
+     * POST /api/sales/executive-director-lines/{id}/teams
+     * body: { "teams": [ { "team_id": 1, "value_target": 300 }, { "team_id": 2, "value_target": 300 } ] }
      */
     public function syncTeams(AssignExecutiveDirectorLineTeamsRequest $request, int $id): JsonResponse
     {
@@ -579,8 +838,30 @@ class ExecutiveDirectorLineController extends Controller
             ], 404);
         }
 
-        $ids = array_values(array_unique(array_map('intval', $request->validated('team_ids'))));
-        $row->teams()->sync($ids);
+        $teams = collect($request->validated('teams'));
+        $totalAssignedToTeams = (float) $teams->sum(fn ($team) => (float) $team['value_target']);
+        $lineValue = (float) ($row->value ?? 0);
+        if ((int) round($totalAssignedToTeams * 100) !== (int) round($lineValue * 100)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'مجموع value_target للفرق يجب أن يساوي قيمة السطر تماماً (لا أقل ولا أكثر).',
+                'errors' => [
+                    'teams' => [
+                        'مجموع الفرق '.$totalAssignedToTeams.' بينما قيمة السطر '.$lineValue.'. يجب التطابق التام.',
+                    ],
+                ],
+            ], 422);
+        }
+
+        $syncPayload = [];
+        foreach ($teams as $team) {
+            $syncPayload[(int) $team['team_id']] = [
+                'value_target' => round((float) $team['value_target'], 2),
+                'team_status' => 'pending',
+                'completed_at' => null,
+            ];
+        }
+        $row->teams()->sync($syncPayload);
 
         return response()->json([
             'success' => true,
@@ -639,4 +920,5 @@ class ExecutiveDirectorLineController extends Controller
             'message' => 'تم حذف السطر.',
         ]);
     }
+
 }

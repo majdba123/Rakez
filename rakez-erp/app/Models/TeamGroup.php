@@ -37,6 +37,7 @@ class TeamGroup extends Model
     public function executiveDirectorLines(): BelongsToMany
     {
         return $this->belongsToMany(ExecutiveDirectorLine::class, 'executive_director_line_team_group')
+            ->withPivot('value_target', 'group_status', 'completed_at')
             ->withTimestamps();
     }
 }
