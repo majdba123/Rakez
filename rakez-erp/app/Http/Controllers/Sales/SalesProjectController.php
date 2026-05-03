@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Sales;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Sales\SendUnitDeveloperPackageRequest;
 use App\Http\Requests\Sales\UpdateEmergencyContactsRequest;
 use App\Http\Resources\Sales\SalesProjectDetailResource;
 use App\Http\Resources\Sales\SalesProjectResource;
@@ -13,6 +14,7 @@ use App\Models\User;
 use App\Services\Pdf\PdfFactory;
 use App\Services\Sales\SalesProjectService;
 use App\Services\Sales\SalesTeamService;
+use App\Services\Sales\UnitDeveloperPackageService;
 use App\Http\Responses\ApiResponse;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -23,7 +25,8 @@ class SalesProjectController extends Controller
 {
     public function __construct(
         private SalesProjectService $projectService,
-        private SalesTeamService $teamService
+        private SalesTeamService $teamService,
+        private UnitDeveloperPackageService $developerPackageService
     ) {}
 
     /**
@@ -224,6 +227,52 @@ class SalesProjectController extends Controller
                 'success' => false,
                 'message' => 'تحميل PDF غير متوفر لهذه الوحدة حالياً',
             ], 503);
+        }
+    }
+
+    public function sendDeveloperPackage(SendUnitDeveloperPackageRequest $request, int $unitId): JsonResponse
+    {
+        try {
+            $unit = ContractUnit::with('contract')->findOrFail($unitId);
+            $contract = $unit->contract;
+
+            if (!$contract) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Unit must belong to a contract',
+                ], 422);
+            }
+
+            if (!$this->projectService->userCanAccessContract($request->user(), $contract->id)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'You do not have access to this unit',
+                ], 403);
+            }
+
+            $result = $this->developerPackageService->send(
+                $unit,
+                $request->validated('payments'),
+                $request->validated('message')
+            );
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Developer package generated and sent by WhatsApp',
+                'data' => $result,
+            ]);
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Unit not found',
+            ], 404);
+        } catch (\Throwable $e) {
+            report($e);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to send developer package: ' . $e->getMessage(),
+            ], 500);
         }
     }
 

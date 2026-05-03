@@ -35,4 +35,8 @@ return [
         ],
     ],
 
+    'twilio' => [
+        'whatsapp_from' => env('TWILIO_WHATSAPP_FROM'),
+    ],
+
 ];

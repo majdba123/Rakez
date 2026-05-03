@@ -11,7 +11,11 @@ use App\Models\SalesTarget;
 use App\Models\SecondPartyData;
 use App\Models\Team;
 use App\Models\User;
+use App\Services\Notifications\SmsSendResult;
+use App\Services\Notifications\TwilioWhatsAppService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Storage;
+use Mockery;
 use Tests\TestCase;
 
 class SalesProjectTest extends TestCase
@@ -48,6 +52,67 @@ class SalesProjectTest extends TestCase
 
         $response->assertStatus(200);
         $this->assertEquals('pending', $response->json('data.sales_status'));
+    }
+
+    public function test_can_send_unit_developer_package_by_whatsapp()
+    {
+        Storage::fake('public');
+
+        $contract = Contract::factory()->create([
+            'status' => 'completed',
+            'developer_number' => '+966500000001',
+            'is_off_plan' => true,
+        ]);
+        ContractInfo::factory()->create([
+            'contract_id' => $contract->id,
+            'second_party_name' => 'Developer Client',
+        ]);
+        SecondPartyData::factory()->create([
+            'contract_id' => $contract->id,
+            'plans_equipment_docs_url' => 'https://example.com/plans.pdf',
+        ]);
+        $unit = ContractUnit::factory()->create([
+            'contract_id' => $contract->id,
+            'unit_number' => 'A-101',
+            'diagrames' => 'https://example.com/unit-diagram.pdf',
+            'price' => 500000,
+        ]);
+        SalesReservation::factory()->create([
+            'contract_id' => $contract->id,
+            'contract_unit_id' => $unit->id,
+            'marketing_employee_id' => $this->salesUser->id,
+            'delivery_date' => '2026-08-01',
+            'first_payment' => 25000,
+            'first_payment_date' => '2026-06-01',
+            'account' => 'basic',
+        ]);
+
+        $whatsApp = Mockery::mock(TwilioWhatsAppService::class);
+        $whatsApp->shouldReceive('send')
+            ->once()
+            ->with(
+                '+966500000001',
+                Mockery::type('string'),
+                Mockery::on(fn ($url) => is_string($url) && str_contains($url, 'sales/developer-packages/'))
+            )
+            ->andReturn(new SmsSendResult('SM123'));
+        $this->instance(TwilioWhatsAppService::class, $whatsApp);
+
+        $response = $this->actingAs($this->salesUser, 'sanctum')
+            ->postJson("/api/sales/units/{$unit->id}/developer-package/send", [
+                'payments' => [
+                    ['payment' => 100000, 'date' => '2026-09-01'],
+                    ['payment' => 150000],
+                ],
+            ]);
+
+        $response->assertOk()
+            ->assertJsonPath('success', true)
+            ->assertJsonPath('data.unit_id', $unit->id)
+            ->assertJsonPath('data.developer_number', '+966500000001')
+            ->assertJsonPath('data.whatsapp_sid', 'SM123');
+
+        Storage::disk('public')->assertExists($response->json('data.pdf_path'));
     }
 
     public function test_project_status_pending_when_units_have_zero_price()

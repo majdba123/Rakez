@@ -466,6 +466,7 @@ use Illuminate\Support\Facades\File;  // أضف هذا السطر في الأع�
             Route::get('projects/{contractId}/units', [SalesProjectController::class, 'units'])->middleware('permission:sales.projects.view');
             Route::get('units/{id}/pdf', [SalesProjectController::class, 'unitPdf'])->middleware('permission:sales.projects.view');
             Route::get('units/{unitId}/pdf-data', [SalesProjectController::class, 'unitPdfData'])->middleware('permission:sales.projects.view')->whereNumber('unitId');
+            Route::post('units/{unitId}/developer-package/send', [SalesProjectController::class, 'sendDeveloperPackage'])->middleware('permission:sales.projects.view')->whereNumber('unitId');
 
             // Unit Search (cross-project)
             Route::get('units/search', [SalesUnitSearchController::class, 'search'])->middleware('permission:sales.projects.view');
