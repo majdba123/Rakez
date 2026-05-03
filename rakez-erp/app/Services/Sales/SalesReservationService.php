@@ -5,6 +5,7 @@ namespace App\Services\Sales;
 use App\Models\SalesReservation;
 use App\Models\SalesReservationAction;
 use App\Models\NegotiationApproval;
+use App\Models\ReservationPaymentInstallment;
 use App\Models\ContractUnit;
 use App\Models\Contract;
 use App\Models\User;
@@ -79,6 +80,12 @@ class SalesReservationService
             if (!$unit) {
                 throw new Exception('Unit not found');
             }
+            if (!$unit->contract_id) {
+                throw new Exception('Unit must belong to a contract');
+            }
+            if ((int) $unit->contract_id !== (int) $data['contract_id']) {
+                throw new Exception('Unit does not belong to this project');
+            }
 
             // Check if there's an active reservation for this unit
             $activeReservation = SalesReservation::where('contract_unit_id', $unit->id)
@@ -91,6 +98,12 @@ class SalesReservationService
 
             // Load contract and related data for snapshot
             $contract = Contract::with(['info', 'secondPartyData', 'city', 'district'])->findOrFail($data['contract_id']);
+            if ($contract->is_off_plan && empty($data['payments'])) {
+                throw new Exception('Payments are required for off-plan projects');
+            }
+            if (!$contract->is_off_plan && !empty($data['payments'])) {
+                throw new Exception('Payments are only allowed for off-plan projects');
+            }
 
             // Determine initial status based on reservation type
             $status = $data['reservation_type'] === 'negotiation'
@@ -129,6 +142,11 @@ class SalesReservationService
                     'amount' => $data['down_payment_amount'],
                     'status' => $data['down_payment_status'],
                     'mechanism' => $data['purchase_mechanism'],
+                    'delivery_date' => $data['delivery_date'] ?? null,
+                    'first_payment' => $data['first_payment'] ?? null,
+                    'first_payment_date' => $data['first_payment_date'] ?? null,
+                    'account' => $data['account'] ?? null,
+                    'payments' => $data['payments'] ?? [],
                 ]
             ];
 
@@ -157,11 +175,27 @@ class SalesReservationService
                 'payment_method' => $data['payment_method'],
                 'down_payment_amount' => $data['down_payment_amount'],
                 'down_payment_status' => $data['down_payment_status'],
+                'delivery_date' => $data['delivery_date'] ?? null,
+                'first_payment' => $data['first_payment'] ?? null,
+                'first_payment_date' => $data['first_payment_date'] ?? null,
+                'account' => $data['account'] ?? null,
                 'purchase_mechanism' => $data['purchase_mechanism'],
                 'receipt_voucher_path' => $data['receipt_voucher_path'] ?? null,
                 'snapshot' => $snapshot,
                 'confirmed_at' => $status === 'confirmed' ? now() : null,
             ]);
+
+            if ($contract->is_off_plan && !empty($data['payments'])) {
+                foreach ($data['payments'] as $index => $payment) {
+                    ReservationPaymentInstallment::create([
+                        'sales_reservation_id' => $reservation->id,
+                        'due_date' => $payment['date'] ?? null,
+                        'amount' => $payment['payment'],
+                        'description' => $payment['description'] ?? 'Ø§Ù„Ø¯ÙØ¹Ø© ' . ($index + 1),
+                        'status' => 'pending',
+                    ]);
+                }
+            }
 
             // Create negotiation approval record for negotiation reservations
             if ($data['reservation_type'] === 'negotiation') {
@@ -224,7 +258,7 @@ class SalesReservationService
                 $this->notifySalesManagers($reservation, $unit);
             }
 
-            return $reservation->fresh(['contract', 'contractUnit', 'marketingEmployee', 'negotiationApproval']);
+            return $reservation->fresh(['contract', 'contractUnit', 'marketingEmployee', 'negotiationApproval', 'paymentInstallments']);
 
         } catch (Exception $e) {
             DB::rollBack();
@@ -343,6 +377,7 @@ class SalesReservationService
             'claimFile',
             'combinedClaimFiles',
             'commission.distributions',
+            'paymentInstallments',
         ]);
 
         // Visibility: sales reps see own rows; sales leaders see team + led-project rows (see SalesDashboardService).

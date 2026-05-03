@@ -121,6 +121,51 @@ class SalesReservationTest extends TestCase
         $this->assertTrue(Storage::disk('public')->exists($reservation->receipt_voucher_path));
     }
 
+    public function test_create_off_plan_reservation_stores_payment_schedule_fields()
+    {
+        $this->contract->update(['is_off_plan' => true]);
+
+        $data = $this->getValidReservationData();
+        $data['evacuation_date'] = now()->addDay()->format('Y-m-d');
+        $data['delivery_date'] = '2026-08-01';
+        $data['first_payment'] = 25000;
+        $data['first_payment_date'] = '2026-06-01';
+        $data['account'] = 'from_developer';
+        $data['payments'] = [
+            ['payment' => 100000, 'date' => '2026-09-01'],
+            ['payment' => 150000],
+        ];
+
+        $response = $this->actingAs($this->salesUser, 'sanctum')
+            ->postJson('/api/sales/reservations', $data);
+
+        $response->assertStatus(201)
+            ->assertJsonPath('data.delivery_date', '2026-08-01')
+            ->assertJsonPath('data.first_payment', 25000)
+            ->assertJsonPath('data.first_payment_date', '2026-06-01')
+            ->assertJsonPath('data.account', 'from_developer')
+            ->assertJsonPath('data.payments.0.payment', 100000)
+            ->assertJsonPath('data.payments.0.date', '2026-09-01')
+            ->assertJsonPath('data.payments.1.payment', 150000)
+            ->assertJsonPath('data.payments.1.date', null);
+
+        $this->assertDatabaseHas('sales_reservations', [
+            'contract_id' => $this->contract->id,
+            'delivery_date' => '2026-08-01 00:00:00',
+            'first_payment' => 25000,
+            'first_payment_date' => '2026-06-01 00:00:00',
+            'account' => 'from_developer',
+        ]);
+        $this->assertDatabaseHas('reservation_payment_installments', [
+            'amount' => 100000,
+            'due_date' => '2026-09-01 00:00:00',
+        ]);
+        $this->assertDatabaseHas('reservation_payment_installments', [
+            'amount' => 150000,
+            'due_date' => null,
+        ]);
+    }
+
     public function test_create_reservation_stores_snapshot()
     {
         $data = $this->getValidReservationData();

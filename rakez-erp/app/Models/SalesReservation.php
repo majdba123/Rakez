@@ -31,6 +31,10 @@ class SalesReservation extends Model
         'payment_method',
         'down_payment_amount',
         'down_payment_status',
+        'delivery_date',
+        'first_payment',
+        'first_payment_date',
+        'account',
         'down_payment_confirmed',
         'down_payment_confirmed_by',
         'down_payment_confirmed_at',
@@ -49,8 +53,11 @@ class SalesReservation extends Model
     protected $casts = [
         'contract_date' => 'date',
         'evacuation_date' => 'date',
+        'delivery_date' => 'date',
+        'first_payment_date' => 'date',
         'snapshot' => 'array',
         'down_payment_amount' => 'decimal:2',
+        'first_payment' => 'decimal:2',
         'proposed_price' => 'decimal:2',
         'brokerage_commission_percent' => 'decimal:2',
         'tax_amount' => 'decimal:2',
@@ -108,7 +115,10 @@ class SalesReservation extends Model
      */
     public function paymentInstallments(): HasMany
     {
-        return $this->hasMany(ReservationPaymentInstallment::class)->orderBy('due_date');
+        return $this->hasMany(ReservationPaymentInstallment::class)
+            ->orderByRaw('due_date IS NULL')
+            ->orderBy('due_date')
+            ->orderBy('id');
     }
 
     /**

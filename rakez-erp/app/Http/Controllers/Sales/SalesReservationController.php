@@ -127,7 +127,7 @@ class SalesReservationController extends Controller
     public function show(int $id): JsonResponse
     {
         try {
-            $reservation = SalesReservation::with(['contract', 'contractUnit', 'marketingEmployee'])
+            $reservation = SalesReservation::with(['contract', 'contractUnit', 'marketingEmployee', 'paymentInstallments'])
                 ->findOrFail($id);
 
             return response()->json([

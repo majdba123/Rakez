@@ -123,6 +123,50 @@ class StoreReservationRequest extends FormRequest
             }
         }
 
+        if (empty($input['delivery_date']) && !empty($input['deliveryDate'])) {
+            $input['delivery_date'] = $input['deliveryDate'];
+        }
+        if ((!isset($input['first_payment']) || $input['first_payment'] === '' || $input['first_payment'] === null)
+            && isset($input['firstPayment']) && $input['firstPayment'] !== '') {
+            $input['first_payment'] = $input['firstPayment'];
+        }
+        if (empty($input['first_payment_date']) && !empty($input['firstPaymentDate'])) {
+            $input['first_payment_date'] = $input['firstPaymentDate'];
+        }
+        if (empty($input['account']) && !empty($input['payment_account'])) {
+            $input['account'] = $input['payment_account'];
+        }
+        if (empty($input['account']) && !empty($input['paymentAccount'])) {
+            $input['account'] = $input['paymentAccount'];
+        }
+        if (!empty($input['account']) && is_string($input['account'])) {
+            $account = strtolower(trim($input['account']));
+            if (in_array($account, ['basic', 'main'], true)) {
+                $input['account'] = 'basic';
+            } elseif (in_array($account, ['developer', 'from_developer', 'from developer'], true)) {
+                $input['account'] = 'from_developer';
+            }
+        }
+        if (empty($input['payments']) && !empty($input['payment_plan']) && is_array($input['payment_plan'])) {
+            $input['payments'] = $input['payment_plan'];
+        }
+        if (!empty($input['payments']) && is_array($input['payments'])) {
+            $input['payments'] = array_map(function ($payment) {
+                if (!is_array($payment)) {
+                    return $payment;
+                }
+                if ((!isset($payment['payment']) || $payment['payment'] === '' || $payment['payment'] === null)
+                    && isset($payment['amount'])) {
+                    $payment['payment'] = $payment['amount'];
+                }
+                if (empty($payment['date']) && !empty($payment['due_date'])) {
+                    $payment['date'] = $payment['due_date'];
+                }
+
+                return $payment;
+            }, $input['payments']);
+        }
+
         $this->merge($input);
     }
 
@@ -145,6 +189,14 @@ class StoreReservationRequest extends FormRequest
             'down_payment_amount' => 'required|numeric|min:0',
             'down_payment_status' => 'required|in:refundable,non_refundable',
             'purchase_mechanism' => 'required|in:cash,supported_bank,unsupported_bank',
+            'delivery_date' => 'nullable|date',
+            'first_payment' => 'nullable|numeric|min:0',
+            'first_payment_date' => 'nullable|date',
+            'account' => 'nullable|in:basic,from_developer',
+            'payments' => 'nullable|array',
+            'payments.*' => 'array',
+            'payments.*.payment' => 'required_with:payments|numeric|min:0.01',
+            'payments.*.date' => 'nullable|date',
             'receipt_voucher' => 'nullable|file|mimes:jpg,jpeg,png,webp,pdf|max:10240',
         ];
     }
@@ -155,6 +207,9 @@ class StoreReservationRequest extends FormRequest
             // Custom validation: unit belongs to contract
             if ($this->contract_unit_id && $this->contract_id) {
                 $unit = ContractUnit::with('contract')->find($this->contract_unit_id);
+                if ($unit && !$unit->contract) {
+                    $validator->errors()->add('contract_unit_id', 'Unit must belong to a contract');
+                }
                 if ($unit && (int) $unit->contract_id !== (int) $this->contract_id) {
                     $validator->errors()->add('contract_unit_id', 'Unit does not belong to this project');
                 }
@@ -174,6 +229,12 @@ class StoreReservationRequest extends FormRequest
                     && $this->down_payment_status === 'non_refundable' 
                     && empty($this->evacuation_date)) {
                     $validator->errors()->add('evacuation_date', 'Evacuation date is required for off-plan projects with confirmed deposit');
+                }
+                if ($contract && $contract->is_off_plan && empty($this->payments)) {
+                    $validator->errors()->add('payments', 'Payments are required for off-plan projects');
+                }
+                if ($contract && !$contract->is_off_plan && !empty($this->payments)) {
+                    $validator->errors()->add('payments', 'Payments are only allowed for off-plan projects');
                 }
             }
         });
@@ -198,6 +259,11 @@ class StoreReservationRequest extends FormRequest
             'down_payment_amount.required' => 'Down payment amount is required',
             'down_payment_status.required' => 'Down payment status is required',
             'purchase_mechanism.required' => 'Purchase mechanism is required',
+            'account.in' => 'Account must be basic or from_developer',
+            'payments.array' => 'Payments must be an array',
+            'payments.*.array' => 'Each payment item must be an object',
+            'payments.*.payment.required_with' => 'Payment amount is required for each payment item',
+            'payments.*.payment.min' => 'Payment amount must be greater than 0',
             'receipt_voucher.mimes' => 'Receipt voucher must be a JPG, PNG, WEBP, or PDF file',
             'receipt_voucher.max' => 'Receipt voucher must not exceed 10 MB',
         ];

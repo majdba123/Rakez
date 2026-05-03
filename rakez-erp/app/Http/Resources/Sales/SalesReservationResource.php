@@ -21,6 +21,14 @@ class SalesReservationResource extends JsonResource
             'client_nationality' => $this->client_nationality ?? null,
             'payment_method' => $this->payment_method ?? null,
             'down_payment_status' => $this->down_payment_status ?? null,
+            'delivery_date' => $this->delivery_date?->format('Y-m-d'),
+            'first_payment' => $this->first_payment !== null ? (float) $this->first_payment : null,
+            'first_payment_date' => $this->first_payment_date?->format('Y-m-d'),
+            'account' => $this->account ?? null,
+            'payments' => $this->whenLoaded('paymentInstallments', fn () => $this->paymentInstallments->map(fn ($installment) => [
+                'payment' => (float) $installment->amount,
+                'date' => $installment->due_date?->format('Y-m-d'),
+            ])->values()),
 
             'credit_status' => $this->credit_status ?? null,
 
