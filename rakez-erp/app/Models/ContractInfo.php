@@ -20,6 +20,9 @@ class ContractInfo extends Model
         'first_party_signatory',
         'first_party_phone',
         'first_party_email',
+        'first_party_bank_account_name',
+        'first_party_bank_name',
+        'first_party_iban_number',
 
         'gregorian_date',
         'hijri_date',
@@ -39,7 +42,10 @@ class ContractInfo extends Model
         'second_party_id_number',
         'second_party_role',
         'second_party_phone',
-        'second_party_email'
+        'second_party_email',
+        'second_party_bank_account_name',
+        'second_party_bank_name',
+        'second_party_iban_number',
     ];
 
     protected $casts = [

@@ -31,6 +31,9 @@ class UpdateContractInfoRequest extends FormRequest
             'second_party_id_number' => 'nullable|string|max:255',
             'second_party_role' => 'nullable|string|max:255',
             'second_party_phone' => 'nullable|string|max:255',
+            'second_party_bank_account_name' => 'nullable|string|max:255',
+            'second_party_bank_name' => 'nullable|string|max:255',
+            'second_party_iban_number' => 'nullable|string|max:34',
         ];
     }
 }

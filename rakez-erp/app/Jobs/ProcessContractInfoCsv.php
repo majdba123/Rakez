@@ -35,6 +35,7 @@ class ProcessContractInfoCsv implements ShouldQueue
         'second_party_name', 'second_party_address', 'second_party_cr_number',
         'second_party_signatory', 'second_party_id_number', 'second_party_role',
         'second_party_phone', 'second_party_email',
+        'second_party_bank_account_name', 'second_party_bank_name', 'second_party_iban_number',
     ];
 
     public function __construct(int $csvImportId, int $userId, int $contractId)

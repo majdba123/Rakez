@@ -22,6 +22,9 @@ class ContractInfoResource extends JsonResource
             'first_party_signatory' => $this->first_party_signatory,
             'first_party_phone' => $this->first_party_phone,
             'first_party_email' => $this->first_party_email,
+            'first_party_bank_account_name' => $this->first_party_bank_account_name,
+            'first_party_bank_name' => $this->first_party_bank_name,
+            'first_party_iban_number' => $this->first_party_iban_number,
             // Second party (client)
             'second_party_name' => $this->second_party_name,
             'second_party_address' => $this->second_party_address,
@@ -29,6 +32,9 @@ class ContractInfoResource extends JsonResource
             'second_party_id' => $this->second_party_id_number,
             'second_party_phone' => $this->second_party_phone,
             'second_party_email' => $this->second_party_email,
+            'second_party_bank_account_name' => $this->second_party_bank_account_name,
+            'second_party_bank_name' => $this->second_party_bank_name,
+            'second_party_iban_number' => $this->second_party_iban_number,
             // Contract details
             'gregorian_date' => $this->gregorian_date?->toDateString(),
             'hijri_date' => $this->hijri_date,

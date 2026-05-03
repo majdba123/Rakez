@@ -21,6 +21,10 @@ use Exception;
 
 class ContractService
 {
+    private const FIRST_PARTY_BANK_ACCOUNT_NAME = 'شركة راكز العقارية';
+    private const FIRST_PARTY_BANK_NAME = "راكز";
+    private const FIRST_PARTY_IBAN_NUMBER = "0000000000000";
+
     public function __construct(
         private SalesTeamService $salesTeamService,
         private SalesProjectService $salesProjectService,
@@ -680,6 +684,9 @@ class ContractService
                 'first_party_signatory' => 'عبد العزيز خالد عبد العزيز الجلعود',
                 'first_party_phone' => '0935027218',
                 'first_party_email' => 'info@rakez.sa',
+                'first_party_bank_account_name' => self::FIRST_PARTY_BANK_ACCOUNT_NAME,
+                'first_party_bank_name' => self::FIRST_PARTY_BANK_NAME,
+                'first_party_iban_number' => self::FIRST_PARTY_IBAN_NUMBER,
             ];
 
             // Remove any incoming first-party fields (cannot be overridden)
@@ -716,7 +723,8 @@ class ContractService
         $this->authorizeContractAccess($contract, Auth::id());
 
         $protected = ['contract_number', 'first_party_name', 'first_party_cr_number',
-            'first_party_signatory', 'first_party_phone', 'first_party_email'];
+            'first_party_signatory', 'first_party_phone', 'first_party_email',
+            'first_party_bank_account_name', 'first_party_bank_name', 'first_party_iban_number'];
 
         foreach ($protected as $field) {
             unset($merged[$field]);
@@ -771,11 +779,27 @@ class ContractService
             if (!$info) {
                 // If no info exists, create it instead
                 $data['contract_id'] = $contract->id;
+                $fixed = [
+                    'contract_number' => 'ER-' . $contract->id . '-' . time(),
+                    'first_party_name' => 'شركة راكز العقارية',
+                    'first_party_cr_number' => '1010650301',
+                    'first_party_signatory' => 'عبد العزيز خالد عبد العزيز الجلعود',
+                    'first_party_phone' => '0935027218',
+                    'first_party_email' => 'info@rakez.sa',
+                    'first_party_bank_account_name' => self::FIRST_PARTY_BANK_ACCOUNT_NAME,
+                    'first_party_bank_name' => self::FIRST_PARTY_BANK_NAME,
+                    'first_party_iban_number' => self::FIRST_PARTY_IBAN_NUMBER,
+                ];
+                foreach (array_keys($fixed) as $field) {
+                    unset($data[$field]);
+                }
+                $data = array_merge($data, $fixed);
                 $info = $contract->info()->create($data);
             } else {
                 // Remove first-party fields to prevent override
                 $protectedFields = ['contract_number', 'first_party_name', 'first_party_cr_number',
-                                   'first_party_signatory', 'first_party_phone', 'first_party_email'];
+                                   'first_party_signatory', 'first_party_phone', 'first_party_email',
+                                   'first_party_bank_account_name', 'first_party_bank_name', 'first_party_iban_number'];
                 foreach ($protectedFields as $field) {
                     unset($data[$field]);
                 }
