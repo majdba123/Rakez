@@ -3,6 +3,7 @@
 namespace App\Services\Sales;
 
 use App\Models\SalesReservation;
+use App\Models\SalesReservationParticipant;
 use App\Models\SalesReservationAction;
 use App\Models\NegotiationApproval;
 use App\Models\ReservationPaymentInstallment;
@@ -65,6 +66,69 @@ class SalesReservationService
     }
 
     /**
+     * Replace reservation participants from payload. Always merges the authenticated sales user unless already present (payload wins for flags/weight/notes).
+     */
+    public function syncReservationParticipants(SalesReservation $reservation, ?array $participantsPayload, User $actingUser): void
+    {
+        $byUserId = [];
+
+        foreach ($participantsPayload ?? [] as $row) {
+            $uid = (int) ($row['user_id']);
+            $byUserId[$uid] = $this->normalizeParticipantPayloadRow($row);
+        }
+
+        $actorId = (int) $actingUser->id;
+        if (!array_key_exists($actorId, $byUserId)) {
+            $byUserId[$actorId] = $this->creatorDefaultParticipantPayload();
+        }
+
+        SalesReservationParticipant::where('sales_reservation_id', $reservation->id)->delete();
+
+        foreach ($byUserId as $userId => $fields) {
+            SalesReservationParticipant::create([
+                'sales_reservation_id' => $reservation->id,
+                'user_id' => $userId,
+                'did_bring' => $fields['did_bring'],
+                'did_convince' => $fields['did_convince'],
+                'did_close' => $fields['did_close'],
+                'weight' => $fields['weight'],
+                'notes' => $fields['notes'],
+                'created_by' => $actorId,
+            ]);
+        }
+    }
+
+    protected function creatorDefaultParticipantPayload(): array
+    {
+        return [
+            'did_bring' => false,
+            'did_convince' => false,
+            'did_close' => false,
+            'weight' => 1.0,
+            'notes' => null,
+        ];
+    }
+
+    /**
+     * @param  array<string, mixed>  $row
+     * @return array{did_bring: bool, did_convince: bool, did_close: bool, weight: float, notes: ?string}
+     */
+    protected function normalizeParticipantPayloadRow(array $row): array
+    {
+        $defaults = $this->creatorDefaultParticipantPayload();
+
+        return [
+            'did_bring' => isset($row['did_bring']) ? (bool) $row['did_bring'] : $defaults['did_bring'],
+            'did_convince' => isset($row['did_convince']) ? (bool) $row['did_convince'] : $defaults['did_convince'],
+            'did_close' => isset($row['did_close']) ? (bool) $row['did_close'] : $defaults['did_close'],
+            'weight' => isset($row['weight']) && $row['weight'] !== null && $row['weight'] !== ''
+                ? round((float) $row['weight'], 2)
+                : $defaults['weight'],
+            'notes' => $row['notes'] ?? null,
+        ];
+    }
+
+    /**
      * Create a new reservation with DB locking to prevent double booking.
      */
     public function createReservation(array $data, User $user): SalesReservation
@@ -72,6 +136,9 @@ class SalesReservationService
         DB::beginTransaction();
 
         try {
+            $participantsPayload = $data['participants'] ?? null;
+            unset($data['participants']);
+
             // Lock the unit row to prevent concurrent reservations
             $unit = ContractUnit::where('id', $data['contract_unit_id'])
                 ->lockForUpdate()
@@ -212,6 +279,8 @@ class SalesReservationService
 
             // Update unit status to reserved
             $unit->update(['status' => 'reserved']);
+
+            $this->syncReservationParticipants($reservation, $participantsPayload, $user);
 
             // Progress target for type=6 (sales) members based on reserved unit price.
             // This must never block reservation flow when no target exists (or target-sync fails).

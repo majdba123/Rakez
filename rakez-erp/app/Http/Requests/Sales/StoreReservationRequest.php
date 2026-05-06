@@ -5,9 +5,11 @@ namespace App\Http\Requests\Sales;
 use Illuminate\Foundation\Http\FormRequest;
 use App\Models\ContractUnit;
 use App\Models\Contract;
+use App\Http\Requests\Sales\Concerns\ValidatesReservationParticipants;
 
 class StoreReservationRequest extends FormRequest
 {
+    use ValidatesReservationParticipants;
     public function authorize(): bool
     {
         return $this->user()->can('sales.reservations.create');
@@ -172,7 +174,7 @@ class StoreReservationRequest extends FormRequest
 
     public function rules(): array
     {
-        return [
+        return array_merge([
             'contract_id' => 'required|exists:contracts,id',
             'contract_unit_id' => 'required|exists:contract_units,id',
             'contract_date' => 'required|date',
@@ -198,7 +200,7 @@ class StoreReservationRequest extends FormRequest
             'payments.*.payment' => 'required_with:payments|numeric|min:0.01',
             'payments.*.date' => 'nullable|date',
             'receipt_voucher' => 'nullable|file|mimes:jpg,jpeg,png,webp,pdf|max:10240',
-        ];
+        ], self::storeParticipantsRules());
     }
 
     public function withValidator($validator)

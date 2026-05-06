@@ -1,0 +1,722 @@
+{
+  "info": {
+    "_postman_id": "rakez-sales-unit-search-alerts-v1",
+    "name": "RAKEZ ERP - Sales Unit Search Alerts",
+    "description": "Complete Postman collection for the Sales Unit Search Alerts feature.\n\nFlow:\n1. Login → save auth_token\n2. GET filters → inspect available filter values\n3. Search units (empty result triggers alert creation)\n4. Create alert → save alert_id\n5. List alerts\n6. Show alert\n7. Update alert\n8. GET notifications → check for unit_search_alert_matched\n9. Delete alert\n10. Negative / validation cases\n\nSMS WARNING:\nSMS is a secondary optional delivery channel. It is NOT the source of truth.\nThe internal system_notification is the source of truth for a matched alert.\nNever expose Twilio keys from the frontend.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "base_url",      "value": "http://localhost:8000", "type": "string" },
+    { "key": "auth_token",    "value": "",                      "type": "string" },
+    { "key": "alert_id",      "value": "1",                     "type": "string" },
+    { "key": "project_id",    "value": "1",                     "type": "string" },
+    { "key": "city_id",       "value": "1",                     "type": "string" },
+    { "key": "district_id",   "value": "1",                     "type": "string" },
+    { "key": "unit_type",     "value": "villa",                 "type": "string" },
+    { "key": "client_mobile", "value": "+966501234567",         "type": "string" },
+    { "key": "test_email",    "value": "sales@example.com",     "type": "string" },
+    { "key": "test_password", "value": "password",              "type": "string" }
+  ],
+  "item": [
+    {
+      "name": "Auth",
+      "description": "Authentication via Sanctum. The login request saves auth_token automatically.",
+      "item": [
+        {
+          "name": "POST Login",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Accept",       "value": "application/json" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{test_email}}\",\n  \"password\": \"{{test_password}}\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/login",
+              "host": ["{{base_url}}"],
+              "path": ["api", "login"]
+            },
+            "description": "Authenticates a user and returns a Sanctum Bearer token.\n\nRequired role: sales / sales_leader / admin\nRequired permissions: sales.projects.view + sales.search_alerts.view\n\nResponse shape: { access_token: string, user: {...} }\n\nExpected: 200 OK"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('access_token exists', () => {",
+                  "    const body = pm.response.json();",
+                  "    pm.expect(body.access_token).to.be.a('string').and.not.empty;",
+                  "    pm.collectionVariables.set('auth_token', body.access_token);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "response": [
+            {
+              "name": "200 Success",
+              "status": "OK",
+              "code": 200,
+              "body": "{\n  \"access_token\": \"1|abcdef123456...\",\n  \"user\": {\n    \"id\": 7,\n    \"name\": \"Ahmed Sales\",\n    \"email\": \"sales@example.com\",\n    \"type\": \"sales\"\n  }\n}"
+            },
+            {
+              "name": "401 Invalid Credentials",
+              "status": "Unauthorized",
+              "code": 401,
+              "body": "{\n  \"message\": \"These credentials do not match our records.\"\n}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Sales Units Search",
+      "description": "Search for available sales units and get available filter values.\n\nPermission required: sales.projects.view\nMiddleware: auth:sanctum, role:sales|sales_leader|admin\n\nNote: Use q (not query_text) when searching. query_text is for alert persistence.",
+      "item": [
+        {
+          "name": "GET Sales Units Filters",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{auth_token}}" },
+              { "key": "Accept",        "value": "application/json" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/sales/units/filters",
+              "host": ["{{base_url}}"],
+              "path": ["api", "sales", "units", "filters"]
+            },
+            "description": "Returns all available filter values (cities, districts, unit types, price ranges, etc.).\nCall this before rendering the search form to populate dropdowns.\n\nPermission: sales.projects.view\nExpected: 200 OK"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('success = true', () => {",
+                  "    const body = pm.response.json();",
+                  "    pm.expect(body.success).to.be.true;",
+                  "    pm.expect(body.data).to.exist;",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "GET Search Sales Units",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{auth_token}}" },
+              { "key": "Accept",        "value": "application/json" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/sales/units/search?city_id={{city_id}}&unit_type={{unit_type}}&min_price=200000&max_price=900000&status=available&per_page=10",
+              "host": ["{{base_url}}"],
+              "path": ["api", "sales", "units", "search"],
+              "query": [
+                { "key": "city_id",    "value": "{{city_id}}",  "description": "Filter by city ID" },
+                { "key": "unit_type",  "value": "{{unit_type}}","description": "Filter by unit type (villa, apartment, etc.)" },
+                { "key": "min_price",  "value": "200000",       "description": "Minimum price filter" },
+                { "key": "max_price",  "value": "900000",       "description": "Maximum price filter" },
+                { "key": "status",     "value": "available",    "description": "available | reserved | sold | pending" },
+                { "key": "per_page",   "value": "10",           "description": "Items per page (max 100)" },
+                { "key": "sort_by",    "value": "price",        "description": "price | area | bedrooms | created_at", "disabled": true },
+                { "key": "sort_dir",   "value": "asc",          "description": "asc | desc", "disabled": true },
+                { "key": "q",         "value": "",              "description": "Free text search (use q here, not query_text)", "disabled": true },
+                { "key": "project_id","value": "{{project_id}}","description": "Filter by project", "disabled": true }
+              ]
+            },
+            "description": "Searches for available units matching filters.\n\nPermission: sales.projects.view\n\nIMPORTANT FIELD DISTINCTION:\n  q → used here for free text search\n  query_text → used in alert create/update for persistence\n  The UnitSearchCriteria service normalizes: if query_text is sent, it maps to q for search.\n\nWhen meta.total === 0: frontend should show 'No units found' + 'Create Alert' button.\n\nExpected: 200 OK with paginated data"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('paginated response', () => {",
+                  "    const body = pm.response.json();",
+                  "    pm.expect(body.success).to.be.true;",
+                  "    pm.expect(body.data).to.be.an('array');",
+                  "    pm.expect(body.meta).to.exist;",
+                  "    pm.expect(body.meta).to.have.property('total');",
+                  "    pm.expect(body.meta).to.have.property('current_page');",
+                  "    pm.expect(body.meta).to.have.property('last_page');",
+                  "    pm.expect(body.meta).to.have.property('per_page');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "response": [
+            {
+              "name": "200 Paginated Results",
+              "status": "OK",
+              "code": 200,
+              "body": "{\n  \"success\": true,\n  \"data\": [\n    {\n      \"id\": 88,\n      \"unit_number\": \"A-101\",\n      \"unit_type\": \"villa\",\n      \"price\": 750000,\n      \"area\": 250,\n      \"bedrooms\": 4,\n      \"floor\": \"2\",\n      \"status\": \"available\"\n    }\n  ],\n  \"meta\": {\n    \"current_page\": 1,\n    \"last_page\": 5,\n    \"per_page\": 10,\n    \"total\": 43\n  }\n}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Sales Unit Search Alerts",
+      "description": "Full CRUD for sales unit search alerts.\n\nPermission: sales.search_alerts.view (all operations)\nOwnership: Sales staff can only access their own alerts.\nAdmins and users with sales.search_alerts.manage can access all alerts.\n\nCRITICAL RULES:\n- client_mobile is required for create\n- max_price must be >= min_price\n- max_area must be >= min_area\n- max_bedrooms must be >= min_bedrooms\n- page, per_page, sort_by, sort_dir are PROHIBITED in POST/PATCH\n- Use query_text (not q) in POST/PATCH payloads\n- expires_at defaults to +30 days if not provided\n- status defaults to active if not provided",
+      "item": [
+        {
+          "name": "POST Create Alert",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization",  "value": "Bearer {{auth_token}}" },
+              { "key": "Accept",         "value": "application/json" },
+              { "key": "Content-Type",   "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"client_name\": \"Ahmed Al-Harbi\",\n  \"client_mobile\": \"{{client_mobile}}\",\n  \"client_email\": \"ahmed@example.com\",\n  \"client_sms_opt_in\": true,\n  \"client_sms_locale\": \"ar-SA\",\n  \"city_id\": {{city_id}},\n  \"project_id\": {{project_id}},\n  \"unit_type\": \"{{unit_type}}\",\n  \"floor\": \"2\",\n  \"min_price\": 500000,\n  \"max_price\": 900000,\n  \"min_bedrooms\": 3,\n  \"max_bedrooms\": 5,\n  \"query_text\": \"A-101\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/sales/units/search-alerts",
+              "host": ["{{base_url}}"],
+              "path": ["api", "sales", "units", "search-alerts"]
+            },
+            "description": "Creates a new sales unit search alert.\n\nPermission: sales.search_alerts.view\nAuthorization: authorize() checks sales.search_alerts.view permission\n\nBackend automatically sets:\n  sales_staff_id = authenticated user's ID\n  status = active (if not provided)\n  expires_at = now + 30 days (if not provided)\n  client_sms_opted_in_at = now (if client_sms_opt_in = true and no timestamp provided)\n\nExpected: 201 Created\n\nNote: The alert_id from the response is saved automatically to the collection variable."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 201 Created', () => pm.response.to.have.status(201));",
+                  "pm.test('success = true and data exists', () => {",
+                  "    const body = pm.response.json();",
+                  "    pm.expect(body.success).to.be.true;",
+                  "    pm.expect(body.data).to.exist;",
+                  "    pm.expect(body.data.id).to.be.a('number');",
+                  "    pm.collectionVariables.set('alert_id', body.data.id);",
+                  "});",
+                  "pm.test('data.client.mobile matches', () => {",
+                  "    const body = pm.response.json();",
+                  "    pm.expect(body.data.client).to.exist;",
+                  "    pm.expect(body.data.client.mobile).to.be.a('string');",
+                  "});",
+                  "pm.test('data.criteria exists', () => {",
+                  "    const body = pm.response.json();",
+                  "    pm.expect(body.data.criteria).to.exist;",
+                  "});",
+                  "pm.test('data.status exists', () => {",
+                  "    const body = pm.response.json();",
+                  "    pm.expect(['active','paused','matched','cancelled']).to.include(body.data.status);",
+                  "});",
+                  "pm.test('client_sms_opt_in stored', () => {",
+                  "    const body = pm.response.json();",
+                  "    pm.expect(body.data.client.sms_opt_in).to.be.true;",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "response": [
+            {
+              "name": "201 Created",
+              "status": "Created",
+              "code": 201,
+              "body": "{\n  \"success\": true,\n  \"message\": \"Sales unit search alert created successfully\",\n  \"data\": {\n    \"id\": 42,\n    \"sales_staff_id\": 7,\n    \"client\": {\n      \"name\": \"Ahmed Al-Harbi\",\n      \"mobile\": \"+966501234567\",\n      \"email\": \"ahmed@example.com\",\n      \"sms_opt_in\": true,\n      \"sms_opted_in_at\": \"2026-05-05T10:00:00.000000Z\",\n      \"sms_locale\": \"ar-SA\"\n    },\n    \"criteria\": {\n      \"city_id\": 1,\n      \"district_id\": null,\n      \"project_id\": 1,\n      \"unit_type\": \"villa\",\n      \"floor\": \"2\",\n      \"min_price\": 500000.00,\n      \"max_price\": 900000.00,\n      \"min_area\": null,\n      \"max_area\": null,\n      \"min_bedrooms\": 3,\n      \"max_bedrooms\": 5,\n      \"query_text\": \"A-101\"\n    },\n    \"status\": \"active\",\n    \"last_notification\": {\n      \"last_notified_at\": null,\n      \"last_system_notified_at\": null,\n      \"last_sms_attempted_at\": null,\n      \"last_sms_sent_at\": null,\n      \"last_sms_error\": null,\n      \"last_twilio_sid\": null,\n      \"last_delivery_error\": null\n    },\n    \"last_matched_unit\": null,\n    \"expires_at\": \"2026-06-04T10:00:00.000000Z\",\n    \"deliveries\": [],\n    \"created_at\": \"2026-05-05T10:00:00.000000Z\",\n    \"updated_at\": \"2026-05-05T10:00:00.000000Z\",\n    \"deleted_at\": null\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "GET List Alerts",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{auth_token}}" },
+              { "key": "Accept",        "value": "application/json" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/sales/units/search-alerts?status=active&per_page=15",
+              "host": ["{{base_url}}"],
+              "path": ["api", "sales", "units", "search-alerts"],
+              "query": [
+                { "key": "status",   "value": "active", "description": "Filter: active | paused | matched | cancelled" },
+                { "key": "per_page", "value": "15",     "description": "Items per page, max 100, default 15" }
+              ]
+            },
+            "description": "Returns paginated list of search alerts.\n\nPermission: sales.search_alerts.view\nOwnership scoping:\n  - Regular sales staff: sees only their own alerts\n  - sales_leader / admin / sales.search_alerts.manage: sees all alerts\n\nExpected: 200 OK with paginated data[]"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('success = true', () => pm.expect(pm.response.json().success).to.be.true);",
+                  "pm.test('data is array', () => pm.expect(pm.response.json().data).to.be.an('array'));",
+                  "pm.test('meta exists with pagination', () => {",
+                  "    const meta = pm.response.json().meta;",
+                  "    pm.expect(meta).to.exist;",
+                  "    pm.expect(meta.current_page).to.be.a('number');",
+                  "    pm.expect(meta.last_page).to.be.a('number');",
+                  "    pm.expect(meta.per_page).to.be.a('number');",
+                  "    pm.expect(meta.total).to.be.a('number');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "GET Show Alert",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{auth_token}}" },
+              { "key": "Accept",        "value": "application/json" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/sales/units/search-alerts/{{alert_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "sales", "units", "search-alerts", "{{alert_id}}"]
+            },
+            "description": "Returns full details for a single alert.\nIncludes: last_matched_unit (if any), deliveries[] (all delivery records per channel).\n\nOwnership check: throws 403 if accessing another user's alert without manage permission.\n\nExpected: 200 OK"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('data.id matches alert_id', () => {",
+                  "    const body = pm.response.json();",
+                  "    pm.expect(body.data.id).to.equal(parseInt(pm.collectionVariables.get('alert_id')));",
+                  "});",
+                  "pm.test('deliveries array exists', () => {",
+                  "    const body = pm.response.json();",
+                  "    pm.expect(body.data.deliveries).to.be.an('array');",
+                  "});",
+                  "pm.test('criteria object exists', () => {",
+                  "    pm.expect(pm.response.json().data.criteria).to.exist;",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "PATCH Update Alert",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Authorization",  "value": "Bearer {{auth_token}}" },
+              { "key": "Accept",         "value": "application/json" },
+              { "key": "Content-Type",   "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"paused\",\n  \"max_price\": 850000,\n  \"max_bedrooms\": 4,\n  \"query_text\": \"A-101 updated\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/sales/units/search-alerts/{{alert_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "sales", "units", "search-alerts", "{{alert_id}}"]
+            },
+            "description": "Partially updates an alert. All fields are optional (sometimes rules).\n\nIMPORTANT:\n  - max_price must be >= min_price (validated against existing alert values if only one is sent)\n  - max_area must be >= min_area\n  - max_bedrooms must be >= min_bedrooms\n  - page, per_page, sort_by, sort_dir are PROHIBITED\n  - Use query_text not q\n\nOwnership check: same as show.\n\nExpected: 200 OK"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('updated status is paused', () => {",
+                  "    const body = pm.response.json();",
+                  "    pm.expect(body.success).to.be.true;",
+                  "    pm.expect(body.data.status).to.equal('paused');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "DELETE Cancel Alert",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{auth_token}}" },
+              { "key": "Accept",        "value": "application/json" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/sales/units/search-alerts/{{alert_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "sales", "units", "search-alerts", "{{alert_id}}"]
+            },
+            "description": "Soft-deletes the alert and sets status = cancelled.\n\nThe record is NOT permanently removed — it is soft-deleted (deleted_at is set).\nStatus is also updated to 'cancelled' before deletion.\n\nOwnership check: same as show/update.\n\nExpected: 200 OK with message"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('success = true and message exists', () => {",
+                  "    const body = pm.response.json();",
+                  "    pm.expect(body.success).to.be.true;",
+                  "    pm.expect(body.message).to.be.a('string').and.not.empty;",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "response": [
+            {
+              "name": "200 Cancelled",
+              "status": "OK",
+              "code": 200,
+              "body": "{\n  \"success\": true,\n  \"message\": \"Sales unit search alert cancelled successfully\"\n}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Notifications",
+      "description": "Get internal notifications for the authenticated user.\n\nThe unit_search_alert_matched event_type indicates a matching unit was found.\nThe system_notification delivery is always sent first — this is the source of truth.\n\nMiddleware: auth:sanctum\nPermission: none additional (just authenticated)",
+      "item": [
+        {
+          "name": "GET My Notifications",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{auth_token}}" },
+              { "key": "Accept",        "value": "application/json" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/notifications",
+              "host": ["{{base_url}}"],
+              "path": ["api", "notifications"]
+            },
+            "description": "Returns private notifications for the authenticated user.\nAlternative route: GET /api/user/notifications/private\n\nLook for event_type = 'unit_search_alert_matched' to identify alert matches.\n\nThe context object contains:\n  alert_id, contract_unit_id, contract_id, client_name, client_mobile\n\nExpected: 200 OK"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('response has data', () => {",
+                  "    const body = pm.response.json();",
+                  "    pm.expect(body).to.exist;",
+                  "    const hasData = Array.isArray(body.data) || Array.isArray(body);",
+                  "    pm.expect(hasData).to.be.true;",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "response": [
+            {
+              "name": "200 Notifications",
+              "status": "OK",
+              "code": 200,
+              "body": "{\n  \"data\": [\n    {\n      \"id\": 15,\n      \"user_id\": 7,\n      \"message\": \"Matching unit found for Ahmed Al-Harbi: Project Name / A-101\",\n      \"event_type\": \"unit_search_alert_matched\",\n      \"context\": {\n        \"alert_id\": 42,\n        \"contract_unit_id\": 88,\n        \"contract_id\": 5,\n        \"client_name\": \"Ahmed Al-Harbi\",\n        \"client_mobile\": \"+966501234567\"\n      },\n      \"status\": \"pending\"\n    }\n  ]\n}"
+            }
+          ]
+        },
+        {
+          "name": "PATCH Mark Notification as Read",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{auth_token}}" },
+              { "key": "Accept",        "value": "application/json" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/notifications/15/read",
+              "host": ["{{base_url}}"],
+              "path": ["api", "notifications", "15", "read"]
+            },
+            "description": "Marks a notification as read.\nAccepts: PATCH, POST, or PUT (all three methods supported by route).\nReplace '15' with the actual notification ID.\n\nExpected: 200 OK"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Negative / Validation Tests",
+      "description": "Requests expected to fail with specific error codes.\nUse these to verify safeguard behavior.\n\nAll 422 responses shape:\n  { message: string, errors: { field: [message] } }",
+      "item": [
+        {
+          "name": "[422] Create Alert — Missing client_mobile",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization",  "value": "Bearer {{auth_token}}" },
+              { "key": "Accept",         "value": "application/json" },
+              { "key": "Content-Type",   "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"client_name\": \"Ahmed Al-Harbi\",\n  \"unit_type\": \"villa\",\n  \"min_price\": 500000\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/sales/units/search-alerts",
+              "host": ["{{base_url}}"],
+              "path": ["api", "sales", "units", "search-alerts"]
+            },
+            "description": "Omits the required client_mobile field.\nExpected: 422 with errors.client_mobile"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 422', () => pm.response.to.have.status(422));",
+                  "pm.test('errors.client_mobile exists', () => {",
+                  "    const body = pm.response.json();",
+                  "    pm.expect(body.errors).to.exist;",
+                  "    pm.expect(body.errors.client_mobile).to.be.an('array').and.not.empty;",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "response": [
+            {
+              "name": "422 Validation Error",
+              "status": "Unprocessable Entity",
+              "code": 422,
+              "body": "{\n  \"message\": \"The client mobile field is required.\",\n  \"errors\": {\n    \"client_mobile\": [\"The client mobile field is required.\"]\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "[422] Create Alert — max_price < min_price",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization",  "value": "Bearer {{auth_token}}" },
+              { "key": "Accept",         "value": "application/json" },
+              { "key": "Content-Type",   "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"client_mobile\": \"{{client_mobile}}\",\n  \"min_price\": 900000,\n  \"max_price\": 100000\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/sales/units/search-alerts",
+              "host": ["{{base_url}}"],
+              "path": ["api", "sales", "units", "search-alerts"]
+            },
+            "description": "Sends max_price (100000) lower than min_price (900000).\nExpected: 422 with errors.max_price"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 422', () => pm.response.to.have.status(422));",
+                  "pm.test('errors.max_price exists', () => {",
+                  "    const body = pm.response.json();",
+                  "    pm.expect(body.errors).to.exist;",
+                  "    pm.expect(body.errors.max_price).to.be.an('array').and.not.empty;",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "response": [
+            {
+              "name": "422 max_price Error",
+              "status": "Unprocessable Entity",
+              "code": 422,
+              "body": "{\n  \"message\": \"The max price field must be greater than or equal to min price.\",\n  \"errors\": {\n    \"max_price\": [\"The max price field must be greater than or equal to min price.\"]\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "[422] Create Alert — Pagination fields (prohibited)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization",  "value": "Bearer {{auth_token}}" },
+              { "key": "Accept",         "value": "application/json" },
+              { "key": "Content-Type",   "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"client_mobile\": \"{{client_mobile}}\",\n  \"sort_by\": \"price\",\n  \"page\": 1,\n  \"per_page\": 10,\n  \"sort_dir\": \"asc\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/sales/units/search-alerts",
+              "host": ["{{base_url}}"],
+              "path": ["api", "sales", "units", "search-alerts"]
+            },
+            "description": "Sends pagination/sorting fields that are prohibited in POST/PATCH.\npage, per_page, sort_by, sort_dir are all 'prohibited' in StoreSalesUnitSearchAlertRequest.\nExpected: 422 with errors for sort_by, page, per_page, sort_dir"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 422', () => pm.response.to.have.status(422));",
+                  "pm.test('errors for prohibited fields exist', () => {",
+                  "    const body = pm.response.json();",
+                  "    pm.expect(body.errors).to.exist;",
+                  "    const hasProhibited = Object.keys(body.errors).some(k => ['page','per_page','sort_by','sort_dir'].includes(k));",
+                  "    pm.expect(hasProhibited).to.be.true;",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "response": [
+            {
+              "name": "422 Prohibited Fields",
+              "status": "Unprocessable Entity",
+              "code": 422,
+              "body": "{\n  \"message\": \"The sort by field is prohibited.\",\n  \"errors\": {\n    \"sort_by\": [\"The sort by field is prohibited.\"],\n    \"page\": [\"The page field is prohibited.\"],\n    \"per_page\": [\"The per page field is prohibited.\"],\n    \"sort_dir\": [\"The sort dir field is prohibited.\"]\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "[404] Show Alert — Invalid ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{auth_token}}" },
+              { "key": "Accept",        "value": "application/json" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/sales/units/search-alerts/99999999",
+              "host": ["{{base_url}}"],
+              "path": ["api", "sales", "units", "search-alerts", "99999999"]
+            },
+            "description": "Requests a non-existent alert ID.\nExpected: 404 Not Found"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 404', () => pm.response.to.have.status(404));"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "[422] Update Alert — Invalid status value",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Authorization",  "value": "Bearer {{auth_token}}" },
+              { "key": "Accept",         "value": "application/json" },
+              { "key": "Content-Type",   "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"invalid_status_value\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/sales/units/search-alerts/{{alert_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "sales", "units", "search-alerts", "{{alert_id}}"]
+            },
+            "description": "Sends a status value not in the allowed enum (active|paused|matched|cancelled).\nExpected: 422 with errors.status"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 422', () => pm.response.to.have.status(422));",
+                  "pm.test('errors.status exists', () => {",
+                  "    const body = pm.response.json();",
+                  "    pm.expect(body.errors).to.exist;",
+                  "    pm.expect(body.errors.status).to.be.an('array').and.not.empty;",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "[401 or 403] Unauthorized — No Token",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Accept", "value": "application/json" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/sales/units/search-alerts",
+              "host": ["{{base_url}}"],
+              "path": ["api", "sales", "units", "search-alerts"]
+            },
+            "description": "Calls the list endpoint without a Bearer token.\nExpected: 401 Unauthorized (Sanctum will reject unauthenticated requests)"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 401 or 403', () => {",
+                  "    pm.expect([401, 403]).to.include(pm.response.code);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "response": []
+        }
+      ]
+    }
+  ]
+}
