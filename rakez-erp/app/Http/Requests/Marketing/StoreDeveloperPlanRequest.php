@@ -8,7 +8,7 @@ class StoreDeveloperPlanRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return $this->user()->can('marketing.plans.create');
+        return true;
     }
 
     public function rules(): array

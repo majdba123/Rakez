@@ -8,7 +8,7 @@ class RateTeamMemberRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return $this->user()?->can('sales.team.manage') ?? false;
+        return true;
     }
 
     public function rules(): array

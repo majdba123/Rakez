@@ -9,7 +9,7 @@ class StoreTargetRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return $this->user()->isSalesLeader();
+        return true;
     }
 
     /**

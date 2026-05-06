@@ -23,17 +23,11 @@ class SalesDashboardController extends Controller
     {
         // Check if user has required sales role
         $user = $request->user();
-        if (!$user->hasAnyRole(['sales', 'sales_leader', 'admin'])) {
-            abort(403, 'Unauthorized. Sales role required.');
-        }
 
         try {
             $defaultScope = 'me';
             if ($user->hasRole('admin')) {
                 $defaultScope = 'all';
-            } elseif ($user->isSalesLeader()) {
-                // Leaders rarely appear as marketing_employee on reservations; default to team (or org-wide if no team).
-                $defaultScope = $user->team_id ? 'team' : 'all';
             }
 
             $rawScope = $request->query('scope');

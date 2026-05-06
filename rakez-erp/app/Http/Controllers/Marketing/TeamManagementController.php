@@ -19,7 +19,6 @@ class TeamManagementController extends Controller
 
     public function index(Request $request): JsonResponse
     {
-        $this->authorize('marketing.teams.view');
 
         $perPage = ApiResponse::getPerPage($request);
         $teams = Team::with(['members', 'creator'])
@@ -86,7 +85,6 @@ class TeamManagementController extends Controller
 
     public function getTeam(int $projectId): JsonResponse
     {
-        $this->authorize('viewAny', \App\Models\MarketingProjectTeam::class);
 
         return response()->json([
             'success' => true,
@@ -96,7 +94,6 @@ class TeamManagementController extends Controller
 
     public function recommendEmployee(int $projectId): JsonResponse
     {
-        $this->authorize('viewAny', \App\Models\MarketingProjectTeam::class);
 
         return response()->json([
             'success' => true,

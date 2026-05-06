@@ -19,7 +19,6 @@ class MarketingTaskController extends Controller
 
     public function index(Request $request): JsonResponse
     {
-        $this->authorize('viewAny', \App\Models\MarketingTask::class);
 
         $perPage = ApiResponse::getPerPage($request);
         $tasks = $this->taskService->getDailyTasks(
@@ -61,7 +60,6 @@ class MarketingTaskController extends Controller
     public function updateStatus(int $taskId, Request $request): JsonResponse
     {
         $task = \App\Models\MarketingTask::findOrFail($taskId);
-        $this->authorize('update', $task);
 
         $request->validate(['status' => 'required|string|in:new,in_progress,completed']);
 

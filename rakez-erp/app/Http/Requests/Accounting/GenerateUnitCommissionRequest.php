@@ -8,9 +8,7 @@ class GenerateUnitCommissionRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        $user = $this->user();
-
-        return $user !== null && $user->hasPermissionTo('accounting.sold-units.manage');
+        return true;
     }
 
     /** @return array<string, mixed> */

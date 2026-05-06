@@ -8,7 +8,7 @@ class CompleteExclusiveContractRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return $this->user()->can('exclusive_projects.contract.complete');
+        return true;
     }
 
     public function rules(): array

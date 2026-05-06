@@ -38,7 +38,6 @@ class SecondPartyDataController extends Controller
     {
         try {
             $contract = Contract::findOrFail($contractId);
-            $this->authorize('view', $contract);
 
             $secondPartyData = $this->secondPartyDataService->getByContractId($contractId);
             if (!$secondPartyData) {
@@ -132,7 +131,6 @@ class SecondPartyDataController extends Controller
     {
         try {
             $contract = \App\Models\Contract::findOrFail($contractId);
-            $this->authorize('view', $contract);
 
             $secondPartyData = $this->secondPartyDataService->getByContractId($contractId);
 

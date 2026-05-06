@@ -8,7 +8,7 @@ class SearchUnitsRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return $this->user()->can('sales.projects.view');
+        return true;
     }
 
     public function rules(): array

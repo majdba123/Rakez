@@ -8,7 +8,7 @@ class StoreLeadRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return $this->user()->can('marketing.projects.view');
+        return true;
     }
 
     public function rules(): array

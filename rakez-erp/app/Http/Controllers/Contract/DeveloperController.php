@@ -31,8 +31,6 @@ class DeveloperController extends Controller
                 ], 401);
             }
 
-            $this->authorize('viewAny', \App\Models\Contract::class);
-
             $search = $request->input('search');
             $perPage = min((int) $request->input('per_page', 15), 100);
             $page = max(1, (int) $request->input('page', 1));
@@ -81,8 +79,6 @@ class DeveloperController extends Controller
                     'message' => 'غير مصرح - يرجى تسجيل الدخول',
                 ], 401);
             }
-
-            $this->authorize('viewAny', \App\Models\Contract::class);
 
             $idOrNumber = urldecode($idOrNumber);
             $developer = is_numeric($idOrNumber)

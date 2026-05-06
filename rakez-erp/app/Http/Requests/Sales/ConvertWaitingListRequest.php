@@ -8,7 +8,7 @@ class ConvertWaitingListRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return $this->user()->can('sales.waiting_list.convert');
+        return true;
     }
 
     public function rules(): array

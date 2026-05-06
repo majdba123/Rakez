@@ -11,7 +11,7 @@ class UpdateDepositRequest extends FormRequest
      */
     public function authorize(): bool
     {
-        return $this->user()->can('deposits.update');
+        return true;
     }
 
     /**

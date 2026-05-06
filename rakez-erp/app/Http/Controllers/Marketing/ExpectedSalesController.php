@@ -26,7 +26,6 @@ class ExpectedSalesController extends Controller
 
     public function updateConversionRate(Request $request): JsonResponse
     {
-        $this->authorize('update', new MarketingSetting());
 
         $request->validate(['value' => 'required|numeric|min:0|max:100']);
 

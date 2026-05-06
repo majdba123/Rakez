@@ -19,12 +19,6 @@ class ProjectCommissionSettingController extends Controller
 
     public function index(Request $request): JsonResponse
     {
-        abort_unless(
-            $request->user()->hasPermissionTo('accounting.sold-units.view')
-                || $request->user()->hasPermissionTo('accounting.sold-units.manage'),
-            403
-        );
-
         $request->validate([
             'project_id' => 'nullable|exists:contracts,id',
             'per_page' => 'nullable|integer|min:1|max:100',
@@ -60,12 +54,6 @@ class ProjectCommissionSettingController extends Controller
 
     public function show(Request $request, ProjectCommissionSetting $projectCommissionSetting): JsonResponse
     {
-        abort_unless(
-            $request->user()->hasPermissionTo('accounting.sold-units.view')
-                || $request->user()->hasPermissionTo('accounting.sold-units.manage'),
-            403
-        );
-
         $projectCommissionSetting->load([
             'project',
             'creator',
@@ -95,8 +83,6 @@ class ProjectCommissionSettingController extends Controller
 
     public function activate(Request $request, ProjectCommissionSetting $projectCommissionSetting): JsonResponse
     {
-        abort_unless($request->user()->hasPermissionTo('accounting.sold-units.manage'), 403);
-
         $model = $this->settingService->activate($projectCommissionSetting);
 
         return response()->json([

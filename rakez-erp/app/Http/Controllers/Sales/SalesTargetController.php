@@ -114,7 +114,6 @@ class SalesTargetController extends Controller
     public function update(int $id, UpdateTargetRequest $request): JsonResponse
     {
         $target = SalesTarget::findOrFail($id);
-        $this->authorize('update', $target);
 
         try {
             $target = $this->targetService->updateTarget(

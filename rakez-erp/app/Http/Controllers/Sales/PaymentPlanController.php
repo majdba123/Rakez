@@ -22,11 +22,7 @@ class PaymentPlanController extends Controller
 
     private function userCanManagePaymentPlans(?User $user): bool
     {
-        if (! $user) {
-            return false;
-        }
-
-        return $user->can('sales.payment-plan.manage') || $user->can('credit.payment_plan.manage');
+        return $user !== null;
     }
 
     /**
@@ -143,4 +139,3 @@ class PaymentPlanController extends Controller
         }
     }
 }
-

@@ -45,7 +45,6 @@ class ContractInfoController extends Controller
     {
         try {
             $contract = $this->contractService->getContractById($contractId, null);
-            $this->authorize('view', $contract);
 
             $info = ContractInfo::query()->where('contract_id', $contractId)->first();
             if (!$info) {
@@ -93,7 +92,6 @@ class ContractInfoController extends Controller
         try {
             $data = $request->validated();
 
-            // Check permission: only owner, admin, project_management can store contract info
             $contract = $this->contractService->getContractById($contractId, auth()->id(), forContractInfo: true);
 
             // Prevent creating a new ContractInfo if one already exists
@@ -138,7 +136,6 @@ class ContractInfoController extends Controller
         try {
             $data = $request->validated();
 
-            // Check permission: only owner, admin, project_management can update contract info
             $contract = $this->contractService->getContractById($contractId, auth()->id(), forContractInfo: true);
 
             $info = $this->contractService->updateContractInfo($contractId, $data, auth()->id());

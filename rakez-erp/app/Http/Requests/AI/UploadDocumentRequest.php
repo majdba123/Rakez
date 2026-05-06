@@ -8,7 +8,7 @@ class UploadDocumentRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return $this->user() && $this->user()->can('use-ai-assistant');
+        return true;
     }
 
     /**

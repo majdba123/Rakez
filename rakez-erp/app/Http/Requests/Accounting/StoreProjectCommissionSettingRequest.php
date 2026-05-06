@@ -11,7 +11,7 @@ class StoreProjectCommissionSettingRequest extends FormRequest
 
     public function authorize(): bool
     {
-        return $this->user()?->hasPermissionTo('accounting.sold-units.manage') ?? false;
+        return true;
     }
 
     protected function prepareForValidation(): void

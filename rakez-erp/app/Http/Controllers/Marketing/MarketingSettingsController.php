@@ -11,7 +11,6 @@ class MarketingSettingsController extends Controller
 {
     public function index(): JsonResponse
     {
-        $this->authorize('viewAny', MarketingSetting::class);
 
         return response()->json([
             'success' => true,

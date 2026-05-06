@@ -8,9 +8,7 @@ class ApproveExclusiveProjectRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        // Check if user is project management manager
-        return $this->user()->isProjectManagementManager() 
-            || $this->user()->can('exclusive_projects.approve');
+        return true;
     }
 
     public function rules(): array

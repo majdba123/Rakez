@@ -12,7 +12,7 @@ class StoreReservationRequest extends FormRequest
     use ValidatesReservationParticipants;
     public function authorize(): bool
     {
-        return $this->user()->can('sales.reservations.create');
+        return true;
     }
 
     /**

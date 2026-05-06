@@ -56,20 +56,12 @@ class ExclusiveProjectController extends Controller
 
     /**
      * Get a single exclusive project request.
-     * Only the request owner or users with exclusive_projects.approve can view.
      */
     public function show(Request $request, int $id): JsonResponse
     {
         try {
             $exclusiveRequest = $this->exclusiveProjectService->getRequest($id);
             $user = $request->user();
-
-            if ((int) $exclusiveRequest->requested_by !== (int) $user->id && !$user->can('exclusive_projects.approve')) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'You do not have access to this exclusive project request.',
-                ], Response::HTTP_FORBIDDEN);
-            }
 
             return response()->json([
                 'success' => true,

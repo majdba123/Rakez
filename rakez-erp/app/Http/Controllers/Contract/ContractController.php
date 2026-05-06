@@ -57,15 +57,8 @@ class ContractController extends Controller
                 'has_montage' => $request->input('has_montage'),
             ];
 
-            // Apply access control filters: all users see own contracts + contracts with status approved/completed
-            if ($user->can('contracts.view_all')) {
-                // Can view all; allow optional user_id filter from request
-                if ($request->filled('user_id')) {
-                    $filters['user_id'] = (int) $request->input('user_id');
-                }
-            } elseif ($user->isManager() && $user->team_id) {
-                $filters['user_id'] = $user->id;
-                $filters['include_public_status_contracts'] = true;
+            if ($request->filled('user_id')) {
+                $filters['user_id'] = (int) $request->input('user_id');
             } else {
                 $filters['user_id'] = $user->id;
                 $filters['include_public_status_contracts'] = true;
@@ -97,8 +90,6 @@ class ContractController extends Controller
 
     public function store(StoreContractRequest $request): JsonResponse
     {
-       // $this->authorize('create', Contract::class);
-
         try {
             $validated = $request->validated();
 
@@ -152,8 +143,6 @@ class ContractController extends Controller
             // Fetch contract without service-level auth check
             $contract = $this->contractService->getContractById($id, null);
 
-            $this->authorize('view', $contract);
-
             return response()->json([
                 'success' => true,
                 'message' => 'تم جلب العقد بنجاح',
@@ -180,7 +169,6 @@ class ContractController extends Controller
     {
         try {
             $contract = $this->contractService->getContractById($id, null);
-            $this->authorize('view', $contract);
 
             $data = $this->pdfDataService->buildShowPdfPayload($contract);
             $filename = sprintf('contract_%d_%s.pdf', $contract->id, now()->format('Y-m-d'));
@@ -215,7 +203,6 @@ class ContractController extends Controller
     {
         try {
             $contract = $this->contractService->getContractById($id, null);
-            $this->authorize('view', $contract);
             $data = $this->pdfDataService->getFillData($contract);
             return response()->json($data, 200, ['Content-Type' => 'application/json']);
         } catch (\Illuminate\Auth\Access\AuthorizationException $e) {
@@ -236,7 +223,6 @@ class ContractController extends Controller
     {
         try {
             $contract = $this->contractService->getContractById($id, null);
-            $this->authorize('view', $contract);
 
             $data = $this->pdfDataService->buildFillDataPdfPayload($contract);
             $filename = sprintf('contract_fill_%d_%s.pdf', $contract->id, now()->format('Y-m-d'));
@@ -272,7 +258,6 @@ class ContractController extends Controller
     {
         try {
             $contract = $this->contractService->getContractById($id, null);
-            $this->authorize('view', $contract);
             $data = [
                 'project_name' => (string) ($contract->project_name ?? ''),
                 'developer_name' => (string) ($contract->developer_name ?? ''),
@@ -300,8 +285,6 @@ class ContractController extends Controller
         try {
             // Fetch contract to authorize
             $contract = $this->contractService->getContractById($id, null);
-
-            $this->authorize('update', $contract);
 
             $validated = $request->validated();
 
@@ -333,8 +316,6 @@ class ContractController extends Controller
     {
         try {
             $contract = $this->contractService->getContractById($id, null);
-
-            $this->authorize('delete', $contract);
 
             $this->contractService->deleteContract($id, null);
 

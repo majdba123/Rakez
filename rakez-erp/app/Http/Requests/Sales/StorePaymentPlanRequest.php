@@ -8,12 +8,7 @@ class StorePaymentPlanRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        $user = $this->user();
-
-        return $user && (
-            $user->can('sales.payment-plan.manage')
-            || $user->can('credit.payment_plan.manage')
-        );
+        return true;
     }
 
     public function rules(): array

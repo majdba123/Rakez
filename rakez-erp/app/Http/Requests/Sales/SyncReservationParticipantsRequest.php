@@ -12,12 +12,7 @@ class SyncReservationParticipantsRequest extends FormRequest
 
     public function authorize(): bool
     {
-        $reservation = $this->route('reservation');
-        if (!$reservation instanceof SalesReservation) {
-            return false;
-        }
-
-        return $this->user()->can('manageParticipants', $reservation);
+        return true;
     }
 
     /**

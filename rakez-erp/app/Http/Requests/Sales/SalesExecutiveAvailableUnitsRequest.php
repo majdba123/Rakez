@@ -8,11 +8,7 @@ class SalesExecutiveAvailableUnitsRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        $user = $this->user();
-
-        return $user
-            && $user->can('sales.dashboard.view')
-            && $user->canAccessSalesExecutiveAvailableUnitsApi();
+        return true;
     }
 
     public function rules(): array

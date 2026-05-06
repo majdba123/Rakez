@@ -25,11 +25,6 @@ class NegotiationApprovalController extends Controller
      */
     public function index(Request $request): JsonResponse
     {
-        // Check permission
-        if (!$request->user()->can('sales.negotiation.approve')) {
-            return response()->json(['message' => 'Unauthorized'], 403);
-        }
-
         $filters = $request->only(['contract_id', 'requested_by', 'per_page']);
         $approvals = $this->approvalService->getPendingApprovals($filters);
 
@@ -97,4 +92,3 @@ class NegotiationApprovalController extends Controller
         }
     }
 }
-
