@@ -556,7 +556,7 @@ use Illuminate\Support\Facades\File;  // أضف هذا السطر في الأع�
 
 
             // Create an admin prefix group with admin middleware
-        Route::prefix('admin')->middleware(['auth:sanctum'])->group(function () {
+        Route::prefix('admin')->middleware(['auth:sanctum', 'role:admin'])->group(function () {
 
                 Route::prefix('employees')->group(function () {
                     Route::get('/roles', [RegisterController::class, 'list_roles']);
@@ -1018,7 +1018,7 @@ use Illuminate\Support\Facades\File;  // أضف هذا السطر في الأع�
 
     // ==========================================
     // ASSISTANT KNOWLEDGE BASE (Admin only)
-    Route::prefix('ai/knowledge')->middleware(['auth:sanctum'])->group(function () {
+    Route::prefix('ai/knowledge')->middleware(['auth:sanctum', 'role:admin'])->group(function () {
         Route::get('/', [AssistantKnowledgeController::class, 'index']);
         Route::post('/', [AssistantKnowledgeController::class, 'store']);
         Route::put('/{id}', [AssistantKnowledgeController::class, 'update']);
