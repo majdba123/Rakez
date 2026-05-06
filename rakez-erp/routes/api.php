@@ -169,6 +169,8 @@ use Illuminate\Support\Facades\File;  // أضف هذا السطر في الأع�
         Route::get('/developers/{developer_number}', [DeveloperController::class, 'show']);
 
         Route::prefix('ai')->middleware('throttle:ai-assistant')->group(function () {
+            // Legacy AI endpoints are kept for backward compatibility.
+            // Frontend should use /api/ai/tools/chat and /api/ai/tools/stream.
             Route::post('/ask', [AIAssistantController::class, 'ask']);
             Route::post('/chat', [AIAssistantController::class, 'chat']);
             Route::get('/conversations', [AIAssistantController::class, 'conversations']);
@@ -176,11 +178,11 @@ use Illuminate\Support\Facades\File;  // أضف هذا السطر في الأع�
             Route::get('/sections', [AIAssistantController::class, 'sections']);
 
             // Tool orchestrator (no /v2/ in URL — stable for frontend). Legacy /v2/* aliases kept for compatibility.
-            Route::prefix('tools')->group(function () {
+            Route::prefix('tools')->middleware('ai.pii')->group(function () {
                 Route::post('/chat', [AiV2Controller::class, 'chat']);
                 Route::post('/stream', [AiV2Controller::class, 'stream']);
             });
-            Route::prefix('v2')->group(function () {
+            Route::prefix('v2')->middleware('ai.pii')->group(function () {
                 Route::post('/chat', [AiV2Controller::class, 'chat']);
                 Route::post('/stream', [AiV2Controller::class, 'stream']);
             });
