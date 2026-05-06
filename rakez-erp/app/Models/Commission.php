@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Commission extends Model
 {
@@ -20,6 +21,9 @@ class Commission extends Model
         'bank_fees',
         'net_amount',
         'commission_source',
+        'project_commission_setting_id',
+        'calculation_formula_key',
+        'calculated_by_project_setting',
         'team_responsible',
         'status',
         'approved_at',
@@ -34,6 +38,7 @@ class Commission extends Model
         'marketing_expenses' => 'decimal:2',
         'bank_fees' => 'decimal:2',
         'net_amount' => 'decimal:2',
+        'calculated_by_project_setting' => 'boolean',
         'approved_at' => 'datetime',
         'paid_at' => 'datetime',
         'created_at' => 'datetime',
@@ -62,6 +67,11 @@ class Commission extends Model
     public function distributions()
     {
         return $this->hasMany(CommissionDistribution::class);
+    }
+
+    public function projectCommissionSetting(): BelongsTo
+    {
+        return $this->belongsTo(ProjectCommissionSetting::class, 'project_commission_setting_id');
     }
 
     /**

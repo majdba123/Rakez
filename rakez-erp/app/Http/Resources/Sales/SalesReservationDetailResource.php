@@ -50,6 +50,12 @@ class SalesReservationDetailResource extends JsonResource
             'cancelled_at' => $this->cancelled_at?->toIso8601String(),
             'created_at' => $this->created_at?->toIso8601String(),
             'updated_at' => $this->updated_at?->toIso8601String(),
+            'participants' => SalesReservationParticipantResource::collection(
+                $this->whenLoaded(
+                    'participantRecords',
+                    fn () => $this->participantRecords
+                )
+            ),
         ];
     }
 }

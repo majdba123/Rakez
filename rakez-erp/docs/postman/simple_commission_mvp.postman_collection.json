@@ -1,0 +1,704 @@
+{
+  "info": {
+    "_postman_id": "rakez-simple-commission-mvp-v1",
+    "name": "RAKEZ ERP - Simple Commission MVP",
+    "description": "Complete Postman collection for the Simple Commission MVP (5 stages).\n\nStages covered:\n  Stage 1 — Sales Reservation Participants\n  Stage 2 — Project Commission Settings\n  Stage 3 — Commission Preview\n  Stage 4 — Commission Generation\n  Legacy — Manual commission endpoint (still active)\n\nAll routes are on branch `yusuf`. Auth: Bearer token via Sanctum.\nPermissions: sales.reservations.view|create (Sales), accounting.sold-units.view|manage (Accounting).\n\nFormulas:\n  buyer  → commission = unit_price × rate / 100\n  owner  → commission = unit_price / (1 + rate / 100)\n\nUnitPriceResolver priority:\n  1. commission.final_selling_price\n  2. reservation.proposed_price\n  3. contractUnit.price\n  4. throws UnitPriceUnresolvedException (422)",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "base_url",                      "value": "http://localhost:8000",  "type": "string" },
+    { "key": "token",                          "value": "YOUR_SANCTUM_TOKEN_HERE","type": "string" },
+    { "key": "reservation_id",                "value": "1",                     "type": "string" },
+    { "key": "project_id",                    "value": "1",                     "type": "string", "description": "contracts.id — project_id in project_commission_settings refers to contracts.id" },
+    { "key": "contract_id",                   "value": "1",                     "type": "string", "description": "Same as project_id (contracts.id)" },
+    { "key": "contract_unit_id",              "value": "1",                     "type": "string" },
+    { "key": "project_commission_setting_id", "value": "1",                     "type": "string" },
+    { "key": "sales_user_id",                 "value": "1",                     "type": "string" },
+    { "key": "participant_user_id",           "value": "2",                     "type": "string" },
+    { "key": "ceo_user_id",                   "value": "1",                     "type": "string" },
+    { "key": "sales_manager_user_id",         "value": "2",                     "type": "string" },
+    { "key": "sales_leader_user_id",          "value": "3",                     "type": "string" },
+    { "key": "group_leader_user_id",          "value": "4",                     "type": "string" },
+    { "key": "external_marketer_user_id",     "value": "5",                     "type": "string" },
+    { "key": "unit_price_override",           "value": "500000",                "type": "string" },
+    { "key": "base_amount",                   "value": "500000",                "type": "string" }
+  ],
+  "item": [
+    {
+      "name": "Stage 1 — Sales Reservation Participants",
+      "description": "Endpoints for managing participants on a sales reservation.\n\nMiddleware: auth:sanctum, role:sales|sales_leader|admin\nPermission: sales.reservations.view (GET), sales.reservations.create (POST)\n\nNote: PUT /participants has no explicit route-level permission middleware — authorization is enforced inside SyncReservationParticipantsRequest via policy.",
+      "item": [
+        {
+          "name": "GET Eligible Participants",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Accept",        "value": "application/json" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/sales/reservations/eligible-participants",
+              "host": ["{{base_url}}"],
+              "path": ["api", "sales", "reservations", "eligible-participants"]
+            },
+            "description": "Returns all users with type=sales, sorted by name, including the authenticated user.\nRegistered BEFORE the {reservation}/participants route to prevent wildcard capture.\n\nPermission: sales.reservations.view\nExpected: 200 OK with data[] of {id, name, email, type, team: {id, name}|null}"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('success = true', () => {",
+                  "    const body = pm.response.json();",
+                  "    pm.expect(body.success).to.be.true;",
+                  "    pm.expect(body.data).to.be.an('array');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "POST Create Reservation (with Participants)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization",  "value": "Bearer {{token}}" },
+              { "key": "Accept",         "value": "application/json" },
+              { "key": "Content-Type",   "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"contract_id\": {{contract_id}},\n  \"contract_unit_id\": {{contract_unit_id}},\n  \"reservation_type\": \"confirmed_reservation\",\n  \"contract_date\": \"2026-05-05\",\n  \"client_name\": \"Ahmed Al-Harbi\",\n  \"client_mobile\": \"+966500000001\",\n  \"client_nationality\": \"Saudi\",\n  \"client_iban\": \"SA0000000000000000000001\",\n  \"payment_method\": \"cash\",\n  \"down_payment_amount\": 50000,\n  \"down_payment_status\": \"non_refundable\",\n  \"purchase_mechanism\": \"cash\",\n  \"participants\": [\n    {\n      \"user_id\": {{sales_user_id}},\n      \"did_bring\": true,\n      \"did_convince\": false,\n      \"did_close\": true,\n      \"weight\": 1.5,\n      \"notes\": \"Primary sales agent\"\n    },\n    {\n      \"user_id\": {{participant_user_id}},\n      \"did_bring\": false,\n      \"did_convince\": true,\n      \"did_close\": false,\n      \"weight\": 1.0,\n      \"notes\": null\n    }\n  ]\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/sales/reservations",
+              "host": ["{{base_url}}"],
+              "path": ["api", "sales", "reservations"]
+            },
+            "description": "Creates a new sales reservation with optional participants[].\n\nPermission: sales.reservations.create\n\nKey defaults (prepareForValidation):\n  contract_date → today if omitted\n  client_nationality → 'غير محدد' if omitted\n  client_iban → '-' if omitted\n  payment_method → 'cash' if omitted\n  down_payment_status → 'refundable' if omitted\n  purchase_mechanism → 'cash' if omitted\n\nFor negotiation type, also send:\n  negotiation_notes, negotiation_reason, proposed_price (must be < unit price)\n\nConditional:\n  evacuation_date required if is_off_plan AND down_payment_status = non_refundable\n\nExpected: 201 Created"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 201', () => pm.response.to.have.status(201));",
+                  "pm.test('success = true', () => {",
+                  "    const body = pm.response.json();",
+                  "    pm.expect(body.success).to.be.true;",
+                  "    if (body.data && body.data.id) {",
+                  "        pm.collectionVariables.set('reservation_id', body.data.id);",
+                  "    }",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "GET List Participants for Reservation",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Accept",        "value": "application/json" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/sales/reservations/{{reservation_id}}/participants",
+              "host": ["{{base_url}}"],
+              "path": ["api", "sales", "reservations", "{{reservation_id}}", "participants"]
+            },
+            "description": "Returns all participants for a reservation.\nPermission: sales.reservations.view\nExpected: 200 OK with data[] of {id, user_id, user:{id,name}, did_bring, did_convince, did_close, weight, notes}"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('data is array', () => {",
+                  "    const body = pm.response.json();",
+                  "    pm.expect(body.data).to.be.an('array');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "PUT Sync Participants for Reservation",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Authorization",  "value": "Bearer {{token}}" },
+              { "key": "Accept",         "value": "application/json" },
+              { "key": "Content-Type",   "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"participants\": [\n    {\n      \"user_id\": {{sales_user_id}},\n      \"did_bring\": true,\n      \"did_convince\": true,\n      \"did_close\": false,\n      \"weight\": 2.0,\n      \"notes\": \"Updated — also convinced client\"\n    },\n    {\n      \"user_id\": {{participant_user_id}},\n      \"did_bring\": false,\n      \"did_convince\": false,\n      \"did_close\": true,\n      \"weight\": 1.0,\n      \"notes\": null\n    }\n  ]\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/sales/reservations/{{reservation_id}}/participants",
+              "host": ["{{base_url}}"],
+              "path": ["api", "sales", "reservations", "{{reservation_id}}", "participants"]
+            },
+            "description": "Full sync (replace) of participants for a reservation.\nAuthorization: SyncReservationParticipantsRequest policy (no explicit route middleware).\nSends participants = [] to clear all participants.\nDuplicate user_id entries are rejected (distinct validation).\n\nExpected: 200 OK with updated data[]"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('success = true', () => pm.response.json().success === true);"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Stage 2 — Project Commission Settings",
+      "description": "CRUD + activate endpoints for project commission settings.\n\nMiddleware: auth:sanctum, role:accounting|admin\nPermission: accounting.sold-units.view (GET), accounting.sold-units.manage (POST/PUT/activate)\n\nKey rules:\n  - project_id is contracts.id\n  - commission_source: buyer | owner\n  - All percentages 0–100, nullable\n  - Management user + percentage > 0 must be provided together\n  - Total of (all bucket percentages) + (all management percentages) ≤ 100\n  - Only one active setting per project (activate deactivates all others)",
+      "item": [
+        {
+          "name": "GET List Project Commission Settings",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Accept",        "value": "application/json" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/accounting/project-commission-settings?project_id={{project_id}}&per_page=20",
+              "host": ["{{base_url}}"],
+              "path": ["api", "accounting", "project-commission-settings"],
+              "query": [
+                { "key": "project_id", "value": "{{project_id}}", "description": "Filter by project (contracts.id). Optional." },
+                { "key": "per_page",   "value": "20",             "description": "Items per page. Optional, default varies." }
+              ]
+            },
+            "description": "Returns paginated list of project commission settings.\nPermission: accounting.sold-units.view OR accounting.sold-units.manage\n\nResponse shape: {success, data[], meta:{current_page, last_page, per_page, total}}"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('paginated', () => {",
+                  "    const body = pm.response.json();",
+                  "    pm.expect(body.meta).to.have.property('total');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "POST Create Commission Setting (Buyer)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization",  "value": "Bearer {{token}}" },
+              { "key": "Accept",         "value": "application/json" },
+              { "key": "Content-Type",   "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"project_id\": {{project_id}},\n  \"commission_source\": \"buyer\",\n  \"commission_percentage\": 2.5,\n  \"assigned_bring_percentage\": 10,\n  \"assigned_convince_percentage\": 10,\n  \"assigned_close_percentage\": 10,\n  \"outside_bring_percentage\": 5,\n  \"outside_convince_percentage\": 5,\n  \"outside_close_percentage\": 5,\n  \"ceo_user_id\": {{ceo_user_id}},\n  \"ceo_percentage\": 15,\n  \"sales_manager_user_id\": {{sales_manager_user_id}},\n  \"sales_manager_percentage\": 10,\n  \"sales_leader_user_id\": {{sales_leader_user_id}},\n  \"sales_leader_percentage\": 10,\n  \"group_leader_user_id\": {{group_leader_user_id}},\n  \"group_leader_percentage\": 5,\n  \"external_marketer_user_id\": null,\n  \"external_marketer_percentage\": 0,\n  \"is_active\": false\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/accounting/project-commission-settings",
+              "host": ["{{base_url}}"],
+              "path": ["api", "accounting", "project-commission-settings"]
+            },
+            "description": "Creates a buyer-source commission setting.\n\nFormula: commission = unit_price × commission_percentage / 100\nFormula key: buyer_unit_price_times_rate\n\nPermission: accounting.sold-units.manage\n\nBucket totals in this example:\n  assigned buckets: 10+10+10 = 30%\n  outside buckets: 5+5+5 = 15%\n  management: 15+10+10+5 = 40%\n  Total: 85% ≤ 100% ✅\n\nExpected: 201 Created"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 201', () => pm.response.to.have.status(201));",
+                  "pm.test('setting created', () => {",
+                  "    const body = pm.response.json();",
+                  "    pm.expect(body.success).to.be.true;",
+                  "    if (body.data && body.data.id) {",
+                  "        pm.collectionVariables.set('project_commission_setting_id', body.data.id);",
+                  "    }",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "POST Create Commission Setting (Owner)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization",  "value": "Bearer {{token}}" },
+              { "key": "Accept",         "value": "application/json" },
+              { "key": "Content-Type",   "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"project_id\": {{project_id}},\n  \"commission_source\": \"owner\",\n  \"commission_percentage\": 10,\n  \"assigned_bring_percentage\": 15,\n  \"assigned_convince_percentage\": 10,\n  \"assigned_close_percentage\": 10,\n  \"outside_bring_percentage\": 8,\n  \"outside_convince_percentage\": 7,\n  \"outside_close_percentage\": 5,\n  \"ceo_user_id\": {{ceo_user_id}},\n  \"ceo_percentage\": 20,\n  \"sales_manager_user_id\": {{sales_manager_user_id}},\n  \"sales_manager_percentage\": 10,\n  \"sales_leader_user_id\": null,\n  \"sales_leader_percentage\": 0,\n  \"group_leader_user_id\": null,\n  \"group_leader_percentage\": 0,\n  \"external_marketer_user_id\": {{external_marketer_user_id}},\n  \"external_marketer_percentage\": 5,\n  \"is_active\": false\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/accounting/project-commission-settings",
+              "host": ["{{base_url}}"],
+              "path": ["api", "accounting", "project-commission-settings"]
+            },
+            "description": "Creates an owner-source commission setting.\n\nFormula: commission = unit_price / (1 + commission_percentage / 100)\nFormula key: owner_unit_price_divided_by_100_percent_plus_rate\n\nWARNING: The formula result IS the commission amount directly.\nDo NOT subtract it from unit_price.\n\nPermission: accounting.sold-units.manage\n\nBucket totals in this example:\n  assigned buckets: 15+10+10 = 35%\n  outside buckets: 8+7+5 = 20%\n  management: 20+10+5 = 35%\n  Total: 90% ≤ 100% ✅\n\nExpected: 201 Created"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 201', () => pm.response.to.have.status(201));",
+                  "pm.test('owner source', () => {",
+                  "    const body = pm.response.json();",
+                  "    pm.expect(body.data.commission_source).to.equal('owner');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "GET Show Commission Setting",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Accept",        "value": "application/json" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/accounting/project-commission-settings/{{project_commission_setting_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "accounting", "project-commission-settings", "{{project_commission_setting_id}}"]
+            },
+            "description": "Returns a single project commission setting with loaded relations:\n  project, creator, ceoUser, salesManagerUser, salesLeaderUser, groupLeaderUser, externalMarketerUser\n\nPermission: accounting.sold-units.view OR accounting.sold-units.manage\nExpected: 200 OK"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('has setting id', () => {",
+                  "    const body = pm.response.json();",
+                  "    pm.expect(body.data.id).to.exist;",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "PUT Update Commission Setting",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Authorization",  "value": "Bearer {{token}}" },
+              { "key": "Accept",         "value": "application/json" },
+              { "key": "Content-Type",   "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"project_id\": {{project_id}},\n  \"commission_source\": \"buyer\",\n  \"commission_percentage\": 3.0,\n  \"assigned_bring_percentage\": 12,\n  \"assigned_convince_percentage\": 12,\n  \"assigned_close_percentage\": 12,\n  \"outside_bring_percentage\": 6,\n  \"outside_convince_percentage\": 6,\n  \"outside_close_percentage\": 6,\n  \"ceo_user_id\": {{ceo_user_id}},\n  \"ceo_percentage\": 15,\n  \"sales_manager_user_id\": {{sales_manager_user_id}},\n  \"sales_manager_percentage\": 10,\n  \"sales_leader_user_id\": {{sales_leader_user_id}},\n  \"sales_leader_percentage\": 5,\n  \"group_leader_user_id\": null,\n  \"group_leader_percentage\": 0,\n  \"external_marketer_user_id\": null,\n  \"external_marketer_percentage\": 0\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/accounting/project-commission-settings/{{project_commission_setting_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "accounting", "project-commission-settings", "{{project_commission_setting_id}}"]
+            },
+            "description": "Updates an existing project commission setting.\nPermission: accounting.sold-units.manage\n\nTotal check: 12+12+12 + 6+6+6 + 15+10+5 = 84% ≤ 100% ✅\n\nExpected: 200 OK"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('updated percentage', () => {",
+                  "    const body = pm.response.json();",
+                  "    pm.expect(body.data.commission_percentage).to.equal(3.0);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "POST Activate Commission Setting",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization",  "value": "Bearer {{token}}" },
+              { "key": "Accept",         "value": "application/json" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/accounting/project-commission-settings/{{project_commission_setting_id}}/activate",
+              "host": ["{{base_url}}"],
+              "path": ["api", "accounting", "project-commission-settings", "{{project_commission_setting_id}}", "activate"]
+            },
+            "description": "Activates a project commission setting.\nSets is_active = true for this setting and deactivates all others for the same project.\n\nPermission: accounting.sold-units.manage\nBody: none required\nExpected: 200 OK with {success, message, data:{...is_active:true}}"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('is_active = true', () => {",
+                  "    const body = pm.response.json();",
+                  "    pm.expect(body.data.is_active).to.be.true;",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Stage 3 — Preview",
+      "description": "Read-only commission calculation previews. No DB writes.\n\nMiddleware: auth:sanctum, role:accounting|admin\nPermission: accounting.sold-units.view OR accounting.sold-units.manage (handled in Form Request)\n\nPreview always requires an active project commission setting for the project.",
+      "item": [
+        {
+          "name": "POST Preview Project Commission",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization",  "value": "Bearer {{token}}" },
+              { "key": "Accept",         "value": "application/json" },
+              { "key": "Content-Type",   "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"base_amount\": {{base_amount}}\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/accounting/projects/{{project_id}}/preview-commission",
+              "host": ["{{base_url}}"],
+              "path": ["api", "accounting", "projects", "{{project_id}}", "preview-commission"]
+            },
+            "description": "Calculates commission preview for a project based on a given base_amount.\n\nRoute: POST /api/accounting/projects/{project}/preview-commission\nController: ProjectCommissionPreviewController::previewProject()\n\nIMPORTANT: Although base_amount is nullable in validation rules, the underlying service\nthrows 422 if base_amount is missing or ≤ 0. Always send it.\n\nRequires: active ProjectCommissionSetting for this project.\nExpected: 200 OK with {success, data: {source, formula_key, commission_percentage, commission_amount, ...}}"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('has commission_amount', () => {",
+                  "    const body = pm.response.json();",
+                  "    pm.expect(body.data).to.have.property('commission_amount');",
+                  "    pm.expect(body.data.commission_amount).to.be.above(0);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "POST Preview Unit Commission",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization",  "value": "Bearer {{token}}" },
+              { "key": "Accept",         "value": "application/json" },
+              { "key": "Content-Type",   "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"override_unit_price\": {{unit_price_override}}\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/accounting/reservations/{{reservation_id}}/preview-unit-commission",
+              "host": ["{{base_url}}"],
+              "path": ["api", "accounting", "reservations", "{{reservation_id}}", "preview-unit-commission"]
+            },
+            "description": "Calculates full unit commission preview for a reservation including per-participant distributions.\n\nRoute: POST /api/accounting/reservations/{reservation}/preview-unit-commission\nController: ProjectCommissionPreviewController::previewUnit()\n\nOverride price (optional):\n  If override_unit_price > 0 is sent, it overrides UnitPriceResolver.\n  This override is NOT saved to DB — preview only.\n\nUnitPriceResolver priority (when no override):\n  1. commission.final_selling_price\n  2. reservation.proposed_price\n  3. contractUnit.price\n  4. throws UnitPriceUnresolvedException (422)\n\nOmit override_unit_price or send {} to use UnitPriceResolver.\n\nExpected: 200 OK with full distribution breakdown:\n  {reservation_id, project_id, unit_price, commission_source, commission_percentage,\n   formula_key, unit_commission_amount, distributions[], unresolved[], total_distributed, remaining_amount}"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('has distributions array', () => {",
+                  "    const body = pm.response.json();",
+                  "    pm.expect(body.data.distributions).to.be.an('array');",
+                  "    pm.expect(body.data).to.have.property('unresolved');",
+                  "    pm.expect(body.data).to.have.property('unit_commission_amount');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Stage 4 — Generate Unit Commission",
+      "description": "Persists the unit commission and distributions to the database.\n\nMiddleware: auth:sanctum, role:accounting|admin\nPermission: accounting.sold-units.manage\n\nSafeguards:\n  - Rejects if commission exists with calculated_by_project_setting = false (manual/legacy)\n  - Rejects if commission is not pending\n  - Rejects if any distribution is not pending\n  - On regeneration: only deletes pending distributions (approved/paid are safe)\n  - Wrapped in DB::transaction()\n  - Post-persist: validates sum(distributions) ≤ unit_commission_amount + 0.02",
+      "item": [
+        {
+          "name": "POST Generate Unit Commission",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization",  "value": "Bearer {{token}}" },
+              { "key": "Accept",         "value": "application/json" },
+              { "key": "Content-Type",   "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/accounting/reservations/{{reservation_id}}/generate-unit-commission",
+              "host": ["{{base_url}}"],
+              "path": ["api", "accounting", "reservations", "{{reservation_id}}", "generate-unit-commission"]
+            },
+            "description": "Generates (or regenerates) the unit commission for a reservation.\n\nRoute: POST /api/accounting/reservations/{reservation}/generate-unit-commission\nController: UnitCommissionGenerationController::generate()\n\nNo request body required. The reservation ID from the route is enough.\n\nInternal flow:\n  1. preview() — calculates distributions (no write)\n  2. assertPreviewSafeForPersist() — validates amounts\n  3. assertReservationAllowsGeneration() — blocks manual/legacy commissions\n  4. DB::transaction { upsert Commission + create CommissionDistributions }\n  5. Post-persist sum check\n  6. Returns generated commission + distributions + unresolved + totals\n\nResponse shape:\n  {success, message, data: {\n    commission: {id, reservation_id, contract_unit_id, final_selling_price,\n                 commission_source, commission_percentage, total_amount, net_amount,\n                 calculation_formula_key, calculated_by_project_setting,\n                 project_commission_setting_id},\n    distributions: [{user_id, percentage, amount, source_scope, source_type}],\n    unresolved: [{source_scope, source_type, percentage, amount, reason}],\n    total_distributed: float,\n    remaining_amount: float\n  }}\n\nExpected: 200 OK on success"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('commission generated', () => {",
+                  "    const body = pm.response.json();",
+                  "    pm.expect(body.success).to.be.true;",
+                  "    pm.expect(body.data.commission).to.have.property('id');",
+                  "    pm.expect(body.data.commission.calculated_by_project_setting).to.be.true;",
+                  "    pm.expect(body.data.distributions).to.be.an('array');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Legacy Compatibility",
+      "description": "The original manual commission endpoint. Still fully active.\n\nMiddleware: auth:sanctum, role:accounting|admin\nPermission: accounting.sold-units.manage\n\nLegacy commissions have calculated_by_project_setting = false (default).\nThey CANNOT be replaced by the generate endpoint — this is an intentional safeguard.",
+      "item": [
+        {
+          "name": "POST Create Manual Commission (Legacy)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization",  "value": "Bearer {{token}}" },
+              { "key": "Accept",         "value": "application/json" },
+              { "key": "Content-Type",   "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"contract_unit_id\": {{contract_unit_id}},\n  \"final_selling_price\": 500000,\n  \"commission_percentage\": 2.5,\n  \"commission_source\": \"buyer\",\n  \"team_responsible\": \"North Team\",\n  \"marketing_expenses\": 1000,\n  \"bank_fees\": 500\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/accounting/sold-units/{{reservation_id}}/commission",
+              "host": ["{{base_url}}"],
+              "path": ["api", "accounting", "sold-units", "{{reservation_id}}", "commission"]
+            },
+            "description": "Creates a manual commission for a reservation (legacy endpoint).\n\nRoute: POST /api/accounting/sold-units/{id}/commission\nController: AccountingCommissionController::createManual()\n\nThe {id} here is the sales_reservation_id.\n\nResulting commission will have calculated_by_project_setting = false,\nwhich means the Stage 4 generate endpoint will REFUSE to overwrite it (422).\n\nRequired fields:\n  contract_unit_id, final_selling_price, commission_percentage, commission_source\n\nOptional fields:\n  team_responsible, marketing_expenses, bank_fees\n\nExpected: 201 Created"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 201', () => pm.response.to.have.status(201));",
+                  "pm.test('legacy commission created', () => {",
+                  "    const body = pm.response.json();",
+                  "    pm.expect(body.success).to.be.true;",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Error & QA Cases",
+      "description": "Requests that are expected to return 422 validation errors.\nUseful for verifying safeguard behavior.\n\nAll return: {success: false, message: string, errors: {field: [message]}}",
+      "item": [
+        {
+          "name": "[422] Preview — No Active Setting for Project",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization",  "value": "Bearer {{token}}" },
+              { "key": "Accept",         "value": "application/json" },
+              { "key": "Content-Type",   "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"base_amount\": 500000\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/accounting/projects/99999/preview-commission",
+              "host": ["{{base_url}}"],
+              "path": ["api", "accounting", "projects", "99999", "preview-commission"]
+            },
+            "description": "Uses a non-existent or project with no active commission setting.\nExpected: 404 (project not found) or 422 with errors.project_commission_setting.\n\nError message: 'No active project commission setting for this project.'\nError key: project_commission_setting"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Error response (404 or 422)', () => {",
+                  "    pm.expect([404, 422]).to.include(pm.response.code);",
+                  "});",
+                  "pm.test('success = false', () => {",
+                  "    const body = pm.response.json();",
+                  "    pm.expect(body.success).to.be.false;",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "[422] Generate — Reservation Has Manual Commission",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization",  "value": "Bearer {{token}}" },
+              { "key": "Accept",         "value": "application/json" },
+              { "key": "Content-Type",   "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/accounting/reservations/{{reservation_id}}/generate-unit-commission",
+              "host": ["{{base_url}}"],
+              "path": ["api", "accounting", "reservations", "{{reservation_id}}", "generate-unit-commission"]
+            },
+            "description": "To trigger this error:\n  1. First create a manual commission via POST /api/accounting/sold-units/{id}/commission\n  2. Then attempt to generate via this endpoint\n\nExpected: 422 Unprocessable Entity\nError key: commission\nError message: 'This reservation has a legacy or manual commission. Project-based generation cannot replace it.'\n\nThis is the assertReservationAllowsGeneration() safeguard in UnitCommissionGenerationService."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 422', () => pm.response.to.have.status(422));",
+                  "pm.test('manual commission error', () => {",
+                  "    const body = pm.response.json();",
+                  "    pm.expect(body.success).to.be.false;",
+                  "    if (body.errors && body.errors.commission) {",
+                  "        pm.expect(body.errors.commission[0]).to.include('legacy or manual');",
+                  "    }",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "[422] Generate — Commission Not Pending (Already Approved/Paid)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization",  "value": "Bearer {{token}}" },
+              { "key": "Accept",         "value": "application/json" },
+              { "key": "Content-Type",   "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/accounting/reservations/{{reservation_id}}/generate-unit-commission",
+              "host": ["{{base_url}}"],
+              "path": ["api", "accounting", "reservations", "{{reservation_id}}", "generate-unit-commission"]
+            },
+            "description": "To trigger this error:\n  1. Generate a commission (calculated_by_project_setting = true)\n  2. Move the commission status to 'approved' or 'paid' (via other endpoints)\n  3. Then attempt to regenerate via this endpoint\n\nExpected: 422 Unprocessable Entity\nError key: commission\nError message: 'Commission is not editable in its current status.'\n\nAlso triggered if any distribution has status != 'pending':\n  'Cannot regenerate: non-pending distributions exist.'\n\nSafeguard: protects approved/paid commissions from accidental overwrites."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 422', () => pm.response.to.have.status(422));",
+                  "pm.test('not editable error', () => {",
+                  "    const body = pm.response.json();",
+                  "    pm.expect(body.success).to.be.false;",
+                  "    if (body.errors && body.errors.commission) {",
+                  "        const msg = body.errors.commission[0];",
+                  "        const validMessages = ['not editable', 'non-pending distributions'];",
+                  "        pm.expect(validMessages.some(v => msg.includes(v))).to.be.true;",
+                  "    }",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

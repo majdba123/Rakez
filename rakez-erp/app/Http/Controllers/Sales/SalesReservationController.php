@@ -7,10 +7,13 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Sales\CancelReservationRequest;
 use App\Http\Requests\Sales\StoreReservationActionRequest;
 use App\Http\Requests\Sales\StoreReservationRequest;
+use App\Http\Requests\Sales\SyncReservationParticipantsRequest;
 use App\Http\Resources\Sales\ReservationContextResource;
 use App\Http\Resources\Sales\SalesReservationDetailResource;
+use App\Http\Resources\Sales\SalesReservationParticipantResource;
 use App\Http\Resources\Sales\SalesReservationResource;
 use App\Models\ContractUnit;
+use App\Models\User;
 use App\Models\SalesReservation;
 use App\Services\Pdf\PdfFactory;
 use App\Services\Sales\ReservationVoucherService;
@@ -18,6 +21,8 @@ use App\Services\Sales\SalesReservationService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Auth\Access\AuthorizationException;
+use Illuminate\Support\Str;
 use Mpdf\MpdfException;
 use Symfony\Component\HttpFoundation\Response;
 
@@ -84,6 +89,118 @@ class SalesReservationController extends Controller
     }
 
     /**
+     * Sales users eligible to attach as reservation participants (picker UI).
+     * GET /api/sales/reservations/eligible-participants
+     */
+    public function eligibleParticipants(Request $request): JsonResponse
+    {
+        try {
+            $this->authorize('viewAny', SalesReservation::class);
+
+            /** @var User $authUser */
+            $authUser = $request->user();
+            $authUser->loadMissing('team');
+
+            $byId = User::query()
+                ->with('team')
+                ->where('type', 'sales')
+                ->orderBy('name')
+                ->get()
+                ->keyBy('id');
+
+            if (!$byId->has($authUser->id)) {
+                $byId->put($authUser->id, $authUser);
+            } else {
+                $existing = $byId->get($authUser->id);
+                $existing->loadMissing('team');
+            }
+
+            $data = $byId->sortBy(fn (User $u) => Str::lower((string) ($u->name ?? '')))->values()->map(function (User $u) {
+                $team = $u->team;
+
+                return [
+                    'id' => $u->id,
+                    'name' => $u->name,
+                    'email' => $u->email,
+                    'type' => $u->type,
+                    'team' => $team ? ['id' => $team->id, 'name' => $team->name] : null,
+                ];
+            });
+
+            return response()->json([
+                'success' => true,
+                'data' => $data,
+            ], 200);
+        } catch (AuthorizationException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Forbidden',
+            ], 403);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to list eligible participants: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
+     * GET /api/sales/reservations/{reservation}/participants
+     */
+    public function participantsIndex(SalesReservation $reservation): JsonResponse
+    {
+        try {
+            $this->authorize('viewParticipants', $reservation);
+            $reservation->load(['participantRecords.user.team']);
+
+            return response()->json([
+                'success' => true,
+                'data' => SalesReservationParticipantResource::collection($reservation->participantRecords),
+            ], 200);
+        } catch (AuthorizationException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Unauthorized',
+            ], 403);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to retrieve participants: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
+     * PUT /api/sales/reservations/{reservation}/participants
+     */
+    public function participantsSync(SyncReservationParticipantsRequest $request, SalesReservation $reservation): JsonResponse
+    {
+        try {
+            $validated = $request->validated();
+            $participants = $validated['participants'] ?? [];
+
+            $this->reservationService->syncReservationParticipants(
+                $reservation,
+                $participants,
+                $request->user()
+            );
+
+            $reservation->load(['participantRecords.user.team']);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Participants updated',
+                'data' => SalesReservationParticipantResource::collection($reservation->participantRecords),
+            ], 200);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to sync participants: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
      * List reservations.
      */
     public function index(Request $request): JsonResponse
@@ -127,7 +244,13 @@ class SalesReservationController extends Controller
     public function show(int $id): JsonResponse
     {
         try {
-            $reservation = SalesReservation::with(['contract', 'contractUnit', 'marketingEmployee', 'paymentInstallments'])
+            $reservation = SalesReservation::with([
+                'contract',
+                'contractUnit',
+                'marketingEmployee',
+                'paymentInstallments',
+                'participantRecords.user.team',
+            ])
                 ->findOrFail($id);
 
             return response()->json([

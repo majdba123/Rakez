@@ -56,8 +56,22 @@ docs/
 | Document | Purpose | Read Time | When to Read |
 |----------|---------|-----------|--------------|
 | [`COMMISSION_SALES_MANAGEMENT_IMPLEMENTATION.md`](COMMISSION_SALES_MANAGEMENT_IMPLEMENTATION.md) | Technical details | 20 min | Deep dive |
+| [`SIMPLE_COMMISSION_MVP_API.md`](SIMPLE_COMMISSION_MVP_API.md) | Simple commission MVP (participants, settings, preview, generation, formulas, reporting fields) | 15 min | Accounting / integrations |
+| [`SIMPLE_COMMISSION_MVP_FULL_AUDIT_AND_API_AR.md`](SIMPLE_COMMISSION_MVP_FULL_AUDIT_AND_API_AR.md) | Full codebase audit + complete Arabic API reference for all 5 MVP stages (13 endpoints, formulas, safeguards, distribution logic, test commands) | 40 min | Arabic-language deep dive / audit review |
+| [`postman/simple_commission_mvp.postman_collection.json`](postman/simple_commission_mvp.postman_collection.json) | Postman Collection v2.1 — 17 requests across 6 folders covering all MVP endpoints + QA/error cases | — | API testing |
 | [`SYSTEM_OVERVIEW.md`](SYSTEM_OVERVIEW.md) | System architecture | 25 min | Understanding structure |
 | [`IMPLEMENTATION_ANALYSIS.md`](IMPLEMENTATION_ANALYSIS.md) | Implementation analysis | 30 min | Code review |
+
+### 🔔 Sales Unit Search Alerts (Priority: HIGH — New Feature)
+
+| Document | Purpose | Read Time | When to Read |
+|----------|---------|-----------|--------------|
+| [`frontend/sales-unit-search-alerts-frontend-handoff-ar.md`](frontend/sales-unit-search-alerts-frontend-handoff-ar.md) | Arabic frontend handoff — full UX flow, modal behavior, status badges, notification bell, SMS secondary behavior, acceptance checklist | 30 min | **Start here** for frontend implementation |
+| [`frontend/sales-unit-search-alerts-api-guide-ar.md`](frontend/sales-unit-search-alerts-api-guide-ar.md) | Arabic API guide — all 7 endpoints with full request/response examples, TypeScript interfaces, Arabic UI labels, SMS caveats, polling code | 25 min | Reference while coding |
+| [`frontend/sales-unit-search-alerts-codebase-findings.md`](frontend/sales-unit-search-alerts-codebase-findings.md) | Codebase inspection findings — every file read, routes confirmed, validation rules, models, resources, jobs, tests, uncertainties | 15 min | QA / backend handoff review |
+| [`testing/sales-unit-search-alerts-testing-guide.md`](testing/sales-unit-search-alerts-testing-guide.md) | Testing guide — PHPUnit commands, 10 manual QA scenarios, Postman run steps, regression checklist, .env settings | 20 min | QA / testing phase |
+| [`postman/Sales_Unit_Search_Alerts.postman_collection.json`](postman/Sales_Unit_Search_Alerts.postman_collection.json) | Postman Collection v2.1 — 16 requests across 5 folders: Auth, Unit Search, Alert CRUD, Notifications, Negative/Validation tests | — | API testing |
+| [`postman/Rakez_Local.postman_environment.json`](postman/Rakez_Local.postman_environment.json) | Postman local environment — base_url, auth_token (auto-populated), alert_id, search filter variables | — | Postman setup |
 
 ### ✅ Quality Assurance (Priority: LOW)
 

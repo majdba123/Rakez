@@ -13,6 +13,8 @@ use App\Models\MontageDepartment;
 use App\Models\Team;
 use App\Enums\ContractWorkflowStatus;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class Contract extends Model
 {
@@ -153,6 +155,23 @@ class Contract extends Model
     {
         return $this->belongsToMany(Team::class, 'contract_team')
             ->withTimestamps();
+    }
+
+    /**
+     * Per-project accounting commission scheme configuration rows (inactive + history).
+     */
+    public function projectCommissionSettings(): HasMany
+    {
+        return $this->hasMany(ProjectCommissionSetting::class, 'project_id');
+    }
+
+    /**
+     * The currently active accounting commission scheme for this contract, if any.
+     */
+    public function activeProjectCommissionSetting(): HasOne
+    {
+        return $this->hasOne(ProjectCommissionSetting::class, 'project_id')
+            ->where('is_active', true);
     }
 
     /**

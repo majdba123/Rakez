@@ -95,6 +95,14 @@ class SalesReservation extends Model
     }
 
     /**
+     * Sales participants contributing to reservation commission allocation (future stages).
+     */
+    public function participantRecords(): HasMany
+    {
+        return $this->hasMany(SalesReservationParticipant::class);
+    }
+
+    /**
      * Get the actions logged for this reservation.
      */
     public function actions()

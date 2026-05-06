@@ -92,6 +92,26 @@ class SalesReservationPolicy
     }
 
     /**
+     * View reservation participants list (creator, anyone who can view the reservation, admin).
+     */
+    public function viewParticipants(User $user, SalesReservation $reservation): bool
+    {
+        return $this->view($user, $reservation);
+    }
+
+    /**
+     * Replace reservation participants — creator or admin only.
+     */
+    public function manageParticipants(User $user, SalesReservation $reservation): bool
+    {
+        if ($user->hasRole('admin')) {
+            return true;
+        }
+
+        return $reservation->marketing_employee_id === $user->id;
+    }
+
+    /**
      * Determine if user can download a voucher.
      */
     public function downloadVoucher(User $user, SalesReservation $reservation): bool

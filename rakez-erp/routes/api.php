@@ -59,6 +59,9 @@ use App\Http\Controllers\Accounting\AccountingDashboardController;
 use App\Http\Controllers\Accounting\AccountingDepositController;
 use App\Http\Controllers\Accounting\AccountingNotificationController;
 use App\Http\Controllers\Accounting\AccountingSalaryController;
+use App\Http\Controllers\Accounting\ProjectCommissionPreviewController;
+use App\Http\Controllers\Accounting\ProjectCommissionSettingController;
+use App\Http\Controllers\Accounting\UnitCommissionGenerationController;
 use App\Http\Controllers\Credit\ClaimFileController;
 use App\Http\Controllers\Credit\CreditBookingController;
 use App\Http\Controllers\Credit\OrderMarketingDeveloperController;
@@ -480,6 +483,12 @@ use Illuminate\Support\Facades\File;  // أضف هذا السطر في الأع�
             // Reservation context
             Route::get('units/{unitId}/reservation-context', [SalesReservationController::class, 'context'])->middleware('permission:sales.reservations.create');
 
+            Route::middleware('permission:sales.reservations.view')->group(function () {
+                Route::get('reservations/eligible-participants', [SalesReservationController::class, 'eligibleParticipants']);
+                Route::get('reservations/{reservation}/participants', [SalesReservationController::class, 'participantsIndex'])->whereNumber('reservation');
+            });
+            Route::put('reservations/{reservation}/participants', [SalesReservationController::class, 'participantsSync'])->whereNumber('reservation');
+
             // Reservations
             Route::post('reservations', [SalesReservationController::class, 'store'])->middleware('permission:sales.reservations.create');
             Route::get('reservations', [SalesReservationController::class, 'index'])->middleware('permission:sales.reservations.view');
@@ -889,6 +898,19 @@ use Illuminate\Support\Facades\File;  // أضف هذا السطر في الأع�
             Route::post('commissions/{id}/distributions/{distId}/reject', [AccountingCommissionController::class, 'rejectDistribution'])->middleware('permission:accounting.commissions.approve');
             Route::get('commissions/{id}/summary', [AccountingCommissionController::class, 'summary'])->middleware('permission:accounting.sold-units.view');
             Route::post('commissions/{id}/distributions/{distId}/confirm', [AccountingCommissionController::class, 'confirmPayment'])->middleware('permission:accounting.sold-units.manage');
+
+            Route::get('project-commission-settings', [ProjectCommissionSettingController::class, 'index']);
+            Route::post('project-commission-settings', [ProjectCommissionSettingController::class, 'store'])->middleware('permission:accounting.sold-units.manage');
+            Route::get('project-commission-settings/{projectCommissionSetting}', [ProjectCommissionSettingController::class, 'show'])->whereNumber('projectCommissionSetting');
+            Route::put('project-commission-settings/{projectCommissionSetting}', [ProjectCommissionSettingController::class, 'update'])->middleware('permission:accounting.sold-units.manage')->whereNumber('projectCommissionSetting');
+            Route::post('project-commission-settings/{projectCommissionSetting}/activate', [ProjectCommissionSettingController::class, 'activate'])->middleware('permission:accounting.sold-units.manage')->whereNumber('projectCommissionSetting');
+
+            Route::post('projects/{project}/preview-commission', [ProjectCommissionPreviewController::class, 'previewProject'])->whereNumber('project');
+            Route::post('reservations/{reservation}/preview-unit-commission', [ProjectCommissionPreviewController::class, 'previewUnit'])->whereNumber('reservation');
+
+            Route::post('reservations/{reservation}/generate-unit-commission', [UnitCommissionGenerationController::class, 'generate'])
+                ->middleware('permission:accounting.sold-units.manage')
+                ->whereNumber('reservation');
 
             // Deposit management
             Route::get('deposits/pending', [AccountingDepositController::class, 'pending'])->middleware('permission:accounting.deposits.view');

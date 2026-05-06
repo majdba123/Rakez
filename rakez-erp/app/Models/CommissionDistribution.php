@@ -13,6 +13,8 @@ class CommissionDistribution extends Model
         'commission_id',
         'user_id',
         'type',
+        'source_scope',
+        'source_type',
         'external_name',
         'bank_account',
         'percentage',
