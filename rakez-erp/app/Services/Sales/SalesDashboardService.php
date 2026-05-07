@@ -199,7 +199,7 @@ class SalesDashboardService
      */
     public function applyReservationListVisibility($query, User $user): void
     {
-        if ($user->type !== 'sales' || $user->hasRole('admin')) {
+        if ($user->type !== 'sales' || $user->isAdmin()) {
             return;
         }
 
