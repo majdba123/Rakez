@@ -273,7 +273,7 @@ class TeamService
     /**
      * Assign the team's single sales leader (user.type must be sales_leader).
      * Fails if another user with type sales_leader is already on this team (unless re-assigning the same user).
-     * Clears team_group_id so the leader is at team level.
+     * Clears team_group_id so the leader is at team level; syncs Spatie role from type.
      */
     public function assignSalesLeaderToTeam(int $teamId, int $userId): User
     {
@@ -302,6 +302,8 @@ class TeamService
                 'team_id' => $teamId,
                 'team_group_id' => null,
             ]);
+            $user->syncRolesFromType();
+
             DB::commit();
 
             return $user->fresh(['team', 'teamGroup']);
@@ -449,4 +451,5 @@ class TeamService
         ];
     }
 }
+
 
