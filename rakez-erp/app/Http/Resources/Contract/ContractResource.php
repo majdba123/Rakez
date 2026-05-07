@@ -37,6 +37,8 @@ class ContractResource extends JsonResource
             'developer_number' => $this->developer_number,
             'city_id' => $this->city_id,
             'district_id' => $this->district_id,
+            'is_off_plan' => $this->is_off_plan,
+
             'city' => $this->city?->name,
             'district' => $this->district?->name,
             'side' => $this->side,
