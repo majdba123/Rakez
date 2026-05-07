@@ -262,7 +262,8 @@ class NegotiationApprovalService
         ]);
         event(new UserNotificationEvent($approval->requested_by, $message));
 
-        $managers = User::query()->get();
+        // Notify managers with approve permission
+        $managers = User::permission('sales.negotiation.approve')->get();
         foreach ($managers as $manager) {
             UserNotification::create([
                 'user_id' => $manager->id,
@@ -286,3 +287,4 @@ class NegotiationApprovalService
         }
     }
 }
+

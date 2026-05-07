@@ -23,6 +23,12 @@ class SalesTargetService
      */
     public function getMyTargets(User $user, array $filters): array
     {
+        if ($user->isSalesLeader()) {
+            return [
+                'type' => self::MY_CONTENT_ASSIGNMENTS,
+                'paginator' => $this->getGoalProjectsForLeader($user, $filters),
+            ];
+        }
 
         $query = SalesTarget::query()
             ->with(['contract.city', 'contract.district', 'contractUnit', 'contractUnits', 'leader', 'marketer'])
@@ -81,8 +87,27 @@ class SalesTargetService
      */
     public function getTargetsByProject(int $contractId, User $user): Collection
     {
+        if (!$this->userCanViewTargetsByProject($user, $contractId)) {
+            throw new \Exception('You do not have access to targets for this project');
+        }
+
         $query = SalesTarget::where('contract_id', $contractId)
             ->with(['contract.city', 'contract.district', 'contractUnit', 'contractUnits', 'leader', 'marketer']);
+
+        if ($user->hasRole('admin')) {
+            return $query->orderBy('start_date', 'desc')->get();
+        }
+
+        if ($user->isSalesLeader()) {
+            $query->whereHas('marketer', function (Builder $marketers) use ($user) {
+                $marketers
+                    ->where('team_id', $user->team_id)
+                    ->where('type', 'sales')
+                    ->where('is_manager', false);
+            });
+        } else {
+            $query->where('marketer_id', $user->id);
+        }
 
         return $query->orderBy('start_date', 'desc')->get();
     }
@@ -93,7 +118,17 @@ class SalesTargetService
      */
     public function userCanViewTargetsByProject(User $user, int $contractId): bool
     {
-        return true;
+        if ($user->hasRole('admin')) {
+            return true;
+        }
+
+        if ($user->isSalesLeader()) {
+            return $this->leaderTeamHasProject($user, $contractId);
+        }
+
+        return SalesTarget::where('contract_id', $contractId)
+            ->where('marketer_id', $user->id)
+            ->exists();
     }
 
     /**
