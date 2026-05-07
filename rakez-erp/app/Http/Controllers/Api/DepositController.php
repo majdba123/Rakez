@@ -11,6 +11,7 @@ use App\Http\Responses\ApiResponse;
 use App\Exceptions\DepositException;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Support\Facades\Gate;
 
 class DepositController extends Controller
 {

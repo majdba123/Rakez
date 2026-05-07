@@ -127,6 +127,12 @@ class DeveloperService
     ): \Illuminate\Database\Eloquent\Builder {
         $query = Contract::query()->where('status', 'completed');
 
+        if ($user->can('contracts.view_all')) {
+            // no user filter
+        } else {
+            $query->where('user_id', $user->getAuthIdentifier());
+        }
+
         if ($search !== null && trim($search) !== '') {
             $term = '%' . trim($search) . '%';
             $query->where(function ($q) use ($term) {

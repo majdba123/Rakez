@@ -113,6 +113,14 @@ class register
             $user = User::create($userData);
             $user->load(['team', 'teamGroup']);
 
+            // Sync Spatie roles
+            // If a specific role is provided, use it; otherwise fall back to type-based role
+            if (isset($data['role'])) {
+                $user->syncRoles([$data['role']]);
+            } else {
+                $user->syncRolesFromType();
+            }
+
             // Save to admin_notifications table
             AdminNotification::createForNewEmployee($user);
 
@@ -319,6 +327,14 @@ class register
             }
 
             $user->update($updateData);
+
+            // Sync Spatie roles
+            // If a specific role is provided, use it; otherwise sync based on type/is_manager
+            if (isset($data['role'])) {
+                $user->syncRoles([$data['role']]);
+            } elseif (isset($data['type']) || isset($data['is_manager'])) {
+                $user->syncRolesFromType();
+            }
 
             DB::commit();
             return $user;

@@ -95,6 +95,7 @@ class SalesReservationController extends Controller
     public function eligibleParticipants(Request $request): JsonResponse
     {
         try {
+            $this->authorize('viewAny', SalesReservation::class);
 
             /** @var User $authUser */
             $authUser = $request->user();
@@ -149,6 +150,7 @@ class SalesReservationController extends Controller
     public function participantsIndex(SalesReservation $reservation): JsonResponse
     {
         try {
+            $this->authorize('viewParticipants', $reservation);
             $reservation->load(['participantRecords.user.team']);
 
             return response()->json([
@@ -363,7 +365,7 @@ class SalesReservationController extends Controller
             ])->findOrFail($id);
 
             $user = request()->user();
-            if ($reservation->marketing_employee_id !== $user->id && !($user->type === 'admin') && !($user->type === 'project_management')) {
+            if ($reservation->marketing_employee_id !== $user->id && !$user->hasRole('admin') && !$user->hasRole('project_management')) {
                 return response()->json([
                     'success' => false,
                     'message' => 'Unauthorized to view this voucher',
@@ -406,7 +408,7 @@ class SalesReservationController extends Controller
 
             // Check authorization
             $user = request()->user();
-            if ($reservation->marketing_employee_id !== $user->id && !($user->type === 'admin') && !($user->type === 'project_management')) {
+            if ($reservation->marketing_employee_id !== $user->id && !$user->hasRole('admin') && !$user->hasRole('project_management')) {
                 return response()->json([
                     'success' => false,
                     'message' => 'Unauthorized to download this voucher',

@@ -37,6 +37,7 @@ use App\Http\Controllers\Sales\SalesUnitSearchController;
 use App\Http\Controllers\Sales\SalesUnitSearchAlertController;
 use App\Http\Controllers\Api\SalesAnalyticsController;
 use App\Http\Controllers\ExclusiveProjectController;
+use App\Http\Middleware\CheckDynamicPermission;
 use App\Http\Controllers\TeamController;
 use App\Http\Controllers\TeamGroupController;
 use App\Http\Controllers\TeamGroupLeaderController;
@@ -153,17 +154,17 @@ use Illuminate\Support\Facades\File;  // أضف هذا السطر في الأع�
         Route::get('tasks/{id}', [ManagerTaskController::class, 'show'])->whereNumber('id');
     });
 
-    // Teams list for any authenticated user (must be before project_management group)
+    // Teams list for any authenticated user (must be before role-restricted project_management group)
        Route::get('/project_management/teams/index', [TeamController::class, 'index']);
 
-    // Marketing developer orders — any authenticated user (authenticated middleware only)
+    // Marketing developer orders — any authenticated user (no role/permission middleware)
         Route::get('/order-marketing-developers', [OrderMarketingDeveloperController::class, 'index']);
         Route::post('/order-marketing-developers', [OrderMarketingDeveloperController::class, 'store']);
         Route::get('/order-marketing-developers/{id}', [OrderMarketingDeveloperController::class, 'show'])->whereNumber('id');
         Route::put('/order-marketing-developers/{id}', [OrderMarketingDeveloperController::class, 'update'])->whereNumber('id');
         Route::delete('/order-marketing-developers/{id}', [OrderMarketingDeveloperController::class, 'destroy'])->whereNumber('id');
 
-    // Developers list (available through controller)
+    // Developers list (authorized via ContractPolicy in controller)
         Route::get('/developers', [DeveloperController::class, 'index']);
         Route::get('/developers/{developer_number}', [DeveloperController::class, 'show']);
 
@@ -211,7 +212,7 @@ use Illuminate\Support\Facades\File;  // أضف هذا السطر في الأع�
             Route::put('/contracts/update/info/{id}', [ContractInfoController::class, 'update']);
             Route::get('/contracts/info/{contractId}/pdf', [ContractInfoController::class, 'downloadPdf'])->whereNumber('contractId');
 
-            // Sales / project-tracker: view second-party-data and photography-department (available through controller)
+            // Sales / project-tracker: view second-party-data and photography-department (authorized via ContractPolicy in controller)
             Route::get('/second-party-data/show/{id}', [SecondPartyDataController::class, 'show']);
             Route::get('/second-party-data/{contractId}/pdf', [SecondPartyDataController::class, 'downloadPdf'])->whereNumber('contractId');
             Route::get('/photography-department/show/{contractId}', [PhotographyDepartmentController::class, 'show']);
@@ -266,6 +267,7 @@ use Illuminate\Support\Facades\File;  // أضف هذا السطر في الأع�
 
 
             Route::prefix('second-party-data')->group(function () {
+                // GET show/{id} is only on the auth-only group above (line ~127) so sales/sales_leader can use it; controller authorizes via ContractPolicy
                 Route::post('store/{id}', [SecondPartyDataController::class, 'store']);
                 Route::put('update/{id}', [SecondPartyDataController::class, 'update']);
             });
@@ -554,7 +556,7 @@ use Illuminate\Support\Facades\File;  // أضف هذا السطر في الأع�
 
 
             // Create an admin prefix group with admin middleware
-        Route::prefix('admin')->middleware(['auth:sanctum'])->group(function () {
+        Route::prefix('admin')->middleware(['auth:sanctum', 'role:admin'])->group(function () {
 
                 Route::prefix('employees')->group(function () {
                     Route::get('/roles', [RegisterController::class, 'list_roles']);
@@ -1016,7 +1018,7 @@ use Illuminate\Support\Facades\File;  // أضف هذا السطر في الأع�
 
     // ==========================================
     // ASSISTANT KNOWLEDGE BASE (Admin only)
-    Route::prefix('ai/knowledge')->middleware(['auth:sanctum'])->group(function () {
+    Route::prefix('ai/knowledge')->middleware(['auth:sanctum', 'role:admin'])->group(function () {
         Route::get('/', [AssistantKnowledgeController::class, 'index']);
         Route::post('/', [AssistantKnowledgeController::class, 'store']);
         Route::put('/{id}', [AssistantKnowledgeController::class, 'update']);
@@ -1075,4 +1077,3 @@ use Illuminate\Support\Facades\File;  // أضف هذا السطر في الأع�
         Route::put('payment-installments/{id}', [PaymentPlanController::class, 'update']);
         Route::delete('payment-installments/{id}', [PaymentPlanController::class, 'destroy']);
     });
-

@@ -138,7 +138,7 @@ class SalesUnitSearchAlertController extends Controller
 
     private function canAccessAll($user): bool
     {
-        return $user?->type === 'admin';
+        return $user->hasRole('admin') || $user->can('sales.search_alerts.manage');
     }
 
     private function criteriaKeys(): array

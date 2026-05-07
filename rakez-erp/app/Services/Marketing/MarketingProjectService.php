@@ -287,7 +287,7 @@ class MarketingProjectService
     /**
      * Responsible sales teams for a contract (from contract_team + sales_project_assignments), with leaders, members, and leader ratings (sales domain).
      *
-     * @return array<int, array{id:int,name:string,leaders:array,members:array<int, array{id:int,name:string,member_type:string,rating:?int}>}>
+     * @return array<int, array{id:int,name:string,leaders:array,members:array<int, array{id:int,name:string,role:string,rating:?int}>}>
      */
     public function buildResponsibleSalesTeams(Contract $contract): array
     {
@@ -398,4 +398,3 @@ class MarketingProjectService
         }
     }
 }
-
