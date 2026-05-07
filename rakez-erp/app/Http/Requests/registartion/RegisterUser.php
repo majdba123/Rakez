@@ -65,7 +65,6 @@ class RegisterUser extends FormRequest
                     }
                 },
             ],
-            'role' => 'nullable|string|exists:roles,name',
             'is_manager' => 'nullable|boolean',
             'is_executive_director' => 'nullable|boolean',
             // Profile: team_group_id defines the sub-group; `team` is merged from the group in prepareForValidation()
@@ -149,7 +148,6 @@ class RegisterUser extends FormRequest
             'phone.unique' => 'Phone has already been taken.',
             'type.required' => 'User type is required.',
             'type.in' => 'User type must be one of the accepted values.',
-            'role.exists' => 'The selected role does not exist.',
             'is_manager.boolean' => 'قيمة المدير يجب أن تكون صحيحة أو خاطئة',
             'is_executive_director.boolean' => 'قيمة المدير التنفيذي يجب أن تكون صحيحة أو خاطئة',
             'identity_number.unique' => 'Identity number has already been taken.',

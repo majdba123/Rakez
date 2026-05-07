@@ -9,7 +9,7 @@ class AssistantChatRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return true; // Permission check is done in controller/middleware
+        return true;
     }
 
     public function rules(): array
@@ -32,4 +32,3 @@ class AssistantChatRequest extends FormRequest
         ];
     }
 }
-

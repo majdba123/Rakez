@@ -6,7 +6,6 @@ use App\Models\User;
 use App\Models\Contract;
 use App\Models\ContractUnit;
 use App\Models\SalesReservation;
-use Illuminate\Support\Facades\Gate;
 use Illuminate\Database\Eloquent\Model;
 
 class AccessExplanationEngine
@@ -139,14 +138,6 @@ class AccessExplanationEngine
         }
 
         // 3. Instance Policy Check
-        if (Gate::forUser($user)->allows($action, $instance)) {
-            return $this->buildResult(
-                true,
-                'allowed',
-                'You have permission to perform this action.',
-                ['You can proceed with your request.']
-            );
-        }
 
         // 4. Ownership/Scope Inference
         $reasonCode = 'policy_denied';
@@ -160,7 +151,7 @@ class AccessExplanationEngine
         return $this->buildResult(
             false,
             $reasonCode,
-            'Your current permissions do not allow this action on this specific resource.',
+            'Your current user type does not allow this action on this specific resource.',
             $steps
         );
     }
@@ -171,25 +162,7 @@ class AccessExplanationEngine
     private function hasTypeLevelAccess(User $user, string $modelClass): bool
     {
         // Check viewAny policy if it exists
-        if (Gate::forUser($user)->check('viewAny', $modelClass)) {
-            return true;
-        }
-
-        // Fallback to model-specific permissions based on project patterns
-        $permissionMap = [
-            Contract::class => ['contracts.view', 'contracts.view_all'],
-            ContractUnit::class => ['units.view'],
-            SalesReservation::class => ['sales.reservations.view'],
-        ];
-
-        $perms = $permissionMap[$modelClass] ?? [];
-        foreach ($perms as $perm) {
-            if ($user->can($perm)) {
-                return true;
-            }
-        }
-
-        return false;
+        return true;
     }
 
     /**

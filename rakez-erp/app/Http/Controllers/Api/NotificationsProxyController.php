@@ -16,10 +16,10 @@ class NotificationsProxyController extends Controller
 {
     public function index(Request $request): JsonResponse
     {
-        if ($request->user()->hasRole('credit') || $request->user()->hasRole('admin')) {
+        if (($request->user()->type === 'credit') || ($request->user()->type === 'admin')) {
             return app(CreditNotificationController::class)->index($request);
         }
-        if ($request->user()->hasRole('accounting')) {
+        if (($request->user()->type === 'accounting')) {
             return app(AccountingNotificationController::class)->index($request);
         }
         return response()->json([
@@ -30,10 +30,10 @@ class NotificationsProxyController extends Controller
 
     public function markAsRead(Request $request, $id): JsonResponse
     {
-        if ($request->user()->hasRole('credit') || $request->user()->hasRole('admin')) {
+        if (($request->user()->type === 'credit') || ($request->user()->type === 'admin')) {
             return app(CreditNotificationController::class)->markAsRead($request, (int) $id);
         }
-        if ($request->user()->hasRole('accounting')) {
+        if (($request->user()->type === 'accounting')) {
             return app(AccountingNotificationController::class)->markAsRead($request, (int) $id);
         }
         return response()->json(['success' => false, 'message' => 'Not found'], 404);
@@ -41,10 +41,10 @@ class NotificationsProxyController extends Controller
 
     public function markAllAsRead(Request $request): JsonResponse
     {
-        if ($request->user()->hasRole('credit') || $request->user()->hasRole('admin')) {
+        if (($request->user()->type === 'credit') || ($request->user()->type === 'admin')) {
             return app(CreditNotificationController::class)->markAllAsRead($request);
         }
-        if ($request->user()->hasRole('accounting')) {
+        if (($request->user()->type === 'accounting')) {
             return app(AccountingNotificationController::class)->markAllAsRead($request);
         }
         return response()->json(['success' => false, 'message' => 'Not found'], 404);

@@ -273,7 +273,7 @@ class DocumentController extends Controller
 
     private function isRagAdmin(User $user): bool
     {
-        return $user->hasRole('admin');
+        return ($user->type === 'admin');
     }
 
     private function canAccessDocument(User $user, AiDocument $document): bool

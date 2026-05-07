@@ -43,7 +43,6 @@ class UpdateUser extends FormRequest
                     }
                 },
             ],
-            'role' => 'nullable|string|exists:roles,name',
             'is_manager' => 'nullable|boolean',
             'is_executive_director' => 'nullable|boolean',
             // Profile fields
@@ -115,7 +114,6 @@ class UpdateUser extends FormRequest
             'password.min' => 'كلمة المرور يجب أن تكون على الأقل 6 أحرف',
             'type.integer' => 'نوع المستخدم يجب أن يكون رقماً',
             'type.between' => 'نوع المستخدم يجب أن يكون بين 1 و 13',
-            'role.exists' => 'The selected role does not exist.',
             'is_manager.boolean' => 'قيمة المدير يجب أن تكون صحيحة أو خاطئة',
             'is_executive_director.boolean' => 'قيمة المدير التنفيذي يجب أن تكون صحيحة أو خاطئة',
         ];

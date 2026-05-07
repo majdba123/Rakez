@@ -198,17 +198,19 @@ class RegisterController extends Controller
     }
 
     /**
-     * List all available roles for dropdown
+     * List all available user types for dropdown.
      *
      * @return JsonResponse
      */
     public function list_roles(): JsonResponse
     {
-        $roles = \Spatie\Permission\Models\Role::all(['id', 'name']);
+        $types = collect(config('user_types.numeric_map', []))
+            ->map(fn (string $name, int $id) => ['id' => $id, 'name' => $name])
+            ->values();
 
         return response()->json([
-            'message' => 'Roles retrieved successfully',
-            'data' => $roles,
+            'message' => 'User types retrieved successfully',
+            'data' => $types,
         ]);
     }
 }

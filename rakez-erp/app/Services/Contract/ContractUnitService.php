@@ -172,10 +172,6 @@ class ContractUnitService
         $currentUser = Auth::user();
         $currentUserId = Auth::id();
 
-        if ($currentUser && $currentUser->can('units.edit')) {
-            return;
-        }
-
         $secondPartyData = $contract->secondPartyData;
         if ($secondPartyData && $secondPartyData->processed_by === $currentUserId) {
             return;

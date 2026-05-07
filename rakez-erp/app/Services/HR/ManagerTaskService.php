@@ -19,7 +19,7 @@ class ManagerTaskService
     {
         $base = Task::with(['team:id,name', 'assignee:id,name,email', 'creator:id,name']);
 
-        if ($user->isAdmin()) {
+        if (($user->type === 'admin')) {
             return $base;
         }
 

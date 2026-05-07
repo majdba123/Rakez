@@ -21,12 +21,11 @@ class SalesDashboardController extends Controller
      */
     public function index(Request $request): JsonResponse
     {
-        // Check if user has required sales role
         $user = $request->user();
 
         try {
             $defaultScope = 'me';
-            if ($user->hasRole('admin')) {
+            if (($user->type === 'admin')) {
                 $defaultScope = 'all';
             }
 

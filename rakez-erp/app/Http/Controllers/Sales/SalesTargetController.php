@@ -11,7 +11,6 @@ use App\Models\SalesTarget;
 use App\Services\Sales\SalesTargetService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Gate;
 
 class SalesTargetController extends Controller
 {
@@ -64,12 +63,6 @@ class SalesTargetController extends Controller
      */
     public function byProject(Request $request, int $contractId): JsonResponse
     {
-        if (! Gate::forUser($request->user())->allows('viewTargetsByProject', $contractId)) {
-            return response()->json([
-                'success' => false,
-                'message' => 'You do not have access to targets for this project',
-            ], 403);
-        }
         try {
             $targets = $this->targetService->getTargetsByProject($contractId, $request->user());
             return response()->json([

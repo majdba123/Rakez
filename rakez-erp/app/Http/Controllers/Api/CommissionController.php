@@ -13,7 +13,6 @@ use App\Http\Responses\ApiResponse;
 use App\Exceptions\CommissionException;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Support\Facades\Gate;
 
 class CommissionController extends Controller
 {

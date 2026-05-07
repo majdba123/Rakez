@@ -15,11 +15,6 @@ use Illuminate\Validation\ValidationException;
 
 class SalesProjectService
 {
-    protected function isSalesOrLeader(User $user): bool
-    {
-        return true;
-    }
-
     /**
      * Count units for a contract using the eager-loaded relation when present (avoids N+1).
      */
