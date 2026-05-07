@@ -509,10 +509,10 @@ class ContractService
     private function authorizeContractAccess(Contract $contract, int $userId, bool $forContractInfo = false): void
     {
         $authUser = Auth::user();
-        $isAdmin = $authUser && (($authUser->type ?? '') === 'admin' );
+        $isAdmin = $authUser && (($authUser->type ?? '') === 'admin' || $authUser->hasRole('admin'));
         $isProjectManagementManager = $authUser && $authUser->isProjectManagementManager();
-        $isProjectManagement = $authUser && (($authUser->type ?? '') === 'project_management' );
-        $isEditor = !$forContractInfo && $authUser && (($authUser->type ?? '') === 'editor' );
+        $isProjectManagement = $authUser && (($authUser->type ?? '') === 'project_management' || $authUser->hasRole('project_management'));
+        $isEditor = !$forContractInfo && $authUser && (($authUser->type ?? '') === 'editor' || $authUser->hasRole('editor'));
 
         if ($forContractInfo) {
             // Store/update contract info: only owner, admin, or project_management manager (is_manager=true)
