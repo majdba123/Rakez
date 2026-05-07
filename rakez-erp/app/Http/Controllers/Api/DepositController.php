@@ -137,6 +137,7 @@ class DepositController extends Controller
      */
     public function confirmReceipt(Deposit $deposit): JsonResponse
     {
+        Gate::authorize('confirm-deposit-receipt');
 
         try {
             $deposit = $this->depositService->confirmReceipt($deposit, auth()->id());
@@ -184,6 +185,7 @@ class DepositController extends Controller
      */
     public function refund(Deposit $deposit): JsonResponse
     {
+        Gate::authorize('refund-deposit');
 
         try {
             $deposit = $this->depositService->refundDeposit($deposit);
@@ -318,6 +320,7 @@ class DepositController extends Controller
      */
     public function bulkConfirm(Request $request): JsonResponse
     {
+        Gate::authorize('confirm-deposit-receipt');
 
         $request->validate([
             'deposit_ids' => 'required|array|min:1',

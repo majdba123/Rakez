@@ -11,7 +11,9 @@ class AssignExecutiveDirectorLineTeamGroupsRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return true;
+        $u = $this->user();
+
+        return (bool) ($u && $u->isSalesLeader() && $u->team_id);
     }
 
     public function rules(): array

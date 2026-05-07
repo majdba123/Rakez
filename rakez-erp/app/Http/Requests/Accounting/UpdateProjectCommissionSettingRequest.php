@@ -12,7 +12,7 @@ class UpdateProjectCommissionSettingRequest extends FormRequest
 
     public function authorize(): bool
     {
-        return true;
+        return $this->user()?->hasPermissionTo('accounting.sold-units.manage') ?? false;
     }
 
     protected function prepareForValidation(): void

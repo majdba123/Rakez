@@ -16,6 +16,7 @@ class LeadController extends Controller
 {
     public function index(Request $request): JsonResponse
     {
+        $this->authorize('viewAny', Lead::class);
 
         $perPage = ApiResponse::getPerPage($request);
         $leads = Lead::with(['project', 'assignedTo'])
@@ -38,6 +39,7 @@ class LeadController extends Controller
     public function update(int $leadId, UpdateLeadRequest $request): JsonResponse
     {
         $lead = Lead::findOrFail($leadId);
+        $this->authorize('update', $lead);
         $lead->update($request->validated());
         return response()->json([
             'success' => true,
@@ -49,6 +51,7 @@ class LeadController extends Controller
     public function convert(int $leadId, ConvertLeadRequest $request): JsonResponse
     {
         $lead = Lead::findOrFail($leadId);
+        $this->authorize('update', $lead);
 
         $lead->update([
             'status' => 'converted'
@@ -67,6 +70,7 @@ class LeadController extends Controller
     public function assign(int $leadId, AssignLeadRequest $request): JsonResponse
     {
         $lead = Lead::findOrFail($leadId);
+        $this->authorize('update', $lead);
 
         $lead->update([
             'assigned_to' => $request->input('assigned_to')

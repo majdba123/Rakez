@@ -10,7 +10,7 @@ class StoreSalesUnitSearchAlertRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return true;
+        return $this->user()?->can('sales.search_alerts.view') ?? false;
     }
 
     protected function prepareForValidation(): void

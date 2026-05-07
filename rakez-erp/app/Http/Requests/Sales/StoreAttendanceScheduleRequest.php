@@ -8,7 +8,7 @@ class StoreAttendanceScheduleRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return true;
+        return $this->user()->isSalesLeader();
     }
 
     public function rules(): array

@@ -258,6 +258,7 @@ class CommissionController extends Controller
      */
     public function approveDistribution(CommissionDistribution $distribution): JsonResponse
     {
+        Gate::authorize('approve-commission-distribution');
 
         $distribution = $this->commissionService->approveDistribution(
             $distribution,
@@ -278,6 +279,7 @@ class CommissionController extends Controller
      */
     public function rejectDistribution(Request $request, CommissionDistribution $distribution): JsonResponse
     {
+        Gate::authorize('approve-commission-distribution');
 
         $request->validate([
             'notes' => 'nullable|string',
@@ -303,6 +305,7 @@ class CommissionController extends Controller
      */
     public function approve(Commission $commission): JsonResponse
     {
+        Gate::authorize('approve-commission');
 
         try {
             $commission = $this->commissionService->approveCommission($commission);
@@ -327,6 +330,7 @@ class CommissionController extends Controller
      */
     public function markAsPaid(Commission $commission): JsonResponse
     {
+        Gate::authorize('mark-commission-paid');
 
         try {
             $commission = $this->commissionService->markCommissionAsPaid($commission);

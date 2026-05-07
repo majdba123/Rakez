@@ -11,7 +11,7 @@ class StoreCommissionRequest extends FormRequest
      */
     public function authorize(): bool
     {
-        return true;
+        return $this->user()->can('commissions.create');
     }
 
     /**

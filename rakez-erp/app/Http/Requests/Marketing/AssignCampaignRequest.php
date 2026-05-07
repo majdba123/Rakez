@@ -8,7 +8,7 @@ class AssignCampaignRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return true;
+        return $this->user()->can('marketing.teams.manage');
     }
 
     public function rules(): array

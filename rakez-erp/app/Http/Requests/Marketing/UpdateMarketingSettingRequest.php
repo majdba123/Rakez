@@ -8,7 +8,7 @@ class UpdateMarketingSettingRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return true;
+        return $this->user()->can('marketing.dashboard.view');
     }
 
     public function rules(): array

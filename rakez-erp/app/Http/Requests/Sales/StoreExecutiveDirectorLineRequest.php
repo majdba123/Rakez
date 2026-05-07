@@ -10,7 +10,11 @@ class StoreExecutiveDirectorLineRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return true;
+        $u = $this->user();
+
+        return $u
+            && $u->can('sales.dashboard.view')
+            && $u->canAccessSalesExecutiveAvailableUnitsApi();
     }
 
     public function rules(): array

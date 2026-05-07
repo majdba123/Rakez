@@ -8,7 +8,7 @@ class SendUnitDeveloperPackageRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return true;
+        return $this->user()->can('sales.projects.view');
     }
 
     protected function prepareForValidation(): void

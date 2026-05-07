@@ -8,7 +8,7 @@ class StoreWaitingListRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return true;
+        return $this->user()->can('sales.waiting_list.create');
     }
 
     public function rules(): array

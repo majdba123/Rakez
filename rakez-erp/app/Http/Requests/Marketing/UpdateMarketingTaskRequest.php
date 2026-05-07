@@ -8,7 +8,7 @@ class UpdateMarketingTaskRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return true;
+        return $this->user()->can('marketing.tasks.view');
     }
 
     public function rules(): array

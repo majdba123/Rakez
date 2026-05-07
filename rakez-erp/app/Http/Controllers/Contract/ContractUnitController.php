@@ -26,6 +26,7 @@ class ContractUnitController extends Controller
     {
         try {
             $contract = \App\Models\Contract::findOrFail($contractId);
+            $this->authorize('update', $contract);
 
             $result = $this->contractUnitService->uploadCsvByContractId(
                 $contractId,
@@ -51,6 +52,7 @@ class ContractUnitController extends Controller
     {
         try {
             $contract = \App\Models\Contract::findOrFail($contractId);
+            $this->authorize('view', $contract);
 
             $perPage = $request->query('per_page', 15);
             $units = $this->contractUnitService->getUnitsByContractId($contractId, $perPage);
@@ -75,6 +77,7 @@ class ContractUnitController extends Controller
     {
         try {
             $contract = \App\Models\Contract::findOrFail($contractId);
+            $this->authorize('update', $contract);
 
             $data = $request->validated();
             if (array_key_exists('view', $data)) {
@@ -98,6 +101,7 @@ class ContractUnitController extends Controller
     {
         try {
             $unit = \App\Models\ContractUnit::with('contract')->findOrFail($unitId);
+            $this->authorize('update', $unit);
 
             $data = $request->validated();
             if (array_key_exists('view', $data)) {
@@ -121,6 +125,7 @@ class ContractUnitController extends Controller
     {
         try {
             $unit = \App\Models\ContractUnit::with('contract')->findOrFail($unitId);
+            $this->authorize('delete', $unit);
 
             $this->contractUnitService->deleteUnit($unitId);
 

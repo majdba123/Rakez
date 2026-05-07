@@ -8,7 +8,7 @@ class RejectNegotiationRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return true;
+        return $this->user()->can('sales.negotiation.approve');
     }
 
     public function rules(): array

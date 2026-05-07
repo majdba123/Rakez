@@ -91,6 +91,7 @@ class PhotographyDepartmentController extends Controller
     {
         try {
             $contract = \App\Models\Contract::findOrFail($contractId);
+            $this->authorize('view', $contract);
 
             $photographyDepartment = $this->photographyDepartmentService->getByContractId($contractId);
 

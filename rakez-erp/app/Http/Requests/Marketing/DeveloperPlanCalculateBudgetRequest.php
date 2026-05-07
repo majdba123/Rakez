@@ -12,7 +12,7 @@ class DeveloperPlanCalculateBudgetRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return true;
+        return $this->user()->can('marketing.plans.create');
     }
 
     protected function prepareForValidation(): void
