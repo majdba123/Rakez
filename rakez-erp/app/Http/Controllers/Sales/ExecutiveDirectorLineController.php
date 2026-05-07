@@ -45,7 +45,7 @@ class ExecutiveDirectorLineController extends Controller
     public function forSalesMemberByManager(Request $request, int $salesUserId): JsonResponse
     {
         $actor = $request->user();
-        $allowed = $actor && ($actor->isAdmin() || $actor->hasRole('admin') || $actor->isSalesTeamManager());
+        $allowed = $actor && ($actor->isAdmin()  || $actor->isSalesTeamManager());
         if (! $allowed) {
             return response()->json([
                 'success' => false,
@@ -612,7 +612,7 @@ class ExecutiveDirectorLineController extends Controller
     protected function groupLeaderContext(Request $request): array
     {
         $user = $request->user();
-        if ($user && ($user->isAdmin() || $user->hasRole('admin'))) {
+        if ($user && ($user->isAdmin() )) {
             if (! $request->filled('team_group_id')) {
                 return [
                     'error' => response()->json([
@@ -717,7 +717,7 @@ class ExecutiveDirectorLineController extends Controller
     public function executiveTargets(Request $request): JsonResponse
     {
         $user = $request->user();
-        $allowed = $user && ($user->isAdmin() || $user->hasRole('admin') || $user->isSalesTeamManager());
+        $allowed = $user && ($user->isAdmin()  || $user->isSalesTeamManager());
         if (! $allowed) {
             return response()->json([
                 'success' => false,
@@ -821,7 +821,7 @@ class ExecutiveDirectorLineController extends Controller
     public function syncTeams(AssignExecutiveDirectorLineTeamsRequest $request, int $id): JsonResponse
     {
         $user = $request->user();
-        $allowed = $user && ($user->isAdmin() || $user->hasRole('admin') || $user->isSalesTeamManager());
+        $allowed = $user && ($user->isAdmin() || $user->isSalesTeamManager());
         if (! $allowed) {
             return response()->json([
                 'success' => false,
