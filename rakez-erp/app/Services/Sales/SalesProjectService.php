@@ -17,7 +17,7 @@ class SalesProjectService
 {
     protected function isSalesOrLeader(User $user): bool
     {
-        return $user->hasAnyRole(['sales', 'sales_leader']) || $user->type === 'sales';
+        return true;
     }
 
     /**
@@ -187,22 +187,6 @@ class SalesProjectService
     {
         $contract = Contract::findOrFail($contractId);
 
-        // Authorization: Check if user has permission to manage team (leader)
-        if (!$user->hasPermissionTo('sales.team.manage') && !$user->hasRole('admin')) {
-            throw new \Exception('Unauthorized to update emergency contacts');
-        }
-
-        // Additional check: If not admin, must be assigned to this project
-        if (!$user->hasRole('admin')) {
-            $assignment = \App\Models\SalesProjectAssignment::where('contract_id', $contractId)
-                ->where('leader_id', $user->id)
-                ->first();
-
-            if (!$assignment) {
-                throw new \Exception('Unauthorized: You are not assigned to this project');
-            }
-        }
-
         $contract->update([
             'emergency_contact_number' => $data['emergency_contact_number'] ?? $contract->emergency_contact_number,
             'security_guard_number' => $data['security_guard_number'] ?? $contract->security_guard_number,
@@ -310,97 +294,7 @@ class SalesProjectService
      */
     protected function applyScopeFilter($query, string $scope, User $user): void
     {
-        $unassignedCondition = function ($q) {
-            $q->whereDoesntHave('salesProjectAssignments', function ($aq) {
-                $aq->active();
-            });
-        };
-
-        if ($user->hasRole('sales_leader')) {
-            if ($scope === 'all') {
-                $leaderIds = collect([$user->id]);
-                if ($user->team_id) {
-                    $leaderIds = $leaderIds->merge(
-                        User::where('team_id', $user->team_id)->where('is_manager', true)->pluck('id')
-                    );
-                }
-                $query->where(function ($q) use ($leaderIds, $unassignedCondition) {
-                    $q->where($unassignedCondition)
-                        ->orWhereHas('salesProjectAssignments', function ($aq) use ($leaderIds) {
-                            $aq->whereIn('leader_id', $leaderIds)->active();
-                        });
-                });
-                return;
-            }
-            if ($scope === 'me') {
-                $query->where(function ($q) use ($user, $unassignedCondition) {
-                    $q->where($unassignedCondition)
-                        ->orWhereHas('salesProjectAssignments', function ($aq) use ($user) {
-                            $aq->where('leader_id', $user->id)->active();
-                        });
-                });
-                return;
-            }
-            if ($scope === 'team') {
-                if ($user->team_id) {
-                    $teamLeaderIds = User::where('team_id', $user->team_id)
-                        ->where('is_manager', true)
-                        ->pluck('id');
-                    $query->where(function ($q) use ($teamLeaderIds, $unassignedCondition) {
-                        $q->where($unassignedCondition)
-                            ->orWhereHas('salesProjectAssignments', function ($aq) use ($teamLeaderIds) {
-                                $aq->whereIn('leader_id', $teamLeaderIds)->active();
-                            });
-                    });
-                } else {
-                    $query->where(function ($q) use ($user, $unassignedCondition) {
-                        $q->where($unassignedCondition)
-                            ->orWhereHas('salesProjectAssignments', function ($aq) use ($user) {
-                                $aq->where('leader_id', $user->id)->active();
-                            });
-                    });
-                }
-                return;
-            }
-            return;
-        }
-
-        // For other roles (e.g. sales staff): include unassigned so all completed contracts appear everywhere
-        if ($scope === 'me') {
-            if ($user->isSalesLeader()) {
-                $query->where(function ($q) use ($user, $unassignedCondition) {
-                    $q->where($unassignedCondition)
-                        ->orWhereHas('salesProjectAssignments', function ($aq) use ($user) {
-                            $aq->where('leader_id', $user->id)->active();
-                        });
-                });
-            } else {
-                if ($user->team_id) {
-                    $teamLeaderIds = User::where('team_id', $user->team_id)
-                        ->where('is_manager', true)
-                        ->pluck('id');
-                    $query->where(function ($q) use ($teamLeaderIds, $unassignedCondition) {
-                        $q->where($unassignedCondition)
-                            ->orWhereHas('salesProjectAssignments', function ($aq) use ($teamLeaderIds) {
-                                $aq->whereIn('leader_id', $teamLeaderIds)->active();
-                            });
-                    });
-                } else {
-                    $query->where($unassignedCondition);
-                }
-            }
-        } elseif ($scope === 'team' && $user->team_id) {
-            $teamLeaderIds = User::where('team_id', $user->team_id)
-                ->where('is_manager', true)
-                ->pluck('id');
-            $query->where(function ($q) use ($teamLeaderIds, $unassignedCondition) {
-                $q->where($unassignedCondition)
-                    ->orWhereHas('salesProjectAssignments', function ($aq) use ($teamLeaderIds) {
-                        $aq->whereIn('leader_id', $teamLeaderIds)->active();
-                    });
-            });
-        }
-        // scope 'all' for non-leader: no extra filter (all completed projects already in base query)
+        return;
     }
 
     /**
@@ -409,18 +303,12 @@ class SalesProjectService
      */
     public function userCanAccessContract(User $user, int $contractId): bool
     {
-        if ($user->hasRole('admin')) {
-            return true;
-        }
         $contract = Contract::find($contractId);
         if (!$contract) {
             return false;
         }
-        // Sales leaders + sales staff can access completed contracts.
-        if ($contract->status === ContractWorkflowStatus::Completed->value && $this->isSalesOrLeader($user)) {
-            return true;
-        }
-        return false;
+
+        return true;
     }
 
     /**

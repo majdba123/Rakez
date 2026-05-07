@@ -342,14 +342,6 @@ class SalesReservationService
     {
         $reservation = SalesReservation::findOrFail($id);
 
-        // Check ownership first - regular sales employees can only confirm their own reservations
-        if ($reservation->marketing_employee_id !== $user->id) {
-            // Only admins and project_management can confirm others' reservations
-            if (!$user->hasRole('admin') && !$user->hasRole('project_management')) {
-                throw new \Illuminate\Auth\Access\AuthorizationException('Unauthorized to confirm this reservation');
-            }
-        }
-
         if (!$reservation->canConfirm()) {
             throw new Exception('Reservation cannot be confirmed in current status');
         }
@@ -372,13 +364,6 @@ class SalesReservationService
     public function cancelReservation(int $id, ?string $reason, User $user): SalesReservation
     {
         $reservation = SalesReservation::findOrFail($id);
-
-        // Check ownership: sales can cancel own; admin, credit and project_management can cancel any
-        if ($reservation->marketing_employee_id !== $user->id) {
-            if (!$user->hasRole('admin') && !$user->hasRole('credit') && !$user->hasRole('project_management')) {
-                throw new \Illuminate\Auth\Access\AuthorizationException('Unauthorized to cancel this reservation');
-            }
-        }
 
         if (!$reservation->canCancel()) {
             throw new Exception('Reservation cannot be cancelled in current status');
@@ -449,15 +434,7 @@ class SalesReservationService
             'paymentInstallments',
         ]);
 
-        // Visibility: sales reps see own rows; sales leaders see team + led-project rows (see SalesDashboardService).
-        // `mine=1` limits to own reservations for any sales user (including leaders).
-        if ($user->type === 'sales' && !$user->hasRole('admin')) {
-            if (!empty($filters['mine'])) {
-                $query->where('marketing_employee_id', (int) $user->id);
-            } else {
-                $this->salesDashboardService->applyReservationListVisibility($query, $user);
-            }
-        } elseif (!empty($filters['mine'])) {
+        if (!empty($filters['mine'])) {
             $query->where('marketing_employee_id', (int) $user->id);
         }
 
@@ -506,11 +483,6 @@ class SalesReservationService
     public function logAction(int $reservationId, string $actionType, ?string $notes, User $user): SalesReservationAction
     {
         $reservation = SalesReservation::findOrFail($reservationId);
-
-        // Check if user owns this reservation or has permission
-        if ($reservation->marketing_employee_id !== $user->id && !$user->hasPermissionTo('sales.reservations.view') && !$user->hasRole('admin')) {
-            throw new Exception('Unauthorized to log actions for this reservation');
-        }
 
         return SalesReservationAction::create([
             'sales_reservation_id' => $reservationId,
@@ -598,8 +570,7 @@ class SalesReservationService
      */
     protected function notifySalesManagers(SalesReservation $reservation, ContractUnit $unit): void
     {
-        // Get users with negotiation approve permission
-        $managers = User::permission('sales.negotiation.approve')->get();
+        $managers = User::query()->get();
 
         $message = sprintf(
             'طلب موافقة تفاوض جديد: مشروع %s، وحدة %s - السعر المقترح: %s ر.س (مهلة الرد: 48 ساعة)',
@@ -642,11 +613,6 @@ class SalesReservationService
 
     private function updateExecutiveLineMemberProgressForReservation(User $user, ContractUnit $unit): void
     {
-        $isTypeSixSales = $user->type === 'sales' || (string) $user->type === '6';
-        if (! $isTypeSixSales) {
-            return;
-        }
-
         if (! Schema::hasColumns('executive_director_line_user', ['achieved_value', 'member_status', 'completed_at'])) {
             return;
         }
