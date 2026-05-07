@@ -13,7 +13,7 @@ class AssignExecutiveDirectorLineTeamsRequest extends FormRequest
     {
         $u = $this->user();
 
-        return $u && ($u->isAdmin()  || $u->isSalesTeamManager());
+        return $u && ($u->isAdmin() || $u->hasRole('admin') || $u->isSalesTeamManager());
     }
 
     public function rules(): array
