@@ -102,7 +102,7 @@ class SalesTeamService
                 ->where('id', '!=', $leader->id)
                 ->where(function ($q) {
                     $q->where('type', 'sales')
-                        ->orWhereHas('roles', fn ($r) => $r->whereIn('name', ['sales', 'sales_leader']));
+                        ->orWhere('type', 'sales_leader');
                 })
                 ->with(['team'])
                 ->orderBy('name')
@@ -116,7 +116,7 @@ class SalesTeamService
                 ->where('id', '!=', $leader->id)
                 ->where(function ($q) {
                     $q->where('type', 'sales')
-                        ->orWhereHas('roles', fn ($r) => $r->whereIn('name', ['sales', 'sales_leader']));
+                        ->orWhere('type', 'sales_leader');
                 })
                 ->with(['team'])
                 ->orderBy('name')
