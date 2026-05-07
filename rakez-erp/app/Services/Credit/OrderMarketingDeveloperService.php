@@ -51,7 +51,7 @@ class OrderMarketingDeveloperService
 
     protected function isAdminOrCreditDepartmentManager(User $user)
     {
-        if ($user->hasRole('admin') || $user->isAdmin()) {
+        if ( $user->isAdmin()) {
             return true;
         }
 
