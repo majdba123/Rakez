@@ -29,49 +29,77 @@ class SalesExecutiveDashboardService
         return $query;
     }
 
-    public function countAvailableByUnitType(Builder $query): array
+    public function summarizeAvailableByUnitType(Builder $query): array
     {
         $rows = (clone $query)
             ->reorder()
-            ->select('contract_units.unit_type', DB::raw('COUNT(*) as c'))
+            ->select(
+                'contract_units.unit_type',
+                DB::raw('COUNT(*) as c'),
+                DB::raw('COALESCE(SUM(contract_units.price), 0) as total_price')
+            )
             ->groupBy('contract_units.unit_type')
             ->get();
 
         $byType = [];
+        $priceByType = [];
         foreach ($rows as $row) {
             $key = ($row->unit_type === null || $row->unit_type === '') ? '_empty' : (string) $row->unit_type;
             if (! isset($byType[$key])) {
                 $byType[$key] = 0;
             }
+            if (! isset($priceByType[$key])) {
+                $priceByType[$key] = 0.0;
+            }
             $byType[$key] += (int) $row->c;
+            $priceByType[$key] += (float) $row->total_price;
         }
 
         ksort($byType);
+        ksort($priceByType);
 
-        return $byType;
+        return [
+            'counts' => $byType,
+            'prices' => $priceByType,
+        ];
     }
 
     /**
-     * Total and per-`unit_type` counts (respects the same filters as the list).
+     * Total and per-`unit_type` counts/prices (respects the same filters as the list).
      *
-     * @return array{total: int, by_type: array<string, int>, by_type_labels: array<int, array{unit_type: string, count: int}>}
+     * @return array{
+     *     total: int,
+     *     total_price: float,
+     *     by_type: array<string, int>,
+     *     by_type_total_price: array<string, float>,
+     *     by_type_list: array<int, array{unit_type: string|null, count: int, total_price: float}>
+     * }
      */
     public function availableStockSummary(array $filters = []): array
     {
         $base = $this->availableUnitsQuery($filters);
         $total = (clone $base)->count();
-        $byType = $this->countAvailableByUnitType($base);
+        $totalPrice = (float) (clone $base)->sum('contract_units.price');
+        $byTypeSummary = $this->summarizeAvailableByUnitType($base);
+        $byType = $byTypeSummary['counts'];
+        $byTypeTotalPrice = $byTypeSummary['prices'];
         $byTypeLabels = [];
         foreach ($byType as $key => $c) {
             $byTypeLabels[] = [
                 'unit_type' => $key === '_empty' ? null : $key,
                 'count' => $c,
+                'total_price' => round((float) ($byTypeTotalPrice[$key] ?? 0), 2),
             ];
         }
 
         return [
             'total' => $total,
+            'total_price' => round($totalPrice, 2),
             'by_type' => $byType,
+            'by_type_total_price' => array_map(
+                static fn (float $price): float => round($price, 2),
+                $byTypeTotalPrice
+            ),
             'by_type_list' => $byTypeLabels,
         ];
     }
