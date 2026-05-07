@@ -26,7 +26,7 @@ class UnitSearchQueryBuilder
 
     public function applyAuthorizationScope(Builder $query, User $user): void
     {
-        if ($user->hasRole('admin')) {
+        if (($user->type === 'admin')) {
             return;
         }
 
@@ -35,7 +35,7 @@ class UnitSearchQueryBuilder
 
     public function applyAuthorizationScopeRaw($query, User $user): void
     {
-        if ($user->hasRole('admin')) {
+        if (($user->type === 'admin')) {
             return;
         }
 
@@ -157,7 +157,7 @@ class UnitSearchQueryBuilder
 
     private function getAccessibleContractIds(User $user): array
     {
-        if ($user->hasAnyRole(['sales', 'sales_leader']) || $user->type === 'sales') {
+        if ($user->type === 'sales_leader' || $user->type === 'sales') {
             return Contract::where('status', ContractWorkflowStatus::Completed->value)->pluck('id')->all();
         }
 
