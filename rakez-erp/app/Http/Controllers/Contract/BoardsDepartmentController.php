@@ -3,10 +3,13 @@
 namespace App\Http\Controllers\Contract;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Contract\UploadProjectBoardImagesRequest;
 use App\Http\Requests\Contract\StoreBoardsDepartmentRequest;
 use App\Http\Requests\Contract\UpdateBoardsDepartmentRequest;
 use App\Http\Resources\Contract\BoardsDepartmentResource;
+use App\Http\Resources\Contract\ProjectMediaResource;
 use App\Services\Contract\BoardsDepartmentService;
+use App\Services\Contract\ProjectBoardMediaService;
 use Illuminate\Http\JsonResponse;
 use Exception;
 
@@ -16,10 +19,15 @@ use Exception;
 class BoardsDepartmentController extends Controller
 {
     protected BoardsDepartmentService $boardsDepartmentService;
+    protected ProjectBoardMediaService $projectBoardMediaService;
 
-    public function __construct(BoardsDepartmentService $boardsDepartmentService)
+    public function __construct(
+        BoardsDepartmentService $boardsDepartmentService,
+        ProjectBoardMediaService $projectBoardMediaService
+    )
     {
         $this->boardsDepartmentService = $boardsDepartmentService;
+        $this->projectBoardMediaService = $projectBoardMediaService;
     }
 
     /**
@@ -106,5 +114,28 @@ class BoardsDepartmentController extends Controller
             ], $statusCode);
         }
     }
-}
 
+    public function uploadImages(UploadProjectBoardImagesRequest $request, int $contractId): JsonResponse
+    {
+        try {
+            $data = $request->validated();
+            $media = $this->projectBoardMediaService->upload(
+                $contractId,
+                $request->file('images', []),
+                $data['kind'] ?? null,
+                $data['note'] ?? null
+            );
+
+            return response()->json([
+                'success' => true,
+                'message' => 'تم رفع صور اللوحات بنجاح',
+                'data' => ProjectMediaResource::collection($media),
+            ], 201);
+        } catch (Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage(),
+            ], str_contains($e->getMessage(), 'No query results') ? 404 : 500);
+        }
+    }
+}

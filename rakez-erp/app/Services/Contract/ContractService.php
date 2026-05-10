@@ -29,7 +29,19 @@ class ContractService
     public function getContracts(array $filters = [], int $perPage = 15): LengthAwarePaginator
     {
         try {
-            $query = Contract::with(['photographyDepartment', 'montageDepartment', 'user', 'secondPartyData', 'city', 'district']);
+            $query = Contract::with([
+                'photographyDepartment',
+                'montageDepartment',
+                'user',
+                'info',
+                'secondPartyData',
+                'city',
+                'district',
+                'archiveRequestedByUser',
+                'archiveConfirmedByUser',
+                'archivedByUser',
+                'boardsRemovedConfirmedByUser',
+            ]);
 
             // Filter by status
             if (isset($filters['status']) && !empty($filters['status'])) {
@@ -486,10 +498,16 @@ class ContractService
             $contract = Contract::with([
                 'user',
                 'info',
+                'secondPartyData.contractUnits',
                 'contractUnits',
                 'photographyDepartment.processedByUser',
                 'boardsDepartment.processedByUser',
                 'montageDepartment.processedByUser',
+                'projectMedia',
+                'archiveRequestedByUser',
+                'archiveConfirmedByUser',
+                'archivedByUser',
+                'boardsRemovedConfirmedByUser',
                 'city',
                 'district',
             ])->findOrFail($id);
@@ -592,7 +610,19 @@ class ContractService
     public function getContractsForAdmin(array $filters = [], int $perPage = 15): LengthAwarePaginator
     {
         try {
-            $query = Contract::with(['photographyDepartment', 'montageDepartment', 'user', 'city', 'district']);
+            $query = Contract::with([
+                'photographyDepartment',
+                'montageDepartment',
+                'user',
+                'info',
+                'secondPartyData',
+                'city',
+                'district',
+                'archiveRequestedByUser',
+                'archiveConfirmedByUser',
+                'archivedByUser',
+                'boardsRemovedConfirmedByUser',
+            ]);
 
             // Filter by status
             if (isset($filters['status']) && !empty($filters['status'])) {
@@ -648,6 +678,121 @@ class ContractService
             return $query->paginate($perPage);
         } catch (Exception $e) {
             throw new Exception('Failed to fetch contracts: ' . $e->getMessage());
+        }
+    }
+
+    public function getArchivedContracts(array $filters = [], int $perPage = 15): LengthAwarePaginator
+    {
+        try {
+            $query = Contract::with([
+                'user',
+                'info',
+                'secondPartyData',
+                'city',
+                'district',
+                'archiveRequestedByUser',
+                'archiveConfirmedByUser',
+                'archivedByUser',
+                'boardsRemovedConfirmedByUser',
+            ])->archivedStates();
+
+            if (!empty($filters['status'])) {
+                $query->where('status', $filters['status']);
+            }
+
+            if (!empty($filters['user_id'])) {
+                $query->where('user_id', $filters['user_id']);
+            }
+
+            if ($filters['city_id'] ?? null) {
+                $query->where('city_id', (int) $filters['city_id']);
+            }
+
+            if ($filters['district_id'] ?? null) {
+                $query->where('district_id', (int) $filters['district_id']);
+            }
+
+            if (!empty($filters['project_name'])) {
+                $query->where('project_name', 'like', '%' . addslashes($filters['project_name']) . '%');
+            }
+
+            $query
+                ->orderByDesc(DB::raw('COALESCE(archived_at, archive_requested_at, updated_at)'))
+                ->orderByDesc('id');
+
+            return $query->paginate($perPage);
+        } catch (Exception $e) {
+            throw new Exception('Failed to fetch archived contracts: ' . $e->getMessage());
+        }
+    }
+
+    public function requestArchive(int $id, int $userId, ?string $archiveNote = null): Contract
+    {
+        DB::beginTransaction();
+
+        try {
+            $contract = Contract::query()->findOrFail($id);
+
+            if ($contract->isArchived()) {
+                throw new Exception('المشروع مؤرشف بالفعل');
+            }
+
+            if (!$contract->canRequestArchive()) {
+                throw new Exception('يمكن طلب الأرشفة فقط للمشاريع المكتملة');
+            }
+
+            if ($contract->isCompleted()) {
+                $contract->update([
+                    'status' => ContractWorkflowStatus::PendingArchive->value,
+                    'archive_requested_at' => now(),
+                    'archive_requested_by' => $userId,
+                    'archive_note' => $archiveNote,
+                ]);
+            } elseif ($archiveNote !== null && trim($archiveNote) !== '' && $contract->archive_note !== $archiveNote) {
+                $contract->update([
+                    'archive_note' => $archiveNote,
+                ]);
+            }
+
+            DB::commit();
+
+            return $this->getContractById($contract->id);
+        } catch (Exception $e) {
+            DB::rollBack();
+            throw $e;
+        }
+    }
+
+    public function confirmArchive(int $id, int $userId, ?string $archiveNote = null): Contract
+    {
+        DB::beginTransaction();
+
+        try {
+            $contract = Contract::query()->findOrFail($id);
+
+            if (!$contract->canConfirmArchive()) {
+                throw new Exception('لا يمكن تأكيد الأرشفة إلا إذا كانت حالة المشروع pending_archive');
+            }
+
+            $now = now();
+
+            $contract->update([
+                'status' => ContractWorkflowStatus::Archived->value,
+                'boards_removed_confirmed_at' => $now,
+                'boards_removed_confirmed_by' => $userId,
+                'archive_confirmed_at' => $now,
+                'archive_confirmed_by' => $userId,
+                'archived_at' => $now,
+                'archived_by' => $userId,
+                'archive_note' => $archiveNote ?? $contract->archive_note,
+            ]);
+
+            DB::commit();
+
+            return $this->getContractById($contract->id);
+        } catch (Exception $e) {
+            DB::rollBack();
+            throw $e;
         }
     }
 

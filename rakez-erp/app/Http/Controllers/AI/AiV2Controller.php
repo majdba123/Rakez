@@ -3,65 +3,59 @@
 namespace App\Http\Controllers\AI;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\AI\CanonicalToolChatRequest;
 use App\Services\AI\Exceptions\AiAssistantException;
+use App\Services\AI\Http\CanonicalAiRequestContext;
+use App\Services\AI\Http\CanonicalAiResponse;
 use App\Services\AI\Policy\RakizAiPolicyContextBuilder;
 use App\Services\AI\RakizAiOrchestrator;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class AiV2Controller extends Controller
 {
+    private const USE_AI_PERMISSION = 'use-ai-assistant';
+
+    private const FORBIDDEN_MESSAGE = 'You do not have permission to use the AI assistant.';
+
     public function __construct(
         private readonly RakizAiOrchestrator $orchestrator,
         private readonly RakizAiPolicyContextBuilder $policyContext,
+        private readonly CanonicalAiRequestContext $requestContext,
+        private readonly CanonicalAiResponse $responseFormatter,
     ) {}
 
     /**
      * POST /api/ai/tools/chat (preferred). Alias: POST /api/ai/v2/chat.
      * Rakiz orchestrator with strict JSON schema output.
      */
-    public function chat(Request $request): JsonResponse
+    public function chat(CanonicalToolChatRequest $request): JsonResponse
     {
-        $request->validate([
-            'message' => 'required|string|max:16000',
-            'session_id' => 'nullable|string|max:128',
-            'page_context' => 'nullable|array',
-        ]);
-
         $user = $request->user();
 
-        if (! $user->can('use-ai-assistant')) {
-            return response()->json([
-                'success' => false,
-                'message' => 'You do not have permission to use the AI assistant.',
-            ], 403);
+        if (! $user->can(self::USE_AI_PERMISSION)) {
+            return $this->responseFormatter->errorJson(
+                'forbidden',
+                self::FORBIDDEN_MESSAGE,
+                403
+            );
         }
 
         ['message' => $message, 'section' => $section, 'policy_snapshot' => $policySnapshot] = $this->preparePolicyContext($request, $user);
         $early = $this->policyContext->earlyPolicyGateResponse($user, $message, $section, $policySnapshot);
         if ($early !== null) {
-            return response()->json([
-                'success' => true,
-                'data' => $early,
-            ]);
+            return response()->json($this->successEnvelope($request, $early));
         }
 
         try {
             $result = $this->runOrchestratorWithPolicy($request, $user, $message, $section, $policySnapshot);
+            $executionMeta = (array) ($result['_execution_meta'] ?? []);
 
             unset($result['_execution_meta']);
 
-            return response()->json([
-                'success' => true,
-                'data' => $result,
-            ]);
+            return response()->json($this->successEnvelope($request, $result, $executionMeta));
         } catch (AiAssistantException $e) {
-            return response()->json([
-                'success' => false,
-                'error_code' => $e->errorCode(),
-                'message' => $e->getMessage(),
-            ], $e->statusCode());
+            return $this->responseFormatter->errorJson($e->errorCode(), $e->getMessage(), $e->statusCode());
         }
     }
 
@@ -69,23 +63,17 @@ class AiV2Controller extends Controller
      * POST /api/ai/tools/stream (preferred). Alias: POST /api/ai/v2/stream.
      * SSE wrapper (single payload) for clients expecting event-stream.
      */
-    public function stream(Request $request): StreamedResponse
+    public function stream(CanonicalToolChatRequest $request): StreamedResponse
     {
-        $request->validate([
-            'message' => 'required|string|max:16000',
-            'session_id' => 'nullable|string|max:128',
-            'page_context' => 'nullable|array',
-        ]);
-
         $user = $request->user();
         ['message' => $message, 'section' => $section, 'policy_snapshot' => $policySnapshot] = $this->preparePolicyContext($request, $user);
 
         return new StreamedResponse(function () use ($request, $user, $message, $section, $policySnapshot) {
-            if (! $user->can('use-ai-assistant')) {
-                echo 'data: '.json_encode([
-                    'error' => true,
-                    'message' => 'You do not have permission to use the AI assistant.',
-                ])."\n\n";
+            if (! $user->can(self::USE_AI_PERMISSION)) {
+                echo $this->sseData($this->responseFormatter->errorEnvelope(
+                    'forbidden',
+                    self::FORBIDDEN_MESSAGE
+                ));
                 echo "data: [DONE]\n\n";
                 flush();
 
@@ -94,7 +82,7 @@ class AiV2Controller extends Controller
 
             $early = $this->policyContext->earlyPolicyGateResponse($user, $message, $section, $policySnapshot);
             if ($early !== null) {
-                echo 'data: '.json_encode(['chunk' => $early], JSON_UNESCAPED_UNICODE)."\n\n";
+                echo $this->sseData($this->successEnvelope($request, $early));
                 echo 'data: '.json_encode(['done' => true])."\n\n";
                 echo "data: [DONE]\n\n";
                 flush();
@@ -104,23 +92,20 @@ class AiV2Controller extends Controller
 
             try {
                 $result = $this->runOrchestratorWithPolicy($request, $user, $message, $section, $policySnapshot);
+                $executionMeta = (array) ($result['_execution_meta'] ?? []);
                 unset($result['_execution_meta']);
 
-                echo 'data: '.json_encode(['chunk' => $result], JSON_UNESCAPED_UNICODE)."\n\n";
+                echo $this->sseData($this->successEnvelope($request, $result, $executionMeta));
                 echo 'data: '.json_encode(['done' => true])."\n\n";
                 echo "data: [DONE]\n\n";
             } catch (AiAssistantException $e) {
-                echo 'data: '.json_encode([
-                    'error' => true,
-                    'error_code' => $e->errorCode(),
-                    'message' => $e->getMessage(),
-                ])."\n\n";
+                echo $this->sseData($this->responseFormatter->errorEnvelope($e->errorCode(), $e->getMessage()));
                 echo "data: [DONE]\n\n";
             } catch (\Throwable) {
-                echo 'data: '.json_encode([
-                    'error' => true,
-                    'message' => 'An unexpected error occurred.',
-                ])."\n\n";
+                echo $this->sseData($this->responseFormatter->errorEnvelope(
+                    'server_error',
+                    'An unexpected error occurred.'
+                ));
                 echo "data: [DONE]\n\n";
             }
             flush();
@@ -135,10 +120,10 @@ class AiV2Controller extends Controller
     /**
      * @return array{message:string, section:string, policy_snapshot:array<string,mixed>}
      */
-    private function preparePolicyContext(Request $request, $user): array
+    private function preparePolicyContext(CanonicalToolChatRequest $request, $user): array
     {
-        $message = (string) $request->input('message');
-        $section = (string) $request->input('section', 'general');
+        $message = $this->requestContext->message($request);
+        $section = $this->requestContext->section($request);
         $policySnapshot = $this->policyContext->buildDeterministicPolicySnapshot($user, $message, $section);
 
         return [
@@ -152,14 +137,17 @@ class AiV2Controller extends Controller
      * @param  array<string, mixed>  $policySnapshot
      * @return array<string, mixed>
      */
-    private function runOrchestratorWithPolicy(Request $request, $user, string $message, string $section, array $policySnapshot): array
+    private function runOrchestratorWithPolicy(CanonicalToolChatRequest $request, $user, string $message, string $section, array $policySnapshot): array
     {
+        $conversationId = $this->requestContext->conversationId($request);
+        $context = $this->requestContext->erpContext($request);
+
         $result = $this->orchestrator->chat(
             $user,
             $message,
-            $request->input('session_id'),
+            $conversationId,
             array_merge(
-                (array) $request->input('page_context', []),
+                $context,
                 [
                     'section' => $section,
                     'policy_snapshot' => $policySnapshot,
@@ -168,5 +156,29 @@ class AiV2Controller extends Controller
         );
 
         return $this->policyContext->applySnapshotNormalization($result, $policySnapshot);
+    }
+
+    /**
+     * @param  array<string, mixed>  $result
+     * @param  array<string, mixed>  $executionMeta
+     * @return array<string, mixed>
+     */
+    private function successEnvelope(CanonicalToolChatRequest $request, array $result, array $executionMeta = []): array
+    {
+        return $this->responseFormatter->successEnvelope(
+            $result,
+            $executionMeta,
+            $this->requestContext->conversationId($request),
+            $this->requestContext->locale($request),
+            $this->requestContext->inputMode($request)
+        );
+    }
+
+    /**
+     * @param  array<string, mixed>  $payload
+     */
+    private function sseData(array $payload): string
+    {
+        return 'data: '.json_encode($payload, JSON_UNESCAPED_UNICODE)."\n\n";
     }
 }

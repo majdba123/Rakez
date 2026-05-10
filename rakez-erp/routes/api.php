@@ -169,6 +169,8 @@ use Illuminate\Support\Facades\File;  // أضف هذا السطر في الأع�
         Route::get('/developers/{developer_number}', [DeveloperController::class, 'show']);
 
         Route::prefix('ai')->middleware('throttle:ai-assistant')->group(function () {
+            // Legacy AI endpoints are kept for backward compatibility.
+            // Frontend should use /api/ai/tools/chat and /api/ai/tools/stream.
             Route::post('/ask', [AIAssistantController::class, 'ask']);
             Route::post('/chat', [AIAssistantController::class, 'chat']);
             Route::get('/conversations', [AIAssistantController::class, 'conversations']);
@@ -176,11 +178,11 @@ use Illuminate\Support\Facades\File;  // أضف هذا السطر في الأع�
             Route::get('/sections', [AIAssistantController::class, 'sections']);
 
             // Tool orchestrator (no /v2/ in URL — stable for frontend). Legacy /v2/* aliases kept for compatibility.
-            Route::prefix('tools')->group(function () {
+            Route::prefix('tools')->middleware('ai.pii')->group(function () {
                 Route::post('/chat', [AiV2Controller::class, 'chat']);
                 Route::post('/stream', [AiV2Controller::class, 'stream']);
             });
-            Route::prefix('v2')->group(function () {
+            Route::prefix('v2')->middleware('ai.pii')->group(function () {
                 Route::post('/chat', [AiV2Controller::class, 'chat']);
                 Route::post('/stream', [AiV2Controller::class, 'stream']);
             });
@@ -263,7 +265,14 @@ use Illuminate\Support\Facades\File;  // أضف هذا السطر في الأع�
         Route::middleware(['auth:sanctum', 'role:project_management|admin'])->group(function () {
 
             Route::get('/contracts/admin-index', [ContractController::class, 'adminIndex'])->middleware('permission:contracts.view_all');
+            Route::get('/contracts/archived', [ContractController::class, 'archivedIndex'])->middleware('dynamic_permission:projects.archive');
             Route::patch('contracts/update-status/{id}', [ContractController::class, 'projectManagementUpdateStatus'])->middleware('permission:contracts.approve');
+            Route::post('/contracts/{contractId}/archive-request', [ContractController::class, 'archiveRequest'])
+                ->middleware('dynamic_permission:projects.archive')
+                ->whereNumber('contractId');
+            Route::post('/contracts/{contractId}/archive-confirm', [ContractController::class, 'archiveConfirm'])
+                ->middleware('dynamic_permission:projects.archive')
+                ->whereNumber('contractId');
 
 
             Route::prefix('second-party-data')->group(function () {
@@ -285,6 +294,9 @@ use Illuminate\Support\Facades\File;  // أضف هذا السطر في الأع�
                 Route::post('store/{contractId}', [BoardsDepartmentController::class, 'store'])->middleware('permission:departments.boards.edit');
                 Route::put('update/{contractId}', [BoardsDepartmentController::class, 'update'])->middleware('permission:departments.boards.edit');
             });
+            Route::post('/contracts/{contractId}/board-images', [BoardsDepartmentController::class, 'uploadImages'])
+                ->middleware('permission:projects.media.upload')
+                ->whereNumber('contractId');
 
             Route::prefix('montage-department')->group(function () {
                 Route::get('show/{contractId}', [MontageDepartmentController::class, 'show'])->middleware('permission:departments.montage.view');

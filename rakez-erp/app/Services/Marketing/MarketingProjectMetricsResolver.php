@@ -115,19 +115,30 @@ class MarketingProjectMetricsResolver
         $metrics = $this->resolve($contract);
 
         // Add detail-specific information
-        $contract->loadMissing(['info']);
+        $contract->loadMissing(['info', 'secondPartyData']);
         $info = $contract->info;
+        $advertiserNumber = $contract->getAdvertiserNumber();
+        $hasAdvertiserNumber = !empty($advertiserNumber);
+        $availabilityStatus = $hasAdvertiserNumber ? 'available' : 'pending';
 
         return array_merge($metrics, [
             'contract_number' => $info?->contract_number ?? null,
             'advertiser' => [
-                'source' => 'contract_infos.agency_number',
+                'source' => $contract->getAdvertiserNumberSource(),
+                'advertiser_number' => $advertiserNumber,
                 'agency_number' => $info?->agency_number ?? null,
-                'availability_status' => (! empty($info?->agency_number)) ? 'available' : 'pending',
+                'availability_status' => $availabilityStatus,
+                'expires_at' => $contract->getAdvertiserNumberExpiresAt()?->toDateString(),
+                'remaining_days' => $contract->getAdvertiserNumberRemainingDays(),
+                'expiry_status' => $contract->getAdvertiserNumberExpiryStatus(),
             ],
-            'advertiser_number' => (!empty($info?->agency_number)) ? 'Available' : 'Pending',
-            'advertiser_number_value' => $info?->agency_number ?? null,
-            'advertiser_number_status' => (!empty($info?->agency_number)) ? 'Available' : 'Pending',
+            'advertiser_number' => $hasAdvertiserNumber ? 'Available' : 'Pending',
+            'advertiser_number_value' => $advertiserNumber,
+            'advertiser_number_status' => $hasAdvertiserNumber ? 'Available' : 'Pending',
+            'advertiser_number_source' => $contract->getAdvertiserNumberSource(),
+            'advertiser_number_expires_at' => $contract->getAdvertiserNumberExpiresAt()?->toDateString(),
+            'advertiser_number_remaining_days' => $contract->getAdvertiserNumberRemainingDays(),
+            'advertiser_number_expiry_status' => $contract->getAdvertiserNumberExpiryStatus(),
         ]);
     }
 

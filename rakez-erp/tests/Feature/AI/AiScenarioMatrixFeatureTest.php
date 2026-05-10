@@ -107,7 +107,9 @@ class AiScenarioMatrixFeatureTest extends TestCase
         ]);
 
         $response->assertStatus(422);
-        $response->assertJsonValidationErrors(['message']);
+        $response->assertJsonPath('success', false);
+        $response->assertJsonPath('error.code', 'validation_error');
+        $this->assertArrayHasKey('message', $response->json('error.details'));
     }
 
     public function test_whitespace_only_question_fails_validation_as_empty(): void

@@ -1,0 +1,1254 @@
+﻿{
+    "info":  {
+                 "_postman_id":  "c4d9af90-1fd8-4df2-99cf-1120cbec27d1",
+                 "name":  "Rakez AI + Ads API",
+                 "schema":  "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+                 "description":  "Repository-grounded Laravel API collection for AI assistant and Ads integrations. Existing endpoints use exact discovered routes. Missing contracts are isolated under Proposed Missing Endpoints."
+             },
+    "variable":  [
+                     {
+                         "key":  "base_url",
+                         "value":  "{{base_url}}"
+                     },
+                     {
+                         "key":  "token",
+                         "value":  "{{token}}"
+                     },
+                     {
+                         "key":  "ai_conversation_id",
+                         "value":  "{{ai_conversation_id}}"
+                     },
+                     {
+                         "key":  "proposal_id",
+                         "value":  "{{proposal_id}}"
+                     },
+                     {
+                         "key":  "idempotency_key",
+                         "value":  "{{idempotency_key}}"
+                     },
+                     {
+                         "key":  "platform",
+                         "value":  "{{platform}}"
+                     },
+                     {
+                         "key":  "campaign_id",
+                         "value":  "{{campaign_id}}"
+                     },
+                     {
+                         "key":  "ad_account_id",
+                         "value":  "{{ad_account_id}}"
+                     }
+                 ],
+    "auth":  {
+                 "type":  "bearer",
+                 "bearer":  [
+                                {
+                                    "key":  "token",
+                                    "value":  "{{token}}",
+                                    "type":  "string"
+                                }
+                            ]
+             },
+    "item":  [
+                 {
+                     "name":  "Auth",
+                     "item":  [
+                                  {
+                                      "name":  "Login",
+                                      "request":  {
+                                                      "auth":  {
+                                                                   "type":  "noauth"
+                                                               },
+                                                      "method":  "POST",
+                                                      "header":  [
+                                                                     {
+                                                                         "key":  "Content-Type",
+                                                                         "value":  "application/json"
+                                                                     }
+                                                                 ],
+                                                      "body":  {
+                                                                   "mode":  "raw",
+                                                                   "raw":  "{\n  \"email\": \"{{login_email}}\",\n  \"password\": \"{{login_password}}\"\n}"
+                                                               },
+                                                      "url":  {
+                                                                  "raw":  "{{base_url}}/api/login",
+                                                                  "host":  [
+                                                                               "{{base_url}}"
+                                                                           ],
+                                                                  "path":  [
+                                                                               "api",
+                                                                               "login"
+                                                                           ]
+                                                              },
+                                                      "description":  "Verified route in `routes/api.php` handled by `App\\Http\\Controllers\\Registration\\LoginController::login`."
+                                                  },
+                                      "response":  [
+                                                       {
+                                                           "name":  "Success",
+                                                           "originalRequest":  {
+                                                                                   "method":  "POST",
+                                                                                   "header":  [
+                                                                                                  {
+                                                                                                      "key":  "Content-Type",
+                                                                                                      "value":  "application/json"
+                                                                                                  }
+                                                                                              ],
+                                                                                   "body":  {
+                                                                                                "mode":  "raw",
+                                                                                                "raw":  "{\n  \"email\": \"{{login_email}}\",\n  \"password\": \"{{login_password}}\"\n}"
+                                                                                            },
+                                                                                   "url":  {
+                                                                                               "raw":  "{{base_url}}/api/login"
+                                                                                           }
+                                                                               },
+                                                           "status":  "OK",
+                                                           "code":  200,
+                                                           "body":  "{\n  \"access_token\": \"{{token}}\",\n  \"user\": {\n    \"id\": 1,\n    \"name\": \"Admin User\"\n  }\n}"
+                                                       }
+                                                   ]
+                                  },
+                                  {
+                                      "name":  "Current User",
+                                      "request":  {
+                                                      "method":  "GET",
+                                                      "url":  {
+                                                                  "raw":  "{{base_url}}/api/user",
+                                                                  "host":  [
+                                                                               "{{base_url}}"
+                                                                           ],
+                                                                  "path":  [
+                                                                               "api",
+                                                                               "user"
+                                                                           ]
+                                                              }
+                                                  }
+                                  },
+                                  {
+                                      "name":  "Logout",
+                                      "request":  {
+                                                      "method":  "POST",
+                                                      "url":  {
+                                                                  "raw":  "{{base_url}}/api/logout",
+                                                                  "host":  [
+                                                                               "{{base_url}}"
+                                                                           ],
+                                                                  "path":  [
+                                                                               "api",
+                                                                               "logout"
+                                                                           ]
+                                                              }
+                                                  },
+                                      "response":  [
+                                                       {
+                                                           "name":  "Success",
+                                                           "originalRequest":  {
+                                                                                   "method":  "POST",
+                                                                                   "url":  {
+                                                                                               "raw":  "{{base_url}}/api/logout"
+                                                                                           }
+                                                                               },
+                                                           "status":  "OK",
+                                                           "code":  200,
+                                                           "body":  "{\n  \"message\": \"logged out\"\n}"
+                                                       }
+                                                   ]
+                                  }
+                              ]
+                 },
+                 {
+                     "name":  "AI Assistant - Chat",
+                     "item":  [
+                                  {
+                                      "name":  "Conversations",
+                                      "request":  {
+                                                      "method":  "GET",
+                                                      "url":  {
+                                                                  "raw":  "{{base_url}}/api/ai/conversations?per_page=20",
+                                                                  "host":  [
+                                                                               "{{base_url}}"
+                                                                           ],
+                                                                  "path":  [
+                                                                               "api",
+                                                                               "ai",
+                                                                               "conversations"
+                                                                           ],
+                                                                  "query":  [
+                                                                                {
+                                                                                    "key":  "per_page",
+                                                                                    "value":  "20"
+                                                                                }
+                                                                            ]
+                                                              }
+                                                  }
+                                  },
+                                  {
+                                      "name":  "Sections",
+                                      "request":  {
+                                                      "method":  "GET",
+                                                      "url":  {
+                                                                  "raw":  "{{base_url}}/api/ai/sections",
+                                                                  "host":  [
+                                                                               "{{base_url}}"
+                                                                           ],
+                                                                  "path":  [
+                                                                               "api",
+                                                                               "ai",
+                                                                               "sections"
+                                                                           ]
+                                                              }
+                                                  }
+                                  }
+                              ]
+                 },
+                 {
+                     "name":  "AI Assistant - Voice Compatible",
+                     "item":  [
+                                  {
+                                      "name":  "Voice to Tool Chat",
+                                      "request":  {
+                                                      "method":  "POST",
+                                                      "header":  [
+                                                                     {
+                                                                         "key":  "Content-Type",
+                                                                         "value":  "application/json"
+                                                                     }
+                                                                 ],
+                                                      "body":  {
+                                                                   "mode":  "raw",
+                                                                   "raw":  "{\n  \"message\": \"Frontend-transcribed voice text goes here\",\n  \"session_id\": \"{{ai_conversation_id}}\",\n  \"section\": \"sales\",\n  \"locale\": \"ar\",\n  \"input_mode\": \"voice\",\n  \"page_context\": {\n    \"module\": \"sales\"\n  }\n}"
+                                                               },
+                                                      "url":  {
+                                                                  "raw":  "{{base_url}}/api/ai/tools/chat",
+                                                                  "host":  [
+                                                                               "{{base_url}}"
+                                                                           ],
+                                                                  "path":  [
+                                                                               "api",
+                                                                               "ai",
+                                                                               "tools",
+                                                                               "chat"
+                                                                           ]
+                                                              }
+                                                  }
+                                  }
+                              ]
+                 },
+                 {
+                     "name":  "AI Assistant - Agentic Tools",
+                     "item":  [
+                                  {
+                                      "name":  "Canonical - Tool Chat (Recommended)",
+                                      "request":  {
+                                                      "method":  "POST",
+                                                      "header":  [
+                                                                     {
+                                                                         "key":  "Content-Type",
+                                                                         "value":  "application/json"
+                                                                     }
+                                                                 ],
+                                                      "body":  {
+                                                                   "mode":  "raw",
+                                                                   "raw":  "{\n  \"message\": \"Show me lead quality by platform for this month\",\n  \"session_id\": \"{{ai_conversation_id}}\",\n  \"section\": \"marketing\",\n  \"page_context\": {\n    \"module\": \"marketing\"\n  }\n}"
+                                                               },
+                                                      "url":  {
+                                                                  "raw":  "{{base_url}}/api/ai/tools/chat",
+                                                                  "host":  [
+                                                                               "{{base_url}}"
+                                                                           ],
+                                                                  "path":  [
+                                                                               "api",
+                                                                               "ai",
+                                                                               "tools",
+                                                                               "chat"
+                                                                           ]
+                                                              }
+                                                  },
+                                      "response":  [
+                                                       {
+                                                           "name":  "Verified Current Shape",
+                                                           "originalRequest":  {
+                                                                                   "method":  "POST",
+                                                                                   "url":  {
+                                                                                               "raw":  "{{base_url}}/api/ai/tools/chat"
+                                                                                           }
+                                                                               },
+                                                           "status":  "OK",
+                                                           "code":  200,
+                                                           "body":  "{\n  \"success\": true,\n  \"data\": {\n    \"answer_markdown\": \"Summary of findings...\",\n    \"confidence\": \"high\",\n    \"sources\": [],\n    \"links\": [],\n    \"suggested_actions\": [],\n    \"follow_up_questions\": [],\n    \"access_notes\": {\n      \"had_denied_request\": false,\n      \"reason\": \"\"\n    }\n  }\n}"
+                                                       }
+                                                   ]
+                                  },
+                                  {
+                                      "name":  "Tool Stream",
+                                      "request":  {
+                                                      "method":  "POST",
+                                                      "header":  [
+                                                                     {
+                                                                         "key":  "Accept",
+                                                                         "value":  "text/event-stream"
+                                                                     },
+                                                                     {
+                                                                         "key":  "Content-Type",
+                                                                         "value":  "application/json"
+                                                                     }
+                                                                 ],
+                                                      "body":  {
+                                                                   "mode":  "raw",
+                                                                   "raw":  "{\n  \"message\": \"Analyze campaign performance\",\n  \"session_id\": \"{{ai_conversation_id}}\",\n  \"section\": \"marketing\",\n  \"page_context\": {\n    \"module\": \"marketing\"\n  }\n}"
+                                                               },
+                                                      "url":  {
+                                                                  "raw":  "{{base_url}}/api/ai/tools/stream",
+                                                                  "host":  [
+                                                                               "{{base_url}}"
+                                                                           ],
+                                                                  "path":  [
+                                                                               "api",
+                                                                               "ai",
+                                                                               "tools",
+                                                                               "stream"
+                                                                           ]
+                                                              }
+                                                  }
+                                  }
+                              ]
+                 },
+                 {
+                     "name":  "AI Assistant - Reports",
+                     "item":  [
+                                  {
+                                      "name":  "AI Calls History",
+                                      "request":  {
+                                                      "method":  "GET",
+                                                      "url":  {
+                                                                  "raw":  "{{base_url}}/api/ai/calls?per_page=20",
+                                                                  "host":  [
+                                                                               "{{base_url}}"
+                                                                           ],
+                                                                  "path":  [
+                                                                               "api",
+                                                                               "ai",
+                                                                               "calls"
+                                                                           ],
+                                                                  "query":  [
+                                                                                {
+                                                                                    "key":  "per_page",
+                                                                                    "value":  "20"
+                                                                                }
+                                                                            ]
+                                                              }
+                                                  }
+                                  },
+                                  {
+                                      "name":  "AI Calls Analytics",
+                                      "request":  {
+                                                      "method":  "GET",
+                                                      "url":  {
+                                                                  "raw":  "{{base_url}}/api/ai/calls/analytics",
+                                                                  "host":  [
+                                                                               "{{base_url}}"
+                                                                           ],
+                                                                  "path":  [
+                                                                               "api",
+                                                                               "ai",
+                                                                               "calls",
+                                                                               "analytics"
+                                                                           ]
+                                                              }
+                                                  }
+                                  },
+                                  {
+                                      "name":  "AI Call Transcript",
+                                      "request":  {
+                                                      "method":  "GET",
+                                                      "url":  {
+                                                                  "raw":  "{{base_url}}/api/ai/calls/1/transcript",
+                                                                  "host":  [
+                                                                               "{{base_url}}"
+                                                                           ],
+                                                                  "path":  [
+                                                                               "api",
+                                                                               "ai",
+                                                                               "calls",
+                                                                               "1",
+                                                                               "transcript"
+                                                                           ]
+                                                              }
+                                                  }
+                                  }
+                              ]
+                 },
+                 {
+                     "name":  "Ads - Accounts",
+                     "item":  [
+                                  {
+                                      "name":  "List Accounts",
+                                      "request":  {
+                                                      "method":  "GET",
+                                                      "url":  {
+                                                                  "raw":  "{{base_url}}/api/ads/accounts",
+                                                                  "host":  [
+                                                                               "{{base_url}}"
+                                                                           ],
+                                                                  "path":  [
+                                                                               "api",
+                                                                               "ads",
+                                                                               "accounts"
+                                                                           ]
+                                                              }
+                                                  }
+                                  },
+                                  {
+                                      "name":  "Create Or Update Account",
+                                      "request":  {
+                                                      "method":  "POST",
+                                                      "header":  [
+                                                                     {
+                                                                         "key":  "Content-Type",
+                                                                         "value":  "application/json"
+                                                                     }
+                                                                 ],
+                                                      "body":  {
+                                                                   "mode":  "raw",
+                                                                   "raw":  "{\n  \"platform\": \"{{platform}}\",\n  \"account_id\": \"{{ad_account_id}}\",\n  \"account_name\": \"Meta Account\",\n  \"access_token\": \"PLACEHOLDER_ONLY\",\n  \"refresh_token\": \"PLACEHOLDER_ONLY\",\n  \"token_expires_at\": \"2026-12-31T23:59:59Z\",\n  \"scopes\": [\"ads_read\"],\n  \"meta\": {},\n  \"is_active\": true\n}"
+                                                               },
+                                                      "url":  {
+                                                                  "raw":  "{{base_url}}/api/ads/accounts",
+                                                                  "host":  [
+                                                                               "{{base_url}}"
+                                                                           ],
+                                                                  "path":  [
+                                                                               "api",
+                                                                               "ads",
+                                                                               "accounts"
+                                                                           ]
+                                                              }
+                                                  }
+                                  },
+                                  {
+                                      "name":  "Refresh Account Token",
+                                      "request":  {
+                                                      "method":  "POST",
+                                                      "url":  {
+                                                                  "raw":  "{{base_url}}/api/ads/accounts/1/refresh",
+                                                                  "host":  [
+                                                                               "{{base_url}}"
+                                                                           ],
+                                                                  "path":  [
+                                                                               "api",
+                                                                               "ads",
+                                                                               "accounts",
+                                                                               "1",
+                                                                               "refresh"
+                                                                           ]
+                                                              }
+                                                  }
+                                  },
+                                  {
+                                      "name":  "Test Account Connectivity",
+                                      "request":  {
+                                                      "method":  "POST",
+                                                      "url":  {
+                                                                  "raw":  "{{base_url}}/api/ads/accounts/1/test",
+                                                                  "host":  [
+                                                                               "{{base_url}}"
+                                                                           ],
+                                                                  "path":  [
+                                                                               "api",
+                                                                               "ads",
+                                                                               "accounts",
+                                                                               "1",
+                                                                               "test"
+                                                                           ]
+                                                              }
+                                                  }
+                                  }
+                              ]
+                 },
+                 {
+                     "name":  "Ads - Campaigns",
+                     "item":  [
+                                  {
+                                      "name":  "List Campaigns",
+                                      "request":  {
+                                                      "method":  "GET",
+                                                      "url":  {
+                                                                  "raw":  "{{base_url}}/api/ads/campaigns?platform={{platform}}\u0026account_id={{ad_account_id}}",
+                                                                  "host":  [
+                                                                               "{{base_url}}"
+                                                                           ],
+                                                                  "path":  [
+                                                                               "api",
+                                                                               "ads",
+                                                                               "campaigns"
+                                                                           ],
+                                                                  "query":  [
+                                                                                {
+                                                                                    "key":  "platform",
+                                                                                    "value":  "{{platform}}"
+                                                                                },
+                                                                                {
+                                                                                    "key":  "account_id",
+                                                                                    "value":  "{{ad_account_id}}"
+                                                                                }
+                                                                            ]
+                                                              }
+                                                  }
+                                  },
+                                  {
+                                      "name":  "List Ad Sets",
+                                      "request":  {
+                                                      "method":  "GET",
+                                                      "url":  {
+                                                                  "raw":  "{{base_url}}/api/ads/adsets?platform={{platform}}\u0026account_id={{ad_account_id}}\u0026campaign_id={{campaign_id}}",
+                                                                  "host":  [
+                                                                               "{{base_url}}"
+                                                                           ],
+                                                                  "path":  [
+                                                                               "api",
+                                                                               "ads",
+                                                                               "adsets"
+                                                                           ],
+                                                                  "query":  [
+                                                                                {
+                                                                                    "key":  "platform",
+                                                                                    "value":  "{{platform}}"
+                                                                                },
+                                                                                {
+                                                                                    "key":  "account_id",
+                                                                                    "value":  "{{ad_account_id}}"
+                                                                                },
+                                                                                {
+                                                                                    "key":  "campaign_id",
+                                                                                    "value":  "{{campaign_id}}"
+                                                                                }
+                                                                            ]
+                                                              }
+                                                  }
+                                  },
+                                  {
+                                      "name":  "List Ads",
+                                      "request":  {
+                                                      "method":  "GET",
+                                                      "url":  {
+                                                                  "raw":  "{{base_url}}/api/ads/ads?platform={{platform}}\u0026account_id={{ad_account_id}}",
+                                                                  "host":  [
+                                                                               "{{base_url}}"
+                                                                           ],
+                                                                  "path":  [
+                                                                               "api",
+                                                                               "ads",
+                                                                               "ads"
+                                                                           ],
+                                                                  "query":  [
+                                                                                {
+                                                                                    "key":  "platform",
+                                                                                    "value":  "{{platform}}"
+                                                                                },
+                                                                                {
+                                                                                    "key":  "account_id",
+                                                                                    "value":  "{{ad_account_id}}"
+                                                                                }
+                                                                            ]
+                                                              }
+                                                  }
+                                  },
+                                  {
+                                      "name":  "Insights",
+                                      "request":  {
+                                                      "method":  "GET",
+                                                      "url":  {
+                                                                  "raw":  "{{base_url}}/api/ads/insights?platform={{platform}}\u0026account_id={{ad_account_id}}\u0026level=campaign",
+                                                                  "host":  [
+                                                                               "{{base_url}}"
+                                                                           ],
+                                                                  "path":  [
+                                                                               "api",
+                                                                               "ads",
+                                                                               "insights"
+                                                                           ],
+                                                                  "query":  [
+                                                                                {
+                                                                                    "key":  "platform",
+                                                                                    "value":  "{{platform}}"
+                                                                                },
+                                                                                {
+                                                                                    "key":  "account_id",
+                                                                                    "value":  "{{ad_account_id}}"
+                                                                                },
+                                                                                {
+                                                                                    "key":  "level",
+                                                                                    "value":  "campaign"
+                                                                                }
+                                                                            ]
+                                                              }
+                                                  }
+                                  },
+                                  {
+                                      "name":  "Trigger Sync",
+                                      "request":  {
+                                                      "method":  "POST",
+                                                      "header":  [
+                                                                     {
+                                                                         "key":  "Content-Type",
+                                                                         "value":  "application/json"
+                                                                     }
+                                                                 ],
+                                                      "body":  {
+                                                                   "mode":  "raw",
+                                                                   "raw":  "{\n  \"platform\": \"{{platform}}\",\n  \"account_id\": \"{{ad_account_id}}\",\n  \"action\": \"insights\",\n  \"days\": 7\n}"
+                                                               },
+                                                      "url":  {
+                                                                  "raw":  "{{base_url}}/api/ads/sync",
+                                                                  "host":  [
+                                                                               "{{base_url}}"
+                                                                           ],
+                                                                  "path":  [
+                                                                               "api",
+                                                                               "ads",
+                                                                               "sync"
+                                                                           ]
+                                                              }
+                                                  }
+                                  },
+                                  {
+                                      "name":  "Platform Performance Report",
+                                      "request":  {
+                                                      "method":  "GET",
+                                                      "url":  {
+                                                                  "raw":  "{{base_url}}/api/ads/reports/platform-performance?date_start=2026-01-01\u0026date_end=2026-01-31",
+                                                                  "host":  [
+                                                                               "{{base_url}}"
+                                                                           ],
+                                                                  "path":  [
+                                                                               "api",
+                                                                               "ads",
+                                                                               "reports",
+                                                                               "platform-performance"
+                                                                           ],
+                                                                  "query":  [
+                                                                                {
+                                                                                    "key":  "date_start",
+                                                                                    "value":  "2026-01-01"
+                                                                                },
+                                                                                {
+                                                                                    "key":  "date_end",
+                                                                                    "value":  "2026-01-31"
+                                                                                }
+                                                                            ]
+                                                              }
+                                                  }
+                                  },
+                                  {
+                                      "name":  "Campaign Performance Report",
+                                      "request":  {
+                                                      "method":  "GET",
+                                                      "url":  {
+                                                                  "raw":  "{{base_url}}/api/ads/reports/campaign-performance?platform={{platform}}\u0026date_start=2026-01-01\u0026date_end=2026-01-31",
+                                                                  "host":  [
+                                                                               "{{base_url}}"
+                                                                           ],
+                                                                  "path":  [
+                                                                               "api",
+                                                                               "ads",
+                                                                               "reports",
+                                                                               "campaign-performance"
+                                                                           ],
+                                                                  "query":  [
+                                                                                {
+                                                                                    "key":  "platform",
+                                                                                    "value":  "{{platform}}"
+                                                                                },
+                                                                                {
+                                                                                    "key":  "date_start",
+                                                                                    "value":  "2026-01-01"
+                                                                                },
+                                                                                {
+                                                                                    "key":  "date_end",
+                                                                                    "value":  "2026-01-31"
+                                                                                }
+                                                                            ]
+                                                              }
+                                                  }
+                                  },
+                                  {
+                                      "name":  "Daily Trend Report",
+                                      "request":  {
+                                                      "method":  "GET",
+                                                      "url":  {
+                                                                  "raw":  "{{base_url}}/api/ads/reports/daily-trend?platform={{platform}}\u0026date_start=2026-01-01\u0026date_end=2026-01-31",
+                                                                  "host":  [
+                                                                               "{{base_url}}"
+                                                                           ],
+                                                                  "path":  [
+                                                                               "api",
+                                                                               "ads",
+                                                                               "reports",
+                                                                               "daily-trend"
+                                                                           ],
+                                                                  "query":  [
+                                                                                {
+                                                                                    "key":  "platform",
+                                                                                    "value":  "{{platform}}"
+                                                                                },
+                                                                                {
+                                                                                    "key":  "date_start",
+                                                                                    "value":  "2026-01-01"
+                                                                                },
+                                                                                {
+                                                                                    "key":  "date_end",
+                                                                                    "value":  "2026-01-31"
+                                                                                }
+                                                                            ]
+                                                              }
+                                                  }
+                                  }
+                              ]
+                 },
+                 {
+                     "name":  "Ads - Leads",
+                     "item":  [
+                                  {
+                                      "name":  "Fetch Leads",
+                                      "request":  {
+                                                      "method":  "GET",
+                                                      "url":  {
+                                                                  "raw":  "{{base_url}}/api/ads/leads?platform={{platform}}\u0026form_id=form_123",
+                                                                  "host":  [
+                                                                               "{{base_url}}"
+                                                                           ],
+                                                                  "path":  [
+                                                                               "api",
+                                                                               "ads",
+                                                                               "leads"
+                                                                           ],
+                                                                  "query":  [
+                                                                                {
+                                                                                    "key":  "platform",
+                                                                                    "value":  "{{platform}}"
+                                                                                },
+                                                                                {
+                                                                                    "key":  "form_id",
+                                                                                    "value":  "form_123"
+                                                                                }
+                                                                            ]
+                                                              }
+                                                  }
+                                  },
+                                  {
+                                      "name":  "Stored Leads",
+                                      "request":  {
+                                                      "method":  "GET",
+                                                      "url":  {
+                                                                  "raw":  "{{base_url}}/api/ads/leads/stored?platform={{platform}}\u0026account_id={{ad_account_id}}",
+                                                                  "host":  [
+                                                                               "{{base_url}}"
+                                                                           ],
+                                                                  "path":  [
+                                                                               "api",
+                                                                               "ads",
+                                                                               "leads",
+                                                                               "stored"
+                                                                           ],
+                                                                  "query":  [
+                                                                                {
+                                                                                    "key":  "platform",
+                                                                                    "value":  "{{platform}}"
+                                                                                },
+                                                                                {
+                                                                                    "key":  "account_id",
+                                                                                    "value":  "{{ad_account_id}}"
+                                                                                }
+                                                                            ]
+                                                              }
+                                                  }
+                                  },
+                                  {
+                                      "name":  "Export Leads XLSX",
+                                      "request":  {
+                                                      "method":  "GET",
+                                                      "url":  {
+                                                                  "raw":  "{{base_url}}/api/ads/leads/export?platform={{platform}}\u0026form_id=form_123",
+                                                                  "host":  [
+                                                                               "{{base_url}}"
+                                                                           ],
+                                                                  "path":  [
+                                                                               "api",
+                                                                               "ads",
+                                                                               "leads",
+                                                                               "export"
+                                                                           ],
+                                                                  "query":  [
+                                                                                {
+                                                                                    "key":  "platform",
+                                                                                    "value":  "{{platform}}"
+                                                                                },
+                                                                                {
+                                                                                    "key":  "form_id",
+                                                                                    "value":  "form_123"
+                                                                                }
+                                                                            ]
+                                                              }
+                                                  }
+                                  },
+                                  {
+                                      "name":  "Sync Leads Job",
+                                      "request":  {
+                                                      "method":  "POST",
+                                                      "header":  [
+                                                                     {
+                                                                         "key":  "Content-Type",
+                                                                         "value":  "application/json"
+                                                                     }
+                                                                 ],
+                                                      "body":  {
+                                                                   "mode":  "raw",
+                                                                   "raw":  "{\n  \"platform\": \"{{platform}}\",\n  \"account_id\": \"{{ad_account_id}}\",\n  \"campaign_id\": \"{{campaign_id}}\",\n  \"date_from\": \"2026-01-01\",\n  \"date_to\": \"2026-01-31\"\n}"
+                                                               },
+                                                      "url":  {
+                                                                  "raw":  "{{base_url}}/api/ads/leads/sync",
+                                                                  "host":  [
+                                                                               "{{base_url}}"
+                                                                           ],
+                                                                  "path":  [
+                                                                               "api",
+                                                                               "ads",
+                                                                               "leads",
+                                                                               "sync"
+                                                                           ]
+                                                              }
+                                                  }
+                                  },
+                                  {
+                                      "name":  "Create Queued Leads Export",
+                                      "request":  {
+                                                      "method":  "POST",
+                                                      "header":  [
+                                                                     {
+                                                                         "key":  "Content-Type",
+                                                                         "value":  "application/json"
+                                                                     }
+                                                                 ],
+                                                      "body":  {
+                                                                   "mode":  "raw",
+                                                                   "raw":  "{\n  \"platform\": \"{{platform}}\",\n  \"account_id\": \"{{ad_account_id}}\",\n  \"campaign_id\": \"{{campaign_id}}\",\n  \"date_from\": \"2026-01-01\",\n  \"date_to\": \"2026-01-31\",\n  \"filename\": \"leads.csv\"\n}"
+                                                               },
+                                                      "url":  {
+                                                                  "raw":  "{{base_url}}/api/ads/exports/leads",
+                                                                  "host":  [
+                                                                               "{{base_url}}"
+                                                                           ],
+                                                                  "path":  [
+                                                                               "api",
+                                                                               "ads",
+                                                                               "exports",
+                                                                               "leads"
+                                                                           ]
+                                                              }
+                                                  }
+                                  },
+                                  {
+                                      "name":  "List Exports",
+                                      "request":  {
+                                                      "method":  "GET",
+                                                      "url":  {
+                                                                  "raw":  "{{base_url}}/api/ads/exports",
+                                                                  "host":  [
+                                                                               "{{base_url}}"
+                                                                           ],
+                                                                  "path":  [
+                                                                               "api",
+                                                                               "ads",
+                                                                               "exports"
+                                                                           ]
+                                                              }
+                                                  }
+                                  },
+                                  {
+                                      "name":  "Download Export",
+                                      "request":  {
+                                                      "method":  "GET",
+                                                      "url":  {
+                                                                  "raw":  "{{base_url}}/api/ads/exports/1/download",
+                                                                  "host":  [
+                                                                               "{{base_url}}"
+                                                                           ],
+                                                                  "path":  [
+                                                                               "api",
+                                                                               "ads",
+                                                                               "exports",
+                                                                               "1",
+                                                                               "download"
+                                                                           ]
+                                                              }
+                                                  }
+                                  },
+                                  {
+                                      "name":  "Snap CSV To XLSX",
+                                      "request":  {
+                                                      "method":  "POST",
+                                                      "body":  {
+                                                                   "mode":  "formdata",
+                                                                   "formdata":  [
+                                                                                    {
+                                                                                        "key":  "csv",
+                                                                                        "type":  "file",
+                                                                                        "src":  ""
+                                                                                    }
+                                                                                ]
+                                                               },
+                                                      "url":  {
+                                                                  "raw":  "{{base_url}}/api/ads/leads/export-snap",
+                                                                  "host":  [
+                                                                               "{{base_url}}"
+                                                                           ],
+                                                                  "path":  [
+                                                                               "api",
+                                                                               "ads",
+                                                                               "leads",
+                                                                               "export-snap"
+                                                                           ]
+                                                              }
+                                                  }
+                                  }
+                              ]
+                 },
+                 {
+                     "name":  "Ads - Webhooks",
+                     "item":  [
+
+                              ]
+                 },
+                 {
+                     "name":  "Proposed Missing Endpoints",
+                     "item":  [
+                                  {
+                                      "name":  "PROPOSED - Agentic Tool Proposal Response Reference",
+                                      "request":  {
+                                                      "auth":  {
+                                                                   "type":  "noauth"
+                                                               },
+                                                      "method":  "POST",
+                                                      "header":  [
+                                                                     {
+                                                                         "key":  "Content-Type",
+                                                                         "value":  "application/json"
+                                                                     }
+                                                                 ],
+                                                      "body":  {
+                                                                   "mode":  "raw",
+                                                                   "raw":  "{\n  \"message\": \"Assign the lead to a sales agent\",\n  \"conversation_id\": \"{{ai_conversation_id}}\",\n  \"locale\": \"ar\",\n  \"context\": {\n    \"module\": \"sales\",\n    \"entity_type\": \"lead\",\n    \"entity_id\": 123\n  },\n  \"input_mode\": \"text\"\n}"
+                                                               },
+                                                      "url":  {
+                                                                  "raw":  "{{base_url}}/api/ai/tools/chat-proposal",
+                                                                  "host":  [
+                                                                               "{{base_url}}"
+                                                                           ],
+                                                                  "path":  [
+                                                                               "api",
+                                                                               "ai",
+                                                                               "tools",
+                                                                               "chat-proposal"
+                                                                           ]
+                                                              },
+                                                      "description":  "Proposed only. No verified route exists."
+                                                  },
+                                      "response":  [
+                                                       {
+                                                           "name":  "Proposed Proposal Response",
+                                                           "originalRequest":  {
+                                                                                   "method":  "POST",
+                                                                                   "url":  {
+                                                                                               "raw":  "{{base_url}}/api/ai/tools/chat-proposal"
+                                                                                           }
+                                                                               },
+                                                           "status":  "OK",
+                                                           "code":  200,
+                                                           "body":  "{\n  \"success\": true,\n  \"data\": {\n    \"conversation_id\": \"uuid\",\n    \"answer\": \"Human-readable AI response\",\n    \"tool_calls\": [],\n    \"proposals\": [\n      {\n        \"proposal_id\": \"uuid\",\n        \"action\": \"lead.assign\",\n        \"summary\": \"Assign lead to sales agent\",\n        \"requires_confirmation\": true,\n        \"risk_level\": \"medium\",\n        \"payload_preview\": {},\n        \"expires_at\": \"2026-12-31T23:59:59Z\"\n      }\n    ]\n  }\n}"
+                                                       }
+                                                   ]
+                                  },
+                                  {
+                                      "name":  "PROPOSED - Confirm Tool Execution",
+                                      "request":  {
+                                                      "method":  "POST",
+                                                      "header":  [
+                                                                     {
+                                                                         "key":  "Content-Type",
+                                                                         "value":  "application/json"
+                                                                     }
+                                                                 ],
+                                                      "body":  {
+                                                                   "mode":  "raw",
+                                                                   "raw":  "{\n  \"proposal_id\": \"{{proposal_id}}\",\n  \"confirm\": true,\n  \"idempotency_key\": \"{{idempotency_key}}\"\n}"
+                                                               },
+                                                      "url":  {
+                                                                  "raw":  "{{base_url}}/api/ai/tools/confirm",
+                                                                  "host":  [
+                                                                               "{{base_url}}"
+                                                                           ],
+                                                                  "path":  [
+                                                                               "api",
+                                                                               "ai",
+                                                                               "tools",
+                                                                               "confirm"
+                                                                           ]
+                                                              },
+                                                      "description":  "Proposed only. No verified route exists."
+                                                  }
+                                  },
+                                  {
+                                      "name":  "PROPOSED - AI Conversation History For Knowledge Assistant",
+                                      "request":  {
+                                                      "method":  "GET",
+                                                      "url":  {
+                                                                  "raw":  "{{base_url}}/api/ai/assistant/conversations/{{ai_conversation_id}}",
+                                                                  "host":  [
+                                                                               "{{base_url}}"
+                                                                           ],
+                                                                  "path":  [
+                                                                               "api",
+                                                                               "ai",
+                                                                               "assistant",
+                                                                               "conversations",
+                                                                               "{{ai_conversation_id}}"
+                                                                           ]
+                                                              },
+                                                      "description":  "Proposed only. `/api/ai/assistant/chat` has no verified history endpoint."
+                                                  }
+                                  },
+                                  {
+                                      "name":  "PROPOSED - Meta Lead Webhook",
+                                      "request":  {
+                                                      "auth":  {
+                                                                   "type":  "noauth"
+                                                               },
+                                                      "method":  "POST",
+                                                      "url":  {
+                                                                  "raw":  "{{base_url}}/api/ads/webhooks/meta/leads",
+                                                                  "host":  [
+                                                                               "{{base_url}}"
+                                                                           ],
+                                                                  "path":  [
+                                                                               "api",
+                                                                               "ads",
+                                                                               "webhooks",
+                                                                               "meta",
+                                                                               "leads"
+                                                                           ]
+                                                              },
+                                                      "description":  "Proposed only. No verified route exists."
+                                                  }
+                                  },
+                                  {
+                                      "name":  "PROPOSED - TikTok Lead Webhook",
+                                      "request":  {
+                                                      "auth":  {
+                                                                   "type":  "noauth"
+                                                               },
+                                                      "method":  "POST",
+                                                      "url":  {
+                                                                  "raw":  "{{base_url}}/api/ads/webhooks/tiktok/leads",
+                                                                  "host":  [
+                                                                               "{{base_url}}"
+                                                                           ],
+                                                                  "path":  [
+                                                                               "api",
+                                                                               "ads",
+                                                                               "webhooks",
+                                                                               "tiktok",
+                                                                               "leads"
+                                                                           ]
+                                                              },
+                                                      "description":  "Proposed only. No verified route exists."
+                                                  }
+                                  },
+                                  {
+                                      "name":  "PROPOSED - Snap Lead Webhook",
+                                      "request":  {
+                                                      "auth":  {
+                                                                   "type":  "noauth"
+                                                               },
+                                                      "method":  "POST",
+                                                      "url":  {
+                                                                  "raw":  "{{base_url}}/api/ads/webhooks/snap/leads",
+                                                                  "host":  [
+                                                                               "{{base_url}}"
+                                                                           ],
+                                                                  "path":  [
+                                                                               "api",
+                                                                               "ads",
+                                                                               "webhooks",
+                                                                               "snap",
+                                                                               "leads"
+                                                                           ]
+                                                              },
+                                                      "description":  "Proposed only. No verified route exists."
+                                                  }
+                                  },
+                                  {
+                                      "name":  "PROPOSED - Google Ads / YouTube Connect",
+                                      "request":  {
+                                                      "method":  "GET",
+                                                      "url":  {
+                                                                  "raw":  "{{base_url}}/api/ads/connect/google",
+                                                                  "host":  [
+                                                                               "{{base_url}}"
+                                                                           ],
+                                                                  "path":  [
+                                                                               "api",
+                                                                               "ads",
+                                                                               "connect",
+                                                                               "google"
+                                                                           ]
+                                                              },
+                                                      "description":  "Proposed only. No verified route exists."
+                                                  }
+                                  }
+                              ]
+                 },
+                 {
+                     "name":  "Legacy AI",
+                     "item":  [
+                                  {
+                                      "name":  "Legacy Chat",
+                                      "request":  {
+                                                      "method":  "POST",
+                                                      "header":  [
+                                                                     {
+                                                                         "key":  "Content-Type",
+                                                                         "value":  "application/json"
+                                                                     }
+                                                                 ],
+                                                      "body":  {
+                                                                   "mode":  "raw",
+                                                                   "raw":  "{\n  \"message\": \"Arabic or English user message\",\n  \"session_id\": \"{{ai_conversation_id}}\",\n  \"section\": \"sales\",\n  \"context\": {\n    \"module\": \"sales\",\n    \"entity_type\": \"project\",\n    \"entity_id\": null\n  },\n  \"locale\": \"ar\",\n  \"input_mode\": \"text\"\n}"
+                                                               },
+                                                      "url":  {
+                                                                  "raw":  "{{base_url}}/api/ai/chat",
+                                                                  "host":  [
+                                                                               "{{base_url}}"
+                                                                           ],
+                                                                  "path":  [
+                                                                               "api",
+                                                                               "ai",
+                                                                               "chat"
+                                                                           ]
+                                                              },
+                                                      "description":  "Verified route. Extra `locale` and `input_mode` fields are included for frontend compatibility but are not formally validated by the current backend request class."
+                                                  },
+                                      "response":  [
+                                                       {
+                                                           "name":  "Success",
+                                                           "originalRequest":  {
+                                                                                   "method":  "POST",
+                                                                                   "url":  {
+                                                                                               "raw":  "{{base_url}}/api/ai/chat"
+                                                                                           }
+                                                                               },
+                                                           "status":  "OK",
+                                                           "code":  200,
+                                                           "body":  "{\n  \"success\": true,\n  \"data\": {\n    \"message\": \"AI response\",\n    \"session_id\": \"{{ai_conversation_id}}\",\n    \"conversation_id\": 101,\n    \"suggestions\": [],\n    \"links\": [],\n    \"sources\": [],\n    \"meta\": {\n      \"session_id\": \"{{ai_conversation_id}}\",\n      \"section\": \"sales\",\n      \"tokens\": 120,\n      \"latency_ms\": 950,\n      \"model\": \"gpt-4.1-mini\",\n      \"request_id\": \"req_123\",\n      \"correlation_id\": \"11111111-1111-1111-1111-111111111111\"\n    }\n  }\n}"
+                                                       }
+                                                   ]
+                                  },
+                                  {
+                                      "name":  "Ask Question",
+                                      "request":  {
+                                                      "method":  "POST",
+                                                      "header":  [
+                                                                     {
+                                                                         "key":  "Content-Type",
+                                                                         "value":  "application/json"
+                                                                     }
+                                                                 ],
+                                                      "body":  {
+                                                                   "mode":  "raw",
+                                                                   "raw":  "{\n  \"question\": \"What is the contract status?\",\n  \"section\": \"contracts\",\n  \"context\": {\n    \"contract_id\": 1\n  }\n}"
+                                                               },
+                                                      "url":  {
+                                                                  "raw":  "{{base_url}}/api/ai/ask",
+                                                                  "host":  [
+                                                                               "{{base_url}}"
+                                                                           ],
+                                                                  "path":  [
+                                                                               "api",
+                                                                               "ai",
+                                                                               "ask"
+                                                                           ]
+                                                              }
+                                                  }
+                                  },
+                                  {
+                                      "name":  "Knowledge Base Chat",
+                                      "request":  {
+                                                      "method":  "POST",
+                                                      "header":  [
+                                                                     {
+                                                                         "key":  "Content-Type",
+                                                                         "value":  "application/json"
+                                                                     }
+                                                                 ],
+                                                      "body":  {
+                                                                   "mode":  "raw",
+                                                                   "raw":  "{\n  \"message\": \"How do I create a contract?\",\n  \"module\": \"contracts\",\n  \"page_key\": \"contract-form\",\n  \"language\": \"en\",\n  \"conversation_id\": null\n}"
+                                                               },
+                                                      "url":  {
+                                                                  "raw":  "{{base_url}}/api/ai/assistant/chat",
+                                                                  "host":  [
+                                                                               "{{base_url}}"
+                                                                           ],
+                                                                  "path":  [
+                                                                               "api",
+                                                                               "ai",
+                                                                               "assistant",
+                                                                               "chat"
+                                                                           ]
+                                                              }
+                                                  },
+                                      "response":  [
+                                                       {
+                                                           "name":  "Success",
+                                                           "originalRequest":  {
+                                                                                   "method":  "POST",
+                                                                                   "url":  {
+                                                                                               "raw":  "{{base_url}}/api/ai/assistant/chat"
+                                                                                           }
+                                                                               },
+                                                           "status":  "OK",
+                                                           "code":  200,
+                                                           "body":  "{\n  \"success\": true,\n  \"data\": {\n    \"conversation_id\": 25,\n    \"reply\": \"Here is how to create a contract...\",\n    \"knowledge_used_count\": 3\n  }\n}"
+                                                       }
+                                                   ]
+                                  },
+                                  {
+                                      "name":  "Legacy V2 Alias",
+                                      "request":  {
+                                                      "method":  "POST",
+                                                      "header":  [
+                                                                     {
+                                                                         "key":  "Content-Type",
+                                                                         "value":  "application/json"
+                                                                     }
+                                                                 ],
+                                                      "body":  {
+                                                                   "mode":  "raw",
+                                                                   "raw":  "{\n  \"message\": \"Analyze campaign performance\",\n  \"session_id\": \"{{ai_conversation_id}}\",\n  \"section\": \"marketing\"\n}"
+                                                               },
+                                                      "url":  {
+                                                                  "raw":  "{{base_url}}/api/ai/v2/chat",
+                                                                  "host":  [
+                                                                               "{{base_url}}"
+                                                                           ],
+                                                                  "path":  [
+                                                                               "api",
+                                                                               "ai",
+                                                                               "v2",
+                                                                               "chat"
+                                                                           ]
+                                                              }
+                                                  }
+                                  }
+                              ]
+                 }
+             ]
+}

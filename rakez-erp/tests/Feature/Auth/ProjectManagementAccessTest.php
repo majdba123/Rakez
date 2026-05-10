@@ -103,6 +103,40 @@ class ProjectManagementAccessTest extends BasePermissionTestCase
     }
 
     #[Test]
+    public function archived_contracts_listing_accessible_by_pm_manager_only()
+    {
+        $pmManager = $this->createProjectManagementManager();
+        $pmStaff = $this->createProjectManagementStaff();
+
+        $managerResponse = $this->actingAs($pmManager, 'sanctum')
+            ->getJson('/api/contracts/archived');
+
+        $this->assertNotEquals(403, $managerResponse->status());
+
+        $staffResponse = $this->actingAs($pmStaff, 'sanctum')
+            ->getJson('/api/contracts/archived');
+
+        $staffResponse->assertStatus(403);
+    }
+
+    #[Test]
+    public function archive_routes_accessible_by_pm_manager_only()
+    {
+        $pmManager = $this->createProjectManagementManager();
+        $pmStaff = $this->createProjectManagementStaff();
+
+        $managerResponse = $this->actingAs($pmManager, 'sanctum')
+            ->postJson("/api/contracts/{$this->contract->id}/archive-request");
+
+        $this->assertNotEquals(403, $managerResponse->status());
+
+        $staffResponse = $this->actingAs($pmStaff, 'sanctum')
+            ->postJson("/api/contracts/{$this->contract->id}/archive-request");
+
+        $staffResponse->assertStatus(403);
+    }
+
+    #[Test]
     public function view_second_party_data_accessible_by_pm_staff()
     {
         $pmStaff = $this->createProjectManagementStaff();
@@ -265,6 +299,21 @@ class ProjectManagementAccessTest extends BasePermissionTestCase
                 'quantity' => 10,
             ]);
         
+        $this->assertNotEquals(403, $response->status());
+    }
+
+    #[Test]
+    public function upload_board_images_accessible_by_pm_staff()
+    {
+        $pmStaff = $this->createProjectManagementStaff();
+
+        $response = $this->actingAs($pmStaff, 'sanctum')
+            ->post("/api/contracts/{$this->contract->id}/board-images", [
+                'images' => [
+                    \Illuminate\Http\UploadedFile::fake()->image('board.jpg'),
+                ],
+            ], ['Accept' => 'application/json']);
+
         $this->assertNotEquals(403, $response->status());
     }
 

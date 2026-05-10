@@ -19,7 +19,8 @@ class MarketingProjectResource extends JsonResource
     public function toArray(Request $request): array
     {
         $contract = $this->contract;
-        $info = $contract->info;
+        $advertiserNumber = $contract->getAdvertiserNumber();
+        $hasAdvertiserNumber = !empty($advertiserNumber);
 
         // Use canonical metrics resolver
         $metrics = $this->metricsResolver->resolveForList($contract);
@@ -33,9 +34,13 @@ class MarketingProjectResource extends JsonResource
             'team_leader' => $this->teamLeader->name ?? null,
             'units_count' => $metrics['units_count'],
             'avg_unit_price' => (float) $metrics['avg_unit_price'],
-            'advertiser_number' => (!empty($info?->agency_number)) ? 'Available' : 'Pending',
-            'advertiser_number_value' => $info?->agency_number,
-            'advertiser_number_status' => (!empty($info?->agency_number)) ? 'Available' : 'Pending',
+            'advertiser_number' => $hasAdvertiserNumber ? 'Available' : 'Pending',
+            'advertiser_number_value' => $advertiserNumber,
+            'advertiser_number_status' => $hasAdvertiserNumber ? 'Available' : 'Pending',
+            'advertiser_number_source' => $contract->getAdvertiserNumberSource(),
+            'advertiser_number_expires_at' => $contract->getAdvertiserNumberExpiresAt()?->toDateString(),
+            'advertiser_number_remaining_days' => $contract->getAdvertiserNumberRemainingDays(),
+            'advertiser_number_expiry_status' => $contract->getAdvertiserNumberExpiryStatus(),
             'commission_percent' => (float) $metrics['commission_percent'],
             'total_available_value' => (float) $metrics['total_available_value'],
             'media_links' => $contract->projectMedia

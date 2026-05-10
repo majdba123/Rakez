@@ -4,6 +4,8 @@ namespace App\Http\Controllers\Contract;
 
 use App\Http\Controllers\Concerns\RespondsWithCsvImportUpload;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Contract\ArchiveContractRequest;
+use App\Http\Requests\Contract\ConfirmArchiveContractRequest;
 use App\Http\Requests\Contract\StoreContractRequest;
 use App\Http\Requests\Contract\UpdateContractRequest;
 use App\Http\Requests\Contract\UpdateContractStatusRequest;
@@ -394,6 +396,43 @@ class ContractController extends Controller
         }
     }
 
+    public function archivedIndex(Request $request): JsonResponse
+    {
+        try {
+            $validated = $request->validate([
+                'status' => 'nullable|in:pending_archive,archived',
+                'user_id' => 'nullable|integer',
+                'city_id' => 'nullable|integer',
+                'district_id' => 'nullable|integer',
+                'project_name' => 'nullable|string',
+                'per_page' => 'nullable|integer|min:1|max:100',
+            ]);
+
+            $contracts = $this->contractService->getArchivedContracts(
+                $validated,
+                (int) ($validated['per_page'] ?? 15)
+            );
+
+            return response()->json([
+                'success' => true,
+                'message' => 'تم جلب المشاريع المؤرشفة بنجاح',
+                'data' => ContractIndexResource::collection($contracts->items()),
+                'meta' => [
+                    'total' => $contracts->total(),
+                    'count' => $contracts->count(),
+                    'per_page' => $contracts->perPage(),
+                    'current_page' => $contracts->currentPage(),
+                    'last_page' => $contracts->lastPage(),
+                ],
+            ], 200);
+        } catch (Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage(),
+            ], 422);
+        }
+    }
+
 
     public function locations(Request $request): JsonResponse
     {
@@ -516,6 +555,58 @@ class ContractController extends Controller
         } catch (Exception $e) {
             $statusCode = 422;
             if (str_contains($e->getMessage(), 'غير موجود')) $statusCode = 404;
+
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage(),
+            ], $statusCode);
+        }
+    }
+
+    public function archiveRequest(ArchiveContractRequest $request, int $contractId): JsonResponse
+    {
+        try {
+            $contract = $this->contractService->requestArchive(
+                $contractId,
+                (int) $request->user()->id,
+                $request->input('archive_note')
+            );
+
+            return response()->json([
+                'success' => true,
+                'message' => 'يرجى التأكد من إزالة لوحات المشروع قبل تأكيد الأرشفة.',
+                'data' => new ContractResource($contract),
+            ], 200);
+        } catch (Exception $e) {
+            $statusCode = match (true) {
+                str_contains($e->getMessage(), 'مؤرشف بالفعل') => 409,
+                str_contains($e->getMessage(), 'No query results') => 404,
+                default => 422,
+            };
+
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage(),
+            ], $statusCode);
+        }
+    }
+
+    public function archiveConfirm(ConfirmArchiveContractRequest $request, int $contractId): JsonResponse
+    {
+        try {
+            $contract = $this->contractService->confirmArchive(
+                $contractId,
+                (int) $request->user()->id,
+                $request->input('archive_note')
+            );
+
+            return response()->json([
+                'success' => true,
+                'message' => 'تم تأكيد إزالة لوحات المشروع وأرشفة المشروع بنجاح.',
+                'data' => new ContractResource($contract),
+            ], 200);
+        } catch (Exception $e) {
+            $statusCode = str_contains($e->getMessage(), 'No query results') ? 404 : 422;
 
             return response()->json([
                 'success' => false,

@@ -16,6 +16,13 @@ class ProjectMedia extends Model
         'type',
         'url',
         'department',
+        'kind',
+        'note',
+    ];
+
+    protected $casts = [
+        'created_at' => 'datetime',
+        'updated_at' => 'datetime',
     ];
 
     public function contract()

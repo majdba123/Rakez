@@ -107,7 +107,7 @@ class SalesProjectResource extends JsonResource
             $unitTypeLabel = $firstType ? (string) $firstType : null;
         }
 
-        $adCode = $contract->secondPartyData?->advertiser_section_url;
+        $advertiserNumber = $contract->getAdvertiserNumber();
 
         return [
             'status_badge_ar' => $statusBadge,
@@ -118,7 +118,12 @@ class SalesProjectResource extends JsonResource
             'bedrooms_min' => $bedroomsMin,
             'bedrooms_max' => $bedroomsMax,
             'unit_type_label_ar' => $unitTypeLabel,
-            'ad_code' => $adCode,
+            'ad_code' => $advertiserNumber,
+            'advertiser_number' => $advertiserNumber,
+            'advertiser_number_source' => $contract->getAdvertiserNumberSource(),
+            'advertiser_number_expires_at' => $contract->getAdvertiserNumberExpiresAt()?->toDateString(),
+            'advertiser_number_remaining_days' => $contract->getAdvertiserNumberRemainingDays(),
+            'advertiser_number_expiry_status' => $contract->getAdvertiserNumberExpiryStatus(),
         ];
     }
 

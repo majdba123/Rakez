@@ -59,7 +59,7 @@ class BoardsDepartmentService
 
             DB::commit();
 
-            return $boardsDepartment->load('processedByUser');
+            return $boardsDepartment->load(['processedByUser', 'contract.projectMedia']);
         } catch (Exception $e) {
             DB::rollBack();
             throw $e;
@@ -87,7 +87,7 @@ class BoardsDepartmentService
 
             DB::commit();
 
-            return $contract->boardsDepartment->fresh()->load('processedByUser');
+            return $contract->boardsDepartment->fresh()->load(['processedByUser', 'contract.projectMedia']);
         } catch (Exception $e) {
             DB::rollBack();
             throw $e;
@@ -105,7 +105,6 @@ class BoardsDepartmentService
     {
         $contract = $this->getAuthorizedContract($contractId);
 
-        return $contract->boardsDepartment?->load('processedByUser');
+        return $contract->boardsDepartment?->load(['processedByUser', 'contract.projectMedia']);
     }
 }
-

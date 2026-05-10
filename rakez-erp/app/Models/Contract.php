@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
@@ -47,6 +48,15 @@ class Contract extends Model
         'security_guard_number',
         'is_closed',
         'is_complete_second',
+        'archive_requested_at',
+        'archive_requested_by',
+        'archive_confirmed_at',
+        'archive_confirmed_by',
+        'archived_at',
+        'archived_by',
+        'archive_note',
+        'boards_removed_confirmed_at',
+        'boards_removed_confirmed_by',
     ];
 
     /**
@@ -60,6 +70,10 @@ class Contract extends Model
         'is_closed' => 'boolean',
         'is_complete_second' => 'boolean',
         'commission_percent' => 'decimal:2',
+        'archive_requested_at' => 'datetime',
+        'archive_confirmed_at' => 'datetime',
+        'archived_at' => 'datetime',
+        'boards_removed_confirmed_at' => 'datetime',
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
         'deleted_at' => 'datetime',
@@ -214,6 +228,31 @@ class Contract extends Model
         return $this->status === ContractWorkflowStatus::Completed->value;
     }
 
+    public function isCompleted(): bool
+    {
+        return $this->status === ContractWorkflowStatus::Completed->value;
+    }
+
+    public function isPendingArchive(): bool
+    {
+        return $this->status === ContractWorkflowStatus::PendingArchive->value;
+    }
+
+    public function isArchived(): bool
+    {
+        return $this->status === ContractWorkflowStatus::Archived->value;
+    }
+
+    public function canRequestArchive(): bool
+    {
+        return $this->isCompleted() || $this->isPendingArchive();
+    }
+
+    public function canConfirmArchive(): bool
+    {
+        return $this->isPendingArchive();
+    }
+
     /**
      * تحقق شامل: هل العقد مكتمل وجاهز للتسويق؟
      * يشترط اكتمال جميع المراحل في المتتبع قبل تحويله لمشروع تسويقي.
@@ -355,6 +394,14 @@ class Contract extends Model
         return $query->where('status', ContractWorkflowStatus::Approved->value);
     }
 
+    public function scopeArchivedStates($query)
+    {
+        return $query->whereIn('status', [
+            ContractWorkflowStatus::PendingArchive->value,
+            ContractWorkflowStatus::Archived->value,
+        ]);
+    }
+
     /**
      * Scope: Get contracts in specific city
      */
@@ -419,6 +466,26 @@ class Contract extends Model
         return $this->hasOne(MarketingProject::class);
     }
 
+    public function archiveRequestedByUser()
+    {
+        return $this->belongsTo(User::class, 'archive_requested_by');
+    }
+
+    public function archiveConfirmedByUser()
+    {
+        return $this->belongsTo(User::class, 'archive_confirmed_by');
+    }
+
+    public function archivedByUser()
+    {
+        return $this->belongsTo(User::class, 'archived_by');
+    }
+
+    public function boardsRemovedConfirmedByUser()
+    {
+        return $this->belongsTo(User::class, 'boards_removed_confirmed_by');
+    }
+
     /**
      * Get the developer marketing plan for this contract.
      */
@@ -433,6 +500,78 @@ class Contract extends Model
     public function projectMedia()
     {
         return $this->hasMany(ProjectMedia::class);
+    }
+
+    public function getAdvertiserNumber(): ?string
+    {
+        $this->loadMissing(['secondPartyData', 'info']);
+
+        $canonical = $this->secondPartyData?->getAdvertiserSectionNumber();
+        if ($canonical !== null && trim($canonical) !== '') {
+            return $canonical;
+        }
+
+        $fallback = $this->info?->agency_number;
+        if ($fallback !== null && trim((string) $fallback) !== '') {
+            return (string) $fallback;
+        }
+
+        return null;
+    }
+
+    public function getAdvertiserNumberSource(): ?string
+    {
+        $this->loadMissing(['secondPartyData', 'info']);
+
+        $canonical = $this->secondPartyData?->getAdvertiserSectionNumber();
+        if ($canonical !== null && trim($canonical) !== '') {
+            return 'second_party_data.advertiser_section_url';
+        }
+
+        $fallback = $this->info?->agency_number;
+        if ($fallback !== null && trim((string) $fallback) !== '') {
+            return 'contract_infos.agency_number';
+        }
+
+        return null;
+    }
+
+    public function getAdvertiserNumberExpiresAt(): ?CarbonInterface
+    {
+        $this->loadMissing('secondPartyData');
+
+        return $this->secondPartyData?->getAdvertiserSectionExpiryDate();
+    }
+
+    public function getAdvertiserNumberRemainingDays(): ?int
+    {
+        $number = $this->getAdvertiserNumber();
+        $expiresAt = $this->getAdvertiserNumberExpiresAt();
+
+        if (!$number || !$expiresAt) {
+            return null;
+        }
+
+        return today()->diffInDays($expiresAt, false);
+    }
+
+    public function getAdvertiserNumberExpiryStatus(): string
+    {
+        $remainingDays = $this->getAdvertiserNumberRemainingDays();
+
+        if ($remainingDays === null) {
+            return 'missing';
+        }
+
+        if ($remainingDays < 0) {
+            return 'expired';
+        }
+
+        if ($remainingDays <= SecondPartyData::ADVERTISER_EXPIRY_SOON_THRESHOLD_DAYS) {
+            return 'expiring_soon';
+        }
+
+        return 'valid';
     }
 
     /**
