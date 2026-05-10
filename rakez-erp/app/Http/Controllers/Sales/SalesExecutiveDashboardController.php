@@ -37,7 +37,9 @@ class SalesExecutiveDashboardController extends Controller
                 ],
                 'summary' => [
                     'total_available' => $summary['total'],
+                    'total_available_price' => $summary['total_price'],
                     'by_type' => $summary['by_type'],
+                    'by_type_total_price' => $summary['by_type_total_price'],
                     'by_type_list' => $summary['by_type_list'],
                 ],
             ]);

@@ -78,6 +78,38 @@ class ContractApiTest extends TestCase
         ]);
     }
 
+    public function test_user_can_create_off_plan_contract()
+    {
+        $user = User::factory()->create();
+        $user->givePermissionTo('contracts.create');
+
+        $city = City::factory()->create(['name' => 'Riyadh', 'code' => 'RYD']);
+        $district = District::factory()->create(['city_id' => $city->id, 'name' => 'Olaya']);
+
+        $response = $this->actingAs($user)->postJson('/api/contracts/store', [
+            'project_name' => 'Off Plan Project',
+            'developer_name' => 'Dev Name',
+            'developer_number' => '123456',
+            'city_id' => $city->id,
+            'district_id' => $district->id,
+            'contract_type' => 'exclusive',
+            'side' => 'N',
+            'developer_requiment' => 'None',
+            'is_off_plan' => true,
+            'units' => [
+                ['type' => 'A', 'count' => 10, 'price' => 100000],
+            ],
+        ]);
+
+        $response->assertStatus(201)
+            ->assertJsonPath('data.is_off_plan', true);
+
+        $this->assertDatabaseHas('contracts', [
+            'project_name' => 'Off Plan Project',
+            'is_off_plan' => true,
+        ]);
+    }
+
     public function test_user_can_show_own_contract()
     {
         $user = User::factory()->create();

@@ -32,11 +32,21 @@ class StoreContractRequest extends FormRequest
             $contractType = null;
         }
 
-        $this->merge([
+        $normalized = [
             'user_id' => auth()->id(),
             'side' => $side,
             'contract_type' => $contractType,
-        ]);
+        ];
+
+        if ($this->has('is_off_plan')) {
+            $normalized['is_off_plan'] = filter_var(
+                $this->input('is_off_plan'),
+                FILTER_VALIDATE_BOOLEAN,
+                FILTER_NULL_ON_FAILURE
+            );
+        }
+
+        $this->merge($normalized);
 
         // Clean and normalize units array
         $this->normalizeUnits();
@@ -97,6 +107,7 @@ class StoreContractRequest extends FormRequest
             'notes' => 'nullable|string',
             'commission_percent' => 'nullable|numeric|min:0',
             'commission_from' => 'nullable|string|max:255',
+            'is_off_plan' => 'sometimes|boolean',
             'units' => 'required|array|min:1',
             'units.*.type' => 'required|string|max:255',
             'units.*.count' => 'required|integer|min:1',

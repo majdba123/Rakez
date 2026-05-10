@@ -15,6 +15,7 @@ class ContractInfoResource extends JsonResource
         return [
             'id' => $this->id,
             'contract_id' => $this->contract_id,
+
             'contract_number' => $this->contract_number,
             // First party (Rakez company)
             'first_party_name' => $this->first_party_name,

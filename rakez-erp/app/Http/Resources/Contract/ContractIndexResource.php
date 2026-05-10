@@ -38,6 +38,8 @@ class ContractIndexResource extends JsonResource
             'district' => $this->district?->name,
             'side' => $this->side,
             'contract_type' => $this->contract_type,
+            'is_off_plan' => $this->is_off_plan,
+
             'code' => $this->code,
 
             'unit_count' => $unitCount,
