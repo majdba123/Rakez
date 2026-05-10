@@ -22,7 +22,8 @@ class SecondPartyDataFactory extends Factory
             'project_logo_url' => $projectLogo,
             'prices_units_url' => 'https://example.com/units.pdf',
             'marketing_license_url' => 'https://example.com/license.pdf',
-            'advertiser_section_url' => 'https://example.com/advert.pdf',
+            'advertiser_section_url' => '125712612',
+            'advertiser_section_expiry_date' => now()->addDays(30)->toDateString(),
         ];
     }
 }

@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
@@ -10,21 +11,25 @@ class SecondPartyData extends Model
 {
     use HasFactory, SoftDeletes;
 
+    public const ADVERTISER_EXPIRY_SOON_THRESHOLD_DAYS = 14;
+
     protected $table = 'second_party_data';
 
     protected $fillable = [
         'contract_id',
-        'real_estate_papers_url',      // رابط اوراق العقار
-        'plans_equipment_docs_url',    // رابط مستندات المخطاطات والتجهيزات
-        'project_logo_url',            // رابط شعار المشروع
-        'prices_units_url',            // رابط الاسعار والوحرات
-        'marketing_license_url',       // رخصة التسويق
-        'advertiser_section_url',      // رقم قسم المعلن (مثل: 125712612)
-        'processed_by',                // معالج بواسطة
-        'processed_at',                // تاريخ المعالجة
+        'real_estate_papers_url',
+        'plans_equipment_docs_url',
+        'project_logo_url',
+        'prices_units_url',
+        'marketing_license_url',
+        'advertiser_section_url',
+        'advertiser_section_expiry_date',
+        'processed_by',
+        'processed_at',
     ];
 
     protected $casts = [
+        'advertiser_section_expiry_date' => 'date',
         'processed_at' => 'datetime',
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
@@ -118,7 +123,6 @@ class SecondPartyData extends Model
 
     /**
      * Get the user who processed this record.
-     * الموظف الذي قام بالمعالجة
      */
     public function processedByUser()
     {
@@ -140,13 +144,41 @@ class SecondPartyData extends Model
         ];
     }
 
-    /**
-     * Get advertiser section number
-     * رقم قسم المعلن
-     */
     public function getAdvertiserSectionNumber(): ?string
     {
         return $this->advertiser_section_url;
     }
-}
 
+    public function getAdvertiserSectionExpiryDate(): ?CarbonInterface
+    {
+        return $this->advertiser_section_expiry_date?->copy()->startOfDay();
+    }
+
+    public function getAdvertiserSectionRemainingDays(): ?int
+    {
+        if (!$this->getAdvertiserSectionNumber() || !$this->getAdvertiserSectionExpiryDate()) {
+            return null;
+        }
+
+        return today()->diffInDays($this->getAdvertiserSectionExpiryDate(), false);
+    }
+
+    public function getAdvertiserSectionExpiryStatus(): string
+    {
+        $remainingDays = $this->getAdvertiserSectionRemainingDays();
+
+        if ($remainingDays === null) {
+            return 'missing';
+        }
+
+        if ($remainingDays < 0) {
+            return 'expired';
+        }
+
+        if ($remainingDays <= self::ADVERTISER_EXPIRY_SOON_THRESHOLD_DAYS) {
+            return 'expiring_soon';
+        }
+
+        return 'valid';
+    }
+}

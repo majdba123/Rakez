@@ -62,6 +62,11 @@ class SalesProjectDetailResource extends JsonResource
             'preparation_progress_percent' => 0,
             'preparation_progress_label_ar' => 'N/A',
             'remaining_days' => $this->remaining_days,
+            'advertiser_number' => $this->getAdvertiserNumber(),
+            'advertiser_number_source' => $this->getAdvertiserNumberSource(),
+            'advertiser_number_expires_at' => $this->getAdvertiserNumberExpiresAt()?->toDateString(),
+            'advertiser_number_remaining_days' => $this->getAdvertiserNumberRemainingDays(),
+            'advertiser_number_expiry_status' => $this->getAdvertiserNumberExpiryStatus(),
             'montage_data' => $this->when($this->montageDepartment, function () {
                 return [
                     'image_url' => SalesProjectResource::fullImageUrl($this->montageDepartment->image_url),

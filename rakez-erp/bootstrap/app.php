@@ -37,6 +37,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'role' => \Spatie\Permission\Middleware\RoleMiddleware::class,
             'permission' => \Spatie\Permission\Middleware\PermissionMiddleware::class,
             'role_or_permission' => \Spatie\Permission\Middleware\RoleOrPermissionMiddleware::class,
+            'dynamic_permission' => \App\Http\Middleware\CheckDynamicPermission::class,
             'marketing' => \App\Http\Middleware\MarketingMiddleware::class,
             'ai.pii' => \App\Http\Middleware\RedactPiiFromAi::class,
         ]);

@@ -53,6 +53,8 @@ class SalesProjectService
         $query = Contract::with([
             'contractUnits',
             'montageDepartment',
+            'secondPartyData',
+            'info',
             'salesProjectAssignments.leader',
             'user',
             'city',
@@ -110,6 +112,7 @@ class SalesProjectService
             'contractUnits',
             'montageDepartment',
             'info',
+            'secondPartyData',
             'salesProjectAssignments.leader',
             'user',
             'city',
@@ -500,6 +503,8 @@ class SalesProjectService
 
         $with = [
             'contractUnits',
+            'secondPartyData',
+            'info',
             'salesProjectAssignments.leader',
             'user',
             'city',

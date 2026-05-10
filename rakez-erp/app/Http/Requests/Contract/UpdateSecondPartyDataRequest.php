@@ -21,6 +21,7 @@ class UpdateSecondPartyDataRequest extends FormRequest
             }
             $merge[$field] = $this->input($field);
         }
+
         if ($merge !== []) {
             $this->merge(SecondPartyData::normalizeCompletionFieldsInPayload($merge));
         }
@@ -29,18 +30,13 @@ class UpdateSecondPartyDataRequest extends FormRequest
     public function rules(): array
     {
         return [
-            // رابط اوراق العقار
             'real_estate_papers_url' => 'nullable|url|max:500',
-            // رابط مستندات المخطاطات والتجهيزات
             'plans_equipment_docs_url' => 'nullable|url|max:500',
-            // رابط شعار المشروع
             'project_logo_url' => 'nullable|url|max:500',
-            // رابط الاسعار والوحرات
             'prices_units_url' => 'nullable|url|max:500',
-            // رخصة التسويق
             'marketing_license_url' => 'nullable|url|max:500',
-            // رقم قسم المعلن (مثل: 125712612)
             'advertiser_section_url' => 'nullable|string|max:50|regex:/^[0-9]+$/',
+            'advertiser_section_expiry_date' => 'nullable|date',
         ];
     }
 
@@ -50,11 +46,11 @@ class UpdateSecondPartyDataRequest extends FormRequest
             'real_estate_papers_url.url' => 'رابط اوراق العقار يجب أن يكون رابط صحيح',
             'plans_equipment_docs_url.url' => 'رابط مستندات المخططات والتجهيزات يجب أن يكون رابط صحيح',
             'project_logo_url.url' => 'رابط شعار المشروع يجب أن يكون رابط صحيح',
-            'prices_units_url.url' => 'رابط الاسعار والوحدات يجب أن يكون رابط صحيح',
+            'prices_units_url.url' => 'رابط الأسعار والوحدات يجب أن يكون رابط صحيح',
             'marketing_license_url.url' => 'رابط رخصة التسويق يجب أن يكون رابط صحيح',
             'advertiser_section_url.regex' => 'رقم قسم المعلن يجب أن يكون أرقام فقط',
             'advertiser_section_url.max' => 'رقم قسم المعلن يجب أن لا يتجاوز 50 رقم',
+            'advertiser_section_expiry_date.date' => 'تاريخ انتهاء رقم المعلن غير صحيح',
         ];
     }
 }
-

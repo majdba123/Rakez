@@ -11,4 +11,6 @@ enum ContractWorkflowStatus: string
     case Approved = 'approved';
     case Rejected = 'rejected';
     case Completed = 'completed';
+    case PendingArchive = 'pending_archive';
+    case Archived = 'archived';
 }

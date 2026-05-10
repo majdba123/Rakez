@@ -2,15 +2,14 @@
 
 namespace App\Http\Resources\Contract;
 
+use App\Http\Resources\Shared\UserResource;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
-use App\Http\Resources\Shared\UserResource;
 
 class ContractResource extends JsonResource
 {
     public function toArray(Request $request): array
     {
-        // Prefer real contract_units (CSV/table) when loaded; fallback to legacy units JSON
         $unitCount = 0;
         $totalPrice = 0.0;
         $hasRealUnits = $this->relationLoaded('contractUnits');
@@ -28,6 +27,7 @@ class ContractResource extends JsonResource
         }
 
         $projectProgress = $this->buildProjectProgress($unitCount);
+        $advertiserNumber = $this->getAdvertiserNumber();
 
         return [
             'id' => $this->id,
@@ -38,7 +38,6 @@ class ContractResource extends JsonResource
             'city_id' => $this->city_id,
             'district_id' => $this->district_id,
             'is_off_plan' => $this->is_off_plan,
-
             'city' => $this->city?->name,
             'district' => $this->district?->name,
             'side' => $this->side,
@@ -54,47 +53,60 @@ class ContractResource extends JsonResource
             'total_price' => $totalPrice,
             'commission_percent' => $this->commission_percent !== null ? (float) $this->commission_percent : null,
             'commission_from' => $this->commission_from,
-
+            'advertiser_number' => $advertiserNumber,
+            'advertiser_number_source' => $this->getAdvertiserNumberSource(),
+            'advertiser_number_expires_at' => $this->getAdvertiserNumberExpiresAt()?->toDateString(),
+            'advertiser_number_remaining_days' => $this->getAdvertiserNumberRemainingDays(),
+            'advertiser_number_expiry_status' => $this->getAdvertiserNumberExpiryStatus(),
+            'archive_requested_at' => $this->archive_requested_at?->toIso8601String(),
+            'archive_confirmed_at' => $this->archive_confirmed_at?->toIso8601String(),
+            'archived_at' => $this->archived_at?->toIso8601String(),
+            'archive_note' => $this->archive_note,
+            'boards_removed_confirmed_at' => $this->boards_removed_confirmed_at?->toIso8601String(),
+            'can_confirm_archive' => $this->canConfirmArchive(),
+            'archive' => [
+                'requested_at' => $this->archive_requested_at?->toIso8601String(),
+                'requested_by' => $this->archiveUserPayload('archiveRequestedByUser'),
+                'confirmed_at' => $this->archive_confirmed_at?->toIso8601String(),
+                'confirmed_by' => $this->archiveUserPayload('archiveConfirmedByUser'),
+                'archived_at' => $this->archived_at?->toIso8601String(),
+                'archived_by' => $this->archiveUserPayload('archivedByUser'),
+                'boards_removed_confirmed_at' => $this->boards_removed_confirmed_at?->toIso8601String(),
+                'boards_removed_confirmed_by' => $this->archiveUserPayload('boardsRemovedConfirmedByUser'),
+                'note' => $this->archive_note,
+                'can_confirm' => $this->canConfirmArchive(),
+            ],
             'created_at' => $this->created_at?->toIso8601String(),
             'updated_at' => $this->updated_at?->toIso8601String(),
-
-            // متتبع حالة المشروع (Project Status Tracker) – للواجهة والـ API
             'project_progress' => $projectProgress,
-
-            // Relations
             'user' => new UserResource($this->whenLoaded('user')),
             'info' => new ContractInfoResource($this->whenLoaded('info')),
             'second_party_data' => new SecondPartyDataResource($this->whenLoaded('secondPartyData')),
-            // Real contract units (CSV/table) for project-tracker and unit list UIs
-            'contract_units' => $this->when($hasRealUnits, function () {
-                return ContractUnitResource::collection($this->contractUnits);
-            }),
+            'contract_units' => $this->when($hasRealUnits, fn () => ContractUnitResource::collection($this->contractUnits)),
             'photography_department' => new PhotographyDepartmentResource($this->whenLoaded('photographyDepartment')),
             'boards_department' => new BoardsDepartmentResource($this->whenLoaded('boardsDepartment')),
             'montage_department' => new MontageDepartmentResource($this->whenLoaded('montageDepartment')),
+            'project_media' => $this->when($this->relationLoaded('projectMedia'), fn () => ProjectMediaResource::collection($this->projectMedia)),
+            'board_media' => $this->when($this->relationLoaded('projectMedia'), fn () => ProjectMediaResource::collection($this->projectMedia->where('department', 'boards')->values())),
         ];
     }
 
-    /**
-     * Build project progress (7 steps) for متتبع حالة المشروع.
-     * Based on SecondPartyData URLs, contract info, and units.
-     */
     protected function buildProjectProgress(int $unitCount): array
     {
         $spd = $this->secondPartyData;
-        $filled = fn(?string $v) => $v !== null && trim((string) $v) !== '';
+        $filled = fn (?string $v) => $v !== null && trim((string) $v) !== '';
 
         $step1 = $spd && $filled($spd->real_estate_papers_url) && $filled($spd->marketing_license_url);
         $step2 = $spd && $filled($spd->plans_equipment_docs_url);
         $step3 = $spd && $filled($spd->project_logo_url);
         $step4 = $this->relationLoaded('info') && $this->info !== null;
         $step5 = $spd && $filled($spd->prices_units_url) && $unitCount > 0;
-        $step6 = false; // الضمانات وأخرى – لا يوجد حقل حالياً
+        $step6 = false;
         $step7 = $spd && $filled($spd->advertiser_section_url);
 
         $steps = [
             ['step_number' => 1, 'label_ar' => 'الصكوك والرخصة', 'label_en' => 'Deeds and License', 'completed' => $step1],
-            ['step_number' => 2, 'label_ar' => 'المخطاطات والتصميمات', 'label_en' => 'Plans and Designs', 'completed' => $step2],
+            ['step_number' => 2, 'label_ar' => 'المخططات والتصميمات', 'label_en' => 'Plans and Designs', 'completed' => $step2],
             ['step_number' => 3, 'label_ar' => 'السجل والهوية', 'label_en' => 'Registry and Identity', 'completed' => $step3],
             ['step_number' => 4, 'label_ar' => 'شهادة اتمام وأخرى', 'label_en' => 'Completion Certificate and Others', 'completed' => $step4],
             ['step_number' => 5, 'label_ar' => 'الاسعار والوحدات', 'label_en' => 'Prices and Units', 'completed' => $step5],
@@ -108,6 +120,21 @@ class ContractResource extends JsonResource
             'completed_count' => $completedCount,
             'total_count' => 7,
             'steps' => $steps,
+        ];
+    }
+
+    protected function archiveUserPayload(string $relation): ?array
+    {
+        $user = $this->{$relation};
+
+        if (!$user) {
+            return null;
+        }
+
+        return [
+            'id' => $user->id,
+            'name' => $user->name,
+            'type' => $user->type,
         ];
     }
 }

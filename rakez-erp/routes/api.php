@@ -265,7 +265,14 @@ use Illuminate\Support\Facades\File;  // أضف هذا السطر في الأع�
         Route::middleware(['auth:sanctum', 'role:project_management|admin'])->group(function () {
 
             Route::get('/contracts/admin-index', [ContractController::class, 'adminIndex'])->middleware('permission:contracts.view_all');
+            Route::get('/contracts/archived', [ContractController::class, 'archivedIndex'])->middleware('dynamic_permission:projects.archive');
             Route::patch('contracts/update-status/{id}', [ContractController::class, 'projectManagementUpdateStatus'])->middleware('permission:contracts.approve');
+            Route::post('/contracts/{contractId}/archive-request', [ContractController::class, 'archiveRequest'])
+                ->middleware('dynamic_permission:projects.archive')
+                ->whereNumber('contractId');
+            Route::post('/contracts/{contractId}/archive-confirm', [ContractController::class, 'archiveConfirm'])
+                ->middleware('dynamic_permission:projects.archive')
+                ->whereNumber('contractId');
 
 
             Route::prefix('second-party-data')->group(function () {
@@ -287,6 +294,9 @@ use Illuminate\Support\Facades\File;  // أضف هذا السطر في الأع�
                 Route::post('store/{contractId}', [BoardsDepartmentController::class, 'store'])->middleware('permission:departments.boards.edit');
                 Route::put('update/{contractId}', [BoardsDepartmentController::class, 'update'])->middleware('permission:departments.boards.edit');
             });
+            Route::post('/contracts/{contractId}/board-images', [BoardsDepartmentController::class, 'uploadImages'])
+                ->middleware('permission:projects.media.upload')
+                ->whereNumber('contractId');
 
             Route::prefix('montage-department')->group(function () {
                 Route::get('show/{contractId}', [MontageDepartmentController::class, 'show'])->middleware('permission:departments.montage.view');

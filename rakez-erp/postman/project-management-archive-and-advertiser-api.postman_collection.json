@@ -1,0 +1,393 @@
+{
+  "info": {
+    "name": "Project Management Archive And Advertiser API",
+    "_postman_id": "b4c45a59-7cf0-4ef6-9f09-9c959a4b7d27",
+    "description": "Backend integration collection for project archive workflow, advertiser expiry support, and board image uploads.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{token}}",
+        "type": "string"
+      }
+    ]
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost"
+    },
+    {
+      "key": "token",
+      "value": ""
+    },
+    {
+      "key": "contract_id",
+      "value": "1"
+    }
+  ],
+  "item": [
+    {
+      "name": "Archive Request",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"archive_note\": \"Waiting for board removal confirmation\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/api/contracts/{{contract_id}}/archive-request",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "api",
+            "contracts",
+            "{{contract_id}}",
+            "archive-request"
+          ]
+        },
+        "description": "Moves a completed project to pending_archive and returns the frontend warning message."
+      },
+      "response": [
+        {
+          "name": "Archive Request Success",
+          "originalRequest": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"archive_note\": \"Waiting for board removal confirmation\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/contracts/{{contract_id}}/archive-request",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "contracts",
+                "{{contract_id}}",
+                "archive-request"
+              ]
+            }
+          },
+          "status": "OK",
+          "code": 200,
+          "_postman_previewlanguage": "json",
+          "body": "{\n  \"success\": true,\n  \"message\": \"يرجى التأكد من إزالة لوحات المشروع قبل تأكيد الأرشفة.\",\n  \"data\": {\n    \"id\": 15,\n    \"status\": \"pending_archive\",\n    \"can_confirm_archive\": true,\n    \"archive_requested_at\": \"2026-05-10T07:15:00+03:00\"\n  }\n}"
+        }
+      ]
+    },
+    {
+      "name": "Archive Confirm",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"boards_removed_confirmed\": true,\n  \"archive_note\": \"Boards removed on site\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/api/contracts/{{contract_id}}/archive-confirm",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "api",
+            "contracts",
+            "{{contract_id}}",
+            "archive-confirm"
+          ]
+        }
+      },
+      "response": [
+        {
+          "name": "Archive Confirm Success",
+          "originalRequest": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"boards_removed_confirmed\": true,\n  \"archive_note\": \"Boards removed on site\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/contracts/{{contract_id}}/archive-confirm",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "contracts",
+                "{{contract_id}}",
+                "archive-confirm"
+              ]
+            }
+          },
+          "status": "OK",
+          "code": 200,
+          "_postman_previewlanguage": "json",
+          "body": "{\n  \"success\": true,\n  \"message\": \"تم تأكيد إزالة لوحات المشروع وأرشفة المشروع بنجاح.\",\n  \"data\": {\n    \"id\": 15,\n    \"status\": \"archived\",\n    \"can_confirm_archive\": false,\n    \"archived_at\": \"2026-05-10T07:20:00+03:00\"\n  }\n}"
+        }
+      ]
+    },
+    {
+      "name": "Archived Projects",
+      "item": [
+        {
+          "name": "List All Archived States",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/api/contracts/archived",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "contracts",
+                "archived"
+              ]
+            }
+          }
+        },
+        {
+          "name": "List Pending Archive Only",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/api/contracts/archived?status=pending_archive",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "contracts",
+                "archived"
+              ],
+              "query": [
+                {
+                  "key": "status",
+                  "value": "pending_archive"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "List Archived Only",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/api/contracts/archived?status=archived",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "contracts",
+                "archived"
+              ],
+              "query": [
+                {
+                  "key": "status",
+                  "value": "archived"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Second Party Data With Advertiser Expiry",
+      "item": [
+        {
+          "name": "Store Second Party Data",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"real_estate_papers_url\": \"https://example.com/deed.pdf\",\n  \"plans_equipment_docs_url\": \"https://example.com/plans.pdf\",\n  \"project_logo_url\": \"https://example.com/logo.png\",\n  \"prices_units_url\": \"https://example.com/prices.pdf\",\n  \"marketing_license_url\": \"https://example.com/license.pdf\",\n  \"advertiser_section_url\": \"123456789\",\n  \"advertiser_section_expiry_date\": \"2026-06-25\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/second-party-data/store/{{contract_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "second-party-data",
+                "store",
+                "{{contract_id}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Update Second Party Data",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"advertiser_section_url\": \"123456789\",\n  \"advertiser_section_expiry_date\": \"2026-07-10\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/second-party-data/update/{{contract_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "second-party-data",
+                "update",
+                "{{contract_id}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Show Second Party Data",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/api/second-party-data/show/{{contract_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "second-party-data",
+                "show",
+                "{{contract_id}}"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Upload Board Images",
+      "request": {
+        "method": "POST",
+        "body": {
+          "mode": "formdata",
+          "formdata": [
+            {
+              "key": "images[]",
+              "type": "file",
+              "src": []
+            },
+            {
+              "key": "images[]",
+              "type": "file",
+              "src": []
+            },
+            {
+              "key": "kind",
+              "type": "text",
+              "value": "signboard_image"
+            },
+            {
+              "key": "note",
+              "type": "text",
+              "value": "North entrance boards"
+            }
+          ]
+        },
+        "url": {
+          "raw": "{{base_url}}/api/contracts/{{contract_id}}/board-images",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "api",
+            "contracts",
+            "{{contract_id}}",
+            "board-images"
+          ]
+        }
+      },
+      "response": [
+        {
+          "name": "Upload Board Images Success",
+          "originalRequest": {
+            "method": "POST",
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "images[]",
+                  "type": "file",
+                  "src": []
+                },
+                {
+                  "key": "kind",
+                  "type": "text",
+                  "value": "signboard_image"
+                },
+                {
+                  "key": "note",
+                  "type": "text",
+                  "value": "North entrance boards"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/api/contracts/{{contract_id}}/board-images",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "contracts",
+                "{{contract_id}}",
+                "board-images"
+              ]
+            }
+          },
+          "status": "Created",
+          "code": 201,
+          "_postman_previewlanguage": "json",
+          "body": "{\n  \"success\": true,\n  \"message\": \"تم رفع صور اللوحات بنجاح\",\n  \"data\": [\n    {\n      \"id\": 44,\n      \"contract_id\": 15,\n      \"type\": \"image\",\n      \"department\": \"boards\",\n      \"kind\": \"signboard_image\",\n      \"note\": \"North entrance boards\",\n      \"url\": \"https://api.example.com/storage/projects/15/boards/example.jpg\"\n    }\n  ]\n}"
+        }
+      ]
+    }
+  ]
+}

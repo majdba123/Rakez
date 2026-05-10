@@ -461,6 +461,8 @@ class MarketingProjectDetailAssembler
                     'url' => $first->url,
                     'department' => $departments->first(),
                     'departments' => $departments->all(),
+                    'kind' => $first->kind,
+                    'note' => $first->note,
                     'source_media_ids' => $group->pluck('id')->values()->all(),
                 ];
             })
@@ -475,6 +477,8 @@ class MarketingProjectDetailAssembler
                     'url' => $item['url'],
                     'department' => $item['department'],
                     'departments' => $item['departments'],
+                    'kind' => $item['kind'],
+                    'note' => $item['note'],
                 ])
                 ->values()
                 ->all(),
