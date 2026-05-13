@@ -16,6 +16,7 @@ class AccountingSalaryDistribution extends Model
         'year',
         'base_salary',
         'total_commissions',
+        'total_rewards',
         'total_amount',
         'status',
         'paid_at',
@@ -27,6 +28,7 @@ class AccountingSalaryDistribution extends Model
         'year' => 'integer',
         'base_salary' => 'decimal:2',
         'total_commissions' => 'decimal:2',
+        'total_rewards' => 'decimal:2',
         'total_amount' => 'decimal:2',
         'paid_at' => 'datetime',
         'created_at' => 'datetime',
@@ -117,11 +119,11 @@ class AccountingSalaryDistribution extends Model
     }
 
     /**
-     * Calculate total amount (base salary + commissions).
+     * Calculate total amount (base salary + commissions + rewards).
      */
     public function calculateTotalAmount(): void
     {
-        $this->total_amount = $this->base_salary + $this->total_commissions;
+        $this->total_amount = $this->base_salary + $this->total_commissions + $this->total_rewards;
     }
 
     /**

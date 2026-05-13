@@ -10,6 +10,7 @@ class ProjectCommissionPreviewService
 {
     public function __construct(
         private ProjectCommissionCalculator $calculator,
+        private ContractCommissionTermsResolver $resolver,
     ) {}
 
     /** @param  array{base_amount?: float|null} $data */
@@ -36,18 +37,21 @@ class ProjectCommissionPreviewService
             ]);
         }
 
+        // Commission terms always come from the Contract, not the stored setting snapshot
+        $terms = $this->resolver->resolve($project);
+
         $result = $this->calculator->calculate(
-            (string) $setting->commission_source,
+            $terms['commission_source'],
             $baseAmount,
-            (float) $setting->commission_percentage,
+            $terms['commission_percentage'],
         );
 
         return [
-            'project_id' => (int) $project->id,
-            'base_amount' => $result['base_amount'],
-            'commission_source' => $result['source'],
-            'commission_percentage' => (float) $result['commission_percentage'],
-            'formula_key' => $result['formula_key'],
+            'project_id'                => (int) $project->id,
+            'base_amount'               => $result['base_amount'],
+            'commission_source'         => $result['source'],
+            'commission_percentage'     => (float) $result['commission_percentage'],
+            'formula_key'               => $result['formula_key'],
             'project_commission_amount' => $result['commission_amount'],
         ];
     }

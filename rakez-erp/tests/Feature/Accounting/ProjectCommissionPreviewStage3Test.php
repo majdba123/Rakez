@@ -38,63 +38,71 @@ class ProjectCommissionPreviewStage3Test extends TestCase
     }
 
     /**
+     * Create a ProjectCommissionSetting directly in the DB (bypasses service).
+     * commission_source and commission_percentage are stored as given — the preview
+     * service will override them from the Contract, so these values only satisfy the
+     * NOT NULL constraint.
+     *
      * @param  array<string, mixed>  $overrides
      */
     protected function createActiveSetting(Contract $contract, array $overrides = []): ProjectCommissionSetting
     {
         $defaults = [
-            'project_id' => $contract->id,
-            'commission_source' => 'buyer',
-            'commission_percentage' => 10,
-            'assigned_bring_percentage' => 0,
+            'project_id'                   => $contract->id,
+            'commission_source'            => 'buyer',
+            'commission_percentage'        => 10,
+            'assigned_bring_percentage'    => 0,
             'assigned_convince_percentage' => 0,
-            'assigned_close_percentage' => 0,
-            'outside_bring_percentage' => 0,
-            'outside_convince_percentage' => 0,
-            'outside_close_percentage' => 0,
-            'ceo_percentage' => 0,
-            'sales_manager_percentage' => 0,
-            'sales_leader_percentage' => 0,
-            'group_leader_percentage' => 0,
+            'assigned_close_percentage'    => 0,
+            'outside_bring_percentage'     => 0,
+            'outside_convince_percentage'  => 0,
+            'outside_close_percentage'     => 0,
+            'ceo_percentage'               => 0,
+            'sales_manager_percentage'     => 0,
+            'sales_leader_percentage'      => 0,
+            'group_leader_percentage'      => 0,
             'external_marketer_percentage' => 0,
-            'is_active' => true,
-            'created_by' => $this->accountingUser->id,
+            'is_active'                    => true,
+            'created_by'                   => $this->accountingUser->id,
         ];
 
         return ProjectCommissionSetting::create(array_merge($defaults, $overrides));
     }
 
     /**
+     * Build a contract + unit + reservation + seller scenario.
+     *
      * @param  array<string, mixed>  $reservationOverrides
+     * @param  array<string, mixed>  $contractOverrides   Commission terms for the contract (passed to factory)
      * @return array{contract: Contract, unit: ContractUnit, reservation: SalesReservation, seller: User}
      */
-    protected function baseReservationScenario(array $reservationOverrides = []): array
+    protected function baseReservationScenario(array $reservationOverrides = [], array $contractOverrides = []): array
     {
-        $contract = Contract::factory()->create();
+        $contract = Contract::factory()->create($contractOverrides);
         $unit = ContractUnit::factory()->create([
             'contract_id' => $contract->id,
-            'price' => 110000,
+            'price'       => 110000,
         ]);
 
         /** @var User $seller */
         $seller = User::factory()->create(['type' => 'sales']);
 
         $reservation = SalesReservation::factory()->create(array_merge([
-            'contract_id' => $contract->id,
-            'contract_unit_id' => $unit->id,
+            'contract_id'           => $contract->id,
+            'contract_unit_id'      => $unit->id,
             'marketing_employee_id' => $seller->id,
-            'proposed_price' => null,
+            'proposed_price'        => null,
         ], $reservationOverrides));
 
         SalesReservationParticipant::create([
             'sales_reservation_id' => $reservation->id,
-            'user_id' => $seller->id,
-            'did_bring' => false,
-            'did_convince' => false,
-            'did_close' => false,
-            'weight' => 1,
-            'notes' => null,
-            'created_by' => $seller->id,
+            'user_id'              => $seller->id,
+            'did_bring'            => false,
+            'did_convince'         => false,
+            'did_close'            => false,
+            'weight'               => 1,
+            'notes'                => null,
+            'created_by'           => $seller->id,
         ]);
 
         return compact('contract', 'unit', 'reservation', 'seller');
@@ -115,7 +123,11 @@ class ProjectCommissionPreviewStage3Test extends TestCase
     {
         Sanctum::actingAs($this->accountingUser);
 
-        $ctx = $this->baseReservationScenario();
+        // Contract defines buyer at 10% — preview reads this directly from the Contract
+        $ctx = $this->baseReservationScenario(contractOverrides: [
+            'commission_from'    => 'المشتري',
+            'commission_percent' => 10,
+        ]);
         $this->createActiveSetting($ctx['contract']);
 
         $commissionsBefore = Commission::count();
@@ -136,11 +148,12 @@ class ProjectCommissionPreviewStage3Test extends TestCase
     {
         Sanctum::actingAs($this->accountingUser);
 
-        $ctx = $this->baseReservationScenario();
-        $this->createActiveSetting($ctx['contract'], [
-            'commission_source' => 'owner',
-            'commission_percentage' => 5,
+        // Contract defines owner at 5% — preview reads this directly from the Contract
+        $ctx = $this->baseReservationScenario(contractOverrides: [
+            'commission_from'    => 'المالك',
+            'commission_percent' => 5,
         ]);
+        $this->createActiveSetting($ctx['contract']);
 
         $resp = $this->postJson("/api/accounting/reservations/{$ctx['reservation']->id}/preview-unit-commission")
             ->assertOk();
@@ -205,7 +218,7 @@ class ProjectCommissionPreviewStage3Test extends TestCase
         $ctx['contract']->teams()->attach($attached->id);
 
         $this->createActiveSetting($ctx['contract'], [
-            'outside_bring_percentage' => 70,
+            'outside_bring_percentage'  => 70,
             'assigned_bring_percentage' => 0,
         ]);
 
@@ -232,26 +245,26 @@ class ProjectCommissionPreviewStage3Test extends TestCase
         $extra = User::factory()->create(['team_id' => $team->id]);
         SalesReservationParticipant::create([
             'sales_reservation_id' => $ctx['reservation']->id,
-            'user_id' => $extra->id,
-            'did_bring' => true,
-            'did_convince' => false,
-            'did_close' => false,
-            'weight' => 1,
-            'notes' => null,
-            'created_by' => $ctx['seller']->id,
+            'user_id'              => $extra->id,
+            'did_bring'            => true,
+            'did_convince'         => false,
+            'did_close'            => false,
+            'weight'               => 1,
+            'notes'                => null,
+            'created_by'           => $ctx['seller']->id,
         ]);
 
         $extraB = User::factory()->create(['team_id' => $team->id]);
 
         SalesReservationParticipant::create([
             'sales_reservation_id' => $ctx['reservation']->id,
-            'user_id' => $extraB->id,
-            'did_bring' => true,
-            'did_convince' => false,
-            'did_close' => false,
-            'weight' => 1,
-            'notes' => null,
-            'created_by' => $ctx['seller']->id,
+            'user_id'              => $extraB->id,
+            'did_bring'            => true,
+            'did_convince'         => false,
+            'did_close'            => false,
+            'weight'               => 1,
+            'notes'                => null,
+            'created_by'           => $ctx['seller']->id,
         ]);
 
         /** @var User $sellerB */
@@ -302,13 +315,13 @@ class ProjectCommissionPreviewStage3Test extends TestCase
         ] as [$uid, $w]) {
             SalesReservationParticipant::create([
                 'sales_reservation_id' => $ctx['reservation']->id,
-                'user_id' => $uid,
-                'did_bring' => true,
-                'did_convince' => false,
-                'did_close' => false,
-                'weight' => $w,
-                'notes' => null,
-                'created_by' => $uA->id,
+                'user_id'              => $uid,
+                'did_bring'            => true,
+                'did_convince'         => false,
+                'did_close'            => false,
+                'weight'               => $w,
+                'notes'                => null,
+                'created_by'           => $uA->id,
             ]);
         }
 
@@ -338,8 +351,8 @@ class ProjectCommissionPreviewStage3Test extends TestCase
         $ceo = User::factory()->create();
 
         $this->createActiveSetting($ctx['contract'], [
-            'ceo_percentage' => 5,
-            'ceo_user_id' => $ceo->id,
+            'ceo_percentage'            => 5,
+            'ceo_user_id'               => $ceo->id,
             'assigned_bring_percentage' => 0,
         ]);
 
@@ -374,7 +387,7 @@ class ProjectCommissionPreviewStage3Test extends TestCase
 
         $this->createActiveSetting($ctx['contract'], [
             'assigned_bring_percentage' => 25,
-            'outside_bring_percentage' => 0,
+            'outside_bring_percentage'  => 0,
         ]);
 
         $resp = $this->postJson("/api/accounting/reservations/{$ctx['reservation']->id}/preview-unit-commission")->assertOk();
@@ -423,35 +436,35 @@ class ProjectCommissionPreviewStage3Test extends TestCase
     {
         Sanctum::actingAs($this->accountingUser);
 
-        $contract = Contract::factory()->create();
+        $contract = $this->makeBuyerContract();
         $this->createActiveSetting($contract);
 
         $this->postJson("/api/accounting/projects/{$contract->id}/preview-commission", [])
             ->assertStatus(422);
     }
 
-    public function test_project_preview_buyer_and_owner_using_base_amount(): void
+    public function test_project_preview_buyer_formula(): void
     {
         Sanctum::actingAs($this->accountingUser);
 
-        $contract = Contract::factory()->create();
-
-        $this->createActiveSetting($contract, [
-            'commission_source' => 'buyer',
-            'commission_percentage' => 8,
-        ]);
+        $contract = $this->makeBuyerContract(['commission_percent' => 8]);
+        $this->createActiveSetting($contract);
 
         $this->postJson("/api/accounting/projects/{$contract->id}/preview-commission", ['base_amount' => 250000])
             ->assertOk()
             ->assertJsonPath('data.project_commission_amount', (int) round(250000 * 8 / 100, 2))
             ->assertJsonPath('data.formula_key', ProjectCommissionCalculator::BUYER_FORMULA_KEY);
+    }
 
-        ProjectCommissionSetting::where('project_id', $contract->id)->update(['is_active' => false]);
+    public function test_project_preview_owner_formula(): void
+    {
+        Sanctum::actingAs($this->accountingUser);
 
-        $this->createActiveSetting($contract, [
-            'commission_source' => 'owner',
-            'commission_percentage' => 4,
+        $contract = Contract::factory()->create([
+            'commission_from'    => 'المالك',
+            'commission_percent' => 4,
         ]);
+        $this->createActiveSetting($contract);
 
         $expectedOwner = round(250000 / 1.04, 2);
 
@@ -459,5 +472,15 @@ class ProjectCommissionPreviewStage3Test extends TestCase
             ->assertOk()
             ->assertJsonPath('data.project_commission_amount', $expectedOwner)
             ->assertJsonPath('data.formula_key', ProjectCommissionCalculator::OWNER_FORMULA_KEY);
+    }
+
+    // ─── helpers ────────────────────────────────────────────────────────────
+
+    protected function makeBuyerContract(array $overrides = []): Contract
+    {
+        return Contract::factory()->create(array_merge([
+            'commission_from'    => 'المشتري',
+            'commission_percent' => 10,
+        ], $overrides));
     }
 }

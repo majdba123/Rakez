@@ -68,11 +68,12 @@ class UnitCommissionGenerationStage4Test extends TestCase
 
     /**
      * @param  array<string, mixed>  $reservationOverrides
+     * @param  array<string, mixed>  $contractOverrides   Commission terms for the contract (passed to factory)
      * @return array{contract: Contract, unit: ContractUnit, reservation: SalesReservation, seller: User}
      */
-    protected function baseReservationScenario(array $reservationOverrides = []): array
+    protected function baseReservationScenario(array $reservationOverrides = [], array $contractOverrides = []): array
     {
-        $contract = Contract::factory()->create();
+        $contract = Contract::factory()->create($contractOverrides);
         $unit = ContractUnit::factory()->create([
             'contract_id' => $contract->id,
             'price' => 110000,
@@ -144,7 +145,11 @@ class UnitCommissionGenerationStage4Test extends TestCase
     {
         Sanctum::actingAs($this->accountingUser);
 
-        $ctx = $this->baseReservationScenario();
+        // Contract defines buyer at 10% — generation reads terms from the Contract
+        $ctx = $this->baseReservationScenario(contractOverrides: [
+            'commission_from'    => 'المشتري',
+            'commission_percent' => 10,
+        ]);
         $setting = $this->createActiveSetting($ctx['contract']);
 
         $resp = $this->postJson("/api/accounting/reservations/{$ctx['reservation']->id}/generate-unit-commission")
@@ -164,11 +169,12 @@ class UnitCommissionGenerationStage4Test extends TestCase
     {
         Sanctum::actingAs($this->accountingUser);
 
-        $ctx = $this->baseReservationScenario();
-        $this->createActiveSetting($ctx['contract'], [
-            'commission_source' => 'owner',
-            'commission_percentage' => 5,
+        // Contract defines owner at 5% — generation reads terms from the Contract
+        $ctx = $this->baseReservationScenario(contractOverrides: [
+            'commission_from'    => 'المالك',
+            'commission_percent' => 5,
         ]);
+        $this->createActiveSetting($ctx['contract']);
 
         $resp = $this->postJson("/api/accounting/reservations/{$ctx['reservation']->id}/generate-unit-commission")
             ->assertOk();

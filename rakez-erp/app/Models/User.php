@@ -515,6 +515,11 @@ class User extends Authenticatable
         return $this->hasMany(\App\Models\AccountingSalaryDistribution::class);
     }
 
+    public function projectRewardRecipients()
+    {
+        return $this->hasMany(\App\Models\ProjectRewardRecipient::class);
+    }
+
     /**
      * Check if user is eligible for commission.
      */

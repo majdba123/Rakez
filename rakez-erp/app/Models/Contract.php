@@ -189,6 +189,28 @@ class Contract extends Model
     }
 
     /**
+     * Per-project reward preview configuration rows.
+     */
+    public function projectRewardSettings(): HasMany
+    {
+        return $this->hasMany(ProjectRewardSetting::class, 'contract_id');
+    }
+
+    /**
+     * The currently active reward preview setting for this contract, if any.
+     */
+    public function activeProjectRewardSetting(): HasOne
+    {
+        return $this->hasOne(ProjectRewardSetting::class, 'contract_id')
+            ->where('is_active', true);
+    }
+
+    public function projectRewards(): HasMany
+    {
+        return $this->hasMany(ProjectReward::class);
+    }
+
+    /**
      * Scope to filter contracts by status.
      */
     public function scopeByStatus($query, $status)

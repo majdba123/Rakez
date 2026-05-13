@@ -7,6 +7,7 @@ use App\Models\User;
 use App\Models\SalesReservation;
 use App\Models\Deposit;
 use App\Models\Commission;
+use App\Models\ProjectReward;
 
 class AccountingNotificationService
 {
@@ -104,6 +105,39 @@ class AccountingNotificationService
         $this->notifyAccountingUsers($message, 'commission_received');
     }
 
+    public function notifyRewardGenerated(ProjectReward $reward): void
+    {
+        $reward->loadMissing(['contract', 'salesReservation.contractUnit', 'recipients.user']);
+
+        foreach ($reward->recipients as $recipient) {
+            if (!$recipient->user_id) {
+                continue;
+            }
+
+            $message = sprintf(
+                'تم إنشاء مكافأة لك بمبلغ %s ريال سعودي - المشروع: %s - الوحدة: %s - نوع المكافأة: %s.',
+                $recipient->amount,
+                $reward->contract?->project_name ?? '-',
+                $reward->salesReservation?->contractUnit?->unit_number ?? '-',
+                $recipient->source_type ?? '-'
+            );
+
+            UserNotification::create([
+                'user_id' => $recipient->user_id,
+                'message' => $message,
+                'status' => 'pending',
+                'event_type' => 'reward_generated',
+                'context' => [
+                    'project_reward_id' => $reward->id,
+                    'project_reward_recipient_id' => $recipient->id,
+                    'amount' => (float) $recipient->amount,
+                    'source_scope' => $recipient->source_scope,
+                    'source_type' => $recipient->source_type,
+                ],
+            ]);
+        }
+    }
+
     /**
      * Get accounting notifications with filters.
      */
@@ -183,6 +217,10 @@ class AccountingNotificationService
      */
     protected function getTypeKeyword(string $type): string
     {
+        if ($type === 'reward_generated') {
+            return 'مكافأة';
+        }
+
         $keywords = [
             'unit_reserved' => 'حجز وحدة',
             'deposit_received' => 'استلام عربون',
@@ -200,6 +238,10 @@ class AccountingNotificationService
      */
     protected function getTypeFromMessage(string $message): ?string
     {
+        if (str_contains($message, 'مكافأة')) {
+            return 'reward_generated';
+        }
+
         $keywords = [
             'unit_reserved' => 'حجز وحدة',
             'deposit_received' => 'استلام عربون',
@@ -223,6 +265,10 @@ class AccountingNotificationService
      */
     protected function getTitleForType(string $type): string
     {
+        if ($type === 'reward_generated') {
+            return 'مكافأة جديدة';
+        }
+
         $titles = [
             'unit_reserved' => 'حجز وحدة جديدة',
             'deposit_received' => 'استلام عربون',

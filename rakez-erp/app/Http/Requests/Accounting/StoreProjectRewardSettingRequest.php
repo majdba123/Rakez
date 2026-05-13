@@ -2,16 +2,18 @@
 
 namespace App\Http\Requests\Accounting;
 
-use App\Http\Requests\Accounting\Concerns\ValidatesProjectCommissionSettingPayload;
+use App\Http\Requests\Accounting\Concerns\ValidatesProjectRewardSettingPayload;
+use App\Models\ProjectRewardSetting;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
-class StoreProjectCommissionSettingRequest extends FormRequest
+class StoreProjectRewardSettingRequest extends FormRequest
 {
-    use ValidatesProjectCommissionSettingPayload;
+    use ValidatesProjectRewardSettingPayload;
 
     public function authorize(): bool
     {
-        return $this->user()?->hasPermissionTo('accounting.sold-units.manage') ?? false;
+        return $this->user()?->hasPermissionTo('accounting.project-reward-settings.manage') ?? false;
     }
 
     protected function prepareForValidation(): void
@@ -41,8 +43,24 @@ class StoreProjectCommissionSettingRequest extends FormRequest
         $pct = ['nullable', 'numeric', 'min:0', 'max:100'];
 
         return [
-            'project_id' => ['required', 'exists:contracts,id'],
-            // commission_source and commission_percentage are auto-resolved from the Contract
+            'contract_id' => ['required', 'exists:contracts,id'],
+            'calculation_mode' => ['required', Rule::in([
+                ProjectRewardSetting::MODE_PERCENTAGE_OF_SALE,
+                ProjectRewardSetting::MODE_MANUAL_AMOUNT,
+            ])],
+            'reward_percentage' => [
+                'nullable',
+                'required_if:calculation_mode,'.ProjectRewardSetting::MODE_PERCENTAGE_OF_SALE,
+                'numeric',
+                'min:0.01',
+                'max:100',
+            ],
+            'source' => ['required', Rule::in([
+                ProjectRewardSetting::SOURCE_DEVELOPER,
+                ProjectRewardSetting::SOURCE_COMPANY,
+            ])],
+            'tax_enabled' => ['nullable', 'boolean'],
+            'vat_percentage' => ['nullable', 'numeric', 'min:0', 'max:100'],
             'assigned_bring_percentage' => $pct,
             'assigned_convince_percentage' => $pct,
             'assigned_close_percentage' => $pct,

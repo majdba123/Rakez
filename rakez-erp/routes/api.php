@@ -61,6 +61,9 @@ use App\Http\Controllers\Accounting\AccountingNotificationController;
 use App\Http\Controllers\Accounting\AccountingSalaryController;
 use App\Http\Controllers\Accounting\ProjectCommissionPreviewController;
 use App\Http\Controllers\Accounting\ProjectCommissionSettingController;
+use App\Http\Controllers\Accounting\ProjectRewardController;
+use App\Http\Controllers\Accounting\ProjectRewardPreviewController;
+use App\Http\Controllers\Accounting\ProjectRewardSettingController;
 use App\Http\Controllers\Accounting\UnitCommissionGenerationController;
 use App\Http\Controllers\Credit\ClaimFileController;
 use App\Http\Controllers\Credit\CreditBookingController;
@@ -923,6 +926,41 @@ use Illuminate\Support\Facades\File;  // أضف هذا السطر في الأع�
             Route::post('reservations/{reservation}/generate-unit-commission', [UnitCommissionGenerationController::class, 'generate'])
                 ->middleware('permission:accounting.sold-units.manage')
                 ->whereNumber('reservation');
+
+            Route::get('project-reward-settings', [ProjectRewardSettingController::class, 'index'])
+                ->middleware('permission:accounting.project-reward-settings.view');
+            Route::post('project-reward-settings', [ProjectRewardSettingController::class, 'store'])
+                ->middleware('permission:accounting.project-reward-settings.manage');
+            Route::get('project-reward-settings/{projectRewardSetting}', [ProjectRewardSettingController::class, 'show'])
+                ->middleware('permission:accounting.project-reward-settings.view')
+                ->whereNumber('projectRewardSetting');
+            Route::put('project-reward-settings/{projectRewardSetting}', [ProjectRewardSettingController::class, 'update'])
+                ->middleware('permission:accounting.project-reward-settings.manage')
+                ->whereNumber('projectRewardSetting');
+            Route::post('project-reward-settings/{projectRewardSetting}/activate', [ProjectRewardSettingController::class, 'activate'])
+                ->middleware('permission:accounting.project-reward-settings.manage')
+                ->whereNumber('projectRewardSetting');
+
+            Route::post('reservations/{reservation}/preview-reward', [ProjectRewardPreviewController::class, 'previewReservationReward'])
+                ->middleware('permission:accounting.project-rewards.view')
+                ->whereNumber('reservation');
+            Route::post('reservations/{reservation}/generate-reward', [ProjectRewardController::class, 'generate'])
+                ->middleware('permission:accounting.project-rewards.manage')
+                ->whereNumber('reservation');
+            Route::get('project-rewards', [ProjectRewardController::class, 'index'])
+                ->middleware('permission:accounting.project-rewards.view');
+            Route::get('project-rewards/{projectReward}', [ProjectRewardController::class, 'show'])
+                ->middleware('permission:accounting.project-rewards.view')
+                ->whereNumber('projectReward');
+            Route::post('project-rewards/{projectReward}/approve', [ProjectRewardController::class, 'approve'])
+                ->middleware('permission:accounting.project-rewards.approve')
+                ->whereNumber('projectReward');
+            Route::post('project-rewards/{projectReward}/reject', [ProjectRewardController::class, 'reject'])
+                ->middleware('permission:accounting.project-rewards.approve')
+                ->whereNumber('projectReward');
+            Route::post('project-rewards/{projectReward}/mark-paid', [ProjectRewardController::class, 'markPaid'])
+                ->middleware('permission:accounting.project-rewards.pay')
+                ->whereNumber('projectReward');
 
             // Deposit management
             Route::get('deposits/pending', [AccountingDepositController::class, 'pending'])->middleware('permission:accounting.deposits.view');

@@ -397,6 +397,11 @@ class SalesReservation extends Model
         return $this->hasOne(\App\Models\Commission::class);
     }
 
+    public function projectRewards()
+    {
+        return $this->hasMany(\App\Models\ProjectReward::class);
+    }
+
     /**
      * Get the deposits for this reservation.
      */

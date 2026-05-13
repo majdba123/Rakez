@@ -2,17 +2,18 @@
 
 namespace App\Http\Requests\Accounting;
 
-use App\Http\Requests\Accounting\Concerns\ValidatesProjectCommissionSettingPayload;
-use App\Models\ProjectCommissionSetting;
+use App\Http\Requests\Accounting\Concerns\ValidatesProjectRewardSettingPayload;
+use App\Models\ProjectRewardSetting;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
-class UpdateProjectCommissionSettingRequest extends FormRequest
+class UpdateProjectRewardSettingRequest extends FormRequest
 {
-    use ValidatesProjectCommissionSettingPayload;
+    use ValidatesProjectRewardSettingPayload;
 
     public function authorize(): bool
     {
-        return $this->user()?->hasPermissionTo('accounting.sold-units.manage') ?? false;
+        return $this->user()?->hasPermissionTo('accounting.project-reward-settings.manage') ?? false;
     }
 
     protected function prepareForValidation(): void
@@ -45,8 +46,18 @@ class UpdateProjectCommissionSettingRequest extends FormRequest
         $pct = ['sometimes', 'nullable', 'numeric', 'min:0', 'max:100'];
 
         return [
-            'project_id' => ['sometimes', 'exists:contracts,id'],
-            // commission_source and commission_percentage are auto-resolved from the Contract
+            'contract_id' => ['sometimes', 'exists:contracts,id'],
+            'calculation_mode' => ['sometimes', Rule::in([
+                ProjectRewardSetting::MODE_PERCENTAGE_OF_SALE,
+                ProjectRewardSetting::MODE_MANUAL_AMOUNT,
+            ])],
+            'reward_percentage' => ['sometimes', 'nullable', 'numeric', 'min:0.01', 'max:100'],
+            'source' => ['sometimes', Rule::in([
+                ProjectRewardSetting::SOURCE_DEVELOPER,
+                ProjectRewardSetting::SOURCE_COMPANY,
+            ])],
+            'tax_enabled' => ['sometimes', 'nullable', 'boolean'],
+            'vat_percentage' => ['sometimes', 'nullable', 'numeric', 'min:0', 'max:100'],
             'assigned_bring_percentage' => $pct,
             'assigned_convince_percentage' => $pct,
             'assigned_close_percentage' => $pct,
@@ -70,8 +81,21 @@ class UpdateProjectCommissionSettingRequest extends FormRequest
     public function withValidator($validator): void
     {
         $validator->after(function (\Illuminate\Validation\Validator $validator): void {
-            /** @var ProjectCommissionSetting|null $existing */
-            $existing = $this->route('projectCommissionSetting');
+            /** @var ProjectRewardSetting|null $existing */
+            $existing = $this->route('projectRewardSetting');
+
+            $mode = $this->input('calculation_mode', $existing?->calculation_mode);
+            $rewardPercentage = $this->input('reward_percentage', $existing?->reward_percentage);
+
+            if (
+                $mode === ProjectRewardSetting::MODE_PERCENTAGE_OF_SALE
+                && ($rewardPercentage === null || $rewardPercentage === '')
+            ) {
+                $validator->errors()->add(
+                    'reward_percentage',
+                    'The reward_percentage field is required when calculation_mode is percentage_of_sale.'
+                );
+            }
 
             $value = function (string $field) use ($existing) {
                 if (array_key_exists($field, $this->all())) {

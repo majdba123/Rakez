@@ -53,7 +53,12 @@ class SimpleCommissionMvpStage5Test extends TestCase
         $this->accountingUser = User::factory()->create(['type' => 'accounting']);
         $this->accountingUser->assignRole('accounting');
 
-        $this->contract = Contract::factory()->create(['status' => 'completed']);
+        // Buyer at 10% so the end-to-end formula assertions are deterministic
+        $this->contract = Contract::factory()->create([
+            'status'             => 'completed',
+            'commission_from'    => 'المشتري',
+            'commission_percent' => 10,
+        ]);
         SecondPartyData::factory()->create(['contract_id' => $this->contract->id]);
 
         $team = Team::factory()->create();
@@ -103,8 +108,7 @@ class SimpleCommissionMvpStage5Test extends TestCase
     {
         return array_merge([
             'project_id' => $this->contract->id,
-            'commission_source' => 'buyer',
-            'commission_percentage' => 10,
+            // commission_source and commission_percentage auto-resolved from Contract
             'assigned_bring_percentage' => 100,
             'assigned_convince_percentage' => 0,
             'assigned_close_percentage' => 0,

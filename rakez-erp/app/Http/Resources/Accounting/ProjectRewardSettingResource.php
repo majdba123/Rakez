@@ -2,28 +2,28 @@
 
 namespace App\Http\Resources\Accounting;
 
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
-class ProjectCommissionSettingResource extends JsonResource
+class ProjectRewardSettingResource extends JsonResource
 {
     public function toArray(Request $request): array
     {
         return [
             'id' => $this->id,
-            'project_id' => (int) $this->project_id,
-            'project' => $this->whenLoaded('project', function () {
+            'contract_id' => (int) $this->contract_id,
+            'contract' => $this->whenLoaded('contract', function () {
                 return [
-                    'id' => $this->project->id,
-                    'project_name' => $this->project->project_name,
+                    'id' => $this->contract->id,
+                    'project_name' => $this->contract->project_name,
                 ];
             }),
-            // Snapshot synced from the Contract at creation/update/activation time
-            'commission_source' => $this->commission_source,
-            'commission_percentage' => (float) $this->commission_percentage,
-            // Live values from the Contract (canonical source of truth)
-            'contract_commission_source' => $this->whenLoaded('project', fn () => $this->project?->commission_from),
-            'contract_commission_percent' => $this->whenLoaded('project', fn () => $this->project?->commission_percent !== null ? (float) $this->project->commission_percent : null),
+            'calculation_mode' => $this->calculation_mode,
+            'reward_percentage' => $this->reward_percentage !== null ? (float) $this->reward_percentage : null,
+            'source' => $this->source,
+            'tax_enabled' => (bool) $this->tax_enabled,
+            'vat_percentage' => (float) $this->vat_percentage,
             'assigned_bring_percentage' => (float) $this->assigned_bring_percentage,
             'assigned_convince_percentage' => (float) $this->assigned_convince_percentage,
             'assigned_close_percentage' => (float) $this->assigned_close_percentage,
@@ -53,7 +53,7 @@ class ProjectCommissionSettingResource extends JsonResource
         ];
     }
 
-    protected function miniUser(?\App\Models\User $user): ?array
+    protected function miniUser(?User $user): ?array
     {
         if (!$user) {
             return null;

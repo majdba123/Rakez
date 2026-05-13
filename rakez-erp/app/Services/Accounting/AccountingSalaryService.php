@@ -5,6 +5,7 @@ namespace App\Services\Accounting;
 use App\Models\User;
 use App\Models\AccountingSalaryDistribution;
 use App\Models\CommissionDistribution;
+use App\Models\ProjectRewardRecipient;
 use App\Models\SalesReservation;
 use Illuminate\Support\Facades\DB;
 use Exception;
@@ -40,9 +41,11 @@ class AccountingSalaryService
         // Calculate commissions for each employee — عرض صحيح: اسم الموظف والمسمى والقسم دائماً مع fallback
         return $employees->map(function ($employee) use ($month, $year) {
             $totalCommissions = $this->getEmployeeCommissionsForMonth($employee->id, $month, $year);
+            $totalRewards = $this->getEmployeeRewardsForMonth($employee->id, $month, $year);
             $existingDistribution = $employee->salaryDistributions->first();
             $baseSalary = $employee->salary !== null ? (float) $employee->salary : 0;
-            $totalAmount = $baseSalary + $totalCommissions;
+            $totalAmount = $baseSalary + $totalCommissions + $totalRewards;
+            $rewardDetails = $this->getEmployeeRewardBreakdownForMonth($employee->id, $month, $year);
 
             return [
                 'user_id' => $employee->id,
@@ -57,13 +60,16 @@ class AccountingSalaryService
                 'base_salary' => $baseSalary,
                 'commission_eligibility' => (bool) $employee->commission_eligibility,
                 'total_commissions' => round($totalCommissions, 2),
+                'total_rewards' => round($totalRewards, 2),
                 'total_amount' => round($totalAmount, 2),
+                'reward_details' => $rewardDetails,
                 'distribution_status' => $existingDistribution?->status ?? 'not_created',
                 'distribution_id' => $existingDistribution?->id ?? null,
                 'distribution' => $existingDistribution ? [
                     'id' => $existingDistribution->id,
                     'base_salary' => (float) $existingDistribution->base_salary,
                     'total_commissions' => (float) $existingDistribution->total_commissions,
+                    'total_rewards' => (float) $existingDistribution->total_rewards,
                     'total_amount' => (float) $existingDistribution->total_amount,
                     'status' => $existingDistribution->status,
                 ] : null,
@@ -89,6 +95,72 @@ class AccountingSalaryService
             ->sum('amount');
 
         return (float) $total;
+    }
+
+    public function getEmployeeRewardsForMonth(int $userId, int $month, int $year): float
+    {
+        $startDate = sprintf('%04d-%02d-01', $year, $month);
+        $endDate = date('Y-m-t', strtotime($startDate));
+
+        $total = ProjectRewardRecipient::where('user_id', $userId)
+            ->whereIn('status', ['approved', 'paid'])
+            ->whereHas('reward', function ($q) use ($startDate, $endDate) {
+                $q->whereDate('approved_at', '>=', $startDate)
+                    ->whereDate('approved_at', '<=', $endDate);
+            })
+            ->sum('amount');
+
+        return (float) $total;
+    }
+
+    public function getEmployeeRewardBreakdownForMonth(int $userId, int $month, int $year): array
+    {
+        $startDate = sprintf('%04d-%02d-01', $year, $month);
+        $endDate = date('Y-m-t', strtotime($startDate));
+
+        $recipients = ProjectRewardRecipient::with([
+            'reward.contract',
+            'reward.salesReservation.contractUnit',
+        ])
+            ->where('user_id', $userId)
+            ->whereIn('status', ['approved', 'paid'])
+            ->whereHas('reward', function ($q) use ($startDate, $endDate) {
+                $q->whereDate('approved_at', '>=', $startDate)
+                    ->whereDate('approved_at', '<=', $endDate);
+            })
+            ->get();
+
+        $lines = $recipients->map(function ($recipient) {
+            $reward = $recipient->reward;
+
+            return [
+                'project_reward_id' => $reward?->id,
+                'project_reward_recipient_id' => $recipient->id,
+                'project_name' => $reward?->contract?->project_name ?? '—',
+                'unit_number' => $reward?->salesReservation?->contractUnit?->unit_number ?? '—',
+                'source' => $reward?->source,
+                'source_scope' => $recipient->source_scope,
+                'source_type' => $recipient->source_type,
+                'percentage' => $recipient->percentage !== null ? round((float) $recipient->percentage, 4) : null,
+                'amount' => round((float) $recipient->amount, 2),
+                'status' => $recipient->status,
+                'approved_at' => $reward?->approved_at?->toDateTimeString(),
+                'paid_at' => $recipient->paid_at?->toDateTimeString(),
+            ];
+        });
+
+        $byProject = $lines->groupBy('project_name')->map(function ($items, $projectName) {
+            return [
+                'project_name' => $projectName,
+                'total_rewards' => round($items->sum('amount'), 2),
+                'details' => $items->values()->all(),
+            ];
+        })->values()->all();
+
+        return [
+            'by_project' => $byProject,
+            'total_rewards' => round($lines->sum('amount'), 2),
+        ];
     }
 
     /**
@@ -166,6 +238,7 @@ class AccountingSalaryService
             ->get();
 
         $totalCommissions = $this->getEmployeeCommissionsForMonth($userId, $month, $year);
+        $totalRewards = $this->getEmployeeRewardsForMonth($userId, $month, $year);
         $baseSalary = $employee->salary !== null ? (float) $employee->salary : 0;
 
         $soldUnitsList = $soldUnits->map(function ($reservation) {
@@ -185,6 +258,7 @@ class AccountingSalaryService
         // تفصيل العمولات حسب المشروع: كيف وصل الإجمالي — كل مشروع مع قائمة السطور (وحدة، نوع عمولة، مبلغ)
         $breakdown = $this->getEmployeeCommissionBreakdownForMonth($userId, $month, $year);
         $commissionsByProject = $breakdown['by_project'];
+        $rewardDetails = $this->getEmployeeRewardBreakdownForMonth($userId, $month, $year);
 
         $salaryDistribution = AccountingSalaryDistribution::where('user_id', $userId)
             ->where('month', $month)
@@ -213,18 +287,22 @@ class AccountingSalaryService
                 'id' => $salaryDistribution->id,
                 'base_salary' => (float) $salaryDistribution->base_salary,
                 'total_commissions' => (float) $salaryDistribution->total_commissions,
+                'total_rewards' => (float) $salaryDistribution->total_rewards,
                 'total_amount' => (float) $salaryDistribution->total_amount,
                 'status' => $salaryDistribution->status,
             ] : null,
             'sold_units' => $soldUnitsList->values()->all(),
             'commissions_by_project' => $commissionsByProject,
             'commissions_total' => $breakdown['total_commissions'],
+            'reward_details' => $rewardDetails,
+            'rewards_total' => $rewardDetails['total_rewards'],
             'summary' => [
                 'units_sold' => $soldUnits->count(),
                 'total_sales_value' => round((float) $soldUnits->sum('proposed_price'), 2),
                 'total_commissions' => round($totalCommissions, 2),
+                'total_rewards' => round($totalRewards, 2),
                 'base_salary' => $baseSalary,
-                'total_amount' => round($baseSalary + $totalCommissions, 2),
+                'total_amount' => round($baseSalary + $totalCommissions + $totalRewards, 2),
             ],
         ];
     }
@@ -253,6 +331,7 @@ class AccountingSalaryService
         DB::beginTransaction();
         try {
             $totalCommissions = $this->getEmployeeCommissionsForMonth($userId, $month, $year);
+            $totalRewards = $this->getEmployeeRewardsForMonth($userId, $month, $year);
 
             $distribution = new AccountingSalaryDistribution([
                 'user_id' => $userId,
@@ -260,6 +339,7 @@ class AccountingSalaryService
                 'year' => $year,
                 'base_salary' => $employee->salary,
                 'total_commissions' => $totalCommissions,
+                'total_rewards' => $totalRewards,
                 'status' => 'pending',
             ]);
 

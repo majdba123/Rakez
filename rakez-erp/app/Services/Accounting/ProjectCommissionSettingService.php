@@ -2,6 +2,7 @@
 
 namespace App\Services\Accounting;
 
+use App\Models\Contract;
 use App\Models\ProjectCommissionSetting;
 use App\Models\User;
 use Illuminate\Support\Arr;
@@ -25,6 +26,10 @@ class ProjectCommissionSettingService
         'external_marketer_percentage',
     ];
 
+    public function __construct(
+        private ContractCommissionTermsResolver $resolver,
+    ) {}
+
     /**
      * @param  array<string, mixed>  $data
      */
@@ -37,6 +42,12 @@ class ProjectCommissionSettingService
             if (!array_key_exists('is_active', $payload)) {
                 $payload['is_active'] = true;
             }
+
+            // Auto-fill commission terms from Contract — request values are ignored
+            $contract = Contract::findOrFail((int) $payload['project_id']);
+            $terms = $this->resolver->resolve($contract);
+            $payload['commission_source']    = $terms['commission_source'];
+            $payload['commission_percentage'] = $terms['commission_percentage'];
 
             $model = ProjectCommissionSetting::create($payload);
 
@@ -55,12 +66,19 @@ class ProjectCommissionSettingService
     {
         return DB::transaction(function () use ($setting, $data) {
             $payload = $this->sanitizePayload(Arr::only($data, (new ProjectCommissionSetting)->getFillable()));
-            unset($payload['created_by']);
+            unset($payload['created_by'], $payload['commission_source'], $payload['commission_percentage']);
 
             if ($payload !== []) {
                 $setting->fill($payload);
                 $setting->save();
             }
+
+            // Re-sync commission terms from Contract
+            $contract = Contract::findOrFail((int) $setting->project_id);
+            $terms = $this->resolver->resolve($contract);
+            $setting->commission_source    = $terms['commission_source'];
+            $setting->commission_percentage = $terms['commission_percentage'];
+            $setting->save();
 
             if ($setting->is_active) {
                 $this->deactivateOthersOnProject($setting);
@@ -79,6 +97,13 @@ class ProjectCommissionSettingService
 
             $setting->refresh();
             $setting->is_active = true;
+
+            // Re-sync commission terms from Contract
+            $contract = Contract::findOrFail((int) $setting->project_id);
+            $terms = $this->resolver->resolve($contract);
+            $setting->commission_source    = $terms['commission_source'];
+            $setting->commission_percentage = $terms['commission_percentage'];
+
             $setting->save();
 
             return $setting->fresh($this->eagerLoads());
