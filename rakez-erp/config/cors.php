@@ -1,59 +1,28 @@
 <?php
 
-return [
-    /*
-    |--------------------------------------------------------------------------
-    | Cross-Origin Resource Sharing (CORS) Configuration
-    |--------------------------------------------------------------------------
-    |
-    | Here you may configure your settings for cross-origin resource sharing
-    | or "CORS". This determines what cross-origin operations may execute
-    | in web browsers. You are free to adjust these settings as needed.
-    |
-    | Learn more: https://developer.mozilla.org/en-US/docs/Web/HTTP/CORS
-    |
-    */
+$allowedOrigins = array_values(array_filter(array_map(
+    static fn (string $origin): string => trim($origin),
+    explode(',', (string) env('CORS_ALLOWED_ORIGINS', 'https://www.rakez.com.sa,https://rakez.com.sa'))
+)));
 
+return [
     'paths' => ['api/*', 'sanctum/csrf-cookie'],
 
     'allowed_methods' => ['*'],
 
-    'allowed_origins' => [
+    'allowed_origins' => $allowedOrigins,
 
-        'https://www.rakez.com.sa',
-        'https://rakez.com.sa',
-        'rakez.com.sa',
-        'www.rakez.com.sa',
-
-        'http://localhost:3000',
-        'http://127.0.0.1:3000',
-
-        'http://localhost:8080',
-        'localhost:8080',
-        'http://127.0.0.1:8080',
-        '127.0.0.1:8080',
-
-        'http://localhost:8000',
-        'localhost:8000',
-        'http://127.0.0.1:8000',
-        '127.0.0.1:8000',
-
-        'http://localhost:5173',
-        'localhost:5173',
-        'http://127.0.0.1:5173',
-        '127.0.0.1:5173'
-
-    ],
-
-    'allowed_origins_patterns' => [],
+    // Local browser development may use any localhost / 127.0.0.1 port.
+    // Production origins must be explicit in CORS_ALLOWED_ORIGINS.
+    'allowed_origins_patterns' => env('APP_ENV', 'production') === 'local' ? [
+        '/^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/',
+    ] : [],
 
     'allowed_headers' => ['*'],
 
     'exposed_headers' => ['Content-Disposition', 'Content-Length', 'Content-Type'],
 
-    'max_age' => 0,
+    'max_age' => (int) env('CORS_MAX_AGE', 600),
 
-    'supports_credentials' => false,
+    'supports_credentials' => (bool) env('CORS_SUPPORTS_CREDENTIALS', false),
 ];
-
-
