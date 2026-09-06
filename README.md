@@ -1,12 +1,12 @@
 # Rakez ERP — Real Estate ERP
 
-> Production-oriented real-estate ERP built with Laravel 12, REST APIs, Laravel Sanctum, granular role/permission workflows, Redis, PHPUnit, and third-party integrations.
+> Production-oriented real-estate ERP built with Laravel 12, REST APIs, Laravel Sanctum, granular RBAC/permission workflows, Redis, PHPUnit, third-party integrations, and GitHub Actions-based production delivery.
 
 ## Overview
 
 Rakez ERP is a business operations platform for real-estate workflows. The system is designed around production business logic rather than a generic CRUD structure, with backend modules covering accounting, commissions, deposits, salaries, notifications, dashboards, authenticated APIs, granular permissions, and operational processes.
 
-This repository is one of the primary backend-focused projects in my portfolio and reflects work across requirements analysis, ERD/database design, backend architecture, REST API implementation, access control, integrations, testing, deployment support, and production troubleshooting.
+This repository is one of the primary backend-focused projects in my portfolio and reflects work across **requirements analysis, ERD/database design, backend architecture, REST API implementation, access control, integrations, testing, CI/CD, server deployment, and production troubleshooting**.
 
 The Laravel application is located under [`rakez-erp/`](rakez-erp/).
 
@@ -45,7 +45,8 @@ The exact behavior of individual modules should be evaluated from the implementa
 - Server-side PDF/document tooling
 - Excel import/export support
 - Queue/background workflow support through Laravel tooling
-- Production-oriented deployment and configuration structure
+- Environment-based configuration with secrets kept outside source control
+- Linux/VPS-oriented production deployment structure
 
 ### Integrations
 
@@ -58,6 +59,32 @@ Repository dependencies and implementation areas include support for integration
 
 The presence of an SDK or dependency does not by itself imply that every integration path is enabled in every environment.
 
+## CI/CD & Production Delivery
+
+The repository includes a GitHub Actions production deployment workflow under [`.github/workflows/deploy.yml`](.github/workflows/deploy.yml).
+
+The deployment workflow is intentionally explicit about production safety:
+
+- production runs use a dedicated GitHub environment;
+- SSH host, username, private key, port, and fingerprint are supplied through GitHub Secrets;
+- the SSH action is pinned to a specific commit rather than a floating tag;
+- deployment uses `composer install --no-dev --optimize-autoloader`;
+- frontend dependencies are installed with `npm ci` and built for production;
+- Laravel configuration, routes, views, migrations, and optimization are applied on the server;
+- deployment is serialized through a production concurrency group.
+
+This provides repository-level evidence for the CI/CD, GitHub Actions, Linux/VPS, SSH, environment configuration, and production-deployment experience described in my CV.
+
+## Security & Configuration Hygiene
+
+- Runtime credentials belong in server environment configuration or GitHub Secrets, never in source control.
+- Reverb/WebSocket documentation uses placeholders rather than production secrets or infrastructure-specific credentials.
+- Frontend configuration exposes only client-safe values; privileged tokens and `REVERB_APP_SECRET` remain server-side.
+- API authentication and permission boundaries are enforced through Sanctum and granular role/permission workflows.
+- Real third-party credentials used by integrations or live tests must be supplied through environment configuration.
+
+> Historical credentials that were ever committed should be treated as exposed and rotated at the provider, even after the current branch is sanitized.
+
 ## Technology Stack
 
 | Area | Technologies |
@@ -69,13 +96,16 @@ The presence of an SDK or dependency does not by itself imply that every integra
 | Real-Time | Laravel Reverb |
 | Testing | PHPUnit 11, Laravel testing tools |
 | Integrations | Twilio, Meta Business SDK, TikTok Marketing API, OpenAI |
-| Delivery | Composer, npm/Vite tooling, Linux/VPS-oriented deployment workflows |
+| CI/CD | GitHub Actions, GitHub Environments / Secrets |
+| Production Delivery | Linux/VPS, SSH, Composer, npm/Vite, Laravel optimization and migrations |
 
 ## Repository Structure
 
 ```text
 .
 ├── .github/
+│   └── workflows/
+│       └── deploy.yml
 ├── rakez-erp/
 │   ├── app/
 │   ├── config/
@@ -102,6 +132,7 @@ The codebase contains concrete backend evidence for the CV-level positioning of 
 - Authenticated API route groups
 - Third-party SDKs and integration packages
 - OpenAI integration package and AI-related test suites
+- GitHub Actions production deployment
 
 ## Engineering Positioning
 
@@ -109,11 +140,11 @@ This project is best presented as a **real-estate ERP and backend business platf
 
 It demonstrates work across:
 
-`Requirements → Data Model → Backend Architecture → REST APIs → Authentication / Authorization → Business Logic → Integrations → Testing → Deployment / Production Support`
+`Requirements → Data Model → Backend Architecture → REST APIs → Authentication / Authorization → Business Logic → Integrations → Testing → CI/CD → Deployment → Production Support`
 
 ## Portfolio
 
 **Majd Bayer — Full Stack Software Engineer | Backend-Focused**  
-Laravel · FastAPI · Next.js · REST APIs · ERP/CRM · System Design
+Laravel · FastAPI · Next.js · REST APIs · ERP/CRM · System Design · CI/CD
 
 Portfolio / Company: https://www.hexaterminal.com/en
