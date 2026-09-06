@@ -1,33 +1,58 @@
-name: Deploy to Production
+name: Production Deploy
 
 on:
-  push:
-    branches:
-      - main
-    paths:
-      - 'rakez-erp/**'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: rakez-production-deploy
+  cancel-in-progress: false
 
 jobs:
   deploy:
+    name: Deploy production
     runs-on: ubuntu-latest
+    timeout-minutes: 20
+    environment: production
+
     steps:
-      - name: Deploy to Server via SSH
-        uses: appleboy/ssh-action@v1.0.3
+      - name: Validate deployment secrets
+        shell: bash
+        env:
+          SSH_HOST: ${{ secrets.SSH_HOST }}
+          SSH_USERNAME: ${{ secrets.SSH_USERNAME }}
+          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+          SSH_PORT: ${{ secrets.SSH_PORT }}
+        run: |
+          set -euo pipefail
+          test -n "$SSH_HOST" || { echo "SSH_HOST is not configured"; exit 1; }
+          test -n "$SSH_USERNAME" || { echo "SSH_USERNAME is not configured"; exit 1; }
+          test -n "$SSH_PRIVATE_KEY" || { echo "SSH_PRIVATE_KEY is not configured"; exit 1; }
+          test -n "$SSH_PORT" || { echo "SSH_PORT is not configured"; exit 1; }
+
+      - name: Deploy to server via SSH
+        # Pinned commit for appleboy/ssh-action v1.0.3.
+        uses: appleboy/ssh-action@029f5b4aeeeb58fdfe1410a5d17f967dacf36262
         with:
           host: ${{ secrets.SSH_HOST }}
           username: ${{ secrets.SSH_USERNAME }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           port: ${{ secrets.SSH_PORT }}
+          fingerprint: ${{ secrets.SSH_FINGERPRINT }}
+          script_stop: true
+          command_timeout: 15m
           script: |
+            set -e
             cd /var/www/Rakez/rakez-erp
-            git fetch origin
+            git fetch --prune origin
             git reset --hard origin/main
-            composer install --no-dev --optimize-autoloader --no-interaction
-            npm ci && npm run build
+            composer install --no-dev --optimize-autoloader --no-interaction --prefer-dist
+            npm ci
+            npm run build
             php artisan config:cache
             php artisan route:cache
             php artisan view:cache
             php artisan migrate --force
             php artisan optimize
-            echo "Deployed successfully!"
-
