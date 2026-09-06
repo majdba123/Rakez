@@ -6,6 +6,12 @@
 .env.*
 !.env.example
 
+# Generated test / local analysis outputs
+test-results.txt
+test-results-*.txt
+phpunit-result*.txt
+coverage/
+
 .phpactor.json
 .phpunit.result.cache
 /.fleet
